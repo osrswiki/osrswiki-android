@@ -1,28 +1,37 @@
-package com.omiyawaki.osrswiki.data // Package: com.omiyawaki.osrswiki.data
+package com.omiyawaki.osrswiki.data
 
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.omiyawaki.osrswiki.data.paging.SearchPagingSource // Your PagingSource
-import com.omiyawaki.osrswiki.network.SearchApiResponse // Keep if existing method is used
-import com.omiyawaki.osrswiki.network.SearchResult // DTO for PagingData
+import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
+import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added import
+import com.omiyawaki.osrswiki.data.model.ArticleFtsSearchResult // Added import
+import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
+import com.omiyawaki.osrswiki.network.SearchApiResponse
+import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
-import kotlinx.coroutines.Dispatchers // Keep if existing method is used
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext // Keep if existing method is used
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn // Ensure flowOn is imported for the new FTS search method
+import kotlinx.coroutines.withContext
 
 // Define a default page size for PagingConfig.
-// This should align with what your UI expects or what is efficient for the API.
 private const val DEFAULT_SEARCH_RESULTS_PAGE_SIZE = 20
 
 /**
- * Repository for fetching search results from the OSRS Wiki API.
- * This class abstracts the data source (network) from the ViewModel.
+ * Repository for fetching search results from the OSRS Wiki API and local FTS.
+ * This class abstracts the data source (network, local DB checks, local FTS) from the ViewModel.
  */
-class SearchRepository(private val apiService: WikiApiService) {
+class SearchRepository(
+    private val apiService: WikiApiService,
+    private val articleDao: ArticleDao,
+    private val articleFtsDao: ArticleFtsDao // Added ArticleFtsDao dependency
+) {
 
     /**
-     * Performs a search for articles on the OSRS Wiki using Jetpack Paging 3.
+     * Performs a search for articles on the OSRS Wiki using Jetpack Paging 3 (network search).
+     * Results will be enhanced with offline availability status.
      *
      * @param query The search term.
      * @return A Flow of PagingData containing SearchResult items.
@@ -31,29 +40,27 @@ class SearchRepository(private val apiService: WikiApiService) {
         return Pager(
             config = PagingConfig(
                 pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
-                enablePlaceholders = false // Typically false for network sources
-                // prefetchDistance = Can be configured if needed
-                // initialLoadSize = Can be configured if needed (defaults to 3 * pageSize)
+                enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                SearchPagingSource(apiService = apiService, query = query)
+                // Pass ArticleDao to SearchPagingSource
+                SearchPagingSource(apiService = apiService, query = query, articleDao = articleDao)
             }
         ).flow
     }
 
+
     /**
-     * Performs a legacy search for articles on the OSRS Wiki (non-Paging).
+     * Performs a search for articles in the local FTS table.
      *
-     * @param query The search term.
-     * @param limit The maximum number of results to return.
-     * @param offset The offset from which to start returning results.
-     * @return A [SearchApiResponse] containing the search results.
-     * Can throw an exception if the network call fails.
+     * @param query The search term for FTS matching.
+     * @return A Flow of a list of [ArticleFtsSearchResult] items.
      */
-    suspend fun searchArticles(query: String, limit: Int, offset: Int): SearchApiResponse {
-        // Perform the network request on the IO dispatcher
-        return withContext(Dispatchers.IO) {
-            apiService.searchArticles(query = query, limit = limit, offset = offset)
-        }
+    fun searchFtsOffline(query: String): Flow<List<ArticleFtsSearchResult>> {
+        // ArticleFtsDao.searchArticles returns a Flow. Room ensures this query runs
+        // on a background thread. flowOn(Dispatchers.IO) is an additional safeguard
+        // to ensure any subsequent collection or minor transformations in this flow chain
+        // also use the IO dispatcher.
+        return articleFtsDao.searchArticles(query).flowOn(Dispatchers.IO)
     }
 }

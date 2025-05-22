@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.network
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -41,7 +40,8 @@ data class SearchResult(
     val size: Int? = null, // Size of the page in bytes
     val wordcount: Int? = null,
     val snippet: String? = null, // HTML snippet of the search result context
-    val timestamp: String? = null // ISO 8601 timestamp of last edit
+    val timestamp: String? = null, // ISO 8601 timestamp of last edit
+    val isOfflineAvailable: Boolean = false // New field for offline status
     // Other fields like "score", "titlesnippet", "redirecttitle", "redirectsnippet",
     // "sectiontitle", "sectionsnippet", "isfilematch", "categorysnippet" might exist.
     // Add them if needed.

@@ -12,11 +12,12 @@ data class ParseApiResponse(
 )
 
 /**
- * Contains the actual parsed data of an article, including its title, ID, and HTML text.
+ * Contains the actual parsed data of an article, including its title, ID, revision ID, and HTML text.
  */
 @Serializable
 data class ParseData(
     val title: String? = null,
     val pageid: Int? = null, // The unique ID of the MediaWiki page
-    val text: String? = null   // The parsed HTML content of the page
+    val revid: Long? = null, // The revision ID of the page content
+    val text: String? = null  // The parsed HTML content of the page
 )

@@ -54,12 +54,17 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
+    // Room components
+    implementation(libs.androidx.room.runtime) // Assuming alias exists in libs.versions.toml
+    implementation(libs.androidx.room.ktx)     // Assuming alias exists
+    ksp(libs.androidx.room.compiler)       // Assuming alias exists
+
     // Added dependencies
     implementation(libs.androidx.constraintlayout)
-        implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1") // Corrected alias if it was lifecycle.viewmodelKtx
-        implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1") // Corrected alias if it was lifecycle.viewmodelKtx
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1")
     implementation("androidx.navigation:navigation-fragment-ktx:2.7.7") // Corrected alias if it was navigation.fragmentKtx
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")       // Corrected alias if it was navigation.uiKtx
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")     // Corrected alias if it was navigation.uiKtx
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.glide.core)
     ksp(libs.glide.ksp)

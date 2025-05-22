@@ -1,4 +1,5 @@
 package com.omiyawaki.osrswiki.ui.search
+import kotlinx.coroutines.flow.combine
 
 import android.content.Context
 import android.os.Bundle
@@ -15,11 +16,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.paging.LoadState // Import LoadState
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.omiyawaki.osrswiki.R // For string resources
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import kotlinx.coroutines.flow.collectLatest // Import collectLatest
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class SearchFragment : Fragment() {
@@ -28,7 +29,8 @@ class SearchFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: SearchViewModel by viewModels { SearchViewModelFactory(requireActivity().application) }
-    private lateinit var searchResultAdapter: SearchResultAdapter
+    private lateinit var searchResultAdapter: SearchResultAdapter // For online Paging results
+    private lateinit var ftsResultAdapter: FtsResultAdapter     // For offline FTS results
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,24 +43,42 @@ class SearchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupRecyclerView()
+        setupOnlineSearchRecyclerView()
+        setupFtsRecyclerView() // New: Setup FTS RecyclerView
         setupSearchInput()
-        observeSearchResults() // New: Observe PagingData
-        observeLoadStates()    // New: Observe PagingAdapter LoadStates
-        observeScreenMessages()// New: Observe general screen messages from ViewModel
+        observeOnlineSearchResults()
+        observeOnlineLoadStates()
+        observeFtsSearchResults() // New: Observe FTS results
+        observeScreenMessages()
     }
 
-    private fun setupRecyclerView() {
+    private fun handleSearchResultItemClick(cleanedSearchResultItem: CleanedSearchResultItem) {
+        Log.d("SearchFragment", "Clicked item ID: ${cleanedSearchResultItem.id}, Title: ${cleanedSearchResultItem.title}")
+        // Ensure snippet (which might contain HTML) doesn't break navigation if passed.
+        // Here, only ID is passed, which is safe.
+        val action = SearchFragmentDirections.actionSearchFragmentToArticleFragment(cleanedSearchResultItem.id)
+        findNavController().navigate(action)
+    }
+
+    private fun setupOnlineSearchRecyclerView() {
         searchResultAdapter = SearchResultAdapter { cleanedSearchResultItem ->
-            // Handle item click - Navigate to ArticleFragment
-            Log.d("SearchFragment", "Clicked item ID: ${cleanedSearchResultItem.id}, Title: ${cleanedSearchResultItem.title}")
-            val action = SearchFragmentDirections.actionSearchFragmentToArticleFragment(cleanedSearchResultItem.id)
-            findNavController().navigate(action)
+            handleSearchResultItemClick(cleanedSearchResultItem)
         }
         binding.searchResultsRecyclerview.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = searchResultAdapter
-            // Optional: Add item decorations or animations here
+        }
+    }
+
+    private fun setupFtsRecyclerView() {
+        ftsResultAdapter = FtsResultAdapter { cleanedSearchResultItem ->
+            handleSearchResultItemClick(cleanedSearchResultItem)
+        }
+        binding.ftsResultsRecyclerview.apply {
+            layoutManager = LinearLayoutManager(context)
+            adapter = ftsResultAdapter
+            // Consider if nested scrolling should be disabled if parent is scrollable:
+            // isNestedScrollingEnabled = false
         }
     }
 
@@ -70,14 +90,12 @@ class SearchFragment : Fragment() {
             }
             false
         }
-        // Consider adding a text changed listener for live search with debounce if desired,
-        // but EditorInfo.IME_ACTION_SEARCH is fine for MVP.
-        // viewModel.performSearch is already debounced in ViewModel.
     }
 
     private fun performSearch() {
         val query = binding.searchEditText.text.toString().trim()
-        viewModel.performSearch(query) // This updates the query in ViewModel, triggering the flow
+        // This one call in ViewModel should trigger both FTS and online searches via its internal logic
+        viewModel.performSearch(query)
         hideKeyboard()
     }
 
@@ -86,75 +104,104 @@ class SearchFragment : Fragment() {
         imm?.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 
-    private fun observeSearchResults() {
+    private fun observeFtsSearchResults() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.ftsSearchResults.collectLatest { ftsResults ->
+                    val query = viewModel.screenUiState.value.currentQuery
+                    val hasQuery = !query.isNullOrBlank()
+                    val hasFtsResults = ftsResults.isNotEmpty()
+
+                    Log.d("SearchFragment", "FTS Results observed. Query: '$query', Count: ${ftsResults.size}")
+
+                    // Show FTS results section if there's a query and results are found
+                    binding.ftsResultsTitleTextview.isVisible = hasQuery && hasFtsResults
+                    binding.ftsResultsRecyclerview.isVisible = hasQuery && hasFtsResults
+                    ftsResultAdapter.submitList(if (hasQuery) ftsResults else emptyList())
+
+                    // If FTS results are shown, potentially hide general "no results" message for online search,
+                    // especially if online search hasn't completed or also yielded no results.
+                    // This coordination might need refinement based on desired UX.
+                    // For now, observeLoadStates will handle messages for the online part.
+                    // If FTS has results, the screen won't look completely empty.
+                }
+            }
+        }
+    }
+
+    private fun observeOnlineSearchResults() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.searchResultsFlow.collectLatest { pagingData ->
-                    Log.d("SearchFragment", "Submitting new PagingData to adapter.")
+                    Log.d("SearchFragment", "Submitting new PagingData to online search adapter.")
                     searchResultAdapter.submitData(pagingData)
                 }
             }
         }
     }
 
-    private fun observeLoadStates() {
+    private fun observeOnlineLoadStates() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 searchResultAdapter.loadStateFlow.collectLatest { loadStates ->
-                    // Handle refresh state (initial load or swipe-to-refresh)
-                    when (val refreshState = loadStates.refresh) {
+                    val refreshState = loadStates.refresh
+                    Log.d("SearchFragment", "Online LoadState: $refreshState, Item count: ${searchResultAdapter.itemCount}")
+
+                    // Only manage progress bar and online-specific messages if FTS results are not already filling the screen
+                    // or if we want to show online loading state regardless.
+                    // For now, let FTS visibility be independent. Online section shows its state.
+
+                    binding.searchProgressBar.isVisible = refreshState is LoadState.Loading
+
+                    when (refreshState) {
                         is LoadState.Loading -> {
-                            Log.d("SearchFragment", "LoadState: Refresh Loading")
-                            binding.root.post {
-                                if (_binding != null) {
-                                    binding.searchProgressBar.isVisible = true
-                                    binding.searchMessageTextview.isVisible = false
-                                    binding.searchResultsRecyclerview.isVisible = false
-                                }
-                            }
+                            binding.searchMessageTextview.isVisible = false
+                            binding.searchResultsRecyclerview.isVisible = false // Hide online RV while loading it
                         }
                         is LoadState.NotLoading -> {
-                            Log.d("SearchFragment", "LoadState: Refresh NotLoading. Item count: ${searchResultAdapter.itemCount}")
-                            binding.root.post {
-                                if (_binding != null) {
-                                    binding.searchProgressBar.isVisible = false
-                                    val currentQuery = viewModel.screenUiState.value.currentQuery
-                                    if (searchResultAdapter.itemCount == 0 && !currentQuery.isNullOrBlank()) {
-                                        // Active query, but no results
-                                        binding.searchMessageTextview.text = getString(R.string.search_no_results)
-                                        binding.searchMessageTextview.isVisible = true
-                                        binding.searchResultsRecyclerview.isVisible = false
-                                    } else if (searchResultAdapter.itemCount > 0) {
-                                        // Results found
-                                        binding.searchMessageTextview.isVisible = false
-                                        binding.searchResultsRecyclerview.isVisible = true
-                                    } else {
-                                        // No items, and query is blank (implicitly, due to previous conditions)
-                                        // Let observeScreenMessages handle the "enter query" prompt for searchMessageTextview.
-                                        // Ensure RecyclerView is hidden.
-                                        binding.searchResultsRecyclerview.isVisible = false
-                                        // searchMessageTextview visibility for blank query state will be set by observeScreenMessages
-                                    }
+                            val currentQuery = viewModel.screenUiState.value.currentQuery
+                            val onlineResultsEmpty = searchResultAdapter.itemCount == 0
+                            val hasQuery = !currentQuery.isNullOrBlank()
+
+                            if (onlineResultsEmpty && hasQuery) {
+                                // Online search attempted for a query, but no online results.
+                                // FTS might have results. If FTS also has no results, this message is appropriate.
+                                // If FTS *has* results, this message might be confusing.
+                                // Let's show it if FTS results are also empty for this query.
+                                if (binding.ftsResultsRecyclerview.isVisible.not()) {
+                                    binding.searchMessageTextview.text = getString(R.string.search_no_results)
+                                    binding.searchMessageTextview.isVisible = true
+                                } else {
+                                    binding.searchMessageTextview.isVisible = false // FTS has results, hide "no results"
                                 }
+                                binding.searchResultsRecyclerview.isVisible = false
+                            } else if (!onlineResultsEmpty) {
+                                // Online results found
+                                binding.searchMessageTextview.isVisible = false
+                                binding.searchResultsRecyclerview.isVisible = true
+                            } else {
+                                // No query or initial state for online part
+                                // Let observeScreenMessages handle initial prompt if FTS results are also not visible.
+                                if (binding.ftsResultsRecyclerview.isVisible.not()) {
+                                     // This state will be typically caught by observeScreenMessages for initial prompt
+                                     // binding.searchMessageTextview.isVisible = true; // (handled by observeScreenMessages)
+                                } else {
+                                     binding.searchMessageTextview.isVisible = false
+                                }
+                                binding.searchResultsRecyclerview.isVisible = false
                             }
                         }
                         is LoadState.Error -> {
-                            Log.e("SearchFragment", "LoadState: Refresh Error - ${refreshState.error.localizedMessage}", refreshState.error)
-                            binding.root.post {
-                                if (_binding != null) {
-                                    binding.searchProgressBar.isVisible = false
-                                    binding.searchMessageTextview.text = getString(R.string.search_network_error) // Or more specific from refreshState.error
-                                    binding.searchMessageTextview.isVisible = true
-                                    binding.searchResultsRecyclerview.isVisible = false
-                                    // TODO: Optionally, add a retry button that calls adapter.retry()
-                                }
+                            Log.e("SearchFragment", "Online LoadState Error: ${refreshState.error.localizedMessage}", refreshState.error)
+                            if (binding.ftsResultsRecyclerview.isVisible.not()) { // Show error only if no FTS results
+                                binding.searchMessageTextview.text = getString(R.string.search_network_error)
+                                binding.searchMessageTextview.isVisible = true
+                            } else {
+                                binding.searchMessageTextview.isVisible = false // FTS has results, hide network error
                             }
+                            binding.searchResultsRecyclerview.isVisible = false
                         }
                     }
-
-                    // Optionally, handle append/prepend states for loading more items indicators
-                    // binding.appendProgressBar.isVisible = loadStates.append is LoadState.Loading
-                    // if (loadStates.append is LoadState.Error) { /* show retry for append */ }
                 }
             }
         }
@@ -163,24 +210,51 @@ class SearchFragment : Fragment() {
     private fun observeScreenMessages() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.screenUiState.collectLatest { screenState ->
-                    if (screenState.messageResId != null) {
-                        // This message (e.g., "Enter query") should typically be shown when the list is not trying to load or show its own state.
-                        // The LoadState handling might override this if it also wants to use searchMessageTextview.
-                        // Let LoadState handle "no results" or "error" if a search was attempted.
-                        // This is mainly for the initial "enter query" prompt when query is blank.
-                        if (screenState.currentQuery.isNullOrBlank()) {
-                             binding.searchMessageTextview.text = getString(screenState.messageResId)
-                             binding.searchMessageTextview.isVisible = true
-                             binding.searchResultsRecyclerview.isVisible = false
-                             binding.searchProgressBar.isVisible = false // Ensure progress bar is hidden for initial prompt
+                // Combine screenUiState and loadStateFlow to react to changes in either
+                viewModel.screenUiState.combine(searchResultAdapter.loadStateFlow) { screenState, loadStates ->
+                    Pair(screenState, loadStates) // Emit a pair of the latest values
+                }.collectLatest { (screenState, loadStates) -> // Destructure the pair
+
+                    val ftsVisible = binding.ftsResultsRecyclerview.isVisible
+                    // Determine online loading state directly from the collected loadStates
+                    val actualOnlineLoading = loadStates.refresh is LoadState.Loading
+                    val onlineResultsVisible = binding.searchResultsRecyclerview.isVisible
+
+                    // Determine if a specific message (error/no results) from online search should be active
+                    val isOnlineError = loadStates.refresh is LoadState.Error
+                    val isOnlineNotLoadingAndEmptyAfterQuery = loadStates.refresh is LoadState.NotLoading &&
+                            searchResultAdapter.itemCount == 0 && // itemCount is okay to check on adapter
+                            !screenState.currentQuery.isNullOrBlank() // Use collected screenState for currentQuery
+
+                    val shouldOnlineSpecificMessageBeActive =
+                        (isOnlineError && !binding.ftsResultsRecyclerview.isVisible) ||
+                        (isOnlineNotLoadingAndEmptyAfterQuery && !binding.ftsResultsRecyclerview.isVisible)
+
+                    // Logic to display the initial "Enter search query" prompt
+                    if (screenState.messageResId != null && screenState.currentQuery.isNullOrBlank()) {
+                        // Show initial prompt only if no other content or specific message is active
+                        if (!ftsVisible && !onlineResultsVisible && !actualOnlineLoading && !shouldOnlineSpecificMessageBeActive) {
+                            binding.searchMessageTextview.text = getString(screenState.messageResId)
+                            binding.searchMessageTextview.isVisible = true
+                            binding.searchResultsRecyclerview.isVisible = false
+                            binding.ftsResultsRecyclerview.isVisible = false
+                            binding.ftsResultsTitleTextview.isVisible = false
+                        }
+                    } else if (ftsVisible || onlineResultsVisible || actualOnlineLoading || shouldOnlineSpecificMessageBeActive) {
+                        // If other content is visible/active, ensure the generic initial prompt (if it was showing) is hidden,
+                        // unless a specific online message should be active (which observeOnlineLoadStates will handle).
+                        if (screenState.messageResId != null &&
+                            binding.searchMessageTextview.text == getString(screenState.messageResId) &&
+                            binding.searchMessageTextview.isVisible
+                            ) {
+                            binding.searchMessageTextview.isVisible = false
                         }
                     } else {
-                        // If no specific screen message, and LoadState isn't showing one, hide it.
-                        // This case might be covered by LoadState.NotLoading with items > 0.
-                        if (searchResultAdapter.itemCount > 0) { // Only hide if we have results
-                           binding.searchMessageTextview.isVisible = false
-                        }
+                        // Default case: No initial prompt to show (e.g., query exists or no messageResId),
+                        // and no other content/loading/specific messages are active. Hide the message text view.
+                         if (!shouldOnlineSpecificMessageBeActive) {
+                            binding.searchMessageTextview.isVisible = false
+                         }
                     }
                 }
             }
@@ -189,7 +263,8 @@ class SearchFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        binding.searchResultsRecyclerview.adapter = null // Important to clear adapter to prevent memory leaks
+        binding.searchResultsRecyclerview.adapter = null // Clear adapter for online results
+        binding.ftsResultsRecyclerview.adapter = null    // Clear adapter for FTS results
         _binding = null
     }
 }

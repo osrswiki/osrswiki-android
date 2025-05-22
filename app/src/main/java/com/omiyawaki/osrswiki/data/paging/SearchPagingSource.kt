@@ -4,6 +4,8 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.omiyawaki.osrswiki.network.SearchResult // Your actual SearchResult DTO
 import com.omiyawaki.osrswiki.network.WikiApiService // Your actual API Service
+import com.omiyawaki.osrswiki.data.db.dao.ArticleDao // Added import for ArticleDao
+import kotlinx.coroutines.flow.firstOrNull // Added import for firstOrNull
 import android.util.Log
 import java.io.IOException
 import retrofit2.HttpException
@@ -18,7 +20,8 @@ private const val DEFAULT_NETWORK_PAGE_SIZE = 20
 
 class SearchPagingSource(
     private val apiService: WikiApiService,
-    private val query: String
+    private val query: String,
+    private val articleDao: ArticleDao // Added ArticleDao dependency
 ) : PagingSource<Int, SearchResult>() { // PagingKey is Int (offset), Value is SearchResult DTO
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SearchResult> {
@@ -39,17 +42,29 @@ class SearchPagingSource(
                 limit = limit
             )
 
-            val searchResults = response.query?.search ?: emptyList()
-            Log.d("SearchPagingSource", "Received ${searchResults.size} results for query: '$query'")
+            val searchResultsFromNetwork = response.query?.search ?: emptyList()
+            Log.d("SearchPagingSource", "Received ${searchResultsFromNetwork.size} results from network for query: '$query'")
+
+            // Enhance search results with offline availability status
+            val enhancedSearchResults = searchResultsFromNetwork.map { searchResult ->
+                val articleEntity = articleDao.getArticleById(searchResult.pageid).firstOrNull()
+                val isOffline = articleEntity != null && articleEntity.isComplete
+                // Optionally log the status for each item for debugging
+                // Log.d("SearchPagingSource", "Item: ${searchResult.title}, PageID: ${searchResult.pageid}, IsOffline: $isOffline (EntityPresent: ${articleEntity != null}, IsComplete: ${articleEntity?.isComplete})")
+                searchResult.copy(isOfflineAvailable = isOffline)
+            }
+            // Log.d("SearchPagingSource", "Processed ${enhancedSearchResults.size} results with offline status for query: '$query'")
+
 
             // Determine the next key (offset for the next page).
             // If searchResults is empty OR if the number of results returned is less than requested (limit),
             // it's likely the last page.
-            val nextKey = if (searchResults.size < limit || searchResults.isEmpty()) {
+            // Using enhancedSearchResults.size which is same as searchResultsFromNetwork.size here.
+            val nextKey = if (enhancedSearchResults.isEmpty() || enhancedSearchResults.size < limit) {
                 null // No more pages to load
             } else {
                 // The next key is the current offset plus the number of items just loaded.
-                currentOffset + searchResults.size
+                currentOffset + enhancedSearchResults.size
             }
             // For prevKey, if currentOffset is the start, there's no previous page.
             // Otherwise, calculate a potential previous offset. This needs careful consideration
@@ -66,19 +81,19 @@ class SearchPagingSource(
 
 
             LoadResult.Page(
-                data = searchResults,
+                data = enhancedSearchResults, // Use the enhanced list
                 prevKey = prevKey,
                 nextKey = nextKey
             )
         } catch (exception: IOException) {
             Log.e("SearchPagingSource", "IOException during search for query '$query'", exception)
-            LoadResult.Error(exception)
+            return LoadResult.Error(exception) // Ensure LoadResult.Error is returned
         } catch (exception: HttpException) {
             Log.e("SearchPagingSource", "HttpException during search for query '$query'", exception)
-            LoadResult.Error(exception)
+            return LoadResult.Error(exception) // Ensure LoadResult.Error is returned
         } catch (exception: Exception) {
             Log.e("SearchPagingSource", "Generic Exception during search for query '$query'", exception)
-            LoadResult.Error(exception)
+            return LoadResult.Error(exception) // Ensure LoadResult.Error is returned
         }
     }
 

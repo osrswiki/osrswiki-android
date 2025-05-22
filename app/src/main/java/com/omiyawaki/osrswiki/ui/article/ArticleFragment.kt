@@ -30,6 +30,8 @@ import com.omiyawaki.osrswiki.databinding.FragmentArticleBinding
 // or remove if in the same package and not explicitly needed.
 // For example: import com.omiyawaki.osrswiki.ui.article.ArticleViewModelFactory
 import kotlinx.coroutines.launch
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 
 class ArticleFragment : Fragment() {
 
@@ -41,7 +43,7 @@ class ArticleFragment : Fragment() {
     private val viewModel: ArticleViewModel by viewModels {
         // The factory receives the fragment instance (owner) and the raw arguments bundle.
         // It should internally use SavedStateHandle to access navArgs.
-        ArticleViewModelFactory(this, arguments)
+        ArticleViewModelFactory(requireActivity().application, this, arguments)
     }
 
     private companion object {
@@ -83,7 +85,7 @@ class ArticleFragment : Fragment() {
 
     private fun setupWebView() {
         binding.webviewArticleContent.webViewClient = InternalLinkWebViewClient()
-        binding.webviewArticleContent.setBackgroundColor(Color.parseColor(webViewBackgroundColor))
+        binding.webviewArticleContent.setBackgroundColor(webViewBackgroundColor.toColorInt())
         Log.d(TAG, "WebView setup complete with InternalLinkWebViewClient.")
     }
 
@@ -187,7 +189,7 @@ class ArticleFragment : Fragment() {
                 return false
             }
 
-            val uri = Uri.parse(urlString)
+            val uri = urlString.toUri()
 
             if (uri.host?.equals(OSRS_WIKI_BASE_URL_HOST, ignoreCase = true) == true) {
                 val articleTitleFromPath = extractTitleFromPath(uri.path)

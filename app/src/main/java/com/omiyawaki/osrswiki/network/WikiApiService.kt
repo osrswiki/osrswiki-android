@@ -1,6 +1,6 @@
 package com.omiyawaki.osrswiki.network
 
-import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse;
+import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
 
 // SearchApiResponse, ParseApiResponse, and PageImagesApiResponse are expected
 // to be in the same 'com.omiyawaki.osrswiki.network' package,
@@ -31,7 +31,7 @@ interface WikiApiService {
      * disablelimitreport=true removes comment like ""
      * Example: https://oldschool.runescape.wiki/api.php?action=parse&pageid=PAGE_ID&prop=text&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true
      */
-    @GET("api.php?action=parse&prop=text&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
+    @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleContent(
         @Query("pageid") pageId: Int // The ID of the page to fetch
     ): ParseApiResponse // Defined in ParseApiResponse.kt
@@ -48,7 +48,7 @@ interface WikiApiService {
         @Query("pithumbsize") thumbSize: Int = 500 // Desired thumbnail width in pixels
     ): PageImagesApiResponse // Defined in PageImagesApiResponse.kt
     // For fetching article text content by title
-    @GET("api.php?action=parse&prop=text&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
+    @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleTextContentByTitle(@Query("page") title: String): ArticleParseApiResponse
 
     // For fetching article image URL by title

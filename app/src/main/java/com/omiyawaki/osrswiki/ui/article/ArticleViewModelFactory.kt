@@ -1,28 +1,33 @@
 package com.omiyawaki.osrswiki.ui.article
 
+import android.app.Application // Added import for Application
 import android.os.Bundle
 import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.savedstate.SavedStateRegistryOwner
+import com.omiyawaki.osrswiki.OSRSWikiApplication // Added import for OSRSWikiApplication
 import com.omiyawaki.osrswiki.data.ArticleRepository
-import com.omiyawaki.osrswiki.network.RetrofitClient // For accessing the apiService
-import com.omiyawaki.osrswiki.network.WikiApiService  // Type for apiService
+// RetrofitClient import is no longer directly needed here if apiService comes from OSRSWikiApplication
+import com.omiyawaki.osrswiki.network.WikiApiService // Still needed for type
+import com.omiyawaki.osrswiki.data.db.dao.ArticleDao // Added for type, good practice
+import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added for type, good practice
 
 /**
  * Factory for creating [ArticleViewModel] instances.
  *
  * This factory extends [AbstractSavedStateViewModelFactory], which allows the
  * [SavedStateHandle] to be passed to the ViewModel. It is responsible for
- * instantiating the [ArticleViewModel] with its necessary dependencies,
- * namely the [ArticleRepository].
+ * instantiating the [ArticleViewModel] with its necessary dependencies.
  *
+ * @param application The application instance, used to retrieve DAOs and other services.
  * @param owner The [SavedStateRegistryOwner] (typically the Fragment or Activity) which
  * provides the scope for the ViewModel and the [SavedStateHandle].
  * @param defaultArgs Optional [Bundle] of arguments to be passed to the [SavedStateHandle].
  * These are usually supplied by the Navigation component if arguments are defined in the nav graph.
  */
 class ArticleViewModelFactory(
+    private val application: Application, // Added application parameter
     owner: SavedStateRegistryOwner,
     defaultArgs: Bundle? = null
 ) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
@@ -34,22 +39,29 @@ class ArticleViewModelFactory(
     ): T {
         // Check if the requested ViewModel class is ArticleViewModel or a subclass.
         if (modelClass.isAssignableFrom(ArticleViewModel::class.java)) {
-            // 1. Obtain the WikiApiService instance from our RetrofitClient singleton.
-            val apiService: WikiApiService = RetrofitClient.apiService
+            // Ensure the application context is OSRSWikiApplication
+            val osrsApplication = application as? OSRSWikiApplication
+                ?: throw IllegalStateException(
+                    "Application context must be an instance of OSRSWikiApplication. " +
+                    "Found: \${application.javaClass.name}"
+                )
 
-            // 2. Create the ArticleRepository instance, injecting the apiService.
-            val repository = ArticleRepository(apiService)
+            // 1. Obtain dependencies from OSRSWikiApplication
+            val apiService: WikiApiService = osrsApplication.wikiApiService
+            val articleDao: ArticleDao = osrsApplication.articleDao
+            val articleFtsDao: ArticleFtsDao = osrsApplication.articleFtsDao
+
+            // 2. Create the ArticleRepository instance, injecting all dependencies.
+            val repository = ArticleRepository(apiService, articleDao, articleFtsDao)
 
             // 3. Create and return the ArticleViewModel instance, providing its dependencies.
-            // The Suppress annotation is used because the cast to T is safe here due to
-            // the isAssignableFrom check.
             @Suppress("UNCHECKED_CAST")
             return ArticleViewModel(repository, handle) as T
         }
         // If the requested ViewModel class is not ArticleViewModel, throw an exception,
         // as this factory is specialized for ArticleViewModel.
         throw IllegalArgumentException(
-            "Unknown ViewModel class: ${modelClass.name}. " +
+            "Unknown ViewModel class: \${modelClass.name}. " +
             "This factory is designed to create instances of ArticleViewModel only."
         )
     }
