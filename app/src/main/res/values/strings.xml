@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">OSRS Wiki</string>
+
+    <string name="search_hint_text">Search OSRS Wiki...</string>
+    <string name="search_enter_query_prompt">Enter a search term to begin.</string>
+    <string name="search_no_results">No results found.</string>
+    <string name="search_network_error">Network error. Please check your connection.</string>
+    <string name="search_unknown_error">An unknown error occurred.</string>
+    <string name="cd_article_main_image">Main image for the article</string>
+</resources>

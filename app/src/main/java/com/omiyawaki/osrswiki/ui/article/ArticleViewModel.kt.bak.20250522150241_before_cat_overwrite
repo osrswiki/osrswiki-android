@@ -1,0 +1,147 @@
+package com.omiyawaki.osrswiki.ui.article
+
+import android.util.Log
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.omiyawaki.osrswiki.data.ArticleRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+// Data class ArticleUiState (assuming it's defined here or accessible)
+data class ArticleUiState(
+    val isLoading: Boolean = true,
+    val title: String? = null,
+    val htmlContent: String? = null,
+    val imageUrl: String? = null,
+    val error: String? = null
+)
+
+class ArticleViewModel(
+    private val articleRepository: ArticleRepository,
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
+
+    private companion object {
+        private const val TAG = "ArticleViewModel"
+        // Keys MUST match the argument names defined in your nav_graph.xml
+        const val NAV_ARG_ARTICLE_ID = "articleId"
+        const val NAV_ARG_ARTICLE_TITLE = "articleTitle"
+    }
+
+    private val _uiState = MutableStateFlow(ArticleUiState(isLoading = true))
+    val uiState: StateFlow<ArticleUiState> = _uiState.asStateFlow()
+
+    init {
+        Log.d(TAG, "ArticleViewModel initialized.")
+        fetchArticleData()
+    }
+
+    private fun fetchArticleData() {
+        val articleIdArg: String? = savedStateHandle.get(NAV_ARG_ARTICLE_ID)
+        val articleTitleArg: String? = savedStateHandle.get(NAV_ARG_ARTICLE_TITLE)
+
+        Log.d(TAG, "Attempting to load article. NavArg ID: '$articleIdArg', NavArg Title: '$articleTitleArg'")
+        _uiState.value = ArticleUiState(isLoading = true) // Reset to loading state
+
+        viewModelScope.launch {
+            var fetchedApiTitle: String? = null // Title as returned by API for display consistency
+            var fetchedHtmlContent: String? = null
+            var fetchedImageUrl: String? = null
+            var fetchError: String? = null
+            var usedIdentifierForLog: String = "N/A"
+
+            try {
+                // Attempt to use articleId first if it's valid
+                if (articleIdArg != null && articleIdArg != "null" && articleIdArg.isNotEmpty()) {
+                    try {
+                        val pageId = articleIdArg.toInt()
+                        usedIdentifierForLog = "pageId $pageId"
+                        Log.d(TAG, "Fetching article data by pageId: $pageId")
+                        val textContent = articleRepository.fetchArticleTextContent(pageId)
+
+                        if (textContent != null) {
+                            fetchedApiTitle = textContent.title
+                            fetchedHtmlContent = textContent.htmlContent
+                            fetchedImageUrl = articleRepository.fetchArticleImageUrl(pageId)
+                            Log.i(TAG, "Successfully fetched data by pageId: $pageId. API Title: '$fetchedApiTitle'")
+                        } else {
+                            fetchError = "Failed to load article content for ID: $pageId."
+                            Log.w(TAG, "Failed to load article text content by pageId: $pageId. Repository returned null.")
+                        }
+                    } catch (e: NumberFormatException) {
+                        Log.e(TAG, "Failed to parse article ID '$articleIdArg' to Int. Will try fetching by title if available.", e)
+                        fetchError = "Invalid Article ID format: '$articleIdArg'."
+                    }
+                }
+
+                // If fetching by ID was not attempted (articleIdArg was null/empty/"null")
+                // OR if fetching by ID failed (e.g., NumberFormatException or null textContent from repo for the ID)
+                // AND a valid articleTitleArg is present, then attempt to fetch by title.
+                if ((articleIdArg.isNullOrEmpty() || articleIdArg == "null" || fetchError != null || fetchedHtmlContent == null) &&
+                    !articleTitleArg.isNullOrEmpty() && articleTitleArg != "null"
+                ) {
+                    if (fetchError != null && (articleIdArg != null && articleIdArg != "null" && articleIdArg.isNotEmpty())) {
+                        Log.d(TAG, "Previous attempt with ID '$articleIdArg' resulted in error/no content ($fetchError). Now attempting fetch by title: '$articleTitleArg'")
+                        fetchError = null // Clear previous error to proceed with title fetch
+                    }
+                    
+                    usedIdentifierForLog = "title '$articleTitleArg'"
+                    Log.d(TAG, "Fetching article data by title: '$articleTitleArg'")
+
+                    // These repository methods need to be implemented in the next steps.
+                    // val textContentByTitle = articleRepository.fetchArticleTextContentByTitle(articleTitleArg)
+                    // fetchedImageUrl = articleRepository.fetchArticleImageUrlByTitle(articleTitleString) // (using articleTitleArg)
+                    // if (textContentByTitle != null) {
+                    //     fetchedApiTitle = textContentByTitle.title
+                    //     fetchedHtmlContent = textContentByTitle.htmlContent
+                    //     Log.i(TAG, "Successfully fetched data by title: '$articleTitleArg'. API Title: '$fetchedApiTitle'")
+                    //     fetchError = null // Clear previous ID-fetch error
+                    // } else {
+                    //     fetchError = "Failed to load article content for title: '$articleTitleArg'."
+                    //     Log.w(TAG, "Failed to load article text content by title: '$articleTitleArg'. Repository returned null.")
+                    // }
+                    Log.w(TAG, "Fetching by title ('$articleTitleArg') requires ArticleRepository method implementation.")
+                    fetchError = "Feature in progress: Loading by article title ('$articleTitleArg')."
+                    if (fetchedApiTitle == null) fetchedApiTitle = articleTitleArg
+                } else if (fetchError == null && fetchedHtmlContent == null) {
+                    fetchError = "Article identifier (ID or Title) not provided or invalid."
+                    Log.e(TAG, fetchError)
+                }
+
+                if (fetchError == null && fetchedHtmlContent != null) {
+                     _uiState.value = ArticleUiState(
+                        isLoading = false,
+                        title = fetchedApiTitle,
+                        htmlContent = fetchedHtmlContent,
+                        imageUrl = fetchedImageUrl,
+                        error = null
+                    )
+                } else {
+                     _uiState.value = ArticleUiState(
+                        isLoading = false,
+                        title = fetchedApiTitle ?: articleTitleArg ?: if (articleIdArg != "null") articleIdArg else null,
+                        htmlContent = null,
+                        imageUrl = null,
+                        error = fetchError ?: "Failed to load article using identifier: $usedIdentifierForLog."
+                    )
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception while fetching article data using identifier: $usedIdentifierForLog", e)
+                _uiState.value = ArticleUiState(
+                    isLoading = false,
+                    title = articleTitleArg ?: if (articleIdArg != "null") articleIdArg else null,
+                    error = "An error occurred: ${e.localizedMessage}"
+                )
+            }
+        }
+    }
+
+    fun refreshArticle() {
+        Log.d(TAG, "refreshArticle() called. Re-fetching data.")
+        fetchArticleData()
+    }
+}

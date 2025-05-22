@@ -1,0 +1,64 @@
+# IntelliJ IDEA / Android Studio project files
+# It's generally best to ignore the entire .idea directory.
+/.idea/
+
+# Standard Android ignores
+*.iml
+.gradle/
+local.properties
+
+# Build output folder
+/build/
+
+# Android Studio Profiler captures
+/captures/
+
+# External native build C/C++ folder
+.externalNativeBuild/
+.cxx/
+
+# macOS specific
+.DS_Store
+
+# Packaged application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Java class files (usually in build output)
+*.class
+
+# Keystore files (NEVER commit private keys or certificates)
+*.jks
+*.keystore
+*.pem
+
+# Log files
+*.log
+
+# Memory allocation reports and profiler snapshots
+*.hprof
+*.snapshot
+
+# Editor backup and temporary files
+*~
+*.bak
+*.bak_*
+*.swp
+*sedbak*
+*.tmp
+*.temp
+
+# Gradle cache files
+.gradletasknamecache
+
+# Custom backup folder
+file_backups/
+
+# Note: gradlew, gradlew.bat, and gradle/wrapper/gradle-wrapper.properties
+# are typically version controlled and should NOT be in .gitignore.
+# Ensure they are NOT listed here unless you have a specific reason.
+
+# Add any other project-specific ignores below this line
+

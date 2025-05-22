@@ -1,0 +1,24 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <style name="Theme.OSRSWiki" parent="Theme.Material3.DayNight.NoActionBar">
+    <item name="colorPrimary">@color/osrs_dark_brown_primary</item>
+    <item name="colorOnPrimary">@color/osrs_text_on_dark_primary</item>
+    <item name="colorPrimaryContainer">@color/osrs_parchment_surface</item>
+    <item name="colorOnPrimaryContainer">@color/osrs_text_on_parchment</item>
+
+    <item name="colorSecondary">@color/osrs_gold_accent</item>
+    <item name="colorOnSecondary">@color/osrs_text_on_gold</item>
+    <item name="colorSecondaryContainer">@color/osrs_gold_accent</item>
+    <item name="colorOnSecondaryContainer">@color/osrs_text_on_gold</item>
+
+    <item name="colorError">@color/md_theme_error</item>
+    <item name="colorOnError">@color/md_theme_onError</item>
+
+    <item name="android:colorBackground">@color/app_theme_background</item>
+    <item name="colorOnBackground">@color/osrs_text_on_parchment</item>
+    <item name="colorSurface">@color/app_theme_background</item>
+    <item name="colorOnSurface">@color/osrs_text_on_parchment</item>
+    <item name="colorSurfaceVariant">@color/app_theme_background</item> <item name="colorOnSurfaceVariant">@color/osrs_text_on_parchment</item>
+
+    <item name="android:statusBarColor">@color/osrs_dark_brown_primary</item>
+    </style>
+</resources>
