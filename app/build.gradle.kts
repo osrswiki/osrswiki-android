@@ -43,8 +43,8 @@ android {
 }
 
 dependencies {
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("androidx.paging:paging-runtime-ktx:3.3.0")
+    implementation(libs.google.gson)
+    implementation(libs.androidxPagingRuntimeKtx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
     implementation(libs.kotlinx.serializationJson)
@@ -61,10 +61,10 @@ dependencies {
 
     // Added dependencies
     implementation(libs.androidx.constraintlayout)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1") // Corrected alias if it was lifecycle.viewmodelKtx
-    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7") // Corrected alias if it was navigation.fragmentKtx
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")     // Corrected alias if it was navigation.uiKtx
+    implementation(libs.androidxLifecycleViewmodelKtx)
+    implementation(libs.androidxLifecycleViewmodelSavedstate)
+    implementation(libs.androidxNavigationFragmentKtx)
+    implementation(libs.androidxNavigationUiKtx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.glide.core)
     ksp(libs.glide.ksp)

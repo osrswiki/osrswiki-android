@@ -7,14 +7,11 @@ import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
 import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added import
 import com.omiyawaki.osrswiki.data.model.ArticleFtsSearchResult // Added import
 import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
-import com.omiyawaki.osrswiki.network.SearchApiResponse
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn // Ensure flowOn is imported for the new FTS search method
-import kotlinx.coroutines.withContext
 
 // Define a default page size for PagingConfig.
 private const val DEFAULT_SEARCH_RESULTS_PAGE_SIZE = 20

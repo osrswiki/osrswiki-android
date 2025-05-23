@@ -1,11 +1,11 @@
 package com.omiyawaki.osrswiki.ui.article
 
 import android.app.Application // Added import for Application
-import android.os.Bundle
-import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.savedstate.SavedStateRegistryOwner
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.createSavedStateHandle
 import com.omiyawaki.osrswiki.OSRSWikiApplication // Added import for OSRSWikiApplication
 import com.omiyawaki.osrswiki.data.ArticleRepository
 // RetrofitClient import is no longer directly needed here if apiService comes from OSRSWikiApplication
@@ -16,27 +16,23 @@ import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added for type, good 
 /**
  * Factory for creating [ArticleViewModel] instances.
  *
- * This factory extends [AbstractSavedStateViewModelFactory], which allows the
- * [SavedStateHandle] to be passed to the ViewModel. It is responsible for
- * instantiating the [ArticleViewModel] with its necessary dependencies.
+ * This factory implements [ViewModelProvider.Factory]. It is responsible for
+ * instantiating the [ArticleViewModel] with its necessary dependencies, including
+ * the [Application] context (for accessing services like the [ArticleRepository])
+ * and a [SavedStateHandle] (obtained via [CreationExtras]).
  *
- * @param application The application instance, used to retrieve DAOs and other services.
- * @param owner The [SavedStateRegistryOwner] (typically the Fragment or Activity) which
- * provides the scope for the ViewModel and the [SavedStateHandle].
- * @param defaultArgs Optional [Bundle] of arguments to be passed to the [SavedStateHandle].
- * These are usually supplied by the Navigation component if arguments are defined in the nav graph.
+ * @param application The application instance, which must be an [OSRSWikiApplication],
+ * used to retrieve global dependencies.
  */
 class ArticleViewModelFactory(
-    private val application: Application, // Added application parameter
-    owner: SavedStateRegistryOwner,
-    defaultArgs: Bundle? = null
-) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
+    private val application: Application // Added application parameter
+) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(
-        key: String,        // A key that identifies the ViewModel (usually the ViewModel's class name).
         modelClass: Class<T>, // The class of the ViewModel to be created.
-        handle: SavedStateHandle // The SavedStateHandle for this ViewModel, provided by the system.
+        extras: CreationExtras // Used to access SavedStateHandle etc.
     ): T {
+        val handle = extras.createSavedStateHandle()
         // Check if the requested ViewModel class is ArticleViewModel or a subclass.
         if (modelClass.isAssignableFrom(ArticleViewModel::class.java)) {
             // Ensure the application context is OSRSWikiApplication

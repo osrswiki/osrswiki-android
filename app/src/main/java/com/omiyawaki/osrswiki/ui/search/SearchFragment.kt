@@ -252,9 +252,7 @@ class SearchFragment : Fragment() {
                     } else {
                         // Default case: No initial prompt to show (e.g., query exists or no messageResId),
                         // and no other content/loading/specific messages are active. Hide the message text view.
-                         if (!shouldOnlineSpecificMessageBeActive) {
-                            binding.searchMessageTextview.isVisible = false
-                         }
+                          binding.searchMessageTextview.isVisible = false
                     }
                 }
             }

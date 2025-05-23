@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.network.model
 
-import kotlinx.serialization.SerialName // Import for kotlinx.serialization
 import kotlinx.serialization.Serializable // Import for kotlinx.serialization
 
 /**

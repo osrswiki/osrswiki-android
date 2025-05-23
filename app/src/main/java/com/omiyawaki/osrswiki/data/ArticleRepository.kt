@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.data
 
-import android.os.Build
 import android.text.Html
 import android.util.Log
 import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
@@ -115,7 +114,7 @@ class ArticleRepository(
                 revisionId = parseData.revid,
                 lastUpdatedLocal = System.currentTimeMillis(),
                 isComplete = false, // Mark as false initially; set true once all parts (e.g., images) are downloaded
-                summaryText = extractSummary(parseData.text, 200)
+            summaryText = extractSummary(parseData.text)
             )
 
             articleDao.insertArticle(entityToSave)
@@ -217,7 +216,7 @@ class ArticleRepository(
                 revisionId = parseResult.revid,
                 lastUpdatedLocal = System.currentTimeMillis(),
                 isComplete = false, // To be set true once images etc. are downloaded
-                summaryText = extractSummary(parseResult.text, 200)
+            summaryText = extractSummary(parseResult.text)
             )
 
             articleDao.insertArticle(entityToSave)
@@ -268,11 +267,6 @@ class ArticleRepository(
 
     private fun convertHtmlToPlainText(html: String?): String {
         if (html == null) return ""
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY).toString()
-        } else {
-            @Suppress("DEPRECATION")
-            Html.fromHtml(html).toString()
-        }
+        return Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY).toString()
     }
 }

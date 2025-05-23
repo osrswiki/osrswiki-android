@@ -7,4 +7,5 @@
     <string name="search_network_error">Network error. Please check your connection.</string>
     <string name="search_unknown_error">An unknown error occurred.</string>
     <string name="cd_article_main_image">Main image for the article</string>
+    <string name="search_offline_results_title">Offline Results</string>
 </resources>

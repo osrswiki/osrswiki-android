@@ -36,24 +36,10 @@ interface WikiApiService {
         @Query("pageid") pageId: Int // The ID of the page to fetch
     ): ParseApiResponse // Defined in ParseApiResponse.kt
 
-    /**
-     * Fetches information about images on a page, primarily the main page image thumbnail, by page ID.
-     * Uses MediaWiki API action=query, prop=pageimages.
-     * formatversion=2 provides a more modern response structure.
-     * Example: https://oldschool.runescape.wiki/api.php?action=query&pageids=PAGE_ID&prop=pageimages&pithumbsize=500&formatversion=2&format=json
-     */
-    @GET("api.php?action=query&prop=pageimages&formatversion=2&format=json")
-    suspend fun getArticleImage(
-        @Query("pageids") pageIds: Int, // The ID of the page (MediaWiki uses 'pageids' even for a single ID)
-        @Query("pithumbsize") thumbSize: Int = 500 // Desired thumbnail width in pixels
-    ): PageImagesApiResponse // Defined in PageImagesApiResponse.kt
     // For fetching article text content by title
     @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleTextContentByTitle(@Query("page") title: String): ArticleParseApiResponse
 
-    // For fetching article image URL by title
-    @GET("api.php?action=query&prop=pageimages&formatversion=2&format=json&pithumbsize=500")
-    suspend fun getArticleImageUrlByTitle(@Query("titles") title: String): PageImagesApiResponse
 
     @GET("api.php?action=query&prop=pageimages&formatversion=2&format=json")
     suspend fun getArticleImageUrlById(

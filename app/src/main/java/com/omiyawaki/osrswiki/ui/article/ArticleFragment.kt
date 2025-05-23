@@ -3,7 +3,6 @@ package com.omiyawaki.osrswiki.ui.article
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -43,7 +42,7 @@ class ArticleFragment : Fragment() {
     private val viewModel: ArticleViewModel by viewModels {
         // The factory receives the fragment instance (owner) and the raw arguments bundle.
         // It should internally use SavedStateHandle to access navArgs.
-        ArticleViewModelFactory(requireActivity().application, this, arguments)
+        ArticleViewModelFactory(requireActivity().application)
     }
 
     private companion object {
