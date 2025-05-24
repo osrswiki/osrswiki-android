@@ -1,53 +1,45 @@
 package com.omiyawaki.osrswiki
 
 import android.app.Application
-import com.omiyawaki.osrswiki.data.SearchRepository
+import com.omiyawaki.osrswiki.data.repository.ArticleRepository // This is for the ArticleRepository in data/repository
+import com.omiyawaki.osrswiki.data.SearchRepository // Changed to use the SearchRepository in data package
 import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase
-import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
-import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added import for ArticleFtsDao
-import com.omiyawaki.osrswiki.data.ArticleRepository
+import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
+import com.omiyawaki.osrswiki.data.db.dao.ArticleDao     // Ensured ArticleDao import is present
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.network.WikiApiService
 
 class OSRSWikiApplication : Application() {
 
     // Lazily initialize WikiApiService using the existing RetrofitClient.
-    val wikiApiService: WikiApiService by lazy {
+    private val wikiApiService: WikiApiService by lazy {
         RetrofitClient.apiService
     }
 
     // Lazily initialize the Room database.
-    // This provides a single instance of the database for the entire application.
     private val database: OSRSWikiDatabase by lazy {
         OSRSWikiDatabase.getInstance(applicationContext)
     }
 
-    // Lazily initialize ArticleDao from the database.
-    val articleDao: ArticleDao by lazy {
+    // Lazily initialize ArticleMetaDao from the database.
+    val articleMetaDao: ArticleMetaDao by lazy {
+        database.articleMetaDao()
+    }
+
+    // ArticleDao is needed by the updated SearchRepository (com.omiyawaki.osrswiki.data.SearchRepository)
+    private val articleDao: ArticleDao by lazy {
         database.articleDao()
     }
 
-    // Lazily initialize ArticleFtsDao from the database.
-    val articleFtsDao: ArticleFtsDao by lazy {
-        database.articleFtsDao()
-    }
-
-    // Lazily initialize SearchRepository.
-    // Now includes ArticleFtsDao for local FTS-based searches.
-    val searchRepository: SearchRepository by lazy {
-        SearchRepository(wikiApiService, articleDao, articleFtsDao) // Use the new articleFtsDao property
-    }
-
-    // Provides the ArticleRepository for fetching and caching article data.
-    // Now includes ArticleFtsDao for FTS table updates.
-@Suppress("unused") // Will be used for article download/local storage feature
+    // Provides the ArticleRepository from the data.repository package.
     val articleRepository: ArticleRepository by lazy {
-        ArticleRepository(wikiApiService, articleDao, articleFtsDao) // Use the new articleFtsDao property
+        ArticleRepository(wikiApiService, articleMetaDao, applicationContext)
     }
 
-
-    override fun onCreate() {
-        super.onCreate()
-        // Lazy initializations mean services/database are created only when first accessed.
+    // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
+    // and provide its required dependencies: wikiApiService, articleDao, articleMetaDao.
+    val searchRepository: SearchRepository by lazy {
+        SearchRepository(wikiApiService, this.articleDao, this.articleMetaDao)
     }
+
 }

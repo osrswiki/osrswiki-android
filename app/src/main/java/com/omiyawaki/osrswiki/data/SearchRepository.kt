@@ -1,29 +1,34 @@
 package com.omiyawaki.osrswiki.data
 
+import android.util.Log // Added import for Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
-import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added import
-import com.omiyawaki.osrswiki.data.model.ArticleFtsSearchResult // Added import
+import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
+import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
 import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn // Ensure flowOn is imported for the new FTS search method
+import kotlinx.coroutines.flow.flow // Added import for flow builder
+import kotlinx.coroutines.flow.flowOf // Added import for flowOf
+import kotlinx.coroutines.flow.flowOn
+// Removed: import kotlinx.coroutines.flow.map (if not used elsewhere)
 
 // Define a default page size for PagingConfig.
 private const val DEFAULT_SEARCH_RESULTS_PAGE_SIZE = 20
+private const val TAG = "SearchRepository" // Added TAG for logging
 
 /**
- * Repository for fetching search results from the OSRS Wiki API and local FTS.
- * This class abstracts the data source (network, local DB checks, local FTS) from the ViewModel.
+ * Repository for fetching search results from the OSRS Wiki API and local database.
+ * This class abstracts the data source (network, local DB metadata search) from the ViewModel.
  */
 class SearchRepository(
     private val apiService: WikiApiService,
     private val articleDao: ArticleDao,
-    private val articleFtsDao: ArticleFtsDao // Added ArticleFtsDao dependency
+    private val articleMetaDao: ArticleMetaDao
 ) {
 
     /**
@@ -34,30 +39,44 @@ class SearchRepository(
      * @return A Flow of PagingData containing SearchResult items.
      */
     fun getSearchResultStream(query: String): Flow<PagingData<SearchResult>> {
+        Log.d(TAG, "getSearchResultStream called with query: $query")
         return Pager(
             config = PagingConfig(
                 pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                // Pass ArticleDao to SearchPagingSource
                 SearchPagingSource(apiService = apiService, query = query, articleDao = articleDao)
             }
         ).flow
     }
 
-
     /**
-     * Performs a search for articles in the local FTS table.
+     * Performs a search for locally saved articles by their titles using a LIKE query.
      *
-     * @param query The search term for FTS matching.
-     * @return A Flow of a list of [ArticleFtsSearchResult] items.
+     * @param query The user-provided search term.
+     * @return A Flow of a list of matching [ArticleMetaEntity] items.
      */
-    fun searchFtsOffline(query: String): Flow<List<ArticleFtsSearchResult>> {
-        // ArticleFtsDao.searchArticles returns a Flow. Room ensures this query runs
-        // on a background thread. flowOn(Dispatchers.IO) is an additional safeguard
-        // to ensure any subsequent collection or minor transformations in this flow chain
-        // also use the IO dispatcher.
-        return articleFtsDao.searchArticles(query).flowOn(Dispatchers.IO)
+    fun searchOfflineArticles(query: String): Flow<List<ArticleMetaEntity>> {
+        val trimmedQuery = query.trim()
+        Log.d(TAG, "searchOfflineArticles called with query: $trimmedQuery")
+
+        if (trimmedQuery.isEmpty()) {
+            Log.d(TAG, "Search query is empty, returning empty list.")
+            return flowOf(emptyList()) // Return a flow emitting an empty list
+        }
+
+        val searchQuery = "%$trimmedQuery%"
+        return flow {
+            try {
+                Log.d(TAG, "Executing offline search with LIKE query: $searchQuery")
+                val results = articleMetaDao.searchByTitle(searchQuery)
+                Log.d(TAG, "Offline search returned ${results.size} results.")
+                emit(results)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching offline articles: ${e.message}", e)
+                emit(emptyList()) // Emit an empty list in case of error
+            }
+        }.flowOn(Dispatchers.IO) // Ensure database access is on the IO dispatcher
     }
 }

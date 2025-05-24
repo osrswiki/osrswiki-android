@@ -7,9 +7,14 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 
+// Assumes the pre-existing service interface was indeed 'WikiApiService'.
+// If it was also 'MediaWikiApiService' or something else, this import might need adjustment
+// or the existing service might need to be merged with the new one.
+// For now, we proceed assuming 'WikiApiService' is a distinct, existing service.
+
 object RetrofitClient {
 
-    private const val BASE_URL = "https://oldschool.runescape.wiki/"
+    private const val BASE_URL = "https://oldschool.runescape.wiki/" // Corrected BASE_URL
 
     // Configure JsonSerializer to be lenient about unknown keys
     private val json = Json {
@@ -27,18 +32,18 @@ object RetrofitClient {
             .build()
     }
 
-    // Public Retrofit instance (can be kept if needed elsewhere, or made private
-    // if only apiService is intended for external use)
-    val instance: Retrofit by lazy {
+    private val instance: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient) // Use the custom OkHttpClient
+            .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }
 
-    // Directly expose the configured WikiApiService instance
+    // Assumes this was the existing service instance.
+    // If the existing service was different, adjust 'WikiApiService' accordingly.
     val apiService: WikiApiService by lazy {
         instance.create(WikiApiService::class.java)
     }
+
 }

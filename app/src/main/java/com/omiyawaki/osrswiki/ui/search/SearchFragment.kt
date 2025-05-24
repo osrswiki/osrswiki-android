@@ -30,7 +30,7 @@ class SearchFragment : Fragment() {
 
     private val viewModel: SearchViewModel by viewModels { SearchViewModelFactory(requireActivity().application) }
     private lateinit var searchResultAdapter: SearchResultAdapter // For online Paging results
-    private lateinit var ftsResultAdapter: FtsResultAdapter     // For offline FTS results
+    private lateinit var offlineResultAdapter: OfflineResultAdapter     // For offline search results
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,11 +44,11 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupOnlineSearchRecyclerView()
-        setupFtsRecyclerView() // New: Setup FTS RecyclerView
+        setupOfflineResultsRecyclerView() // New: Setup Offline Results RecyclerView
         setupSearchInput()
         observeOnlineSearchResults()
         observeOnlineLoadStates()
-        observeFtsSearchResults() // New: Observe FTS results
+        observeOfflineSearchResults() // New: Observe Offline Results
         observeScreenMessages()
     }
 
@@ -70,13 +70,13 @@ class SearchFragment : Fragment() {
         }
     }
 
-    private fun setupFtsRecyclerView() {
-        ftsResultAdapter = FtsResultAdapter { cleanedSearchResultItem ->
+    private fun setupOfflineResultsRecyclerView() {
+        offlineResultAdapter = OfflineResultAdapter { cleanedSearchResultItem ->
             handleSearchResultItemClick(cleanedSearchResultItem)
         }
-        binding.ftsResultsRecyclerview.apply {
+        binding.offlineResultsRecyclerview.apply {
             layoutManager = LinearLayoutManager(context)
-            adapter = ftsResultAdapter
+            adapter = offlineResultAdapter
             // Consider if nested scrolling should be disabled if parent is scrollable:
             // isNestedScrollingEnabled = false
         }
@@ -94,7 +94,7 @@ class SearchFragment : Fragment() {
 
     private fun performSearch() {
         val query = binding.searchEditText.text.toString().trim()
-        // This one call in ViewModel should trigger both FTS and online searches via its internal logic
+        // This one call in ViewModel should trigger both offline metadata search and online searches via its internal logic
         viewModel.performSearch(query)
         hideKeyboard()
     }
@@ -104,26 +104,26 @@ class SearchFragment : Fragment() {
         imm?.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 
-    private fun observeFtsSearchResults() {
+    private fun observeOfflineSearchResults() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.ftsSearchResults.collectLatest { ftsResults ->
+                viewModel.offlineSearchResults.collectLatest { offlineResults ->
                     val query = viewModel.screenUiState.value.currentQuery
                     val hasQuery = !query.isNullOrBlank()
-                    val hasFtsResults = ftsResults.isNotEmpty()
+                    val hasOfflineResults = offlineResults.isNotEmpty()
 
-                    Log.d("SearchFragment", "FTS Results observed. Query: '$query', Count: ${ftsResults.size}")
+                    Log.d("SearchFragment", "Offline search results observed. Query: '$query', Count: ${offlineResults.size}")
 
-                    // Show FTS results section if there's a query and results are found
-                    binding.ftsResultsTitleTextview.isVisible = hasQuery && hasFtsResults
-                    binding.ftsResultsRecyclerview.isVisible = hasQuery && hasFtsResults
-                    ftsResultAdapter.submitList(if (hasQuery) ftsResults else emptyList())
+                    // Show offline search results section if there's a query and results are found
+                    binding.offlineResultsTitleTextview.isVisible = hasQuery && hasOfflineResults
+                    binding.offlineResultsRecyclerview.isVisible = hasQuery && hasOfflineResults
+                    offlineResultAdapter.submitList(if (hasQuery) offlineResults else emptyList())
 
-                    // If FTS results are shown, potentially hide general "no results" message for online search,
+                    // If offline search results are shown, potentially hide general "no results" message for online search,
                     // especially if online search hasn't completed or also yielded no results.
                     // This coordination might need refinement based on desired UX.
                     // For now, observeLoadStates will handle messages for the online part.
-                    // If FTS has results, the screen won't look completely empty.
+                    // If offline search has results, the screen won't look completely empty.
                 }
             }
         }
@@ -147,9 +147,9 @@ class SearchFragment : Fragment() {
                     val refreshState = loadStates.refresh
                     Log.d("SearchFragment", "Online LoadState: $refreshState, Item count: ${searchResultAdapter.itemCount}")
 
-                    // Only manage progress bar and online-specific messages if FTS results are not already filling the screen
+                    // Only manage progress bar and online-specific messages if offline search results are not already filling the screen
                     // or if we want to show online loading state regardless.
-                    // For now, let FTS visibility be independent. Online section shows its state.
+                    // For now, let offline search results visibility be independent. Online section shows its state.
 
                     binding.searchProgressBar.isVisible = refreshState is LoadState.Loading
 
@@ -165,14 +165,14 @@ class SearchFragment : Fragment() {
 
                             if (onlineResultsEmpty && hasQuery) {
                                 // Online search attempted for a query, but no online results.
-                                // FTS might have results. If FTS also has no results, this message is appropriate.
-                                // If FTS *has* results, this message might be confusing.
-                                // Let's show it if FTS results are also empty for this query.
-                                if (binding.ftsResultsRecyclerview.isVisible.not()) {
+                                // Offline search might have results. If offline search also has no results, this message is appropriate.
+                                // If offline search *has* results, this message might be confusing.
+                                // Let's show it if offline search results are also empty for this query.
+                                if (binding.offlineResultsRecyclerview.isVisible.not()) {
                                     binding.searchMessageTextview.text = getString(R.string.search_no_results)
                                     binding.searchMessageTextview.isVisible = true
                                 } else {
-                                    binding.searchMessageTextview.isVisible = false // FTS has results, hide "no results"
+                                    binding.searchMessageTextview.isVisible = false // Offline search has results, hide "no results"
                                 }
                                 binding.searchResultsRecyclerview.isVisible = false
                             } else if (!onlineResultsEmpty) {
@@ -181,8 +181,8 @@ class SearchFragment : Fragment() {
                                 binding.searchResultsRecyclerview.isVisible = true
                             } else {
                                 // No query or initial state for online part
-                                // Let observeScreenMessages handle initial prompt if FTS results are also not visible.
-                                if (binding.ftsResultsRecyclerview.isVisible.not()) {
+                                // Let observeScreenMessages handle initial prompt if offline search results are also not visible.
+                                if (binding.offlineResultsRecyclerview.isVisible.not()) {
                                      // This state will be typically caught by observeScreenMessages for initial prompt
                                      // binding.searchMessageTextview.isVisible = true; // (handled by observeScreenMessages)
                                 } else {
@@ -193,11 +193,11 @@ class SearchFragment : Fragment() {
                         }
                         is LoadState.Error -> {
                             Log.e("SearchFragment", "Online LoadState Error: ${refreshState.error.localizedMessage}", refreshState.error)
-                            if (binding.ftsResultsRecyclerview.isVisible.not()) { // Show error only if no FTS results
+                            if (binding.offlineResultsRecyclerview.isVisible.not()) { // Show error only if no offline search results
                                 binding.searchMessageTextview.text = getString(R.string.search_network_error)
                                 binding.searchMessageTextview.isVisible = true
                             } else {
-                                binding.searchMessageTextview.isVisible = false // FTS has results, hide network error
+                                binding.searchMessageTextview.isVisible = false // Offline search has results, hide network error
                             }
                             binding.searchResultsRecyclerview.isVisible = false
                         }
@@ -215,7 +215,7 @@ class SearchFragment : Fragment() {
                     Pair(screenState, loadStates) // Emit a pair of the latest values
                 }.collectLatest { (screenState, loadStates) -> // Destructure the pair
 
-                    val ftsVisible = binding.ftsResultsRecyclerview.isVisible
+                    val offlineResultsVisible = binding.offlineResultsRecyclerview.isVisible
                     // Determine online loading state directly from the collected loadStates
                     val actualOnlineLoading = loadStates.refresh is LoadState.Loading
                     val onlineResultsVisible = binding.searchResultsRecyclerview.isVisible
@@ -227,20 +227,20 @@ class SearchFragment : Fragment() {
                             !screenState.currentQuery.isNullOrBlank() // Use collected screenState for currentQuery
 
                     val shouldOnlineSpecificMessageBeActive =
-                        (isOnlineError && !binding.ftsResultsRecyclerview.isVisible) ||
-                        (isOnlineNotLoadingAndEmptyAfterQuery && !binding.ftsResultsRecyclerview.isVisible)
+                        (isOnlineError && !binding.offlineResultsRecyclerview.isVisible) ||
+                        (isOnlineNotLoadingAndEmptyAfterQuery && !binding.offlineResultsRecyclerview.isVisible)
 
                     // Logic to display the initial "Enter search query" prompt
                     if (screenState.messageResId != null && screenState.currentQuery.isNullOrBlank()) {
                         // Show initial prompt only if no other content or specific message is active
-                        if (!ftsVisible && !onlineResultsVisible && !actualOnlineLoading && !shouldOnlineSpecificMessageBeActive) {
+                        if (!offlineResultsVisible && !onlineResultsVisible && !actualOnlineLoading && !shouldOnlineSpecificMessageBeActive) {
                             binding.searchMessageTextview.text = getString(screenState.messageResId)
                             binding.searchMessageTextview.isVisible = true
                             binding.searchResultsRecyclerview.isVisible = false
-                            binding.ftsResultsRecyclerview.isVisible = false
-                            binding.ftsResultsTitleTextview.isVisible = false
+                            binding.offlineResultsRecyclerview.isVisible = false
+                            binding.offlineResultsTitleTextview.isVisible = false
                         }
-                    } else if (ftsVisible || onlineResultsVisible || actualOnlineLoading || shouldOnlineSpecificMessageBeActive) {
+                    } else if (offlineResultsVisible || onlineResultsVisible || actualOnlineLoading || shouldOnlineSpecificMessageBeActive) {
                         // If other content is visible/active, ensure the generic initial prompt (if it was showing) is hidden,
                         // unless a specific online message should be active (which observeOnlineLoadStates will handle).
                         if (screenState.messageResId != null &&
@@ -262,7 +262,7 @@ class SearchFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         binding.searchResultsRecyclerview.adapter = null // Clear adapter for online results
-        binding.ftsResultsRecyclerview.adapter = null    // Clear adapter for FTS results
+        binding.offlineResultsRecyclerview.adapter = null    // Clear adapter for offline search results
         _binding = null
     }
 }

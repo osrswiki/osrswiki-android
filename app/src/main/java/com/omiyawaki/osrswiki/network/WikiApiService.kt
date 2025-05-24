@@ -31,16 +31,18 @@ interface WikiApiService {
      * disablelimitreport=true removes comment like ""
      * Example: https://oldschool.runescape.wiki/api.php?action=parse&pageid=PAGE_ID&prop=text&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true
      */
-    @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
-    suspend fun getArticleContent(
-        @Query("pageid") pageId: Int // The ID of the page to fetch
-    ): ParseApiResponse // Defined in ParseApiResponse.kt
 
     // For fetching article text content by title
     @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleTextContentByTitle(@Query("page") title: String): ArticleParseApiResponse
 
+    // New method to fetch parse data by Page ID
+    // Includes title, pageid, revid, and HTML text content.
+    @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true")
+    suspend fun getArticleParseDataByPageId(@Query("pageid") pageId: Int): ArticleParseApiResponse
 
+
+    @Suppress("unused")
     @GET("api.php?action=query&prop=pageimages&formatversion=2&format=json")
     suspend fun getArticleImageUrlById(
         @Query("pageids") pageId: Int,

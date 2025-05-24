@@ -22,13 +22,13 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_view_article_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <LinearLayout
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:paddingBottom="56dp"> <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:paddingHorizontal="0dp"
             android:paddingVertical="16dp">
@@ -76,5 +76,36 @@
         android:layout_gravity="center"
         android:visibility="gone"
         tools:visibility="visible"/>
+
+    <LinearLayout
+        android:id="@+id/bottom_action_bar_article"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:background="?attr/colorSurface"
+        android:elevation="8dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/button_save_offline"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:gravity="center_horizontal"
+            android:paddingVertical="8dp"
+            android:paddingHorizontal="16dp"
+            android:text="@string/action_save_offline"
+            app:drawableTopCompat="@drawable/ic_bookmark_border_24"
+            app:drawableTint="?attr/colorPrimary"
+            android:drawablePadding="4dp"
+            android:contentDescription="@string/cd_save_for_offline"
+            android:textColor="?attr/colorPrimary"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:textAppearance="?attr/textAppearanceCaption"/>
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

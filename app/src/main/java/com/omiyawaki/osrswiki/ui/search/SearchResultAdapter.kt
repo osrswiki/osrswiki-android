@@ -10,7 +10,7 @@ import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding
 
 // CleanedSearchResultItem is expected to be accessible from this package
 // (it was defined in SearchViewModel.kt in the same package).
-// If you move CleanedSearchResultItem to its own file or a different package, adjust imports if necessary.
+// If CleanedSearchResultItem is moved to its own file or a different package, adjust imports if necessary.
 
 class SearchResultAdapter(
     private val onItemClicked: (CleanedSearchResultItem) -> Unit // Updated to CleanedSearchResultItem

@@ -7,11 +7,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.createSavedStateHandle
 import com.omiyawaki.osrswiki.OSRSWikiApplication // Added import for OSRSWikiApplication
-import com.omiyawaki.osrswiki.data.ArticleRepository
+import com.omiyawaki.osrswiki.data.repository.ArticleRepository
 // RetrofitClient import is no longer directly needed here if apiService comes from OSRSWikiApplication
-import com.omiyawaki.osrswiki.network.WikiApiService // Still needed for type
-import com.omiyawaki.osrswiki.data.db.dao.ArticleDao // Added for type, good practice
-import com.omiyawaki.osrswiki.data.db.dao.ArticleFtsDao // Added for type, good practice
 
 /**
  * Factory for creating [ArticleViewModel] instances.
@@ -43,12 +40,7 @@ class ArticleViewModelFactory(
                 )
 
             // 1. Obtain dependencies from OSRSWikiApplication
-            val apiService: WikiApiService = osrsApplication.wikiApiService
-            val articleDao: ArticleDao = osrsApplication.articleDao
-            val articleFtsDao: ArticleFtsDao = osrsApplication.articleFtsDao
-
-            // 2. Create the ArticleRepository instance, injecting all dependencies.
-            val repository = ArticleRepository(apiService, articleDao, articleFtsDao)
+            val repository = osrsApplication.articleRepository
 
             // 3. Create and return the ArticleViewModel instance, providing its dependencies.
             @Suppress("UNCHECKED_CAST")

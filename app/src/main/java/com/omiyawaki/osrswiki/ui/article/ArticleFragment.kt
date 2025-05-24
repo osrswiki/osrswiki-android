@@ -23,11 +23,9 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
+import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentArticleBinding
-// Make sure ArticleViewModelFactory is correctly imported if it's in a different package,
-// or remove if in the same package and not explicitly needed.
-// For example: import com.omiyawaki.osrswiki.ui.article.ArticleViewModelFactory
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
@@ -40,8 +38,6 @@ class ArticleFragment : Fragment() {
     private val navArgs: ArticleFragmentArgs by navArgs()
 
     private val viewModel: ArticleViewModel by viewModels {
-        // The factory receives the fragment instance (owner) and the raw arguments bundle.
-        // It should internally use SavedStateHandle to access navArgs.
         ArticleViewModelFactory(requireActivity().application)
     }
 
@@ -76,6 +72,9 @@ class ArticleFragment : Fragment() {
         setupToolbar()
         setupWebView()
         observeUiState()
+        setupSaveButtonActions()
+        observeOfflineButtonState()
+        observeOfflineActionMessages()
     }
 
     private fun setupToolbar() {
@@ -93,9 +92,13 @@ class ArticleFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    Log.d(TAG, "New UI State received: isLoading=${state.isLoading}, title=${state.title}, error=${state.error}")
+                    Log.d(TAG, "New UI State received: isLoading=${state.isLoading}, pageId=${state.pageId}, title=${state.title}, error=${state.error}")
                     binding.progressBarArticle.isVisible = state.isLoading
                     binding.toolbarArticle.title = state.title ?: navArgs.articleTitle ?: navArgs.articleId ?: getString(R.string.app_name)
+
+                    val isArticleContentAvailable = !state.isLoading && state.error == null && state.htmlContent != null && state.pageId != null
+                    binding.bottomActionBarArticle.isVisible = isArticleContentAvailable
+                    binding.buttonSaveOffline.isEnabled = state.pageId != null
 
                     if (state.error != null && !state.isLoading) {
                         binding.textviewArticleError.text = state.error
@@ -115,7 +118,7 @@ class ArticleFragment : Fragment() {
                                 </style>
                             """.trimIndent()
                             val fullHtml = "<html><head>$injectedCss</head><body>${state.htmlContent}</body></html>"
-                            binding.webviewArticleContent.loadDataWithBaseURL(baseUrl, fullHtml, "text/html; charset=utf-8", "UTF-8", null)
+                            binding.webviewArticleContent.loadDataWithBaseURL(baseUrl, fullHtml, "text/html; charset=utf-8", "UTF-8", baseUrl)
                             binding.webviewArticleContent.isVisible = true
                         } else {
                             binding.webviewArticleContent.isVisible = !state.isLoading
@@ -131,6 +134,52 @@ class ArticleFragment : Fragment() {
                         } else {
                             binding.imageArticleMain.isVisible = false
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setupSaveButtonActions() {
+        binding.buttonSaveOffline.setOnClickListener {
+            Log.d(TAG, "Save for offline button clicked.")
+            viewModel.toggleSaveOfflineStatus()
+        }
+    }
+
+    private fun observeOfflineButtonState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.isArticleOffline.collect { isOffline ->
+                    Log.d(TAG, "Offline status received in Fragment: $isOffline")
+                    if (isOffline) {
+                        binding.buttonSaveOffline.text = getString(R.string.action_saved_offline)
+                        binding.buttonSaveOffline.setCompoundDrawablesRelativeWithIntrinsicBounds(0, R.drawable.ic_bookmark_filled_24, 0, 0)
+                    } else {
+                        binding.buttonSaveOffline.text = getString(R.string.action_save_offline)
+                        binding.buttonSaveOffline.setCompoundDrawablesRelativeWithIntrinsicBounds(0, R.drawable.ic_bookmark_border_24, 0, 0)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeOfflineActionMessages() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.offlineActionMessage.collect { event ->
+                    event?.getContentIfNotHandled()?.let { userMessage ->
+                        val messageText = when (userMessage) {
+                            is ArticleOfflineUserMessage.Success -> userMessage.message
+                            is ArticleOfflineUserMessage.Error -> userMessage.message
+                        }
+                        // MODIFIED: Anchor Snackbar to appear above the bottom action bar
+                        val snackbar = Snackbar.make(binding.root, messageText, Snackbar.LENGTH_LONG)
+                        if (binding.bottomActionBarArticle.isVisible) {
+                            snackbar.anchorView = binding.bottomActionBarArticle
+                        }
+                        snackbar.show()
+                        Log.d(TAG, "Snackbar message shown: $messageText")
                     }
                 }
             }
@@ -154,7 +203,7 @@ class ArticleFragment : Fragment() {
         try {
             val action = ArticleFragmentDirections.actionArticleFragmentSelf(
                 articleTitle = title,
-                articleId = null // Pass null for articleId when navigating by title
+                articleId = null
             )
             findNavController().navigate(action)
         } catch (e: Exception) {
@@ -168,7 +217,7 @@ class ArticleFragment : Fragment() {
         try {
             val action = ArticleFragmentDirections.actionArticleFragmentSelf(
                 articleId = id,
-                articleTitle = null // Pass null for articleTitle when navigating by ID
+                articleTitle = null
             )
             findNavController().navigate(action)
         } catch (e: Exception) {
@@ -204,7 +253,7 @@ class ArticleFragment : Fragment() {
                     return true
                 } else {
                     Log.d(TAG, "Internal OSRS Wiki link (non-standard article path or other resource): $urlString. Allowing WebView to load it.")
-                    return false // Let WebView load other internal links (e.g., special pages, category pages)
+                    return false
                 }
             } else {
                 Log.d(TAG, "External link detected: $urlString. Attempting to open in external browser.")

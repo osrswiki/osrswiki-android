@@ -20,7 +20,6 @@ navigation = "2.9.0"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
 retrofitKotlinxSerializationConverter = "1.0.0"
-gson = "2.11.0"
 
 # Kotlinx Serialization
 kotlinxSerializationJson = "1.7.3"
@@ -64,7 +63,6 @@ okhttp-loggingInterceptor = { group = "com.squareup.okhttp3", name = "logging-in
 
 # Kotlinx Serialization
 kotlinx-serializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-google-gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 # Glide
 glide-core = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }

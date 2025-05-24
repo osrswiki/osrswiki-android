@@ -2,8 +2,8 @@ package com.omiyawaki.osrswiki.data.paging // Package: com.omiyawaki.osrswiki.da
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.omiyawaki.osrswiki.network.SearchResult // Your actual SearchResult DTO
-import com.omiyawaki.osrswiki.network.WikiApiService // Your actual API Service
+import com.omiyawaki.osrswiki.network.SearchResult // The actual SearchResult DTO
+import com.omiyawaki.osrswiki.network.WikiApiService // The actual API Service
 import com.omiyawaki.osrswiki.data.db.dao.ArticleDao // Added import for ArticleDao
 import kotlinx.coroutines.flow.firstOrNull // Added import for firstOrNull
 import android.util.Log
@@ -27,7 +27,7 @@ class SearchPagingSource(
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SearchResult> {
         val currentOffset = params.key ?: OSRS_WIKI_STARTING_PAGE_OFFSET
         // params.loadSize is the number of items Paging 3 wants to load.
-        // Pass this as 'limit' to your API.
+        // Pass this as 'limit' to the API.
         val limit = params.loadSize
 
         if (query.isBlank()) {

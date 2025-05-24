@@ -12,8 +12,7 @@
     <color name="md_theme_error">#B00020</color>
     <color name="md_theme_onError">#FFFFFF</color>
 
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
     <color name="app_theme_background">#E2DBC8</color>
     <color name="ic_launcher_background">#20252c</color>
+    <color name="edit_text_input_color">#DE000000</color>
 </resources>

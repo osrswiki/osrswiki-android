@@ -1,3 +1,4 @@
+import org.gradle.api.attributes.Usage
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,13 +9,13 @@ plugins {
 
 android {
     namespace = "com.omiyawaki.osrswiki"
-    compileSdk = 35 // Keeping your existing compileSdk
+    compileSdk = 35 // Keeping existing compileSdk
     buildToolsVersion = "35.0.1"
 
     defaultConfig {
         applicationId = "com.omiyawaki.osrswiki"
-        minSdk = 24 // Keeping your existing minSdk
-        targetSdk = 35 // Keeping your existing targetSdk
+        minSdk = 24 // Keeping existing minSdk
+        targetSdk = 35 // Keeping existing targetSdk
         versionCode = 1
         versionName = "1.0"
 
@@ -43,7 +44,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.google.gson)
     implementation(libs.androidxPagingRuntimeKtx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
@@ -57,7 +57,18 @@ dependencies {
     // Room components
     implementation(libs.androidx.room.runtime) // Assuming alias exists in libs.versions.toml
     implementation(libs.androidx.room.ktx)     // Assuming alias exists
-    ksp(libs.androidx.room.compiler)       // Assuming alias exists
+    kspDebug(libs.androidx.room.compiler)       // Assuming alias exists
+    {
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+        }
+    }
+//     kspDebug(libs.androidx.room.common)        // Explicitly add room-common for KSP
+//     {
+//         attributes {
+//             attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+//         }
+//     }
 
     // Added dependencies
     implementation(libs.androidx.constraintlayout)

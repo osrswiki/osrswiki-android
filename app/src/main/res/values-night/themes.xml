@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
   <style name="Theme.OSRSWiki" parent="Theme.Material3.DayNight.NoActionBar">
     <item name="colorPrimary">@color/osrs_dark_brown_primary</item> <item name="colorOnPrimary">@color/osrs_text_on_dark_primary</item>
     <item name="colorPrimaryContainer">@color/osrs_parchment_surface</item> <item name="colorOnPrimaryContainer">@color/osrs_text_on_parchment</item>

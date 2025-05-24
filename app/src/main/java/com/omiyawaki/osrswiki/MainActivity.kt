@@ -6,9 +6,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
-import com.omiyawaki.osrswiki.databinding.ActivityMainBinding // Assuming you use ViewBinding for activity_main.xml
+import com.omiyawaki.osrswiki.databinding.ActivityMainBinding // Assumes ViewBinding is used for activity_main.xml
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,19 +38,19 @@ class MainActivity : AppCompatActivity() {
         //      }
         // }
 
-        // If you are using a Toolbar defined in your Activity's layout (e.g., via binding.toolbar)
+        // If a Toolbar is used, defined in the Activity's layout (e.g., via binding.toolbar)
         // and want it to interact with the NavController (e.g., for titles, up button):
-        // setSupportActionBar(binding.appToolbar) // Assuming your Toolbar in activity_main.xml has id "appToolbar"
+        // setSupportActionBar(binding.appToolbar) // Assumes the Toolbar in activity_main.xml has id "appToolbar"
         // val appBarConfiguration = AppBarConfiguration(navController.graph)
         // setupActionBarWithNavController(navController, appBarConfiguration)
-        // Since your app theme is NoActionBar and fragments have their own toolbars,
+        // Since the app theme is NoActionBar and fragments have their own toolbars,
         // this global ActionBar setup might not be necessary or desired here.
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         Log.d(TAG, "onNewIntent: Intent action: ${intent?.action}, data: ${intent?.dataString}")
-        // If your activity's launchMode causes it to receive new intents while running (e.g., singleTop),
+        // If the activity's launchMode causes it to receive new intents while running (e.g., singleTop),
         // the NavController needs to be informed to handle any potential deep links in the new intent.
         if (intent != null) {
             if (!navController.handleDeepLink(intent)) {
