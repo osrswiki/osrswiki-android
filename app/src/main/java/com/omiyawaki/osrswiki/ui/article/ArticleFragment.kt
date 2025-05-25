@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.ui.article
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -13,58 +14,56 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
-import androidx.navigation.fragment.navArgs
-import androidx.navigation.ui.setupWithNavController
 import com.bumptech.glide.Glide
 import com.google.android.material.snackbar.Snackbar
+import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentArticleBinding
+import com.omiyawaki.osrswiki.navigation.NavigationIconType
+import com.omiyawaki.osrswiki.navigation.Router
+import com.omiyawaki.osrswiki.navigation.ScreenConfiguration
 import kotlinx.coroutines.launch
-import androidx.core.graphics.toColorInt
-import androidx.core.net.toUri
 
-class ArticleFragment : Fragment() {
+class ArticleFragment : Fragment(), ScreenConfiguration {
 
     private var _binding: FragmentArticleBinding? = null
-   @Suppress("unused")
-    private val binding get() = _binding!!
+    private val binding get() = _binding!! // This should be used carefully, only between onCreateView and onDestroyView
 
-  @Suppress("unused")
-  private val navArgs: ArticleFragmentArgs by navArgs()
+    private var articleIdArg: String? = null
+    private var articleTitleArg: String? = null
+    private var router: Router? = null
 
-  @Suppress("unused")
-  private val viewModel: ArticleViewModel by viewModels {
-    ArticleViewModelFactory(requireActivity().application)
-  }
-
-@Suppress("unused")
-private companion object {
-        @Suppress("unused")
-        private const val TAG = "ArticleFragment"
-        @Suppress("unused")
-        private const val OSRS_WIKI_BASE_URL_HOST = "oldschool.runescape.wiki"
-        @Suppress("unused")
-        private val WIKI_ARTICLE_PATH_PREFIXES = listOf("/w/", "/wiki/")
+    // Updated to pass arguments to the ViewModel.
+    // Assumes ArticleViewModelFactory is updated to accept articleId and articleTitle (both nullable).
+    private val viewModel: ArticleViewModel by viewModels {
+        ArticleViewModelFactory(
+            requireActivity().application,
+            articleIdArg,
+            articleTitleArg
+        )
     }
 
     private val webViewBackgroundColor = "#E2DBC8"
     private val webViewTextColor = "#333333"
     private val webViewLinkColor = "#0645AD"
 
-   @Suppress("unused")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate: Fragment created. NavArgs - articleId: '${navArgs.articleId}', articleTitle: '${navArgs.articleTitle}'")
+        arguments?.let {
+            articleIdArg = it.getString(ARG_ARTICLE_ID)
+            articleTitleArg = it.getString(ARG_ARTICLE_TITLE)
+        }
+        Log.d(TAG, "onCreate: Fragment created. Args - articleId: '$articleIdArg', articleTitle: '$articleTitleArg'")
     }
 
-   @Suppress("unused")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -75,20 +74,16 @@ private companion object {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-   @Suppress("unused")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated: View created.")
-        // Defer toolbar setup to potentially avoid ConcurrentModificationException
-        // by allowing the NavController's dispatch to complete before this listener is added.
-        view.post {
-            // Check if the fragment is still added and binding is valid before accessing them.
-            if (isAdded && _binding != null) { // _binding check is crucial as it can be nulled in onDestroyView
-                setupToolbar()
-            } else {
-                Log.w(TAG, "Skipping setupToolbar in post: Fragment not added or binding is null.")
-            }
+
+        if (activity is MainActivity) {
+            router = (activity as MainActivity).getRouter()
+        } else {
+            Log.e(TAG, "Host activity is not MainActivity, router cannot be obtained.")
         }
+
         setupWebView()
         observeUiState()
         setupSaveButtonActions()
@@ -96,24 +91,36 @@ private companion object {
         observeOfflineActionMessages()
     }
 
-    private fun setupToolbar() {
-        binding.toolbarArticle.setupWithNavController(findNavController())
+    // Implementation for ScreenConfiguration
+    override fun getScreenTitle(resources: Resources): String? {
+        return articleTitleArg ?: articleIdArg ?: resources.getString(R.string.title_article_loading) // Fallback to a generic loading title
+    }
+
+    // Implementation for ScreenConfiguration
+    override fun getNavigationIconType(): NavigationIconType {
+        return NavigationIconType.BACK
     }
 
     private fun setupWebView() {
         binding.webviewArticleContent.webViewClient = InternalLinkWebViewClient()
         binding.webviewArticleContent.setBackgroundColor(webViewBackgroundColor.toColorInt())
+        // Ensure JavaScript is enabled if needed by the content or interaction, but be mindful of security.
+        // binding.webviewArticleContent.settings.javaScriptEnabled = true
         Log.d(TAG, "WebView setup complete with InternalLinkWebViewClient.")
     }
 
     private fun observeUiState() {
-        Log.d(TAG, "Setting up UI state observer for NavArgs - articleId: '${navArgs.articleId}', articleTitle: '${navArgs.articleTitle}'")
+        Log.d(TAG, "Setting up UI state observer for Args - articleId: '$articleIdArg', articleTitle: '$articleTitleArg'")
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     Log.d(TAG, "New UI State received: isLoading=${state.isLoading}, pageId=${state.pageId}, title=${state.title}, error=${state.error}")
                     binding.progressBarArticle.isVisible = state.isLoading
-                    binding.toolbarArticle.title = state.title ?: navArgs.articleTitle ?: navArgs.articleId ?: getString(R.string.app_name)
+
+                    // Update MainActivity's toolbar title if a new title comes from the ViewModel
+                    val newToolbarTitle = state.title ?: articleTitleArg ?: articleIdArg // Determine the best title
+                    (activity as? MainActivity)?.updateToolbarTitle(newToolbarTitle)
+
 
                     val isArticleContentAvailable = !state.isLoading && state.error == null && state.htmlContent != null && state.pageId != null
                     binding.bottomActionBarArticle.isVisible = isArticleContentAvailable
@@ -192,7 +199,6 @@ private companion object {
                             is ArticleOfflineUserMessage.Success -> userMessage.message
                             is ArticleOfflineUserMessage.Error -> userMessage.message
                         }
-                        // MODIFIED: Anchor Snackbar to appear above the bottom action bar
                         val snackbar = Snackbar.make(binding.root, messageText, Snackbar.LENGTH_LONG)
                         if (binding.bottomActionBarArticle.isVisible) {
                             snackbar.anchorView = binding.bottomActionBarArticle
@@ -219,29 +225,19 @@ private companion object {
 
     private fun navigateToArticleByTitle(title: String) {
         Log.d(TAG, "Attempting to navigate to ArticleFragment for title: '$title'")
-        try {
-            val action = ArticleFragmentDirections.actionArticleFragmentSelf(
-                articleTitle = title,
-                articleId = null
-            )
-            findNavController().navigate(action)
-        } catch (e: Exception) {
-            Log.e(TAG, "Navigation by title failed for '$title'", e)
-            Toast.makeText(context, "Could not navigate to article: $title", Toast.LENGTH_SHORT).show()
+        // Assumes Router interface and its implementation (AppRouterImpl) will have this method.
+        router?.navigateToArticle(articleTitle = title, articleId = null) ?: run {
+            Log.e(TAG, "Router not available for navigation by title: '$title'")
+            Toast.makeText(context, "Navigation error: Could not navigate to article: $title", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun navigateToArticleById(id: String) {
         Log.d(TAG, "Attempting to navigate to ArticleFragment for ID: '$id'")
-        try {
-            val action = ArticleFragmentDirections.actionArticleFragmentSelf(
-                articleId = id,
-                articleTitle = null
-            )
-            findNavController().navigate(action)
-        } catch (e: Exception) {
-            Log.e(TAG, "Navigation by ID failed for '$id'", e)
-            Toast.makeText(context, "Could not navigate to article ID: $id", Toast.LENGTH_SHORT).show()
+        // Assumes Router interface and its implementation (AppRouterImpl) will have this method.
+        router?.navigateToArticle(articleTitle = null, articleId = id) ?: run {
+            Log.e(TAG, "Router not available for navigation by ID: '$id'")
+            Toast.makeText(context, "Navigation error: Could not navigate to article ID: $id", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -253,7 +249,7 @@ private companion object {
 
             if (urlString == null) {
                 Log.d(TAG, "URL is null, WebView will handle.")
-                return false
+                return false // Let WebView handle it
             }
 
             val uri = urlString.toUri()
@@ -265,14 +261,14 @@ private companion object {
                 if (articleTitleFromPath != null) {
                     Log.d(TAG, "Internal OSRS Wiki article link detected by path. Title: '$articleTitleFromPath'. Navigating in-app by title.")
                     navigateToArticleByTitle(articleTitleFromPath)
-                    return true
+                    return true // Indicate that the URL loading is handled
                 } else if (pageIdFromQuery != null && pageIdFromQuery.all { Character.isDigit(it) } && pageIdFromQuery.isNotEmpty()) {
                     Log.d(TAG, "Internal OSRS Wiki link detected by query param. PageID: '$pageIdFromQuery'. Navigating in-app by ID.")
                     navigateToArticleById(pageIdFromQuery)
-                    return true
+                    return true // Indicate that the URL loading is handled
                 } else {
                     Log.d(TAG, "Internal OSRS Wiki link (non-standard article path or other resource): $urlString. Allowing WebView to load it.")
-                    return false
+                    return false // Let WebView load this internal, non-article link
                 }
             } else {
                 Log.d(TAG, "External link detected: $urlString. Attempting to open in external browser.")
@@ -281,30 +277,59 @@ private companion object {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     requireContext().startActivity(intent)
-                    return true
+                    return true // Indicate that the URL loading is handled
                 } catch (e: ActivityNotFoundException) {
                     Log.e(TAG, "No application can handle this external link: $urlString", e)
                     Toast.makeText(requireContext(), "Cannot open link: No application found.", Toast.LENGTH_SHORT).show()
-                    return false
+                    return false // Could not handle, let WebView try or show error
                 } catch (e: Exception) {
                     Log.e(TAG, "Could not open external link $urlString", e)
-                    return false
+                    return false // Could not handle
                 }
             }
         }
     }
 
-   @Suppress("unused")
     override fun onDestroyView() {
         super.onDestroyView()
         Log.d(TAG, "onDestroyView: Clearing binding and preparing to destroy WebView.")
         _binding?.webviewArticleContent?.let { webView ->
-            (webView.parent as? ViewGroup)?.removeView(webView)
+            (webView.parent as? ViewGroup)?.removeView(webView) // Crucial for preventing memory leaks
             webView.stopLoading()
+            webView.onPause() // Pause JavaScript execution
+            webView.clearHistory()
             webView.destroy()
             Log.d(TAG, "WebView destroyed.")
         }
         _binding = null
         Log.d(TAG, "Binding is null.")
+    }
+
+    companion object {
+        private const val TAG = "ArticleFragment" // Kept as private
+
+        // Argument keys
+        private const val ARG_ARTICLE_ID = "com.omiyawaki.osrswiki.ui.article.ARTICLE_ID"
+        private const val ARG_ARTICLE_TITLE = "com.omiyawaki.osrswiki.ui.article.ARTICLE_TITLE"
+
+        // Base URL and path prefixes for internal link detection
+        private const val OSRS_WIKI_BASE_URL_HOST = "oldschool.runescape.wiki"
+        private val WIKI_ARTICLE_PATH_PREFIXES = listOf("/w/", "/wiki/")
+
+        /**
+         * Factory method to create a new instance of this fragment.
+         * @param articleId The ID of the article to load (optional).
+         * @param articleTitle The title of the article to load (optional, can be used if ID is not known).
+         * @return A new instance of fragment ArticleFragment.
+         */
+        @JvmStatic
+        fun newInstance(articleId: String?, articleTitle: String?): ArticleFragment {
+            val fragment = ArticleFragment()
+            val args = Bundle()
+            args.putString(ARG_ARTICLE_ID, articleId)
+            args.putString(ARG_ARTICLE_TITLE, articleTitle)
+            fragment.arguments = args
+            return fragment
+        }
     }
 }
