@@ -42,10 +42,10 @@ class OSRSWikiApplication : Application() {
     }
 
     // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
-    // and provide its required dependencies: wikiApiService, articleDao, articleMetaDao.
+    // and provide its required dependencies: wikiApiService, articleMetaDao.
    @Suppress("unused")
     val searchRepository: SearchRepository by lazy {
-        SearchRepository(wikiApiService, this.articleDao, this.articleMetaDao)
+        SearchRepository(wikiApiService, this.articleMetaDao)
     }
 
 }

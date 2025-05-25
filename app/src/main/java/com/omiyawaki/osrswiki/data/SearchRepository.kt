@@ -4,7 +4,6 @@ import android.util.Log // Added import for Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.omiyawaki.osrswiki.data.db.dao.ArticleDao
 import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
 import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
 import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
@@ -27,7 +26,6 @@ private const val TAG = "SearchRepository" // Added TAG for logging
  */
 class SearchRepository(
     private val apiService: WikiApiService,
-    private val articleDao: ArticleDao,
     private val articleMetaDao: ArticleMetaDao
 ) {
 
@@ -46,7 +44,7 @@ class SearchRepository(
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                SearchPagingSource(apiService = apiService, query = query, articleDao = articleDao)
+                SearchPagingSource(apiService = apiService, query = query, articleMetaDao = articleMetaDao)
             }
         ).flow
     }
