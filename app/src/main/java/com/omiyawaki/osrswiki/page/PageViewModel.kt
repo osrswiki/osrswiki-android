@@ -1,12 +1,14 @@
 package com.omiyawaki.osrswiki.page
 
+import com.omiyawaki.osrswiki.data.network.NetworkConstants
+
 /**
  * A simple data holder for page-related information, similar to the POKO style
  * ViewModel found in the Wikipedia app. This class does not extend androidx.lifecycle.ViewModel.
  * Its properties are expected to be populated and managed externally.
  */
 class PageViewModel {
-    var pageId: Int? = null
+    var pageId: Int? = null // As seen in your last successful output
     var articleTitle: String? = null
     var htmlContent: String? = null
     var imageUrl: String? = null
@@ -14,9 +16,17 @@ class PageViewModel {
     var errorMessage: String? = null
     var forceNetwork: Boolean = false
 
-    // TODO: Add any computed properties if necessary, e.g., for cache control strings
-    // based on `forceNetwork`, or other derived states.
+    val cacheControl: String
+        get() = if (forceNetwork) {
+            NetworkConstants.CACHE_CONTROL_FORCE_NETWORK_VALUE
+        } else {
+            NetworkConstants.CACHE_CONTROL_DEFAULT_VALUE
+        }
 
-    // TODO: Consider if specific data classes are needed for complex properties,
-    // or if simple types are sufficient for now.
+    // Backing property for the saved state
+    var isCurrentlyMarkedAsSaved: Boolean = false
+
+    // Computed property
+    val isSavedArticle: Boolean
+        get() = isCurrentlyMarkedAsSaved
 }
