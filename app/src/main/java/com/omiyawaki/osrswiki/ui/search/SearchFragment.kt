@@ -315,23 +315,19 @@ class SearchFragment : Fragment() {
                             // Ensure other result views are hidden for blank query prompt
                             binding.searchResultsRecyclerview.isVisible = false
                             // Offline results visibility is already handled above, but ensure consistency
-                            if (!hasOfflineResults) { // If, for some reason, offline results were forced visible
-                                binding.offlineResultsRecyclerview.isVisible = false
-                                binding.offlineResultsTitleTextview.isVisible = false
-                            }
                             Log.d("SearchFragment", "Displaying initial prompt: ${searchMessageTextView.text}")
                         }
-                        !isQueryBlank && onlineRefreshState is LoadState.NotLoading && onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> {
+                        !isQueryBlank && onlineRefreshState is LoadState.NotLoading && onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> {&& !hasOfflineResults && !isOnlineLoading -> { !hasOfflineResults -> {&& onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> { onlineItemCount == 0 && onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> {&& onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> { !hasOfflineResults -> {
                             // No results found for the query (both online and offline are empty after trying, and not currently loading online)
                             searchMessageTextView.text = getString(R.string.search_no_results)
                             searchMessageTextView.isVisible = true
                             Log.d("SearchFragment", "Displaying 'No results' for query: '$query'")
                         }
-                        !isQueryBlank && onlineRefreshState is LoadState.Error && !hasOfflineResults && !isOnlineLoading -> {
+                        !isQueryBlank && onlineRefreshState is LoadState.Error && !hasOfflineResults  -> {&& !hasOfflineResults && !isOnlineLoading -> { !hasOfflineResults -> {
                             // Online search error, no offline results to show instead, and not currently loading online
                             searchMessageTextView.text = getString(R.string.search_network_error)
                             searchMessageTextView.isVisible = true
-                            Log.e("SearchFragment", "Displaying network error for query: '$query'", (onlineRefreshState as LoadState.Error).error)
+                            Log.e("SearchFragment", "Displaying network error for query: '$query'", onlineRefreshState.error)
                         }
                         else -> {
                             // All other cases (results found in at least one list, or online still loading but offline might be visible, etc.)
