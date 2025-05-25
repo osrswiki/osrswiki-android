@@ -327,7 +327,7 @@ class SearchFragment : Fragment() {
                             // Online search error, no offline results to show instead, and not currently loading online
                             searchMessageTextView.text = getString(R.string.search_network_error)
                             searchMessageTextView.isVisible = true
-                            Log.e("SearchFragment", "Displaying network error for query: '$query'", (onlineRefreshState as LoadState.Error).error)
+                            Log.e("SearchFragment", "Displaying network error for query: '$query'", onlineRefreshState.error)
                         }
                         else -> {
                             // All other cases (results found in at least one list, or online still loading but offline might be visible, etc.)
