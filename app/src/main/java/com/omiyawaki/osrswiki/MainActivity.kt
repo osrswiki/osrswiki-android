@@ -1,67 +1,110 @@
 package com.omiyawaki.osrswiki
 
-import android.content.Intent
+import android.content.res.Resources
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.NavController
-import androidx.navigation.fragment.NavHostFragment
-import com.omiyawaki.osrswiki.databinding.ActivityMainBinding // Assumes ViewBinding is used for activity_main.xml
+import androidx.fragment.app.FragmentManager
+import com.google.android.material.appbar.MaterialToolbar
+import com.omiyawaki.osrswiki.navigation.AppRouterImpl
+import com.omiyawaki.osrswiki.navigation.Router
+import com.omiyawaki.osrswiki.ui.common.NavigationIconType
+import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityMainBinding
-    private lateinit var navController: NavController
+    private lateinit var toolbar: MaterialToolbar
+    private lateinit var appRouter: Router
 
-@Suppress("unused")
-private companion object {
-        private const val TAG = "MainActivity"
+    /**
+     * Listener for back stack changes to update the toolbar.
+     * This ensures the toolbar reflects the state of the currently visible fragment.
+     */
+    private val backStackListener = FragmentManager.OnBackStackChangedListener {
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container_main)
+        if (currentFragment is ScreenConfiguration) {
+            updateToolbar(currentFragment)
+        } else {
+            // Set a default toolbar state if the fragment doesn't provide configuration
+            // or if no fragment is currently in the container (e.g., after all pops).
+            toolbar.title = getString(R.string.app_name) // Assumes R.string.app_name exists
+            toolbar.navigationIcon = null
+            invalidateOptionsMenu() // Clear any menu from a previous fragment
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_main)
 
-        Log.d(TAG, "onCreate: Intent action: ${intent.action}, data: ${intent.dataString}")
+        toolbar = findViewById(R.id.main_app_toolbar)
+        setSupportActionBar(toolbar)
 
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment // <<<< CORRECTED ID HERE
-        navController = navHostFragment.navController
+        // Instantiate the application's router implementation.
+        appRouter = AppRouterImpl(supportFragmentManager, R.id.fragment_container_main)
 
-        // The NavController should automatically handle deep links passed to the activity's intent
-        // when <nav-graph> is specified in the manifest.
-        // If issues persist, explicitly calling navController.handleDeepLink(intent) might be needed
-        // for specific launch modes or setups, usually in onNewIntent or here if not already handled.
-        // Example: if (intent.action == Intent.ACTION_VIEW && intent.data != null) {
-        //     if (!navController.handleDeepLink(intent)) {
-        //          Log.w(TAG, "NavController could not handle deep link in onCreate.")
-        //      }
-        // }
+        // Register the listener for back stack changes.
+        supportFragmentManager.addOnBackStackChangedListener(backStackListener)
 
-        // If a Toolbar is used, defined in the Activity's layout (e.g., via binding.toolbar)
-        // and want it to interact with the NavController (e.g., for titles, up button):
-        // setSupportActionBar(binding.appToolbar) // Assumes the Toolbar in activity_main.xml has id "appToolbar"
-        // val appBarConfiguration = AppBarConfiguration(navController.graph)
-        // setupActionBarWithNavController(navController, appBarConfiguration)
-        // Since the app theme is NoActionBar and fragments have their own toolbars,
-        // this global ActionBar setup might not be necessary or desired here.
-    }
-
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        Log.d(TAG, "onNewIntent: Intent action: ${intent?.action}, data: ${intent?.dataString}")
-        // If the activity's launchMode causes it to receive new intents while running (e.g., singleTop),
-        // the NavController needs to be informed to handle any potential deep links in the new intent.
-        if (intent != null) {
-            if (!navController.handleDeepLink(intent)) {
-                Log.w(TAG, "NavController could not handle deep link in onNewIntent.")
-            }
+        if (savedInstanceState == null) {
+            // This is the first creation of the Activity.
+            // Navigate to the initial screen.
+            // Replace 'navigateToInitialScreen()' with the actual method in the Router interface,
+            // e.g., 'navigateToSearchScreen()' or 'navigateToHomeFragment()'.
+            appRouter.navigateToInitialScreen() // Ensure this method exists in Router/AppRouterImpl
+        } else {
+            // Activity is being recreated, FragmentManager will restore the back stack.
+            // The listener should handle the toolbar update.
+            // Call listener once to ensure toolbar is updated for the restored top fragment.
+            backStackListener.onBackStackChanged()
         }
     }
 
-    // If MainActivity were managing an ActionBar that should show the Up button:
-    // override fun onSupportNavigateUp(): Boolean {
-    //     return navController.navigateUp() || super.onSupportNavigateUp()
-    // }
+    override fun onDestroy() {
+        super.onDestroy()
+        // Clean up by removing the listener.
+        supportFragmentManager.removeOnBackStackChangedListener(backStackListener)
+    }
+
+    /**
+     * Updates the toolbar's appearance based on the configuration provided by a Fragment.
+     * @param config The ScreenConfiguration provided by the current fragment.
+     */
+    fun updateToolbar(config: ScreenConfiguration) {
+        toolbar.title = config.getToolbarTitle(resources)
+
+        when (config.getNavigationIconType()) {
+            NavigationIconType.NONE -> {
+                toolbar.navigationIcon = null
+            }
+            NavigationIconType.BACK -> {
+                // Ensure R.drawable.ic_arrow_back and R.string.nav_back_content_description exist.
+                toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
+                toolbar.setNavigationContentDescription(R.string.nav_back_content_description)
+            }
+            NavigationIconType.CLOSE -> {
+                // Ensure R.drawable.ic_close and R.string.nav_close_content_description exist.
+                toolbar.setNavigationIcon(R.drawable.ic_close)
+                toolbar.setNavigationContentDescription(R.string.nav_close_content_description)
+            }
+        }
+        // Invalidate the options menu to trigger onPrepareOptionsMenu for the current fragment,
+        // allowing it to update menu items.
+        invalidateOptionsMenu()
+    }
+
+    /**
+     * Handles the action when the toolbar's navigation icon (e.g., up arrow) is pressed.
+     * Delegates the back navigation to the AppRouter.
+     */
+    override fun onSupportNavigateUp(): Boolean {
+        // Attempt to navigate back using the router.
+        // If the router handles it (e.g., pops a fragment), return true.
+        // Otherwise, fall back to default behavior (which might finish the activity).
+        return appRouter.goBack() || super.onSupportNavigateUp()
+    }
+
+    // Optional: If Fragments need direct access to the router instance.
+    // Consider providing it via ViewModel or other dependency injection mechanisms
+    // for better separation of concerns.
+    // fun getAppRouter(): Router = appRouter
 }
