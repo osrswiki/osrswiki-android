@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import com.omiyawaki.osrswiki.data.network.NetworkConstants
+// No explicit import for ArticleDisplayData needed if it's in the same package.
 
 /**
  * A simple data holder for page-related information, similar to the POKO style
@@ -8,10 +9,9 @@ import com.omiyawaki.osrswiki.data.network.NetworkConstants
  * Its properties are expected to be populated and managed externally.
  */
 class PageViewModel {
-    var pageId: Int? = null // As seen in your last successful output
-    var articleTitle: String? = null
-    var htmlContent: String? = null
-    var imageUrl: String? = null
+    // Encapsulates core article details.
+    var articleData: ArticleDisplayData? = null
+
     var isLoading: Boolean = false
     var errorMessage: String? = null
     var forceNetwork: Boolean = false
