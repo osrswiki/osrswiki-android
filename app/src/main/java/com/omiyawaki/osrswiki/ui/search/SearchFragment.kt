@@ -315,19 +315,15 @@ class SearchFragment : Fragment() {
                             // Ensure other result views are hidden for blank query prompt
                             binding.searchResultsRecyclerview.isVisible = false
                             // Offline results visibility is already handled above, but ensure consistency
-                            if (!hasOfflineResults) { // If, for some reason, offline results were forced visible
-                                binding.offlineResultsRecyclerview.isVisible = false
-                                binding.offlineResultsTitleTextview.isVisible = false
-                            }
                             Log.d("SearchFragment", "Displaying initial prompt: ${searchMessageTextView.text}")
                         }
-                        !isQueryBlank && onlineRefreshState is LoadState.NotLoading && onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> {
+                        !isQueryBlank && onlineRefreshState is LoadState.NotLoading && onlineItemCount == 0 && !hasOfflineResults -> {
                             // No results found for the query (both online and offline are empty after trying, and not currently loading online)
                             searchMessageTextView.text = getString(R.string.search_no_results)
                             searchMessageTextView.isVisible = true
                             Log.d("SearchFragment", "Displaying 'No results' for query: '$query'")
                         }
-                        !isQueryBlank && onlineRefreshState is LoadState.Error && !hasOfflineResults && !isOnlineLoading -> {
+                        !isQueryBlank && onlineRefreshState is LoadState.Error && !hasOfflineResults -> {
                             // Online search error, no offline results to show instead, and not currently loading online
                             searchMessageTextView.text = getString(R.string.search_network_error)
                             searchMessageTextView.isVisible = true

@@ -1,14 +1,13 @@
 package com.omiyawaki.osrswiki.data.paging // Package: com.omiyawaki.osrswiki.data.paging
 
+import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.omiyawaki.osrswiki.network.SearchResult // The actual SearchResult DTO
-import com.omiyawaki.osrswiki.network.WikiApiService // The actual API Service
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao // Added import for ArticleDao
-import kotlinx.coroutines.flow.firstOrNull // Added import for firstOrNull
-import android.util.Log
-import java.io.IOException
+import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
+import com.omiyawaki.osrswiki.network.SearchResult
+import com.omiyawaki.osrswiki.network.WikiApiService
 import retrofit2.HttpException
+import java.io.IOException
 
 // Starting offset for the OSRS Wiki API (sroffset parameter)
 private const val OSRS_WIKI_STARTING_PAGE_OFFSET = 0
