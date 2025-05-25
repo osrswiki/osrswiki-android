@@ -10,20 +10,31 @@ import com.omiyawaki.osrswiki.network.WikiApiService
 
 class OSRSWikiApplication : Application() {
 
+    companion object {
+        lateinit var instance: OSRSWikiApplication
+            private set // Restrict setting the instance from outside the class
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        // Other application initialization code can go here, if any.
+    }
+
     // Lazily initialize WikiApiService using the existing RetrofitClient.
-   @Suppress("unused")
+    @Suppress("unused")
     private val wikiApiService: WikiApiService by lazy {
         RetrofitClient.apiService
     }
 
     // Lazily initialize the Room database.
-   @Suppress("unused")
+    @Suppress("unused")
     private val database: OSRSWikiDatabase by lazy {
         OSRSWikiDatabase.getInstance(applicationContext)
     }
 
     // Lazily initialize ArticleMetaDao from the database.
-   @Suppress("unused")
+    @Suppress("unused")
     private val articleMetaDao: ArticleMetaDao by lazy {
         database.articleMetaDao()
     }
@@ -37,7 +48,7 @@ class OSRSWikiApplication : Application() {
 
     // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
     // and provide its required dependencies: wikiApiService, articleMetaDao.
-   @Suppress("unused")
+    @Suppress("unused")
     val searchRepository: SearchRepository by lazy {
         SearchRepository(wikiApiService, this.articleMetaDao)
     }
