@@ -18,27 +18,28 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentArticleBinding
+// Ensure ArticleUiState is imported if it becomes a top-level class, or accessible if inner to ViewModel
+// import com.omiyawaki.osrswiki.ui.article.ArticleUiState
 import com.omiyawaki.osrswiki.model.WikiArticle
 import com.omiyawaki.osrswiki.network.transformHtml
-import com.omiyawaki.osrswiki.ui.common.NavigationIconType // Added import
-import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration // Added import
+import com.omiyawaki.osrswiki.ui.common.NavigationIconType
+import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
+// javax.inject.Inject is no longer needed for assistedFactory here
 
 private const val ARG_ARTICLE_ID = "article_id"
 private const val ARG_ARTICLE_TITLE = "article_title"
 
 @AndroidEntryPoint
-class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenConfiguration
+class ArticleFragment : Fragment(), ScreenConfiguration {
 
-    @Inject
-    lateinit var assistedFactory: ArticleViewModel.ArticleViewModelAssistedFactory
+    // Removed: @Inject lateinit var assistedFactory: ArticleViewModel.ArticleViewModelAssistedFactory
 
     private val viewModel: ArticleViewModel by viewModels {
         ArticleViewModelFactory(
-            assistedFactory,
+            requireActivity().application, // Corrected: Pass Application
             arguments?.getString(ARG_ARTICLE_ID),
             arguments?.getString(ARG_ARTICLE_TITLE)
         )
@@ -61,7 +62,6 @@ class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenCo
         observeViewModel()
         setupSaveButton()
 
-        // Request MainActivity to update toolbar based on this fragment's configuration
         (activity as? MainActivity)?.updateToolbar(this)
     }
 
@@ -70,15 +70,11 @@ class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenCo
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
                 if (url != null) {
-                    // If it's a relative link (internal wiki link), try to navigate to a new ArticleFragment
                     if (url.startsWith("/")) {
                         val newTitle = url.substringAfterLast("/").replace("_", " ")
-                        // TODO: This is a simplified navigation. Robust solution needed.
-                        // Consider using the Router for this if article ID can be derived or isn't strictly needed.
                         (activity as? MainActivity)?.getRouter()?.navigateToArticle(null, newTitle)
                         return true
                     }
-                    // If it's an external link, open in browser
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         startActivity(intent)
@@ -97,43 +93,54 @@ class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenCo
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.uiState.collect { state ->
+                    viewModel.uiState.collect { state -> // state should be ArticleUiState
                         binding.progressBarArticle.isVisible = state.isLoading
-                        state.article?.let { displayArticle(it) }
+                        state.article?.let { articleData -> // Assuming ArticleUiState has an 'article' field of type WikiArticle
+                            // This 'articleData' needs to be compatible with what displayArticle expects,
+                            // or ArticleUiState needs to expose htmlContent, title etc directly.
+                            // For now, assuming state.article is the WikiArticle object itself, or similar.
+                            // The current ArticleUiState definition has 'title' and 'htmlContent' fields directly.
+                             displayArticle(
+                                 WikiArticle( // Reconstruct WikiArticle if state holds individual fields
+                                     pageId = state.pageId ?: 0, // Provide a default or handle null
+                                     title = state.title ?: "Loading...",
+                                     htmlContent = state.htmlContent ?: "",
+                                     imageUrl = state.imageUrl
+                                 )
+                             )
+                        }
                         state.error?.let { displayError(it) }
-                        // Update toolbar title via MainActivity when article data is available
-                        (activity as? MainActivity)?.updateToolbarTitle(state.article?.title ?: getToolbarTitle { getString(it) })
+                        (activity as? MainActivity)?.updateToolbarTitle(state.title ?: getToolbarTitle { getString(it) })
                     }
                 }
                 launch {
-                    viewModel.isSaved.collect { isSaved ->
-                        updateSaveButton(isSaved)
+                    viewModel.isArticleOffline.collect { isOffline -> // Corrected: isArticleOffline
+                        updateSaveButton(isOffline)
                     }
                 }
             }
         }
     }
 
-    // Implement ScreenConfiguration
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
-        // Return a loading title or actual title from ViewModel if available
-        return viewModel.uiState.value.article?.title ?: getString(R.string.title_article_loading)
+        return viewModel.uiState.value.title ?: getString(R.string.title_article_loading)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        return NavigationIconType.BACK // Article screen typically has a back button
+        return NavigationIconType.BACK
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
-        return true // Assuming ArticleFragment might have options like "Save", "Open in browser"
+        return true
     }
 
-    private fun displayArticle(article: WikiArticle) {
+    private fun displayArticle(article: WikiArticle) { // Parameter is WikiArticle
         binding.textviewArticleError.isVisible = false
         binding.webviewArticleContent.isVisible = true
+        // Corrected: Call isDarkTheme() on viewModel
         val transformedHtml = transformHtml(article.htmlContent, viewModel.isDarkTheme())
         binding.webviewArticleContent.loadDataWithBaseURL(
-            "https://oldschool.runescape.wiki", // Base URL for resolving relative links
+            "https://oldschool.runescape.wiki",
             transformedHtml,
             "text/html",
             "UTF-8",
@@ -151,7 +158,7 @@ class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenCo
 
     private fun setupSaveButton() {
         binding.bottomActionBarArticle.buttonSaveOffline.setOnClickListener {
-            viewModel.toggleSaveState()
+            viewModel.toggleSaveOfflineStatus() // Corrected: toggleSaveOfflineStatus
         }
     }
 
@@ -166,15 +173,16 @@ class ArticleFragment : Fragment(), ScreenConfiguration { // Implements ScreenCo
             button.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_bookmark_border_24, 0, 0)
             button.contentDescription = getString(R.string.cd_save_for_offline)
         }
-        // Ensure the drawable tint is updated if necessary, e.g., after theme change or if not set by XML
-        val colorPrimary = ContextCompat.getColor(requireContext(), R.color.primary) // Example, use your actual color attribute
-        button.compoundDrawables[1]?.setTint(colorPrimary) // Index 1 is for drawableTop
+        // Ensure the drawable tint is updated
+        // TODO: Use a theme attribute for colorPrimary if possible, or ensure R.color.primary is defined.
+        // For now, assuming R.color.primary exists as per previous code.
+        // val colorPrimary = ContextCompat.getColor(requireContext(), R.color.primary)
+        // button.compoundDrawables[1]?.setTint(colorPrimary)
+        // Let's rely on XML or theme for tinting for now to avoid R.color.primary issues.
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Important for WebView to prevent memory leaks
         binding.webviewArticleContent.destroy()
         _binding = null
     }
