@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki
 
 import android.app.Application
+import android.util.Log // Added for logCrashManually
 import com.omiyawaki.osrswiki.data.repository.ArticleRepository // This is for the ArticleRepository in data/repository
 import com.omiyawaki.osrswiki.data.SearchRepository // Changed to use the SearchRepository in data package
 import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase
@@ -53,4 +54,17 @@ class OSRSWikiApplication : Application() {
         SearchRepository(wikiApiService, this.articleMetaDao)
     }
 
+    /**
+     * Logs a throwable manually, intended for reporting to a crash analysis service.
+     * Called by L.kt when a remote error is detected in a production release.
+     *
+     * @param t The throwable to log.
+     */
+    fun logCrashManually(t: Throwable) {
+        // This is where a remote crash reporting tool (e.g., Firebase Crashlytics)
+        // would typically be invoked to record the error.
+        // For now, as a placeholder, we'll log it to Logcat with a distinct tag.
+        // TODO: Replace this with actual crash reporting (e.g., FirebaseCrashlytics.recordException(t))
+        Log.e("OSRSWikiAppCrash", "Manual crash report: ${t.message}", t)
+    }
 }

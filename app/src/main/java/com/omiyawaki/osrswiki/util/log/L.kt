@@ -1,14 +1,9 @@
-package com.omiyawaki.osrswiki.util.log // Adjusted package name
+package com.omiyawaki.osrswiki.util.log
 
 import android.util.Log
-import com.omiyawaki.osrswiki.BuildConfig // Adjusted BuildConfig import
-// TODO: Confirm 'com.omiyawaki.osrswiki.OsrsWikiApp' is the correct Application class name and uncomment.
-// import com.omiyawaki.osrswiki.OsrsWikiApp // Placeholder for OSRSWiki Application class
-// TODO: Implement the 'ReleaseUtil' class (or an equivalent) in the 'com.omiyawaki.osrswiki.util' package (or adjust path).
-//       This utility is used by L.kt to control logging behavior based on build types (e.g., isProdRelease, isDevRelease).
-//       Its methods (isProdRelease, isPreBetaRelease, isDevRelease) need to be defined.
-//       Alternatively, modify the logic in this file if such fine-grained control is not required.
-// import com.omiyawaki.osrswiki.util.ReleaseUtil // Placeholder for OSRSWiki ReleaseUtil
+import com.omiyawaki.osrswiki.BuildConfig
+import com.omiyawaki.osrswiki.OSRSWikiApplication // Corrected Application class import
+import com.omiyawaki.osrswiki.util.ReleaseUtil   // ReleaseUtil import activated
 
 /** Logging utility like [Log] but with implied tags.  */
 object L {
@@ -100,50 +95,35 @@ object L {
 
     @JvmStatic
     fun logRemoteErrorIfProd(t: Throwable) {
-        // TODO: Adapt the condition 'ReleaseUtil.isProdRelease' based on the implemented 'ReleaseUtil' or chosen alternative.
-        //       This requires 'ReleaseUtil' to be available and have an 'isProdRelease' property/method.
-        // if (ReleaseUtil.isProdRelease) {
-        //     logRemoteError(t)
-        // } else {
-        //     // TODO: Confirm if re-throwing a RuntimeException is the desired behavior in non-prod builds.
-        //     throw RuntimeException(t)
-        // }
-        // Simplified version until ReleaseUtil is addressed:
-        Log.e("REMOTE_ERROR_PROD_CHECK", "Unhandled exception: ${t.message}", t)
-        // Consider re-throwing for non-prod or logging to a crash reporting service.
-        // throw RuntimeException(t) // Example: Uncomment if crashes are preferred in debug.
+        if (ReleaseUtil.isProdRelease) {
+            logRemoteError(t)
+        } else {
+            // For non-production builds, re-throw the exception to make it crash loudly.
+            throw RuntimeException(t)
+        }
     }
 
     // Favor logRemoteErrorIfProd(). If it's worth consuming bandwidth and developer hours, it's
     // worth crashing on everything but prod
     fun logRemoteError(t: Throwable) {
-        LEVEL_E.log("", t)
-        // TODO: Adapt the condition '!ReleaseUtil.isPreBetaRelease' based on the implemented 'ReleaseUtil' or chosen alternative.
-        // TODO: Replace 'OsrsWikiApp.instance.logCrashManually(t)' with the correct call
-        //       to the OSRSWiki Application class method if manual crash reporting is implemented.
-        //       This requires 'ReleaseUtil' and the Application class method to be available.
-        // if (!ReleaseUtil.isPreBetaRelease) {
-        //    OsrsWikiApp.instance.logCrashManually(t)
-        // }
-        // Simplified version until ReleaseUtil and App class method are addressed:
-        Log.e("REMOTE_ERROR", "Logged remote error: ${t.message}", t)
+        LEVEL_E.log("", t) // Log the error locally using our E level.
+        // For production releases, also log the crash to the remote reporting service.
+        if (ReleaseUtil.isProdRelease) {
+            OSRSWikiApplication.instance.logCrashManually(t)
+        }
     }
 
     private abstract class LogLevel {
         abstract fun logLevel(tag: String?, msg: String?, t: Throwable?)
         fun log(msg: String, t: Throwable?) {
-            // TODO: Adapt the condition 'ReleaseUtil.isDevRelease' based on the implemented 'ReleaseUtil' or chosen alternative.
-            //       This determines whether to use class/method/line as tag or the application ID.
-            // if (ReleaseUtil.isDevRelease) {
-            //     val element = Thread.currentThread().stackTrace[STACK_INDEX]
-            //     logLevel(element.className, stackTraceElementToMessagePrefix(element) + msg, t)
-            // } else {
-            //     // Assumes BuildConfig.APPLICATION_ID is available and appropriate for OSRSWiki.
-            //     logLevel(BuildConfig.APPLICATION_ID, msg, t)
-            // }
-            // Simplified version until ReleaseUtil is addressed (always logs with detailed tag):
-            val element = Thread.currentThread().stackTrace[STACK_INDEX]
-            logLevel(element.className, stackTraceElementToMessagePrefix(element) + msg, t)
+            if (ReleaseUtil.isDevRelease) {
+                // For development builds, use detailed tags including class, method, and line number.
+                val element = Thread.currentThread().stackTrace[STACK_INDEX]
+                logLevel(element.className, stackTraceElementToMessagePrefix(element) + msg, t)
+            } else {
+                // For release builds, use the application ID as the tag.
+                logLevel(BuildConfig.APPLICATION_ID, msg, t)
+            }
         }
 
         private fun stackTraceElementToMessagePrefix(element: StackTraceElement): String {
@@ -154,7 +134,7 @@ object L {
         companion object {
             // Defines the stack trace depth to find the calling method.
             // This might need adjustment if the call hierarchy changes significantly.
-            private const val STACK_INDEX = 4
+            private const val STACK_INDEX = 4 // this must be 4 for the call order: L.e -> LEVEL_E.log -> LogLevel.log
         }
     }
 }
