@@ -28,8 +28,12 @@ class OSRSWikiApplication : Application() {
         database.articleMetaDao()
     }
 
+    // Provides the ArticleRepository from the data.repository package.
+    @Suppress("unused")
+    val articleRepository: ArticleRepository by lazy {
         ArticleRepository(wikiApiService, articleMetaDao, applicationContext)
     }
+
 
     // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
     // and provide its required dependencies: wikiApiService, articleMetaDao.
