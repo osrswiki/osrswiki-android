@@ -50,7 +50,7 @@ class MainActivity : AppCompatActivity() {
             // Navigate to the initial screen.
             // Replace 'navigateToInitialScreen()' with the actual method in the Router interface,
             // e.g., 'navigateToSearchScreen()' or 'navigateToHomeFragment()'.
-            appRouter.navigateToInitialScreen() // Ensure this method exists in Router/AppRouterImpl
+            appRouter.navigateToSearchScreen() // Ensure this method exists in Router/AppRouterImpl
         } else {
             // Activity is being recreated, FragmentManager will restore the back stack.
             // The listener should handle the toolbar update.
