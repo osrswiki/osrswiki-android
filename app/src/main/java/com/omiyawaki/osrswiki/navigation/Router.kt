@@ -6,7 +6,7 @@ package com.omiyawaki.osrswiki.navigation
  */
 interface Router {
     fun navigateToSearchScreen() // Assuming SearchFragment is the typical "home" or initial useful screen
-    fun navigateToArticle(articlePageId: String, articleTitle: String?) // Changed from plan to include title for ArticleFragment's newInstance
+    fun navigateToArticle(articleId: String?, articleTitle: String?) // Updated parameter name and nullability
     // Add other navigation destinations as needed, e.g.:
     // fun navigateToSettings()
     // fun navigateToBookmarks()

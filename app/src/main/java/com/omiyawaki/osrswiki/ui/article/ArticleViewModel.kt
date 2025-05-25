@@ -14,7 +14,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-// Data class ArticleUiState
+// Data class ArticleUiState (definition should be present in the project)
+// data class ArticleUiState(
+//     val isLoading: Boolean = false,
+//     val pageId: Int? = null,
+//     val title: String? = null,
+//     val htmlContent: String? = null,
+//     val imageUrl: String? = null,
+//     val error: String? = null
+// )
 
 // Sealed class for user messages related to offline actions
 sealed class ArticleOfflineUserMessage {
@@ -25,11 +33,14 @@ sealed class ArticleOfflineUserMessage {
 @Suppress("unused")
 class ArticleViewModel(
     private val articleRepository: ArticleRepository,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle, // Retained for potential other uses
+    private val articleIdFromArgs: String?,         // New: Injected from Factory
+    private val articleTitleFromArgs: String?      // New: Injected from Factory
 ) : ViewModel() {
 
-private companion object {
+    private companion object {
         private const val TAG = "ArticleViewModel"
+        // These constants might still be relevant if SavedStateHandle is used as a fallback or for other args.
         const val NAV_ARG_ARTICLE_ID = "articleId"
         const val NAV_ARG_ARTICLE_TITLE = "articleTitle"
     }
@@ -46,15 +57,23 @@ private companion object {
 
     init {
         Log.d("MyAppTestTAG", "Test log from ArticleViewModel init")
-        Log.d(TAG, "ArticleViewModel initialized.")
+        Log.d(TAG, "ArticleViewModel initialized. articleIdFromArgs: '$articleIdFromArgs', articleTitleFromArgs: '$articleTitleFromArgs'")
         fetchArticleData()
     }
 
     private fun fetchArticleData() {
-        val articleIdArg: String? = savedStateHandle[NAV_ARG_ARTICLE_ID]
-        val articleTitleArg: String? = savedStateHandle[NAV_ARG_ARTICLE_TITLE]
+        // Prioritize arguments passed via constructor (from ArticleFragment.newInstance)
+        val currentArticleId: String? = articleIdFromArgs
+        val currentArticleTitle: String? = articleTitleFromArgs
 
-        Log.d(TAG, "Attempting to load article. NavArg ID: '$articleIdArg', NavArg Title: '$articleTitleArg'")
+        // Logging the source of articleId and title for clarity during debugging
+        Log.d(TAG, "Attempting to load article. Using constructor-passed ID: '$currentArticleId', Title: '$currentArticleTitle'")
+
+        // Fallback to SavedStateHandle if needed (optional, current logic prioritizes constructor args)
+        // val articleIdFallback: String? = savedStateHandle[NAV_ARG_ARTICLE_ID]
+        // val articleTitleFallback: String? = savedStateHandle[NAV_ARG_ARTICLE_TITLE]
+        // Log.d(TAG, "SavedStateHandle provides ID: '$articleIdFallback', Title: '$articleTitleFallback'")
+
         _uiState.value = ArticleUiState(isLoading = true) // Reset UI state with loading
 
         viewModelScope.launch {
@@ -66,9 +85,9 @@ private companion object {
             var determinedPageId: Int? = null
 
             try {
-                if (articleIdArg != null && articleIdArg != "null" && articleIdArg.isNotEmpty()) {
+                if (currentArticleId != null && currentArticleId != "null" && currentArticleId.isNotEmpty()) {
                     try {
-                        val pageIdFromArg = articleIdArg.toInt()
+                        val pageIdFromArg = currentArticleId.toInt()
                         determinedPageId = pageIdFromArg
                         usedIdentifierForLog = "pageId $determinedPageId"
                         Log.d(TAG, "Fetching article data by pageId: $determinedPageId using articleRepository.getArticle")
@@ -97,26 +116,26 @@ private companion object {
                             }
                         }
                     } catch (e: NumberFormatException) {
-                        Log.e(TAG, "Failed to parse article ID '$articleIdArg' to Int. Will try fetching by title if available.", e)
-                        fetchError = "Invalid Article ID format: '$articleIdArg'."
+                        Log.e(TAG, "Failed to parse article ID '$currentArticleId' to Int. Will try fetching by title if available.", e)
+                        fetchError = "Invalid Article ID format: '$currentArticleId'."
                         determinedPageId = null
                     }
                 }
 
                 if ((determinedPageId == null || fetchError != null || fetchedHtmlContent == null) &&
-                    !articleTitleArg.isNullOrEmpty() && articleTitleArg != "null"
+                    !currentArticleTitle.isNullOrEmpty() && currentArticleTitle != "null"
                 ) {
-                    val idFetchAttempted = articleIdArg != null && articleIdArg != "null" && articleIdArg.isNotEmpty()
+                    val idFetchAttempted = currentArticleId != null && currentArticleId != "null" && currentArticleId.isNotEmpty()
                     if (fetchError != null && idFetchAttempted) {
-                        Log.d(TAG, "Previous attempt with ID '$articleIdArg' resulted in error/no content ('$fetchError'). Now attempting fetch by title: '$articleTitleArg'")
-                    } else if (!idFetchAttempted && (articleIdArg.isNullOrEmpty() || articleIdArg == "null")) {
-                        Log.d(TAG, "No valid ID provided or attempted. Attempting fetch by title: '$articleTitleArg'")
+                        Log.d(TAG, "Previous attempt with ID '$currentArticleId' resulted in error/no content ('$fetchError'). Now attempting fetch by title: '$currentArticleTitle'")
+                    } else if (!idFetchAttempted && (currentArticleId.isNullOrEmpty() || currentArticleId == "null")) {
+                        Log.d(TAG, "No valid ID provided or attempted. Attempting fetch by title: '$currentArticleTitle'")
                     }
 
-                    usedIdentifierForLog = "title '$articleTitleArg'"
-                    Log.d(TAG, "Fetching article data by title: '$articleTitleArg' using articleRepository.getArticleByTitle")
+                    usedIdentifierForLog = "title '$currentArticleTitle'"
+                    Log.d(TAG, "Fetching article data by title: '$currentArticleTitle' using articleRepository.getArticleByTitle")
 
-                    val resultByTitle = articleRepository.getArticleByTitle(articleTitleArg, forceNetwork = true)
+                    val resultByTitle = articleRepository.getArticleByTitle(currentArticleTitle!!, forceNetwork = true) // currentArticleTitle is checked for non-null/empty
                         .firstOrNull { it is Result.Success || it is Result.Error }
 
                     when (resultByTitle) {
@@ -126,26 +145,26 @@ private companion object {
                             fetchedApiTitle = articleData.title
                             fetchedHtmlContent = articleData.htmlContent
                             fetchedImageUrl = articleData.imageUrl
-                            Log.i(TAG, "Successfully fetched data by title: '$articleTitleArg'. API Title: '$fetchedApiTitle', Resolved pageId: $determinedPageId")
+                            Log.i(TAG, "Successfully fetched data by title: '$currentArticleTitle'. API Title: '$fetchedApiTitle', Resolved pageId: $determinedPageId")
                             fetchError = null
                         }
                         is Result.Error -> {
-                            val titleErrorMessage = "Failed to load article by title '$articleTitleArg': ${resultByTitle.message}"
+                            val titleErrorMessage = "Failed to load article by title '$currentArticleTitle': ${resultByTitle.message}"
                             fetchError = if (fetchError != null && idFetchAttempted) "$fetchError. $titleErrorMessage" else titleErrorMessage
                             Log.w(TAG, titleErrorMessage)
                         }
                         is Result.Loading -> {
-                           Log.d(TAG, "Article fetching for title '$articleTitleArg' is Loading.")
+                           Log.d(TAG, "Article fetching for title '$currentArticleTitle' is Loading.")
                         }
                         null -> {
-                            val titleErrorMessage = "Failed to load article by title '$articleTitleArg'. No data received from repository."
+                            val titleErrorMessage = "Failed to load article by title '$currentArticleTitle'. No data received from repository."
                             fetchError = if (fetchError != null && idFetchAttempted) "$fetchError. $titleErrorMessage" else titleErrorMessage
                             Log.w(TAG, titleErrorMessage)
                         }
                     }
-                    if (fetchedApiTitle == null && fetchError != null) fetchedApiTitle = articleTitleArg
+                    if (fetchedApiTitle == null && fetchError != null) fetchedApiTitle = currentArticleTitle
                 } else if (fetchError == null && fetchedHtmlContent == null) {
-                    if ((articleIdArg.isNullOrEmpty() || articleIdArg == "null") && (articleTitleArg.isNullOrEmpty() || articleTitleArg == "null")) {
+                    if ((currentArticleId.isNullOrEmpty() || currentArticleId == "null") && (currentArticleTitle.isNullOrEmpty() || currentArticleTitle == "null")) {
                         fetchError = "Article identifier (ID or Title) not provided or invalid."
                         Log.e(TAG, fetchError)
                     } else {
@@ -168,7 +187,7 @@ private companion object {
                     _uiState.value = ArticleUiState(
                         isLoading = false,
                         pageId = determinedPageId,
-                        title = fetchedApiTitle ?: articleTitleArg ?: if (articleIdArg != "null" && !articleIdArg.isNullOrEmpty()) articleIdArg else null,
+                        title = fetchedApiTitle ?: currentArticleTitle ?: if (currentArticleId != "null" && !currentArticleId.isNullOrEmpty()) currentArticleId else null,
                         htmlContent = null,
                         imageUrl = null,
                         error = fetchError ?: "An unexpected error occurred while loading the article: $usedIdentifierForLog."
@@ -181,7 +200,7 @@ private companion object {
                 _uiState.value = ArticleUiState(
                     isLoading = false,
                     pageId = determinedPageId,
-                    title = articleTitleArg ?: if (articleIdArg != "null" && !articleIdArg.isNullOrEmpty()) articleIdArg else null,
+                    title = currentArticleTitle ?: if (currentArticleId != "null" && !currentArticleId.isNullOrEmpty()) currentArticleId else null,
                     error = "An error occurred: ${e.localizedMessage}"
                 )
                 determinedPageId?.let { observeOfflineStatus(it) }
@@ -199,7 +218,7 @@ private companion object {
         }
     }
 
-fun toggleSaveOfflineStatus() {
+    fun toggleSaveOfflineStatus() {
         viewModelScope.launch {
             val currentUiStateValue = uiState.value
             val id = currentUiStateValue.pageId
@@ -230,7 +249,6 @@ fun toggleSaveOfflineStatus() {
                     }
                     is Result.Loading -> { // ADDED: Exhaustive branch
                         Log.w(TAG, "Unexpected Result.Loading when trying to remove article pageId: $id.")
-                        // Optionally, provide feedback for this unexpected state
                         _offlineActionMessage.value = Event(ArticleOfflineUserMessage.Error("An unexpected loading state occurred while removing."))
                     }
                 }
@@ -247,7 +265,6 @@ fun toggleSaveOfflineStatus() {
                     }
                     is Result.Loading -> { // ADDED: Exhaustive branch
                         Log.w(TAG, "Unexpected Result.Loading when trying to save article pageId: $id.")
-                        // Optionally, provide feedback for this unexpected state
                         _offlineActionMessage.value = Event(ArticleOfflineUserMessage.Error("An unexpected loading state occurred while saving."))
                     }
                 }

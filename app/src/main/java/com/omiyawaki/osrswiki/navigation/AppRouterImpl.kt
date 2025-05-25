@@ -14,18 +14,19 @@ class AppRouterImpl(
 
     override fun navigateToSearchScreen() {
         // Clear backstack for home/search screen for simplicity, adjust as needed
+        // Consider using SearchFragment.newInstance() if it's available and preferred
         fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
         fragmentManager.beginTransaction()
-            .replace(containerId, SearchFragment()) // Assuming SearchFragment has a no-arg constructor or a newInstance()
+            .replace(containerId, SearchFragment()) // SearchFragment.newInstance() could be used here if available
             // Do not typically add the root screen to the backstack
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
             .commit()
     }
 
-    override fun navigateToArticle(articlePageId: String, articleTitle: String?) {
+    override fun navigateToArticle(articleId: String?, articleTitle: String?) { // Signature updated
         fragmentManager.beginTransaction()
             // Ensure ArticleFragment.newInstance can handle these arguments
-            .replace(containerId, ArticleFragment.newInstance(articlePageId = articlePageId, title = articleTitle))
+            .replace(containerId, ArticleFragment.newInstance(articleId = articleId, articleTitle = articleTitle)) // Call updated
             .addToBackStack(ArticleFragment::class.java.name) // Use a unique name for the transaction
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
             .commit()

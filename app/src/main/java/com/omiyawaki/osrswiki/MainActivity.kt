@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
      * @param config The ScreenConfiguration provided by the current fragment.
      */
     fun updateToolbar(config: ScreenConfiguration) {
-        toolbar.title = config.getToolbarTitle(resources)
+        toolbar.title = config.getToolbarTitle(::getString)
 
         when (config.getNavigationIconType()) {
             NavigationIconType.NONE -> {
@@ -86,10 +86,24 @@ class MainActivity : AppCompatActivity() {
                 toolbar.setNavigationIcon(R.drawable.ic_close)
                 toolbar.setNavigationContentDescription(R.string.nav_close_content_description)
             }
+            NavigationIconType.MENU -> {
+                /* TODO: Set a menu icon (e.g., R.drawable.ic_menu) and content description */
+                /* For now, behaves like NONE (no icon) */
+                toolbar.navigationIcon = null
+                toolbar.setNavigationContentDescription(null) /* Or R.string.nav_menu_content_description if defined */
+            }
         }
         // Invalidate the options menu to trigger onPrepareOptionsMenu for the current fragment,
         // allowing it to update menu items.
         invalidateOptionsMenu()
+    }
+
+    /**
+     * Allows fragments to dynamically update the toolbar title.
+     * @param title The new title for the toolbar.
+     */
+    fun updateToolbarTitle(title: String?) {
+        toolbar.title = title
     }
 
     /**

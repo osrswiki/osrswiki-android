@@ -10,4 +10,9 @@
     <string name="action_save_offline">Save</string>
     <string name="action_saved_offline">Saved</string>
     <string name="cd_save_for_offline">Save for offline viewing</string>
+    <string name="title_article_loading">Loading Article...</string>
+
+    <string name="nav_back_content_description">Navigate back</string>
+    <string name="nav_close_content_description">Close</string>
+    <string name="nav_menu_content_description">Open navigation menu</string>
 </resources>

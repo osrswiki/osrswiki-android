@@ -15,15 +15,19 @@ import com.omiyawaki.osrswiki.data.repository.ArticleRepository
  *
  * This factory implements [ViewModelProvider.Factory]. It is responsible for
  * instantiating the [ArticleViewModel] with its necessary dependencies, including
- * the [Application] context (for accessing services like the [ArticleRepository])
- * and a [SavedStateHandle] (obtained via [CreationExtras]).
+ * the [Application] context (for accessing services like the [ArticleRepository]),
+ * a [SavedStateHandle] (obtained via [CreationExtras]), and the article identifiers.
  *
  * @param application The application instance, which must be an [OSRSWikiApplication],
  * used to retrieve global dependencies.
+ * @param articleId The ID of the article to be loaded, can be null.
+ * @param articleTitle The title of the article, can be null.
  */
 @Suppress("unused")
 class ArticleViewModelFactory(
-    private val application: Application // Added application parameter
+    private val application: Application,
+    private val articleId: String?,
+    private val articleTitle: String?
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(
@@ -45,7 +49,7 @@ class ArticleViewModelFactory(
 
             // 3. Create and return the ArticleViewModel instance, providing its dependencies.
             @Suppress("UNCHECKED_CAST")
-            return ArticleViewModel(repository, handle) as T
+            return ArticleViewModel(repository, handle, articleId, articleTitle) as T // Pass articleId and articleTitle
         }
         // If the requested ViewModel class is not ArticleViewModel, throw an exception,
         // as this factory is specialized for ArticleViewModel.
