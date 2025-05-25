@@ -79,7 +79,16 @@ private companion object {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated: View created.")
-        setupToolbar()
+        // Defer toolbar setup to potentially avoid ConcurrentModificationException
+        // by allowing the NavController's dispatch to complete before this listener is added.
+        view.post {
+            // Check if the fragment is still added and binding is valid before accessing them.
+            if (isAdded && _binding != null) { // _binding check is crucial as it can be nulled in onDestroyView
+                setupToolbar()
+            } else {
+                Log.w(TAG, "Skipping setupToolbar in post: Fragment not added or binding is null.")
+            }
+        }
         setupWebView()
         observeUiState()
         setupSaveButtonActions()
