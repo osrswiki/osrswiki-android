@@ -107,4 +107,5 @@ class MainActivity : AppCompatActivity() {
     // Consider providing it via ViewModel or other dependency injection mechanisms
     // for better separation of concerns.
     // fun getAppRouter(): Router = appRouter
+    fun getRouter(): Router = appRouter
 }
