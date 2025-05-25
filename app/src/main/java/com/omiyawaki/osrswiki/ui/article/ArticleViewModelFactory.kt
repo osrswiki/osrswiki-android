@@ -21,6 +21,7 @@ import com.omiyawaki.osrswiki.data.repository.ArticleRepository
  * @param application The application instance, which must be an [OSRSWikiApplication],
  * used to retrieve global dependencies.
  */
+@Suppress("unused")
 class ArticleViewModelFactory(
     private val application: Application // Added application parameter
 ) : ViewModelProvider.Factory {

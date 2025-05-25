@@ -13,7 +13,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
 
-    private companion object {
+@Suppress("unused")
+private companion object {
         private const val TAG = "MainActivity"
     }
 

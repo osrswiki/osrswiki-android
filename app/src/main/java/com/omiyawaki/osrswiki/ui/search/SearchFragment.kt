@@ -28,6 +28,7 @@ class SearchFragment : Fragment() {
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
 
+   @Suppress("unused")
     private val viewModel: SearchViewModel by viewModels { SearchViewModelFactory(requireActivity().application) }
     private lateinit var searchResultAdapter: SearchResultAdapter // For online Paging results
     private lateinit var offlineResultAdapter: OfflineResultAdapter     // For offline search results

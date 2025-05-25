@@ -23,6 +23,7 @@ object RetrofitClient {
     }
 
     // Configure OkHttpClient with a logging interceptor for debugging
+   @Suppress("unused")
     private val okHttpClient: OkHttpClient by lazy {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY // Log request and response bodies
@@ -32,6 +33,7 @@ object RetrofitClient {
             .build()
     }
 
+   @Suppress("unused")
     private val instance: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
@@ -42,6 +44,7 @@ object RetrofitClient {
 
     // Assumes this was the existing service instance.
     // If the existing service was different, adjust 'WikiApiService' accordingly.
+   @Suppress("unused")
     val apiService: WikiApiService by lazy {
         instance.create(WikiApiService::class.java)
     }

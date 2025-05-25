@@ -22,12 +22,13 @@ sealed class ArticleOfflineUserMessage {
     data class Error(val message: String) : ArticleOfflineUserMessage()
 }
 
+@Suppress("unused")
 class ArticleViewModel(
     private val articleRepository: ArticleRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private companion object {
+private companion object {
         private const val TAG = "ArticleViewModel"
         const val NAV_ARG_ARTICLE_ID = "articleId"
         const val NAV_ARG_ARTICLE_TITLE = "articleTitle"
@@ -198,8 +199,7 @@ class ArticleViewModel(
         }
     }
 
-    @Suppress("unused", "unused")
-    fun toggleSaveOfflineStatus() {
+fun toggleSaveOfflineStatus() {
         viewModelScope.launch {
             val currentUiStateValue = uiState.value
             val id = currentUiStateValue.pageId

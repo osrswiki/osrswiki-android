@@ -44,9 +44,11 @@ data class SearchScreenUiState(
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@Suppress("unused")
 class SearchViewModel(private val searchRepository: SearchRepository) : ViewModel() { // Type here will now match
 
-    private companion object {
+@Suppress("unused")
+private companion object {
         private const val TAG = "SearchViewModel"
         private const val SEARCH_DEBOUNCE_MS = 300L
     }
@@ -99,13 +101,13 @@ class SearchViewModel(private val searchRepository: SearchRepository) : ViewMode
         }
     }
 
-    fun performSearch(query: String) {
+fun performSearch(query: String) {
         val trimmedQuery = query.trim()
         Log.d(TAG, "Search query submitted: '$trimmedQuery'")
         _currentQuery.value = trimmedQuery
     }
 
-    private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
+private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
         val rawSnippet = networkResult.snippet
         val cleanSnippet = rawSnippet?.let { htmlContent ->
               val afterFromHtml = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
@@ -132,6 +134,7 @@ class SearchViewModel(private val searchRepository: SearchRepository) : ViewMode
 }
 
 // ViewModelFactory remains the same, but the 'repository' it passes will now match SearchViewModel's expectation
+@Suppress("unused")
 class SearchViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

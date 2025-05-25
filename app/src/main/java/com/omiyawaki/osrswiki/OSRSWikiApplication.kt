@@ -12,32 +12,38 @@ import com.omiyawaki.osrswiki.network.WikiApiService
 class OSRSWikiApplication : Application() {
 
     // Lazily initialize WikiApiService using the existing RetrofitClient.
+   @Suppress("unused")
     private val wikiApiService: WikiApiService by lazy {
         RetrofitClient.apiService
     }
 
     // Lazily initialize the Room database.
+   @Suppress("unused")
     private val database: OSRSWikiDatabase by lazy {
         OSRSWikiDatabase.getInstance(applicationContext)
     }
 
     // Lazily initialize ArticleMetaDao from the database.
-    val articleMetaDao: ArticleMetaDao by lazy {
+   @Suppress("unused")
+    private val articleMetaDao: ArticleMetaDao by lazy {
         database.articleMetaDao()
     }
 
     // ArticleDao is needed by the updated SearchRepository (com.omiyawaki.osrswiki.data.SearchRepository)
+   @Suppress("unused")
     private val articleDao: ArticleDao by lazy {
         database.articleDao()
     }
 
     // Provides the ArticleRepository from the data.repository package.
+   @Suppress("unused")
     val articleRepository: ArticleRepository by lazy {
         ArticleRepository(wikiApiService, articleMetaDao, applicationContext)
     }
 
     // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
     // and provide its required dependencies: wikiApiService, articleDao, articleMetaDao.
+   @Suppress("unused")
     val searchRepository: SearchRepository by lazy {
         SearchRepository(wikiApiService, this.articleDao, this.articleMetaDao)
     }

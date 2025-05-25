@@ -14,6 +14,7 @@ data class ArticleParseApiResponse(
  * Contains the actual parsed article data.
  */
 @Serializable
+@Suppress("unused")
 data class ParseResult(
     val title: String? = null,
     val pageid: Int? = null,

@@ -33,17 +33,24 @@ import androidx.core.net.toUri
 class ArticleFragment : Fragment() {
 
     private var _binding: FragmentArticleBinding? = null
+   @Suppress("unused")
     private val binding get() = _binding!!
 
-    private val navArgs: ArticleFragmentArgs by navArgs()
+  @Suppress("unused")
+  private val navArgs: ArticleFragmentArgs by navArgs()
 
-    private val viewModel: ArticleViewModel by viewModels {
-        ArticleViewModelFactory(requireActivity().application)
-    }
+  @Suppress("unused")
+  private val viewModel: ArticleViewModel by viewModels {
+    ArticleViewModelFactory(requireActivity().application)
+  }
 
-    private companion object {
+@Suppress("unused")
+private companion object {
+        @Suppress("unused")
         private const val TAG = "ArticleFragment"
+        @Suppress("unused")
         private const val OSRS_WIKI_BASE_URL_HOST = "oldschool.runescape.wiki"
+        @Suppress("unused")
         private val WIKI_ARTICLE_PATH_PREFIXES = listOf("/w/", "/wiki/")
     }
 
@@ -51,11 +58,13 @@ class ArticleFragment : Fragment() {
     private val webViewTextColor = "#333333"
     private val webViewLinkColor = "#0645AD"
 
+   @Suppress("unused")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: Fragment created. NavArgs - articleId: '${navArgs.articleId}', articleTitle: '${navArgs.articleTitle}'")
     }
 
+   @Suppress("unused")
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -66,6 +75,7 @@ class ArticleFragment : Fragment() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
+   @Suppress("unused")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated: View created.")
@@ -275,6 +285,7 @@ class ArticleFragment : Fragment() {
         }
     }
 
+   @Suppress("unused")
     override fun onDestroyView() {
         super.onDestroyView()
         Log.d(TAG, "onDestroyView: Clearing binding and preparing to destroy WebView.")
