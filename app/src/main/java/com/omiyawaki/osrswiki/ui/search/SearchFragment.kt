@@ -47,10 +47,11 @@ class SearchFragment : Fragment() {
         setupOnlineSearchRecyclerView()
         setupOfflineResultsRecyclerView() // New: Setup Offline Results RecyclerView
         setupSearchInput()
+        observeCombinedSearchStates() // New combined observer for UI states
         observeOnlineSearchResults()
-        observeOnlineLoadStates()
-        observeOfflineSearchResults() // New: Observe Offline Results
-        observeScreenMessages()
+        // observeOnlineLoadStates() - Logic moved to observeCombinedSearchStates()
+        // observeOfflineSearchResults() - Logic moved to observeCombinedSearchStates() // New: Observe Offline Results
+        // observeScreenMessages() - Logic moved to observeCombinedSearchStates()
     }
 
     private fun handleSearchResultItemClick(cleanedSearchResultItem: CleanedSearchResultItem) {
@@ -260,6 +261,88 @@ class SearchFragment : Fragment() {
         }
     }
 
+
+    private fun observeCombinedSearchStates() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    viewModel.screenUiState, // Provides currentQuery, initial messageResId
+                    viewModel.offlineSearchResults, // Provides List<CleanedSearchResultItem>
+                    searchResultAdapter.loadStateFlow // Provides load states for online search
+                ) { screenState, offlineResults, onlineLoadStates ->
+                    // Using a Triple to hold these for processing
+                    Triple(screenState, offlineResults, onlineLoadStates)
+                }.collectLatest { (screenState, offlineResults, onlineLoadStates) ->
+                    val query = screenState.currentQuery
+                    val isQueryBlank = query.isNullOrBlank()
+
+                    val onlineRefreshState = onlineLoadStates.refresh
+                    val onlineItemCount = searchResultAdapter.itemCount
+
+                    // 1. Offline Results Visibility and Data Submission
+                    val hasOfflineResults = offlineResults.isNotEmpty() && !isQueryBlank
+                    binding.offlineResultsTitleTextview.isVisible = hasOfflineResults
+                    binding.offlineResultsRecyclerview.isVisible = hasOfflineResults
+                    offlineResultAdapter.submitList(if (hasOfflineResults) offlineResults else emptyList())
+                    if (hasOfflineResults) {
+                        Log.d("SearchFragment", "Displaying ${offlineResults.size} offline results for query: '$query'")
+                    }
+
+
+                    // 2. Online Results Visibility
+                    // Show online results if not loading, query is not blank, and there are items.
+                    val hasOnlineResults = onlineRefreshState is LoadState.NotLoading && onlineItemCount > 0 && !isQueryBlank
+                    binding.searchResultsRecyclerview.isVisible = hasOnlineResults
+                    if (hasOnlineResults) {
+                        Log.d("SearchFragment", "Displaying $onlineItemCount online results for query: '$query'")
+                    }
+
+
+                    // 3. Progress Bar Visibility (for online search)
+                    val isOnlineLoading = onlineRefreshState is LoadState.Loading && !isQueryBlank
+                    binding.searchProgressBar.isVisible = isOnlineLoading
+                    if (isOnlineLoading) {
+                        Log.d("SearchFragment", "Online search is loading for query: '$query'")
+                    }
+
+                    // 4. Message TextView Logic
+                    val searchMessageTextView = binding.searchMessageTextview
+                    when {
+                        isQueryBlank && screenState.messageResId != null -> {
+                            // Initial prompt state
+                            searchMessageTextView.text = getString(screenState.messageResId)
+                            searchMessageTextView.isVisible = true
+                            // Ensure other result views are hidden for blank query prompt
+                            binding.searchResultsRecyclerview.isVisible = false
+                            // Offline results visibility is already handled above, but ensure consistency
+                            if (!hasOfflineResults) { // If, for some reason, offline results were forced visible
+                                binding.offlineResultsRecyclerview.isVisible = false
+                                binding.offlineResultsTitleTextview.isVisible = false
+                            }
+                            Log.d("SearchFragment", "Displaying initial prompt: ${searchMessageTextView.text}")
+                        }
+                        !isQueryBlank && onlineRefreshState is LoadState.NotLoading && onlineItemCount == 0 && !hasOfflineResults && !isOnlineLoading -> {
+                            // No results found for the query (both online and offline are empty after trying, and not currently loading online)
+                            searchMessageTextView.text = getString(R.string.search_no_results)
+                            searchMessageTextView.isVisible = true
+                            Log.d("SearchFragment", "Displaying 'No results' for query: '$query'")
+                        }
+                        !isQueryBlank && onlineRefreshState is LoadState.Error && !hasOfflineResults && !isOnlineLoading -> {
+                            // Online search error, no offline results to show instead, and not currently loading online
+                            searchMessageTextView.text = getString(R.string.search_network_error)
+                            searchMessageTextView.isVisible = true
+                            Log.e("SearchFragment", "Displaying network error for query: '$query'", (onlineRefreshState as LoadState.Error).error)
+                        }
+                        else -> {
+                            // All other cases (results found in at least one list, or online still loading but offline might be visible, etc.)
+                            searchMessageTextView.isVisible = false
+                            Log.d("SearchFragment", "Hiding message TextView. Query: '$query', OnlineLoading: $isOnlineLoading, HasOnline: $hasOnlineResults, HasOffline: $hasOfflineResults")
+                        }
+                    }
+                }
+            }
+        }
+    }
     override fun onDestroyView() {
         super.onDestroyView()
         binding.searchResultsRecyclerview.adapter = null // Clear adapter for online results
