@@ -5,7 +5,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 // Import your actual Fragment classes here
 import com.omiyawaki.osrswiki.ui.search.SearchFragment // e.g., com.omiyawaki.osrswiki.ui.search.SearchFragment
-import com.omiyawaki.osrswiki.ui.article.ArticleFragment // e.g., com.omiyawaki.osrswiki.ui.article.ArticleFragment
+import com.omiyawaki.osrswiki.ui.article.PageFragment // e.g., com.omiyawaki.osrswiki.ui.article.ArticleFragment
 
 class AppRouterImpl(
     private val fragmentManager: FragmentManager,
@@ -25,9 +25,9 @@ class AppRouterImpl(
 
     override fun navigateToArticle(articleId: String?, articleTitle: String?) { // Signature updated
         fragmentManager.beginTransaction()
-            // Ensure ArticleFragment.newInstance can handle these arguments
-            .replace(containerId, ArticleFragment.newInstance(articleId = articleId, articleTitle = articleTitle)) // Call updated
-            .addToBackStack(ArticleFragment::class.java.name) // Use a unique name for the transaction
+            // Ensure PageFragment.newInstance can handle these arguments
+            .replace(containerId, PageFragment.newInstance(articleId = articleId, articleTitle = articleTitle)) // Call updated
+            .addToBackStack(PageFragment::class.java.name) // Use a unique name for the transaction
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
             .commit()
     }

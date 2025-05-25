@@ -12,6 +12,11 @@
     <string name="cd_save_for_offline">Save for offline viewing</string>
     <string name="title_article_loading">Loading Article...</string>
 
+    <string name="error_article_not_specified">Article ID or title not specified.</string>
+    <string name="error_loading_article_generic">An error occurred while loading the article.</string>
+    <string name="title_article_error">Error</string>
+    <string name="cd_remove_from_offline">Remove article from offline storage</string>
+
     <string name="nav_back_content_description">Navigate back</string>
     <string name="nav_close_content_description">Close</string>
     <string name="nav_menu_content_description">Open navigation menu</string>
