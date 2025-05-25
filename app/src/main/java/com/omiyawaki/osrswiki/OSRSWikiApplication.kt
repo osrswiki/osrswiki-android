@@ -5,7 +5,6 @@ import com.omiyawaki.osrswiki.data.repository.ArticleRepository // This is for t
 import com.omiyawaki.osrswiki.data.SearchRepository // Changed to use the SearchRepository in data package
 import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase
 import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
-import com.omiyawaki.osrswiki.data.db.dao.ArticleDao     // Ensured ArticleDao import is present
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.network.WikiApiService
 
@@ -29,15 +28,6 @@ class OSRSWikiApplication : Application() {
         database.articleMetaDao()
     }
 
-    // ArticleDao is needed by the updated SearchRepository (com.omiyawaki.osrswiki.data.SearchRepository)
-   @Suppress("unused")
-    private val articleDao: ArticleDao by lazy {
-        database.articleDao()
-    }
-
-    // Provides the ArticleRepository from the data.repository package.
-   @Suppress("unused")
-    val articleRepository: ArticleRepository by lazy {
         ArticleRepository(wikiApiService, articleMetaDao, applicationContext)
     }
 
