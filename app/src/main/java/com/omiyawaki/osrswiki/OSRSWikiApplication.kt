@@ -1,70 +1,66 @@
 package com.omiyawaki.osrswiki
 
 import android.app.Application
-import android.util.Log // Added for logCrashManually
-import com.omiyawaki.osrswiki.data.repository.ArticleRepository // This is for the ArticleRepository in data/repository
-import com.omiyawaki.osrswiki.data.SearchRepository // Changed to use the SearchRepository in data package
-import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
-import com.omiyawaki.osrswiki.network.RetrofitClient
-import com.omiyawaki.osrswiki.network.WikiApiService
+import android.util.Log
+import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase         // Your Room database class
+import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao    // Your DAO
+import com.omiyawaki.osrswiki.data.repository.ArticleRepository
+import com.omiyawaki.osrswiki.network.RetrofitClient          // Your Retrofit client object
+import com.omiyawaki.osrswiki.network.WikiApiService        // Your Retrofit service interface
 
 class OSRSWikiApplication : Application() {
 
-    companion object {
-        lateinit var instance: OSRSWikiApplication
-            private set // Restrict setting the instance from outside the class
+    // --- Manually managed singleton dependencies ---
+
+    private val database: OSRSWikiDatabase by lazy {
+        OSRSWikiDatabase.getInstance(applicationContext) // Using the getInstance method from your DB class
     }
+
+    private val articleMetaDao: ArticleMetaDao by lazy {
+        database.articleMetaDao() // Accessing the DAO from your DB instance
+    }
+
+    private val wikiApiService: WikiApiService by lazy {
+        RetrofitClient.apiService // Accessing the service from your RetrofitClient object
+    }
+
+    // ArticleRepository is publicly accessible for PageFragment
+    lateinit var articleRepository: ArticleRepository
+        private set // Make setter private to control instantiation from within Application class
+
+    // You can define other repositories here if needed, e.g.:
+    // lateinit var searchRepository: SearchRepository
+    //     private set
+
+    // --- Application Lifecycle ---
 
     override fun onCreate() {
         super.onCreate()
         instance = this
-        // Other application initialization code can go here, if any.
+        Log.d(TAG, "OSRSWikiApplication created and manual DI initializing...")
+
+        // Initialize repositories that depend on other services/DAOs
+        articleRepository = ArticleRepository(
+            mediaWikiApiService = wikiApiService, // from lazy delegate
+            articleMetaDao = articleMetaDao,     // from lazy delegate
+            applicationContext = this            // provide application context
+        )
+
+        // Example for another repository:
+        // searchRepository = SearchRepository(wikiApiService, database.searchResultDao(), ...)
+
+        Log.d(TAG, "Manual DI setup complete in OSRSWikiApplication.")
     }
 
-    // Lazily initialize WikiApiService using the existing RetrofitClient.
-    @Suppress("unused")
-    private val wikiApiService: WikiApiService by lazy {
-        RetrofitClient.apiService
-    }
+    companion object {
+        private const val TAG = "OSRSWikiApplication"
+        lateinit var instance: OSRSWikiApplication
+            private set
 
-    // Lazily initialize the Room database.
-    @Suppress("unused")
-    private val database: OSRSWikiDatabase by lazy {
-        OSRSWikiDatabase.getInstance(applicationContext)
-    }
-
-    // Lazily initialize ArticleMetaDao from the database.
-    @Suppress("unused")
-    private val articleMetaDao: ArticleMetaDao by lazy {
-        database.articleMetaDao()
-    }
-
-    // Provides the ArticleRepository from the data.repository package.
-    @Suppress("unused")
-    val articleRepository: ArticleRepository by lazy {
-        ArticleRepository(wikiApiService, articleMetaDao, applicationContext)
-    }
-
-
-    // Updated SearchRepository instantiation to use com.omiyawaki.osrswiki.data.SearchRepository
-    // and provide its required dependencies: wikiApiService, articleMetaDao.
-    @Suppress("unused")
-    val searchRepository: SearchRepository by lazy {
-        SearchRepository(wikiApiService, this.articleMetaDao)
-    }
-
-    /**
-     * Logs a throwable manually, intended for reporting to a crash analysis service.
-     * Called by L.kt when a remote error is detected in a production release.
-     *
-     * @param t The throwable to log.
-     */
-    fun logCrashManually(t: Throwable) {
-        // This is where a remote crash reporting tool (e.g., Firebase Crashlytics)
-        // would typically be invoked to record the error.
-        // For now, as a placeholder, we'll log it to Logcat with a distinct tag.
-        // TODO: Replace this with actual crash reporting (e.g., FirebaseCrashlytics.recordException(t))
-        Log.e("OSRSWikiAppCrash", "Manual crash report: ${t.message}", t)
+        // Example: Manual crash logging function (if you still need it)
+        fun logCrashManually(throwable: Throwable) {
+            Log.e("OSRSWikiAppCrash", "Manual crash log from Application", throwable)
+            // Consider adding more sophisticated logging here if needed
+        }
     }
 }

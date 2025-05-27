@@ -21,4 +21,10 @@
     <string name="nav_close_content_description">Close</string>
     <string name="nav_menu_content_description">Open navigation menu</string>
     <string name="preference_key_app_channel">preference_key_app_channel</string>
+
+    <string name="label_loading">Loading…</string>
+    <string name="label_error_loading_article">Error Loading Article</string>
+    <string name="label_title_unavailable">Title Unavailable</string>
+    <string name="label_content_unavailable">Content Unavailable</string>
+
 </resources>

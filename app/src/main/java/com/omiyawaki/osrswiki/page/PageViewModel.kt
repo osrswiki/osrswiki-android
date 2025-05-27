@@ -1,32 +1,16 @@
-package com.omiyawaki.osrswiki.page
+package com.omiyawaki.osrswiki.page // Ensure this package is correct
 
-import com.omiyawaki.osrswiki.data.network.NetworkConstants
-// No explicit import for ArticleDisplayData needed if it's in the same package.
+import com.omiyawaki.osrswiki.ui.article.ArticleUiState
 
 /**
- * A simple data holder for page-related information, similar to the POKO style
- * ViewModel found in the Wikipedia app. This class does not extend androidx.lifecycle.ViewModel.
- * Its properties are expected to be populated and managed externally.
+ * A Plain Old Kotlin Object (POKO) to hold the UI state for the article page.
+ * It is directly instantiated by PageFragment and updated by ArticleContentLoader.
  */
 class PageViewModel {
-    // Encapsulates core article details.
-    var articleData: ArticleDisplayData? = null
-
-    var isLoading: Boolean = false
-    var errorMessage: String? = null
-    var forceNetwork: Boolean = false
-
-    val cacheControl: String
-        get() = if (forceNetwork) {
-            NetworkConstants.CACHE_CONTROL_FORCE_NETWORK_VALUE
-        } else {
-            NetworkConstants.CACHE_CONTROL_DEFAULT_VALUE
-        }
-
-    // Backing property for the saved state
-    var isCurrentlyMarkedAsSaved: Boolean = false
-
-    // Computed property
-    val isSavedArticle: Boolean
-        get() = isCurrentlyMarkedAsSaved
+    // This will hold the current state of the article page.
+    // Initialized with isLoading = true as per ArticleUiState's default.
+    var uiState: ArticleUiState = ArticleUiState()
+        // If reactive updates are needed directly from the ViewModel in the future,
+        // this could be changed to a MutableStateFlow. For now, direct mutation
+        // by the loader and manual UI update by the Fragment is closer to Wikipedia's pattern.
 }
