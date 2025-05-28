@@ -1,6 +1,6 @@
-package com.omiyawaki.osrswiki.ui.article
+package com.omiyawaki.osrswiki.page
 
-data class ArticleUiState(
+data class PageUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val imageUrl: String? = null, // Expected by ViewModel/Fragment

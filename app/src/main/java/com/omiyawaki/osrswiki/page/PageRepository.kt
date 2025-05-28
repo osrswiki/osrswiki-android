@@ -8,6 +8,7 @@ import android.util.Log
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.page.PageUiState
 import retrofit2.HttpException
 // import com.omiyawaki.osrswiki.util.StringUtil // No longer needed for MD5
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,7 @@ companion object {
 
 
 
-    fun getArticle(pageId: Int, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<com.omiyawaki.osrswiki.ui.article.ArticleUiState>> = kotlinx.coroutines.flow.flow {
+    fun getArticle(pageId: Int, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
         Log.d(TAG, "getArticle called for pageId: $pageId, forceNetwork: $forceNetwork")
 
@@ -54,7 +55,7 @@ companion object {
                     if (localFile.exists()) {
                         Log.i(TAG, "Found pageId: $pageId ('${localMeta.title}') in local cache at ${localFile.absolutePath}")
                         val htmlContent = localFile.readText()
-                        val uiState = com.omiyawaki.osrswiki.ui.article.ArticleUiState(
+                        val uiState = PageUiState(
                             isLoading = false,
                             error = null,
                             imageUrl = null,
@@ -98,7 +99,7 @@ companion object {
             val articleUrl = "https://oldschool.runescape.wiki/w/${fetchedCanonicalTitle.replace(" ", "_")}"
             val htmlContentFromParse = parseResult.text
 
-            val uiState = com.omiyawaki.osrswiki.ui.article.ArticleUiState(
+            val uiState = PageUiState(
                 isLoading = false,
                 error = null,
                 imageUrl = null,
@@ -129,7 +130,7 @@ companion object {
         }
     }.flowOn(Dispatchers.IO)
 
-    fun getArticleByTitle(title: String, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<com.omiyawaki.osrswiki.ui.article.ArticleUiState>> = kotlinx.coroutines.flow.flow {
+    fun getArticleByTitle(title: String, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
         Log.d(TAG, "getArticleByTitle called for: \"$title\", forceNetwork: $forceNetwork")
 
@@ -142,7 +143,7 @@ companion object {
                     if (localFile.exists()) {
                         Log.i(TAG, "Found \"$title\" in local cache at ${localFile.absolutePath}")
                         val htmlContent = localFile.readText()
-                        val uiState = com.omiyawaki.osrswiki.ui.article.ArticleUiState(
+                        val uiState = PageUiState(
                             isLoading = false,
                             error = null,
                             imageUrl = null,
@@ -187,7 +188,7 @@ companion object {
             val revIdFromTitleParse = parseResultByTitle.revid
             val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitleFromTitleParse.replace(" ", "_")}"
 
-            val uiState = com.omiyawaki.osrswiki.ui.article.ArticleUiState(
+            val uiState = PageUiState(
                 isLoading = false,
                 error = null,
                 imageUrl = null,

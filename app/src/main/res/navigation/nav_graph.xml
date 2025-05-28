@@ -7,32 +7,32 @@
 
     <fragment
         android:id="@+id/searchFragment"
-        android:name="com.omiyawaki.osrswiki.ui.search.SearchFragment"
+        android:name="com.omiyawaki.osrswiki.search.SearchFragment"
         android:label="Search"
         tools:layout="@layout/fragment_search">
         <action
-            android:id="@+id/action_searchFragment_to_articleFragment"
-            app:destination="@id/articleFragment" />
+            android:id="@+id/action_searchFragment_to_pageFragment"
+            app:destination="@id/pageFragment" />
     </fragment>
 
     <fragment
-        android:id="@+id/articleFragment"
-        android:name="com.omiyawaki.osrswiki.ui.article.ArticleFragment"
-        android:label="Article"
-        tools:layout="@layout/fragment_article">
+        android:id="@+id/pageFragment"
+        android:name="com.omiyawaki.osrswiki.page.PageFragment"
+        android:label="Page"
+        tools:layout="@layout/fragment_page">
         <argument
-            android:name="articleId"
+            android:name="pageId"
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
         <argument
-            android:name="articleTitle"
+            android:name="pageTitle"
             app:argType="string"
             app:nullable="true"
             android:defaultValue="@null" />
         <action
-            android:id="@+id/action_articleFragment_self"
-            app:destination="@id/articleFragment" />
+            android:id="@+id/action_pageFragment_self"
+            app:destination="@id/pageFragment" />
     </fragment>
 
 </navigation>

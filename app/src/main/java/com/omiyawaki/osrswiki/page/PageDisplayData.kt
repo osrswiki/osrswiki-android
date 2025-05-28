@@ -6,7 +6,7 @@ package com.omiyawaki.osrswiki.page
  * Assumes that when this data is present, essential fields like pageId, title,
  * and htmlContent are non-null.
  */
-data class ArticleDisplayData(
+data class PageDisplayData(
     val pageId: Int,
     val title: String,
     val htmlContent: String,
