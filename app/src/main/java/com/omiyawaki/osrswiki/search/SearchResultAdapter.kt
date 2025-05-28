@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,12 +7,15 @@ import androidx.paging.PagingDataAdapter // Import PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding class
+
 // Ensure CleanedSearchResultItem is accessible (e.g., imported if in its own file)
-// import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem
+// import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
 
 class SearchResultAdapter(
     private val onItemClicked: (CleanedSearchResultItem) -> Unit
-) : PagingDataAdapter<CleanedSearchResultItem, SearchResultAdapter.SearchResultViewHolder>(SearchResultDiffCallback()) {
+) : PagingDataAdapter<CleanedSearchResultItem, SearchResultAdapter.SearchResultViewHolder>(
+    SearchResultDiffCallback()
+) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchResultViewHolder {
         val binding = ItemSearchResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)

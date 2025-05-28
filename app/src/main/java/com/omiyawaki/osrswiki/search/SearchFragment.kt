@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem
 import com.omiyawaki.osrswiki.ui.common.NavigationIconType
 import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
 import kotlinx.coroutines.flow.collectLatest
@@ -73,6 +72,10 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
     }
 
     private fun setupSearchView() {
+        // Ensure the SearchView is expanded and set the hint
+        binding.searchView.isIconified = false // <<< ADDED: Force expanded state
+        binding.searchView.queryHint = getString(R.string.search_hint_text) // Re-affirm hint
+
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let {
@@ -118,11 +121,6 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                 launch {
                     viewModel.screenUiState.collect { screenState ->
                         L.d("Screen UI State: MessageResId=${screenState.messageResId}, Query=${screenState.currentQuery}")
-                        if (screenState.messageResId == R.string.search_enter_query_prompt) {
-                            binding.textViewNoResults.text = getString(screenState.messageResId)
-                            // Visibility is primarily managed by loadStateFlow collector now
-                            // to ensure correct precedence over error/no_results states.
-                        }
                     }
                 }
 
@@ -133,7 +131,6 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         val error = if (isError) (loadStates.refresh as LoadState.Error).error else null
                         val hasResults = searchAdapter.itemCount > 0
 
-                        // Default visibilities (will be overridden by specific states)
                         binding.progressBarSearch.visibility = View.GONE
                         binding.recyclerViewSearchResults.visibility = View.GONE
                         binding.textViewNoResults.visibility = View.GONE
@@ -145,7 +142,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         } else if (isError) {
                             L.d("LoadState: Refresh is Error - Showing Error Message. Error: ${error?.message}")
                             val errorMessage = when (error) {
-                                is IOException -> getString(R.string.search_error_network) // Specific network error
+                                is IOException -> getString(R.string.search_error_network)
                                 else -> error?.localizedMessage ?: getString(R.string.search_error_generic)
                             }
                             binding.textViewSearchError.text = errorMessage
@@ -153,20 +150,14 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         } else if (hasResults) {
                             L.d("LoadState: NotLoading, Has Results - Showing RecyclerView")
                             binding.recyclerViewSearchResults.visibility = View.VISIBLE
-                        } else { // Not loading, not error, no results (itemCount == 0)
+                        } else { 
                             val currentSearchQuery = viewModel.screenUiState.value.currentQuery
                             if (!currentSearchQuery.isNullOrBlank()) {
                                 L.d("LoadState: NotLoading, No Results for query: $currentSearchQuery - Showing 'No results'")
                                 binding.textViewNoResults.text = getString(R.string.search_no_results)
                                 binding.textViewNoResults.visibility = View.VISIBLE
                             } else {
-                                L.d("LoadState: NotLoading, No Results, Blank Query - Showing 'Enter search term'")
-                                // This is the initial state, or after clearing search.
-                                // The screenUiState collector sets the text if messageResId is the prompt.
-                                if (viewModel.screenUiState.value.messageResId == R.string.search_enter_query_prompt) {
-                                    binding.textViewNoResults.text = getString(R.string.search_enter_query_prompt)
-                                    binding.textViewNoResults.visibility = View.VISIBLE
-                                }
+                                L.d("LoadState: NotLoading, No Results, Blank Query - UI is blank (no prompt).")
                             }
                         }
                     }

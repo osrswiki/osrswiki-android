@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.data.paging // Package: com.omiyawaki.osrswiki.data.paging
+package com.omiyawaki.osrswiki.search
 
 import android.util.Log
 import androidx.paging.PagingSource
@@ -15,7 +15,6 @@ private const val OSRS_WIKI_STARTING_PAGE_OFFSET = 0
 // This value isn't strictly used by PagingSource itself if params.loadSize is always honored,
 // but can be a reference or used in prevKey calculation.
 private const val DEFAULT_NETWORK_PAGE_SIZE = 20
-
 
 class SearchPagingSource(
     private val apiService: WikiApiService,
@@ -34,7 +33,10 @@ class SearchPagingSource(
         }
 
         return try {
-            Log.d("SearchPagingSource", "Loading for query: '$query', offset: $currentOffset, limit: $limit")
+            Log.d(
+                "SearchPagingSource",
+                "Loading for query: '$query', offset: $currentOffset, limit: $limit"
+            )
             val response = apiService.searchArticles(
                 query = query,
                 offset = currentOffset,
@@ -42,7 +44,10 @@ class SearchPagingSource(
             )
 
             val searchResultsFromNetwork = response.query?.search ?: emptyList()
-            Log.d("SearchPagingSource", "Received ${searchResultsFromNetwork.size} results from network for query: '$query'")
+            Log.d(
+                "SearchPagingSource",
+                "Received ${searchResultsFromNetwork.size} results from network for query: '$query'"
+            )
 
             // Enhance search results with offline availability status
             val enhancedSearchResults = searchResultsFromNetwork.map { searchResult ->
@@ -91,7 +96,11 @@ class SearchPagingSource(
             Log.e("SearchPagingSource", "HttpException during search for query '$query'", exception)
             return LoadResult.Error(exception) // Ensure LoadResult.Error is returned
         } catch (exception: Exception) {
-            Log.e("SearchPagingSource", "Generic Exception during search for query '$query'", exception)
+            Log.e(
+                "SearchPagingSource",
+                "Generic Exception during search for query '$query'",
+                exception
+            )
             return LoadResult.Error(exception) // Ensure LoadResult.Error is returned
         }
     }

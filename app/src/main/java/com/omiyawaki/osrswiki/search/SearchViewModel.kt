@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 import android.app.Application
 import android.text.Html
@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
-import com.omiyawaki.osrswiki.OSRSWikiApplication
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.data.SearchRepository
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
@@ -132,7 +132,7 @@ class SearchViewModelFactory(private val application: Application) : ViewModelPr
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
-            val osrsWikiApplication = application as? OSRSWikiApplication
+            val osrsWikiApplication = application as? OSRSWikiApp
                 ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
             val repository = osrsWikiApplication.searchRepository
             return SearchViewModel(repository) as T

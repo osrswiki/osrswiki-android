@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,12 +7,15 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
+
 // CleanedSearchResultItem is assumed to be in the same package or imported correctly.
-// import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem // Ensure this is accessible
+// import com.omiyawaki.osrswiki.search.CleanedSearchResultItem // Ensure this is accessible
 
 class OfflineResultAdapter(
     private val onItemClicked: (CleanedSearchResultItem) -> Unit
-) : ListAdapter<CleanedSearchResultItem, OfflineResultAdapter.OfflineResultViewHolder>(OfflineResultDiffCallback()) {
+) : ListAdapter<CleanedSearchResultItem, OfflineResultAdapter.OfflineResultViewHolder>(
+    OfflineResultDiffCallback()
+) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OfflineResultViewHolder {
         val binding = ItemSearchResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)

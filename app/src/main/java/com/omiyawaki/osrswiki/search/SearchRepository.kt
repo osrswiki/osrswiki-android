@@ -1,22 +1,19 @@
-package com.omiyawaki.osrswiki.data
+package com.omiyawaki.osrswiki.search
 
-import android.util.Log // Added import for Log
+import android.util.Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
-import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow // Added import for flow builder
-import kotlinx.coroutines.flow.flowOf // Added import for flowOf
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
-// Removed: import kotlinx.coroutines.flow.map (if not used elsewhere)
 
-// Define a default page size for PagingConfig.
 private const val DEFAULT_SEARCH_RESULTS_PAGE_SIZE = 20
 private const val TAG = "SearchRepository" // Added TAG for logging
 
@@ -44,7 +41,11 @@ class SearchRepository(
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                SearchPagingSource(apiService = apiService, query = query, articleMetaDao = articleMetaDao)
+                SearchPagingSource(
+                    apiService = apiService,
+                    query = query,
+                    articleMetaDao = articleMetaDao
+                )
             }
         ).flow
     }

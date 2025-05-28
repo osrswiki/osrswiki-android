@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -9,7 +9,9 @@ import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // Generated f
 
 class SearchAdapter(
     private val onItemClickListener: OnItemClickListener
-) : PagingDataAdapter<CleanedSearchResultItem, SearchAdapter.SearchResultViewHolder>(SEARCH_RESULT_COMPARATOR) {
+) : PagingDataAdapter<CleanedSearchResultItem, SearchAdapter.SearchResultViewHolder>(
+    SEARCH_RESULT_COMPARATOR
+) {
 
     interface OnItemClickListener {
         fun onItemClick(item: CleanedSearchResultItem)
