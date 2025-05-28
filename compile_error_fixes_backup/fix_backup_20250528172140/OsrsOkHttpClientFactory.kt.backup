@@ -22,8 +22,9 @@ object OsrsOkHttpClientFactory {
 
     private fun buildOfflineCapableClient(): OkHttpClient {
         // 1. Get DAO instance
-        // AppDatabase.instance already uses OSRSWikiApplication.instance.applicationContext for initialization
-        val offlineAssetDao = AppDatabase.instance.offlineAssetDao() // Corrected: Use .instance
+        // Assuming OSRSWikiDatabase.instance is how you get your database singleton
+        // and it has an initialized context from OSRSWikiApplication.instance
+        val offlineAssetDao = AppDatabase.getInstance(OSRSWikiApplication.instance).offlineAssetDao()
 
         // 2. Create FileStorageManager instance
         val fileStorageManager = FileStorageManager(OSRSWikiApplication.instance)

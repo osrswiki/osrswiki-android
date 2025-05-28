@@ -4,7 +4,6 @@ import android.util.Log
 import com.omiyawaki.osrswiki.database.OfflineAsset
 import com.omiyawaki.osrswiki.database.OfflineAssetDao
 import com.omiyawaki.osrswiki.offline.storage.FileStorageManager
-import kotlinx.coroutines.flow.firstOrNull // Import for .firstOrNull()
 import kotlinx.coroutines.runBlocking // For synchronous execution of suspend DAO functions
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -63,56 +62,53 @@ class OsrsOfflineAssetInterceptor(
         var savedFile: File? = null
         try {
             // Save the asset using FileStorageManager. This consumes the original response's InputStream.
-            val actualSavedFile = fileStorageManager.saveAsset( // Renamed to avoid conflict if savedFile is null later
+            savedFile = fileStorageManager.saveAsset(
                 inputStream = responseBody.source().inputStream(), // Read as a stream
                 originalUrl = assetOriginalUrl,
                 assetType = assetType ?: "unknown",
                 contentType = responseBody.contentType()?.toString()
             )
-            savedFile = actualSavedFile // Assign to outer scope variable for finally block
-            val localFilePath = actualSavedFile.absolutePath
+            val localFilePath = savedFile.absolutePath
 
             // IMPORTANT: DAO operations are often suspend functions.
             // Running them blocking on an OkHttp dispatcher thread is generally not recommended for long operations.
             // For this example, using runBlocking for simplicity, assuming DAO ops are quick.
             // In a production app, consider dispatching DB work to a dedicated coroutine scope or service.
             runBlocking {
-                // Collect the OfflineAsset? from the Flow
-                val assetFromDb: OfflineAsset? = offlineAssetDao.getAssetByOriginalUrl(assetOriginalUrl).firstOrNull()
+                var offlineAsset = offlineAssetDao.getAssetByOriginalUrl(assetOriginalUrl)
                 val currentTime = System.currentTimeMillis()
 
-                if (assetFromDb == null) {
+                if (offlineAsset == null) {
                     val newUsedBySet = mutableSetOf(savedArticleEntryId.toString())
-                    val newOfflineAsset = OfflineAsset(
+                    offlineAsset = OfflineAsset(
                         originalUrl = assetOriginalUrl,
                         localFilePath = localFilePath,
                         downloadTimestamp = currentTime,
                         usedByArticleIds = newUsedBySet.joinToString(",")
                     )
-                    offlineAssetDao.insert(newOfflineAsset)
+                    offlineAssetDao.insert(offlineAsset)
                     Log.i(TAG, "Inserted new OfflineAsset for $assetOriginalUrl, linked to entry $savedArticleEntryId")
                 } else {
-                    // assetFromDb is not null here
-                    val existingUsedBySet = assetFromDb.usedByArticleIds
+                    val existingUsedBySet = offlineAsset.usedByArticleIds
                         .split(',')
                         .filter { it.isNotBlank() }
                         .toMutableSet()
 
                     val updated = existingUsedBySet.add(savedArticleEntryId.toString())
 
-                    assetFromDb.localFilePath = localFilePath // Update path in case it was re-downloaded/moved
-                    assetFromDb.downloadTimestamp = currentTime
+                    offlineAsset.localFilePath = localFilePath // Update path in case it was re-downloaded/moved
+                    offlineAsset.downloadTimestamp = currentTime
                     if (updated) {
-                        assetFromDb.usedByArticleIds = existingUsedBySet.joinToString(",")
+                        offlineAsset.usedByArticleIds = existingUsedBySet.joinToString(",")
                     }
-                    offlineAssetDao.update(assetFromDb) // Pass the modified OfflineAsset object
-                    Log.i(TAG, "Updated existing OfflineAsset for $assetOriginalUrl, linked/re-linked to entry $savedArticleEntryId. Used by: ${assetFromDb.usedByArticleIds}")
+                    offlineAssetDao.update(offlineAsset)
+                    Log.i(TAG, "Updated existing OfflineAsset for $assetOriginalUrl, linked/re-linked to entry $savedArticleEntryId. Used by: ${offlineAsset.usedByArticleIds}")
                 }
             }
 
             // Since the original response body's stream was consumed by saveAsset,
             // we must return a new response with a body that reads from the saved file.
-            val fileResponseBody = actualSavedFile.readBytes().toResponseBody(responseBody.contentType())
+            val fileResponseBody = savedFile.readBytes().toResponseBody(responseBody.contentType())
             return originalResponse.newBuilder().body(fileResponseBody).build()
 
         } catch (e: Exception) {

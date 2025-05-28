@@ -1,0 +1,45 @@
+package com.omiyawaki.osrswiki.database // Updated package
+
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+// import androidx.room.migration.Migration // Uncomment if you add migrations
+// import androidx.sqlite.db.SupportSQLiteDatabase // Uncomment if you add migrations
+import com.omiyawaki.osrswiki.OSRSWikiApplication
+import com.omiyawaki.osrswiki.database.ArticleMetaDao // Updated import
+import com.omiyawaki.osrswiki.database.ArticleMetaEntity // Updated import
+
+@Database(
+    entities = [ArticleMetaEntity::class], // Entities will be added here
+    version = 6, // Keep current version, will be incremented in Phase B
+    exportSchema = false // Or true if you want to export schemas
+)
+abstract class AppDatabase : RoomDatabase() { // Renamed class
+
+    abstract fun articleMetaDao(): ArticleMetaDao
+    // DAOs for new entities (SavedArticleEntryDao, OfflineAssetDao) will be added in Phase B
+
+    companion object {
+        private const val DATABASE_NAME = "osrs_wiki_database.db" // Name can remain or change
+
+        // Example Migration (uncomment and adapt if needed)
+        // val MIGRATION_X_Y = object : Migration(X, Y) {
+        //     override fun migrate(database: SupportSQLiteDatabase) {
+        //         // Your migration SQL here
+        //     }
+        // }
+
+        val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { // Updated return type
+            Room.databaseBuilder(
+                OSRSWikiApplication.instance.applicationContext,
+                AppDatabase::class.java, // Updated class reference
+                DATABASE_NAME
+            )
+            // Migrations will be added in Phase B
+            // .addMigrations(MIGRATION_X_Y) // Example for future
+            .fallbackToDestructiveMigration(dropAllTables = true) // Handles schema changes by deleting and recreating if no migration path found
+            // Avoid .allowMainThreadQueries() unless absolutely necessary
+            .build()
+        }
+    }
+}

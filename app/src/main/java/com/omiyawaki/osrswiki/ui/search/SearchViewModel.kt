@@ -12,7 +12,7 @@ import androidx.paging.map
 import com.omiyawaki.osrswiki.OSRSWikiApplication
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.data.SearchRepository
-import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
+import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview

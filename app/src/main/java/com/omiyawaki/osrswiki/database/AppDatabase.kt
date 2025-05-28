@@ -1,56 +1,56 @@
 package com.omiyawaki.osrswiki.database
 
-import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.omiyawaki.osrswiki.offline.db.OfflineAsset
-import com.omiyawaki.osrswiki.offline.db.OfflineAssetDao
-import com.omiyawaki.osrswiki.offline.db.SavedArticleEntry
-import com.omiyawaki.osrswiki.offline.db.SavedArticleEntryDao
+// import androidx.room.migration.Migration // Now used via DatabaseMigrations object
+// import androidx.sqlite.db.SupportSQLiteDatabase // Now used via DatabaseMigrations object
+import com.omiyawaki.osrswiki.OSRSWikiApplication
+import com.omiyawaki.osrswiki.database.ArticleMetaDao
+import com.omiyawaki.osrswiki.database.ArticleMetaEntity
+import com.omiyawaki.osrswiki.database.SavedArticleEntry // New import
+import com.omiyawaki.osrswiki.database.SavedArticleEntryDao // New import
+import com.omiyawaki.osrswiki.database.OfflineAsset // New import
+import com.omiyawaki.osrswiki.database.OfflineAssetDao // New import
 
-/**
- * The main Room database class for the OSRSWiki application.
- * It includes entities for saved articles and their offline assets.
- */
 @Database(
     entities = [
-        SavedArticleEntry::class,
-        OfflineAsset::class
-        // Add other entities here if they exist or are created later
+        ArticleMetaEntity::class,
+        SavedArticleEntry::class, // Added new entity
+        OfflineAsset::class       // Added new entity
     ],
-    version = 1, // Start with version 1. Increment on schema changes.
-    exportSchema = true // Recommended to export schema for version control and migrations.
+    version = 7, // Incremented version from 6 to 7
+    exportSchema = false // Or true if you want to export schemas, recommend true for production
 )
 abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun savedArticleEntryDao(): SavedArticleEntryDao
-    abstract fun offlineAssetDao(): OfflineAssetDao
-    // Add other DAOs here
+    abstract fun articleMetaDao(): ArticleMetaDao
+    abstract fun savedArticleEntryDao(): SavedArticleEntryDao // Added DAO for SavedArticleEntry
+    abstract fun offlineAssetDao(): OfflineAssetDao       // Added DAO for OfflineAsset
 
     companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
-        private const val DATABASE_NAME = "osrswiki-app.db"
+        private const val DATABASE_NAME = "osrs_wiki_database.db"
 
-        fun getInstance(context: Context): AppDatabase {
-            // Multiple threads can ask for the database at the same time, ensure we only initialize it once
-            // by using synchronized. Only one thread may enter a synchronized block at a time.
-            return INSTANCE ?: synchronized(this) {
-                //coholde instance to allow smart cast to AppDatabase
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    DATABASE_NAME
-                )
-                // Add migrations here if needed for future schema changes
-                // .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                .build()
-                INSTANCE = instance
-                // Return instance
-                instance
-            }
+        // Migrations are now managed in DatabaseMigrations.kt
+        // Example:
+        // val MIGRATION_X_Y = object : Migration(X, Y) {
+        //     override fun migrate(database: SupportSQLiteDatabase) {
+        //         // Your migration SQL here
+        //     }
+        // }
+
+        val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            Room.databaseBuilder(
+                OSRSWikiApplication.instance.applicationContext,
+                AppDatabase::class.java,
+                DATABASE_NAME
+            )
+            .addMigrations(DatabaseMigrations.MIGRATION_6_7) // Added MIGRATION_6_7
+            // .fallbackToDestructiveMigration() // Re-evaluate if this is desired long-term vs specific migrations
+                                                // Keeping for now as per original, but MIGRATION_6_7 should handle this upgrade path.
+            .fallbackToDestructiveMigration(dropAllTables = true) // Retained from original logic
+            // Avoid .allowMainThreadQueries() unless absolutely necessary
+            .build()
         }
     }
 }
-

@@ -2,8 +2,8 @@ package com.omiyawaki.osrswiki
 
 import android.app.Application
 import android.util.Log
-import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase      // Room database class
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao  // DAO
+import com.omiyawaki.osrswiki.database.AppDatabase      // Room database class
+import com.omiyawaki.osrswiki.database.ArticleMetaDao  // DAO
 import com.omiyawaki.osrswiki.data.repository.ArticleRepository
 import com.omiyawaki.osrswiki.data.SearchRepository         // Import SearchRepository
 import com.omiyawaki.osrswiki.network.RetrofitClient       // Retrofit client object
@@ -14,8 +14,8 @@ class OSRSWikiApplication : Application() {
     // --- Manually managed singleton dependencies ---
 
     // Updated to use the companion object instance from OSRSWikiDatabase
-    private val database: OSRSWikiDatabase by lazy {
-        OSRSWikiDatabase.instance
+    private val database: AppDatabase by lazy {
+        AppDatabase.instance
     }
 
     private val articleMetaDao: ArticleMetaDao by lazy {

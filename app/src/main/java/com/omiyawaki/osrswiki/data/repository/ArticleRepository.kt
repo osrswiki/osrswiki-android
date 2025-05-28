@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.flowOn
 
 import android.content.Context
 import android.util.Log
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
-import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
+import com.omiyawaki.osrswiki.database.ArticleMetaDao
+import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.WikiApiService
 import retrofit2.HttpException
 // import com.omiyawaki.osrswiki.util.StringUtil // No longer needed for MD5

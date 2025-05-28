@@ -3,7 +3,7 @@ package com.omiyawaki.osrswiki.data.paging // Package: com.omiyawaki.osrswiki.da
 import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
+import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import retrofit2.HttpException

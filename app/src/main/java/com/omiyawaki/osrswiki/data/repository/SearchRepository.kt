@@ -50,7 +50,7 @@ class SearchRepository /* @Inject constructor */ { // TODO: Pass WikiApiService 
      * @param query The search query. An empty or blank query will result in an empty list.
      * @return A Flow emitting a list of matching ArticleMetaEntity objects.
      */
-    fun searchOfflineArticles(query: String): Flow<List<com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity>> {
+    fun searchOfflineArticles(query: String): Flow<List<com.omiyawaki.osrswiki.database.ArticleMetaEntity>> {
         Log.d(TAG, "Offline article search (searchOfflineArticles) called for query: '$query'. Placeholder returning empty flow.")
         // TODO: Implement actual offline search logic, e.g., querying ArticleMetaDao.
         // Example:

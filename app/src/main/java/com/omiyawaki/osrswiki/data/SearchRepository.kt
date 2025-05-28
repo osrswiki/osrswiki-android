@@ -4,8 +4,8 @@ import android.util.Log // Added import for Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao
-import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
+import com.omiyawaki.osrswiki.database.ArticleMetaDao
+import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.data.paging.SearchPagingSource
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
