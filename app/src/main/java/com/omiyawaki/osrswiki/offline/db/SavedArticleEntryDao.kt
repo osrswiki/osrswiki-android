@@ -73,5 +73,12 @@ interface SavedArticleEntryDao {
      */
     @Query("DELETE FROM saved_article_entries")
     suspend fun clearAllEntries()
-}
 
+    /**
+     * Updates the status of a specific saved article entry.
+     * @param id The ID of the entry to update.
+     * @param newStatus The new status string (should correspond to a value from [ArticleSaveStatus].name).
+     */
+    @Query("UPDATE saved_article_entries SET status = :newStatus WHERE id = :id")
+    suspend fun updateStatus(id: Long, newStatus: String)
+}

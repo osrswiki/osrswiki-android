@@ -1,0 +1,60 @@
+package com.omiyawaki.osrswiki.network
+
+import com.omiyawaki.osrswiki.OSRSWikiApplication // Assuming this is your Application class
+import com.omiyawaki.osrswiki.database.OSRSWikiDatabase // Assuming this is your AppDatabase class name
+import com.omiyawaki.osrswiki.network.interceptor.OsrsOfflineAssetInterceptor
+import com.omiyawaki.osrswiki.offline.storage.FileStorageManager
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
+
+/**
+ * Factory object for creating OkHttpClient instances, particularly for offline-enabled operations.
+ */
+object OsrsOkHttpClientFactory {
+
+    private const val DEFAULT_TIMEOUT_SECONDS = 30L
+
+    // Lazy initialization for the offline-enabled OkHttpClient
+    val offlineClient: OkHttpClient by lazy {
+        buildOfflineCapableClient()
+    }
+
+    private fun buildOfflineCapableClient(): OkHttpClient {
+        // 1. Get DAO instance
+        // Assuming OSRSWikiDatabase.instance is how you get your database singleton
+        // and it has an initialized context from OSRSWikiApplication.instance
+        val offlineAssetDao = OSRSWikiDatabase.getInstance(OSRSWikiApplication.instance).offlineAssetDao()
+
+        // 2. Create FileStorageManager instance
+        val fileStorageManager = FileStorageManager(OSRSWikiApplication.instance)
+
+        // 3. Create OsrsOfflineAssetInterceptor instance
+        val osrsOfflineAssetInterceptor = OsrsOfflineAssetInterceptor(
+            offlineAssetDao = offlineAssetDao,
+            fileStorageManager = fileStorageManager
+        )
+
+        // 4. Build OkHttpClient
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor(osrsOfflineAssetInterceptor) // Add our custom interceptor
+
+        // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging
+        // Ensure this doesn't conflict with how your existing RetrofitClient gets its OkHttpClient
+        // For example, if BuildConfig.DEBUG:
+        // if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { // You'd need to import your BuildConfig
+        val loggingInterceptor = HttpLoggingInterceptor()
+        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
+        builder.addInterceptor(loggingInterceptor)
+        // }
+
+        return builder.build()
+    }
+
+    // You might have another method here for a "standard" OkHttpClient if needed,
+    // or this factory could solely provide the offline-capable one.
+    // val standardClient: OkHttpClient by lazy { ... }
+}
