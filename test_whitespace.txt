@@ -1,6 +1,0 @@
-    Four leading spaces then this text.
-        Eight leading spaces then this text.
-	One leading tab then this text.
-		Two leading tabs then this text.
-  	  Two spaces, one tab, two spaces then this text.
-No leading whitespace.
