@@ -11,7 +11,7 @@ import androidx.paging.cachedIn
 import androidx.paging.map
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.data.SearchRepository
+import com.omiyawaki.osrswiki.search.SearchRepository // <<< CORRECTED IMPORT
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi

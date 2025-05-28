@@ -24,7 +24,7 @@
     <string name="preference_key_app_channel">preference_key_app_channel</string>
 
     <string name="label_loading">Loading…</string>
-    <string name="label_error_loading_article">Error Loading Article</string>
+    <string name="label_error_loading_page">Error Loading Article</string>
     <string name="label_title_unavailable">Title Unavailable</string>
     <string name="label_content_unavailable">Content Unavailable</string>
 
@@ -32,5 +32,8 @@
     <string name="search_error_generic">An error occurred. Please try again.</string>
 
     <string name="page_load_error_network">Failed to load page. Please check your connection and try again.</string>
+
+    <string name="error_no_article_identifier">Cannot load article: No valid identifier provided.</string>
+    <string name="title_page_not_specified">Page Not Specified</string>
 
 </resources>
