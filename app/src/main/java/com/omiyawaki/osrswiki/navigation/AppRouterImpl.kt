@@ -3,9 +3,8 @@ package com.omiyawaki.osrswiki.navigation
 import androidx.annotation.IdRes
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
-// Import your actual Fragment classes here
-import com.omiyawaki.osrswiki.ui.search.SearchFragment // e.g., com.omiyawaki.osrswiki.ui.search.SearchFragment
-import com.omiyawaki.osrswiki.ui.article.PageFragment // e.g., com.omiyawaki.osrswiki.ui.article.ArticleFragment
+import com.omiyawaki.osrswiki.page.PageFragment // For PageFragment.newInstance
+import com.omiyawaki.osrswiki.search.SearchFragment
 
 class AppRouterImpl(
     private val fragmentManager: FragmentManager,
@@ -13,6 +12,7 @@ class AppRouterImpl(
 ) : Router {
 
     override fun navigateToSearchScreen() {
+        // Clear the back stack and navigate to SearchFragment.
         fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
         fragmentManager.beginTransaction()
             .replace(containerId, SearchFragment.newInstance()) // Assuming SearchFragment has newInstance()
@@ -20,11 +20,12 @@ class AppRouterImpl(
             .commit()
     }
 
-    override fun navigateToArticle(articleId: String?, articleTitle: String?) { // Signature remains the same
+    override fun navigateToPage(pageId: String?, pageTitle: String?) {
+        // Use PageFragment.newInstance to create the fragment and pass arguments
+        val fragment = PageFragment.newInstance(pageId = pageId, pageTitle = pageTitle)
         fragmentManager.beginTransaction()
-            // Call updated to only pass articleTitle as PageFragment.newInstance expects
-            .replace(containerId, PageFragment.newInstance(articleTitle = articleTitle))
-            .addToBackStack(PageFragment::class.java.name)
+            .replace(containerId, fragment)
+            .addToBackStack(PageFragment::class.java.name) // Optional: add to back stack
             .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
             .commit()
     }

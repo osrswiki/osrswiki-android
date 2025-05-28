@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.androidx.navigation.safeargs)
     alias(libs.plugins.ksp)
 }
 
@@ -76,8 +75,6 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidxLifecycleViewmodelKtx)
     implementation(libs.androidxLifecycleViewmodelSavedstate)
-    implementation(libs.androidxNavigationFragmentKtx)
-    implementation(libs.androidxNavigationUiKtx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.glide.core)
     ksp(libs.glide.ksp)

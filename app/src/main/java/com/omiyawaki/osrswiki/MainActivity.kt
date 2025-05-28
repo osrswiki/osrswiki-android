@@ -20,7 +20,7 @@ class MainActivity : AppCompatActivity() {
      * This ensures the toolbar reflects the state of the currently visible fragment.
      */
     private val backStackListener = FragmentManager.OnBackStackChangedListener {
-        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container_main)
+        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
         if (currentFragment is ScreenConfiguration) {
             updateToolbar(currentFragment)
         } else {
@@ -36,11 +36,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        toolbar = findViewById(R.id.main_app_toolbar)
+        toolbar = findViewById(R.id.main_toolbar)
         setSupportActionBar(toolbar)
 
         // Instantiate the application's router implementation.
-        appRouter = AppRouterImpl(supportFragmentManager, R.id.fragment_container_main)
+        appRouter = AppRouterImpl(supportFragmentManager, R.id.fragment_container)
 
         // Register the listener for back stack changes.
         supportFragmentManager.addOnBackStackChangedListener(backStackListener)
