@@ -11,7 +11,7 @@
     <string name="action_save_offline">Save</string>
     <string name="action_saved_offline">Saved</string>
     <string name="cd_save_for_offline">Save for offline viewing</string>
-    <string name="title_article_loading">Loading Article...</string>
+    <string name="title_article_loading">Loading Article…</string>
 
     <string name="error_article_not_specified">Article ID or title not specified.</string>
     <string name="error_loading_article_generic">An error occurred while loading the article.</string>
@@ -27,5 +27,10 @@
     <string name="label_error_loading_article">Error Loading Article</string>
     <string name="label_title_unavailable">Title Unavailable</string>
     <string name="label_content_unavailable">Content Unavailable</string>
+
+    <string name="search_error_network">Network error. Please check your connection.</string>
+    <string name="search_error_generic">An error occurred. Please try again.</string>
+
+    <string name="page_load_error_network">Failed to load page. Please check your connection and try again.</string>
 
 </resources>

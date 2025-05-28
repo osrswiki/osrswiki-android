@@ -1,6 +1,6 @@
 package com.omiyawaki.osrswiki.ui.search
 
-import android.app.Application // Added for Application context in Factory
+import android.app.Application
 import android.text.Html
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -9,10 +9,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import androidx.paging.map
-import com.omiyawaki.osrswiki.OSRSWikiApplication // Added for casting Application to access repositories
+import com.omiyawaki.osrswiki.OSRSWikiApplication
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.data.SearchRepository // MODIFIED: Import the correct SearchRepository
-import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity // Added import for mapping
+import com.omiyawaki.osrswiki.data.SearchRepository
+import com.omiyawaki.osrswiki.data.db.entity.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -21,9 +21,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.emptyFlow
+// import kotlinx.coroutines.flow.emptyFlow // No longer needed for this specific use case
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map // map is used for PagingData and List transformation
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf // <<< ADDED IMPORT
 import kotlinx.coroutines.launch
 
 /**
@@ -40,7 +41,7 @@ data class SearchScreenUiState(
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @Suppress("unused")
-class SearchViewModel(private val searchRepository: SearchRepository) : ViewModel() { // Type here will now match
+class SearchViewModel(private val searchRepository: SearchRepository) : ViewModel() {
 
 @Suppress("unused")
 private companion object {
@@ -58,11 +59,11 @@ private companion object {
         .flatMapLatest { query ->
             if (query.isNullOrBlank()) {
                 _screenUiState.value = SearchScreenUiState(messageResId = R.string.search_enter_query_prompt, currentQuery = query)
-                emptyFlow()
+                flowOf(PagingData.empty()) // <<< MODIFIED: Emit PagingData.empty() to clear results
             } else {
                 _screenUiState.value = SearchScreenUiState(messageResId = null, currentQuery = query)
                 Log.d(TAG, "Fetching online results for query: '$query'")
-                searchRepository.getSearchResultStream(query) // This is from data.SearchRepository
+                searchRepository.getSearchResultStream(query)
                     .map { pagingData: PagingData<NetworkSearchResult> ->
                         pagingData.map { networkResult ->
                             mapNetworkResultToCleanedItem(networkResult)
@@ -81,31 +82,30 @@ private companion object {
                 .debounce(SEARCH_DEBOUNCE_MS)
                 .flatMapLatest { query ->
                     Log.d(TAG, "Preparing for offline title search for query: '$query'")
-                    // MODIFIED: Call searchOfflineArticles and expect Flow<List<ArticleMetaEntity>>
                     searchRepository.searchOfflineArticles(query ?: "")
                 }
-                .map { articleMetaList -> // MODIFIED: Add mapping step
+                .map { articleMetaList ->
                     articleMetaList.map { articleMeta ->
                         mapArticleMetaToCleanedItem(articleMeta)
                     }
                 }
-                .collect { results -> // results is now List<CleanedSearchResultItem>
+                .collect { results ->
                     _offlineSearchResults.value = results
                     Log.d(TAG, "Offline title search results updated: ${results.size} items for query: '${_currentQuery.value}'")
                 }
         }
     }
 
-fun performSearch(query: String) {
+    fun performSearch(query: String) {
         val trimmedQuery = query.trim()
         Log.d(TAG, "Search query submitted: '$trimmedQuery'")
         _currentQuery.value = trimmedQuery
     }
 
-private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
+    private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
         val rawSnippet = networkResult.snippet
         val cleanSnippet = rawSnippet?.let { htmlContent ->
-              val afterFromHtml = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
+            val afterFromHtml = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
             val afterNewlineReplace = afterFromHtml.replace('\n', ' ')
             val finalSnippet = afterNewlineReplace.trim()
             finalSnippet
@@ -118,17 +118,15 @@ private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): C
         )
     }
 
-    // ADDED: Helper function to map ArticleMetaEntity to CleanedSearchResultItem
     private fun mapArticleMetaToCleanedItem(articleMeta: ArticleMetaEntity): CleanedSearchResultItem {
         return CleanedSearchResultItem(
-            id = articleMeta.pageId.toString(), // Assuming pageId is non-null Int in ArticleMetaEntity
+            id = articleMeta.pageId.toString(),
             title = articleMeta.title,
-            snippet = "" // No snippet from metadata-only search
+            snippet = ""
         )
     }
 }
 
-// ViewModelFactory remains the same, but the 'repository' it passes will now match SearchViewModel's expectation
 @Suppress("unused")
 class SearchViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
@@ -136,8 +134,8 @@ class SearchViewModelFactory(private val application: Application) : ViewModelPr
         if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
             val osrsWikiApplication = application as? OSRSWikiApplication
                 ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
-            val repository = osrsWikiApplication.searchRepository // This now provides com.omiyawaki.osrswiki.data.SearchRepository
-            return SearchViewModel(repository) as T // This should now match
+            val repository = osrsWikiApplication.searchRepository
+            return SearchViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

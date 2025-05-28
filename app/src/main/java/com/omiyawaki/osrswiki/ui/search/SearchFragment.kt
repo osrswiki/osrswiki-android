@@ -4,23 +4,25 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-// Changed import to use CleanedSearchResultItem from the ui.search package
 import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem
 import com.omiyawaki.osrswiki.ui.common.NavigationIconType
 import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.omiyawaki.osrswiki.util.log.L
+import java.io.IOException
 
 class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClickListener {
 
@@ -29,7 +31,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
     }
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
-    private lateinit var searchAdapter: SearchAdapter // Now SearchAdapter will be defined
+    private lateinit var searchAdapter: SearchAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,6 +46,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
         setupRecyclerView()
         setupSearchView()
         observeViewModel()
+        setupOnBackPressed()
 
         (activity as? MainActivity)?.updateToolbar(this)
     }
@@ -61,7 +64,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
     }
 
     private fun setupRecyclerView() {
-        searchAdapter = SearchAdapter(this) // Initialize SearchAdapter
+        searchAdapter = SearchAdapter(this)
         binding.recyclerViewSearchResults.apply {
             adapter = searchAdapter
             layoutManager = LinearLayoutManager(context)
@@ -70,17 +73,30 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
     }
 
     private fun setupSearchView() {
+        // Ensure the SearchView is expanded and set the hint
+        binding.searchView.isIconified = false // <<< ADDED: Force expanded state
+        binding.searchView.queryHint = getString(R.string.search_hint_text) // Re-affirm hint
+
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let {
-                    viewModel.performSearch(it.trim())
+                    if (it.trim().isNotEmpty()) {
+                        viewModel.performSearch(it.trim())
+                    } else {
+                        viewModel.performSearch("")
+                    }
+                    binding.searchView.clearFocus()
+                } ?: run {
+                    viewModel.performSearch("")
                     binding.searchView.clearFocus()
                 }
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                // viewModel.performSearch(newText.orEmpty().trim()) // For live search
+                if (newText.isNullOrEmpty()) {
+                    viewModel.performSearch("")
+                }
                 return true
             }
         })
@@ -95,42 +111,82 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         searchAdapter.submitData(pagingData)
                     }
                 }
+
                 launch {
                     viewModel.offlineSearchResults.collect { offlineResults ->
-                        // TODO: Decide how to display offline results.
-                        // For now, just log them. They could be a separate list or merged.
                         L.d("Offline search results count: ${offlineResults.size}")
-                        if (offlineResults.isNotEmpty()) {
-                             // Potentially show these if online results are empty or in a different section
-                        }
+                        // TODO: Decide how to display offline results.
                     }
                 }
+
                 launch {
                     viewModel.screenUiState.collect { screenState ->
                         L.d("Screen UI State: MessageResId=${screenState.messageResId}, Query=${screenState.currentQuery}")
-                        // Handle general screen messages, e.g., initial prompt or errors not tied to PagingData load states
-                        //binding.progressBarSearch.visibility = View.GONE // Assuming PagingData handles its own loading state via adapter
-                        
-                        // Visibility of "no results" or "enter query" can be complex with PagingData
-                        // PagingDataAdapter's itemCount can be observed, along with LoadState.
-                        // For simplicity, we might rely on SearchViewModel to manage a "no results for query X" state if needed.
-                        screenState.messageResId?.let {
-                            binding.textViewNoResults.text = getString(it)
-                            binding.textViewNoResults.visibility = View.VISIBLE
-                        } ?: run {
-                            // Hide if PagingData will show items or its own empty/error state
-                            // This logic needs refinement based on PagingData load states.
-                            // binding.textViewNoResults.visibility = View.GONE 
+                    }
+                }
+
+                launch {
+                    searchAdapter.loadStateFlow.collectLatest { loadStates ->
+                        val isLoading = loadStates.refresh is LoadState.Loading
+                        val isError = loadStates.refresh is LoadState.Error
+                        val error = if (isError) (loadStates.refresh as LoadState.Error).error else null
+                        val hasResults = searchAdapter.itemCount > 0
+
+                        binding.progressBarSearch.visibility = View.GONE
+                        binding.recyclerViewSearchResults.visibility = View.GONE
+                        binding.textViewNoResults.visibility = View.GONE
+                        binding.textViewSearchError.visibility = View.GONE
+
+                        if (isLoading) {
+                            L.d("LoadState: Refresh is Loading - Showing ProgressBar")
+                            binding.progressBarSearch.visibility = View.VISIBLE
+                        } else if (isError) {
+                            L.d("LoadState: Refresh is Error - Showing Error Message. Error: ${error?.message}")
+                            val errorMessage = when (error) {
+                                is IOException -> getString(R.string.search_error_network)
+                                else -> error?.localizedMessage ?: getString(R.string.search_error_generic)
+                            }
+                            binding.textViewSearchError.text = errorMessage
+                            binding.textViewSearchError.visibility = View.VISIBLE
+                        } else if (hasResults) {
+                            L.d("LoadState: NotLoading, Has Results - Showing RecyclerView")
+                            binding.recyclerViewSearchResults.visibility = View.VISIBLE
+                        } else { 
+                            val currentSearchQuery = viewModel.screenUiState.value.currentQuery
+                            if (!currentSearchQuery.isNullOrBlank()) {
+                                L.d("LoadState: NotLoading, No Results for query: $currentSearchQuery - Showing 'No results'")
+                                binding.textViewNoResults.text = getString(R.string.search_no_results)
+                                binding.textViewNoResults.visibility = View.VISIBLE
+                            } else {
+                                L.d("LoadState: NotLoading, No Results, Blank Query - UI is blank (no prompt).")
+                            }
                         }
-                        // TODO: Add proper handling for PagingData load states (loading, error, empty)
-                        // using searchAdapter.loadStateFlow
                     }
                 }
             }
         }
     }
 
-    // Parameter type changed to CleanedSearchResultItem
+    private fun setupOnBackPressed() {
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (binding.searchView.query.isNotEmpty()) {
+                    binding.searchView.setQuery("", false)
+                } else {
+                    isEnabled = false
+                    try {
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    } finally {
+                        if (isAdded) {
+                           isEnabled = true
+                        }
+                    }
+                }
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, callback)
+    }
+
     override fun onItemClick(item: CleanedSearchResultItem) {
         L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
         (activity as? MainActivity)?.getRouter()?.navigateToArticle(
@@ -141,7 +197,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
 
     override fun onDestroyView() {
         super.onDestroyView()
-        binding.recyclerViewSearchResults.adapter = null // Clear adapter
+        binding.recyclerViewSearchResults.adapter = null
         _binding = null
     }
 

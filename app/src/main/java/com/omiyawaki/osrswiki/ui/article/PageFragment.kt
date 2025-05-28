@@ -23,7 +23,6 @@ class PageFragment : Fragment() {
     private lateinit var articleRepository: ArticleRepository
     private lateinit var articleContentLoader: ArticleContentLoader
 
-    // private var articleIdArg: String? = null // Removed for now
     private var articleTitleArg: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +30,6 @@ class PageFragment : Fragment() {
         L.d("PageFragment onCreate")
 
         arguments?.let {
-            // articleIdArg = it.getString(ARG_ARTICLE_ID) // Removed for now
             articleTitleArg = it.getString(ARG_ARTICLE_TITLE)
             L.d("PageFragment created with Title: $articleTitleArg")
         }
@@ -86,6 +84,7 @@ class PageFragment : Fragment() {
         L.d("PageFragment updateUiFromViewModel. Current state: ${pageViewModel.uiState}")
         val state = pageViewModel.uiState
 
+        // Handle Loading State
         if (state.isLoading) {
             binding.progressBar.visibility = View.VISIBLE
             binding.articleContentTextView.visibility = View.GONE
@@ -95,15 +94,20 @@ class PageFragment : Fragment() {
             binding.progressBar.visibility = View.GONE
         }
 
-        state.error?.let {
-            binding.errorTextView.text = it
+        // Handle Error State
+        state.error?.let { detailedErrorString ->
+            L.e("Page load error (technical details): $detailedErrorString") // Log the detailed error
+            // Display a user-friendly message
+            binding.errorTextView.text = getString(R.string.page_load_error_network) // <<< MODIFIED LINE
             binding.errorTextView.visibility = View.VISIBLE
             binding.articleContentTextView.visibility = View.GONE
             binding.articleTitleTextView.text = state.title ?: getString(R.string.label_error_loading_article)
         } ?: run {
+            // Only hide errorTextView if not loading (already handled above) and no error
             if (!state.isLoading) binding.errorTextView.visibility = View.GONE
         }
 
+        // Handle Success/Content State
         if (!state.isLoading && state.error == null) {
             binding.articleContentTextView.visibility = View.VISIBLE
             binding.articleTitleTextView.text = state.title ?: getString(R.string.label_title_unavailable)
@@ -116,6 +120,7 @@ class PageFragment : Fragment() {
                 }
             } ?: getString(R.string.label_content_unavailable)
         } else if (!state.isLoading && state.error != null) {
+            // Ensure content text view is hidden if there was an error and not loading
             binding.articleContentTextView.visibility = View.GONE
         }
         L.i("PageFragment UI updated for title: '${state.title}', isLoading: ${state.isLoading}, error: ${state.error != null}")
@@ -128,15 +133,13 @@ class PageFragment : Fragment() {
     }
 
     companion object {
-        // private const val ARG_ARTICLE_ID = "article_id" // Removed for now
         private const val ARG_ARTICLE_TITLE = "article_title"
 
         @JvmStatic
-        fun newInstance(articleTitle: String?): PageFragment { // Signature reverted
+        fun newInstance(articleTitle: String?): PageFragment {
             L.d("PageFragment newInstance for Title: $articleTitle")
             return PageFragment().apply {
                 arguments = Bundle().apply {
-                    // putString(ARG_ARTICLE_ID, articleId) // Removed for now
                     putString(ARG_ARTICLE_TITLE, articleTitle)
                 }
             }
