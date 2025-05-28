@@ -29,11 +29,6 @@ import kotlinx.coroutines.launch
 /**
  * Data class representing a search result item with cleaned snippet for the UI.
  */
-data class CleanedSearchResultItem(
-    val id: String, // pageid as String
-    val title: String,
-    val snippet: String // Cleaned snippet
-)
 
 /**
  * UI state for the Search screen, primarily for messages not directly tied to PagingData or results.

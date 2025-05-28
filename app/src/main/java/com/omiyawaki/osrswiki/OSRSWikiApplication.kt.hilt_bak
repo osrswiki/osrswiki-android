@@ -1,0 +1,43 @@
+package com.omiyawaki.osrswiki
+
+import android.app.Application
+import android.util.Log // Existing import
+import com.omiyawaki.osrswiki.data.repository.ArticleRepository // Existing import, ensure it's the correct one
+// import com.omiyawaki.osrswiki.data.SearchRepository // Assuming SearchRepository might be used elsewhere
+// import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase // Assuming OSRSWikiDatabase might be used elsewhere
+// import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao // Assuming ArticleMetaDao might be used elsewhere
+// import com.omiyawaki.osrswiki.network.RetrofitClient // Assuming RetrofitClient might be used elsewhere
+// import com.omiyawaki.osrswiki.network.WikiApiService // Assuming WikiApiService might be used elsewhere
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.HiltAndroidApp
+import dagger.hilt.components.SingletonComponent
+
+@HiltAndroidApp // Ensure this annotation is present
+class OSRSWikiApplication : Application() {
+
+    // Your existing companion object and other application logic
+    companion object {
+        lateinit var instance: OSRSWikiApplication
+            private set // It's good practice to make the setter private
+
+        // Example: Manual crash logging function
+        fun logCrashManually(throwable: Throwable) {
+            Log.e("OSRSWikiAppCrash", "Manual crash log", throwable)
+            // Potentially add more sophisticated logging here if needed
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+        // Other initialization code
+    }
+
+    // Hilt EntryPoint for accessing ArticleRepository from non-DI-aware classes
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface RepositoryEntryPoint {
+        fun articleRepository(): ArticleRepository
+    }
+}

@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">OSRS Wiki</string>
 
+    <string name="title_search">Search Wiki</string>
     <string name="search_hint_text">Search OSRS Wiki…</string>
     <string name="search_enter_query_prompt">Enter a search term to begin.</string>
     <string name="search_no_results">No results found.</string>

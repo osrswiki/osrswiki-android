@@ -2,41 +2,42 @@ package com.omiyawaki.osrswiki
 
 import android.app.Application
 import android.util.Log
-import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase         // Your Room database class
-import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao    // Your DAO
+import com.omiyawaki.osrswiki.data.db.OSRSWikiDatabase      // Room database class
+import com.omiyawaki.osrswiki.data.db.dao.ArticleMetaDao  // DAO
 import com.omiyawaki.osrswiki.data.repository.ArticleRepository
-import com.omiyawaki.osrswiki.network.RetrofitClient          // Your Retrofit client object
-import com.omiyawaki.osrswiki.network.WikiApiService        // Your Retrofit service interface
+import com.omiyawaki.osrswiki.data.SearchRepository         // Import SearchRepository
+import com.omiyawaki.osrswiki.network.RetrofitClient       // Retrofit client object
+import com.omiyawaki.osrswiki.network.WikiApiService       // Retrofit service interface
 
 class OSRSWikiApplication : Application() {
 
     // --- Manually managed singleton dependencies ---
 
+    // Updated to use the companion object instance from OSRSWikiDatabase
     private val database: OSRSWikiDatabase by lazy {
-        OSRSWikiDatabase.getInstance(applicationContext) // Using the getInstance method from your DB class
+        OSRSWikiDatabase.instance
     }
 
     private val articleMetaDao: ArticleMetaDao by lazy {
-        database.articleMetaDao() // Accessing the DAO from your DB instance
+        database.articleMetaDao() // Accessing the DAO from DB instance
     }
 
     private val wikiApiService: WikiApiService by lazy {
-        RetrofitClient.apiService // Accessing the service from your RetrofitClient object
+        RetrofitClient.apiService // Accessing the service from RetrofitClient object
     }
 
-    // ArticleRepository is publicly accessible for PageFragment
+    // --- Publicly accessible repositories ---
     lateinit var articleRepository: ArticleRepository
         private set // Make setter private to control instantiation from within Application class
 
-    // You can define other repositories here if needed, e.g.:
-    // lateinit var searchRepository: SearchRepository
-    //     private set
+    lateinit var searchRepository: SearchRepository
+        private set // Make setter private to control instantiation from within Application class
 
     // --- Application Lifecycle ---
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
+        instance = this // Ensure instance is set before any dependencies might need it
         Log.d(TAG, "OSRSWikiApplication created and manual DI initializing...")
 
         // Initialize repositories that depend on other services/DAOs
@@ -46,8 +47,10 @@ class OSRSWikiApplication : Application() {
             applicationContext = this            // provide application context
         )
 
-        // Example for another repository:
-        // searchRepository = SearchRepository(wikiApiService, database.searchResultDao(), ...)
+        searchRepository = SearchRepository(
+            apiService = wikiApiService,        // from lazy delegate
+            articleMetaDao = articleMetaDao     // from lazy delegate
+        )
 
         Log.d(TAG, "Manual DI setup complete in OSRSWikiApplication.")
     }

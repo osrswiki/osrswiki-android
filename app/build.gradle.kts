@@ -40,6 +40,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true // Ensure BuildConfig generation is explicitly enabled
     }
 }
 
@@ -53,6 +54,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
+    implementation(libs.androidx.preference.ktx) // Added for SharedPreferences utilities
 
     // Room components
     implementation(libs.androidx.room.runtime) // Assuming alias exists in libs.versions.toml
@@ -63,12 +65,12 @@ dependencies {
             attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
         }
     }
-//     kspDebug(libs.androidx.room.common)        // Explicitly add room-common for KSP
-//     {
-//         attributes {
-//             attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
-//         }
-//     }
+//    kspDebug(libs.androidx.room.common)       // Explicitly add room-common for KSP
+//    {
+//        attributes {
+//            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
+//        }
+//    }
 
     // Added dependencies
     implementation(libs.androidx.constraintlayout)

@@ -14,20 +14,22 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.network.SearchResultItem
-import com.omiyawaki.osrswiki.ui.common.NavigationIconType // Added import
-import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration // Added import
-import dagger.hilt.android.AndroidEntryPoint
+// Changed import to use CleanedSearchResultItem from the ui.search package
+import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem
+import com.omiyawaki.osrswiki.ui.common.NavigationIconType
+import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import timber.log.Timber
+import com.omiyawaki.osrswiki.util.log.L
 
-@AndroidEntryPoint
-class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClickListener { // Implements ScreenConfiguration
+class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClickListener {
 
-    private val viewModel: SearchViewModel by viewModels()
+    private val viewModel: SearchViewModel by viewModels {
+        SearchViewModelFactory(requireActivity().application)
+    }
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
-    private lateinit var searchAdapter: SearchAdapter
+    private lateinit var searchAdapter: SearchAdapter // Now SearchAdapter will be defined
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -43,80 +45,103 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
         setupSearchView()
         observeViewModel()
 
-        // Request MainActivity to update toolbar based on this fragment's configuration
         (activity as? MainActivity)?.updateToolbar(this)
     }
 
-    // Implement ScreenConfiguration
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
-        return getString(R.string.title_search) // Standard title for search screen
+        return getString(R.string.title_search)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        return NavigationIconType.NONE // Search screen might not have a nav icon, or use MENU if drawer exists
+        return NavigationIconType.NONE
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
-        return false // SearchFragment might not add items to the main options menu
+        return false
     }
 
     private fun setupRecyclerView() {
-        searchAdapter = SearchAdapter(this)
+        searchAdapter = SearchAdapter(this) // Initialize SearchAdapter
         binding.recyclerViewSearchResults.apply {
             adapter = searchAdapter
             layoutManager = LinearLayoutManager(context)
         }
+        L.i("SearchAdapter and recyclerViewSearchResults setup complete.")
     }
 
     private fun setupSearchView() {
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 query?.let {
-                    viewModel.searchArticles(it)
-                    binding.searchView.clearFocus() // Hide keyboard
+                    viewModel.performSearch(it.trim())
+                    binding.searchView.clearFocus()
                 }
                 return true
             }
 
             override fun onQueryTextChange(newText: String?): Boolean {
-                // Optional: Implement live search or suggestions if desired
-                return false
+                // viewModel.performSearch(newText.orEmpty().trim()) // For live search
+                return true
             }
         })
-        // Optional: Set focus to SearchView when fragment opens
-        // binding.searchView.isIconified = false // Makes the search bar active
-        // binding.searchView.requestFocus()
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    binding.progressBarSearch.visibility = if (state.isLoading) View.VISIBLE else View.GONE
-                    binding.textViewSearchError.visibility = if (state.error != null) View.VISIBLE else View.GONE
-                    binding.textViewSearchError.text = state.error
-                    searchAdapter.submitList(state.results)
-                    if (state.results.isEmpty() && !state.isLoading && state.error == null && state.hasSearched) {
-                        binding.textViewNoResults.visibility = View.VISIBLE
-                    } else {
-                        binding.textViewNoResults.visibility = View.GONE
+                launch {
+                    viewModel.searchResultsFlow.collectLatest { pagingData ->
+                        L.d("Submitting PagingData to SearchAdapter")
+                        searchAdapter.submitData(pagingData)
+                    }
+                }
+                launch {
+                    viewModel.offlineSearchResults.collect { offlineResults ->
+                        // TODO: Decide how to display offline results.
+                        // For now, just log them. They could be a separate list or merged.
+                        L.d("Offline search results count: ${offlineResults.size}")
+                        if (offlineResults.isNotEmpty()) {
+                             // Potentially show these if online results are empty or in a different section
+                        }
+                    }
+                }
+                launch {
+                    viewModel.screenUiState.collect { screenState ->
+                        L.d("Screen UI State: MessageResId=${screenState.messageResId}, Query=${screenState.currentQuery}")
+                        // Handle general screen messages, e.g., initial prompt or errors not tied to PagingData load states
+                        //binding.progressBarSearch.visibility = View.GONE // Assuming PagingData handles its own loading state via adapter
+                        
+                        // Visibility of "no results" or "enter query" can be complex with PagingData
+                        // PagingDataAdapter's itemCount can be observed, along with LoadState.
+                        // For simplicity, we might rely on SearchViewModel to manage a "no results for query X" state if needed.
+                        screenState.messageResId?.let {
+                            binding.textViewNoResults.text = getString(it)
+                            binding.textViewNoResults.visibility = View.VISIBLE
+                        } ?: run {
+                            // Hide if PagingData will show items or its own empty/error state
+                            // This logic needs refinement based on PagingData load states.
+                            // binding.textViewNoResults.visibility = View.GONE 
+                        }
+                        // TODO: Add proper handling for PagingData load states (loading, error, empty)
+                        // using searchAdapter.loadStateFlow
                     }
                 }
             }
         }
     }
 
-    override fun onItemClick(item: SearchResultItem) {
-        Timber.d("Search item clicked: Title='${item.title}', ID='${item.pageid}'")
-        // Corrected call to navigateToArticle
+    // Parameter type changed to CleanedSearchResultItem
+    override fun onItemClick(item: CleanedSearchResultItem) {
+        L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
         (activity as? MainActivity)?.getRouter()?.navigateToArticle(
-            articleId = item.pageid.toString(), // Assuming pageid can serve as articleId
+            articleId = item.id,
             articleTitle = item.title
         )
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        binding.recyclerViewSearchResults.adapter = null // Clear adapter
         _binding = null
     }
 

@@ -4,99 +4,70 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.omiyawaki.osrswiki.ui.search.SearchFragment">
+    tools:context=".ui.search.SearchFragment">
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/search_input_layout"
-        style="?attr/textInputFilledStyle"
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/searchView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:hint="@string/search_hint_text"
+        android:iconifiedByDefault="false"
+        android:queryHint="@string/search_hint_text" 
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/search_edit_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:textColor="@color/edit_text_input_color"
-            android:maxLines="1" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <TextView
-        android:id="@+id/offline_results_title_textview"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:text="@string/search_offline_results_title"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/search_input_layout"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:visibility="visible" />
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/offline_results_recyclerview"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:nestedScrollingEnabled="false"
-        android:visibility="gone"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toBottomOf="@id/offline_results_title_textview"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:listitem="@layout/item_search_result"
-        tools:visibility="visible"
-        tools:itemCount="2"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/search_results_recyclerview"
+        android:id="@+id/recyclerViewSearchResults"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/offline_results_recyclerview"
-        tools:listitem="@layout/item_search_result" />
-
-    <ProgressBar
-        android:id="@+id/search_progress_bar"
+        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        tools:listitem="@layout/item_search_result" /> <ProgressBar
+        android:id="@+id/progressBarSearch"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/offline_results_recyclerview"
-        app:layout_constraintBottom_toBottomOf="@+id/search_results_recyclerview"
-        app:layout_constraintStart_toStartOf="@+id/search_results_recyclerview"
-        app:layout_constraintEnd_toEndOf="@+id/search_results_recyclerview"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/searchView"
         tools:visibility="gone" />
 
     <TextView
-        android:id="@+id/search_message_textview"
+        android:id="@+id/textViewSearchError"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="center"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:text="@string/search_enter_query_prompt"
-        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:gravity="center"
+        android:padding="16dp"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/offline_results_recyclerview"
-        app:layout_constraintBottom_toBottomOf="@+id/search_results_recyclerview"
-        app:layout_constraintStart_toStartOf="@+id/search_results_recyclerview"
-        app:layout_constraintEnd_toEndOf="@+id/search_results_recyclerview"
-        tools:visibility="gone" />
+        android:textAppearance="?attr/textAppearanceBody1"
+        android:textColor="?attr/colorError"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        tools:text="Error message here" />
+
+    <TextView
+        android:id="@+id/textViewNoResults"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="@string/search_no_results" 
+        android:visibility="gone"
+        android:textAppearance="?attr/textAppearanceBody1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

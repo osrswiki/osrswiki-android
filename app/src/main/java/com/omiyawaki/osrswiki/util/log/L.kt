@@ -109,7 +109,7 @@ object L {
         LEVEL_E.log("", t) // Log the error locally using our E level.
         // For production releases, also log the crash to the remote reporting service.
         if (ReleaseUtil.isProdRelease) {
-            OSRSWikiApplication.instance.logCrashManually(t)
+            OSRSWikiApplication.logCrashManually(t) // Call via class name
         }
     }
 

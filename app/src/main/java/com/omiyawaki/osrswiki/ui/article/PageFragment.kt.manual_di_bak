@@ -7,12 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.omiyawaki.osrswiki.OSRSWikiApplication // Your Application class
+import com.omiyawaki.osrswiki.OSRSWikiApplication
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.data.repository.ArticleRepository
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.page.PageViewModel
 import com.omiyawaki.osrswiki.util.log.L
+import dagger.hilt.android.EntryPointAccessors
 
 class PageFragment : Fragment() {
 
@@ -23,7 +24,6 @@ class PageFragment : Fragment() {
     private lateinit var articleRepository: ArticleRepository
     private lateinit var articleContentLoader: ArticleContentLoader
 
-    // private var articleIdArg: String? = null // Removed for now
     private var articleTitleArg: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,18 +31,23 @@ class PageFragment : Fragment() {
         L.d("PageFragment onCreate")
 
         arguments?.let {
-            // articleIdArg = it.getString(ARG_ARTICLE_ID) // Removed for now
             articleTitleArg = it.getString(ARG_ARTICLE_TITLE)
-            L.d("PageFragment created with Title: $articleTitleArg")
         }
 
-        articleRepository = (requireActivity().applicationContext as OSRSWikiApplication).articleRepository
+        val repositoryEntryPoint = EntryPointAccessors.fromApplication(
+            requireActivity().applicationContext,
+            OSRSWikiApplication.RepositoryEntryPoint::class.java
+        )
+        articleRepository = repositoryEntryPoint.articleRepository()
 
         articleContentLoader = ArticleContentLoader(
             articleRepository,
             pageViewModel,
             lifecycleScope,
             onStateUpdated = {
+                // Ensure UI updates happen on the main thread, though lifecycleScope typically handles this.
+                // For explicit safety if ever changing dispatcher in loader:
+                // activity?.runOnUiThread { updateUiFromViewModel() }
                 updateUiFromViewModel()
             }
         )
@@ -59,24 +64,31 @@ class PageFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        L.d("PageFragment onViewCreated. Article Title: $articleTitleArg")
+        L.d("PageFragment onViewCreated. Article title from arg: $articleTitleArg")
 
-        updateUiFromViewModel() // Set initial UI
+        // Set initial UI state (likely loading as per ArticleUiState default)
+        updateUiFromViewModel()
 
         articleTitleArg?.let { title ->
-            if (pageViewModel.uiState.title != title || (pageViewModel.uiState.htmlContent == null && !pageViewModel.uiState.isLoading && pageViewModel.uiState.error == null)) {
-                L.i("Requesting to load article by title: $title")
+            // Load only if the title is different from current VM's title or content is missing,
+            // or if it's the initial load for this fragment instance with this title.
+            // The loader now calls onStateUpdated to set the initial loading state too.
+            if (pageViewModel.uiState.title != title || pageViewModel.uiState.htmlContent == null && !pageViewModel.uiState.isLoading && pageViewModel.uiState.error == null) {
+                 L.i("Requesting to load article: $title")
                 articleContentLoader.loadArticleByTitle(title)
             } else if (pageViewModel.uiState.title == title && (pageViewModel.uiState.isLoading || pageViewModel.uiState.error != null)) {
+                // If it's the same title but currently loading or in error, UI will reflect from updateUiFromViewModel.
+                // No new load needed unless a retry is intended.
                 L.d("Article '$title' is already loading or in error state. UI will reflect.")
             } else {
                 L.d("Article '$title' data already present in ViewModel. UI will reflect.")
             }
-        } ?: L.w("No article title provided to PageFragment for initial load.")
+        } ?: L.w("No article title provided to PageFragment.")
 
         binding.errorTextView.setOnClickListener {
             articleTitleArg?.let { title ->
                 L.i("Retry button clicked for article: $title")
+                // The loader will set loading state and call onStateUpdated.
                 articleContentLoader.loadArticleByTitle(title, forceNetwork = true)
             }
         }
@@ -99,6 +111,7 @@ class PageFragment : Fragment() {
             binding.errorTextView.text = it
             binding.errorTextView.visibility = View.VISIBLE
             binding.articleContentTextView.visibility = View.GONE
+            // Keep the title that was attempted, or show a generic error title
             binding.articleTitleTextView.text = state.title ?: getString(R.string.label_error_loading_article)
         } ?: run {
             if (!state.isLoading) binding.errorTextView.visibility = View.GONE
@@ -116,6 +129,7 @@ class PageFragment : Fragment() {
                 }
             } ?: getString(R.string.label_content_unavailable)
         } else if (!state.isLoading && state.error != null) {
+            // Content should be hidden if there was an error
             binding.articleContentTextView.visibility = View.GONE
         }
         L.i("PageFragment UI updated for title: '${state.title}', isLoading: ${state.isLoading}, error: ${state.error != null}")
@@ -128,15 +142,13 @@ class PageFragment : Fragment() {
     }
 
     companion object {
-        // private const val ARG_ARTICLE_ID = "article_id" // Removed for now
         private const val ARG_ARTICLE_TITLE = "article_title"
 
         @JvmStatic
-        fun newInstance(articleTitle: String?): PageFragment { // Signature reverted
-            L.d("PageFragment newInstance for Title: $articleTitle")
+        fun newInstance(articleTitle: String): PageFragment {
+            L.d("PageFragment newInstance for title: $articleTitle")
             return PageFragment().apply {
                 arguments = Bundle().apply {
-                    // putString(ARG_ARTICLE_ID, articleId) // Removed for now
                     putString(ARG_ARTICLE_TITLE, articleTitle)
                 }
             }

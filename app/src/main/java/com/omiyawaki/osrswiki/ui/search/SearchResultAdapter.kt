@@ -7,14 +7,12 @@ import androidx.paging.PagingDataAdapter // Import PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding class
-
-// CleanedSearchResultItem is expected to be accessible from this package
-// (it was defined in SearchViewModel.kt in the same package).
-// If CleanedSearchResultItem is moved to its own file or a different package, adjust imports if necessary.
+// Ensure CleanedSearchResultItem is accessible (e.g., imported if in its own file)
+// import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem
 
 class SearchResultAdapter(
-    private val onItemClicked: (CleanedSearchResultItem) -> Unit // Updated to CleanedSearchResultItem
-) : PagingDataAdapter<CleanedSearchResultItem, SearchResultAdapter.SearchResultViewHolder>(SearchResultDiffCallback()) { // Updated base class and item type
+    private val onItemClicked: (CleanedSearchResultItem) -> Unit
+) : PagingDataAdapter<CleanedSearchResultItem, SearchResultAdapter.SearchResultViewHolder>(SearchResultDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchResultViewHolder {
         val binding = ItemSearchResultBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -22,8 +20,7 @@ class SearchResultAdapter(
     }
 
     override fun onBindViewHolder(holder: SearchResultViewHolder, position: Int) {
-        val item = getItem(position) // getItem() from PagingDataAdapter can return null
-        // Bind item only if it's not null (PagingData might have placeholders or be empty)
+        val item = getItem(position)
         item?.let {
             holder.bind(it)
         }
@@ -31,7 +28,7 @@ class SearchResultAdapter(
 
     class SearchResultViewHolder(
         private val binding: ItemSearchResultBinding,
-        private val onItemClicked: (CleanedSearchResultItem) -> Unit // Updated to CleanedSearchResultItem
+        private val onItemClicked: (CleanedSearchResultItem) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
         private var currentItem: CleanedSearchResultItem? = null
@@ -44,27 +41,25 @@ class SearchResultAdapter(
             }
         }
 
-        fun bind(item: CleanedSearchResultItem) { // Parameter is now CleanedSearchResultItem (non-null here due to the let block above)
+        fun bind(item: CleanedSearchResultItem) {
             currentItem = item
-            binding.itemSearchTitleTextview.text = item.title
-            if (item.snippet.isEmpty()) { // Check isEmpty since snippet in CleanedSearchResultItem is non-null but can be empty
-                binding.itemSearchSnippetTextview.visibility = View.GONE
+            binding.searchItemTitle.text = item.title // Corrected ID
+            if (item.snippet.isEmpty()) {
+                binding.searchItemSnippet.visibility = View.GONE // Corrected ID
             } else {
-                binding.itemSearchSnippetTextview.text = item.snippet
-                binding.itemSearchSnippetTextview.visibility = View.VISIBLE
+                binding.searchItemSnippet.text = item.snippet // Corrected ID
+                binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
             }
         }
     }
 }
 
-class SearchResultDiffCallback : DiffUtil.ItemCallback<CleanedSearchResultItem>() { // Updated to CleanedSearchResultItem
+class SearchResultDiffCallback : DiffUtil.ItemCallback<CleanedSearchResultItem>() {
     override fun areItemsTheSame(oldItem: CleanedSearchResultItem, newItem: CleanedSearchResultItem): Boolean {
-        // 'id' in CleanedSearchResultItem is the unique identifier (pageid as String)
         return oldItem.id == newItem.id
     }
 
     override fun areContentsTheSame(oldItem: CleanedSearchResultItem, newItem: CleanedSearchResultItem): Boolean {
-        // Check if the content of the items is the same
         return oldItem == newItem
     }
 }

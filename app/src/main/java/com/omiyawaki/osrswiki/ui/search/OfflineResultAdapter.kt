@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 // CleanedSearchResultItem is assumed to be in the same package or imported correctly.
-// data class CleanedSearchResultItem(val id: String, val title: String, val snippet: String)
+// import com.omiyawaki.osrswiki.ui.search.CleanedSearchResultItem // Ensure this is accessible
 
 class OfflineResultAdapter(
     private val onItemClicked: (CleanedSearchResultItem) -> Unit
@@ -21,7 +21,6 @@ class OfflineResultAdapter(
 
     override fun onBindViewHolder(holder: OfflineResultViewHolder, position: Int) {
         val item = getItem(position)
-        // getItem() from ListAdapter will not return null for valid positions
         holder.bind(item)
     }
 
@@ -42,16 +41,12 @@ class OfflineResultAdapter(
 
         fun bind(item: CleanedSearchResultItem) {
             currentItem = item
-            binding.itemSearchTitleTextview.text = item.title
+            binding.searchItemTitle.text = item.title // Corrected ID
             if (item.snippet.isEmpty()) {
-                binding.itemSearchSnippetTextview.visibility = View.GONE
+                binding.searchItemSnippet.visibility = View.GONE // Corrected ID
             } else {
-                // For offline search results, the snippet might contain HTML tags (if sourced from web) or be plain text.
-                // TextView by default does not render HTML. If HTML rendering is desired,
-                // use Html.fromHtml(item.snippet, Html.FROM_HTML_MODE_COMPACT).
-                // For now, displaying as plain text. If highlighting is not rendering, this is where to adjust.
-                binding.itemSearchSnippetTextview.text = item.snippet
-                binding.itemSearchSnippetTextview.visibility = View.VISIBLE
+                binding.searchItemSnippet.text = item.snippet // Corrected ID
+                binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
             }
         }
     }
