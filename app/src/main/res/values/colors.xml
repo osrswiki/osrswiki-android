@@ -9,8 +9,7 @@
     <color name="osrs_text_on_dark_primary">#F0E6D2</color>
     <color name="osrs_text_on_parchment">#3A2E1C</color>
     <color name="osrs_text_on_gold">#4C3D2A</color>
-
-    <color name="md_theme_error">#B00020</color>
+    <color name="pure_black">#000000</color> <color name="md_theme_error">#B00020</color>
     <color name="md_theme_onError">#FFFFFF</color>
 
     <color name="ic_launcher_background">#20252c</color>
