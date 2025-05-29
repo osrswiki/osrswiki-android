@@ -29,5 +29,9 @@
             </intent-filter>
 
         </activity>
+        <activity
+            android:name=".page.PageActivity"
+            android:exported="false"
+            android:label="@string/app_name" />
     </application>
 </manifest>

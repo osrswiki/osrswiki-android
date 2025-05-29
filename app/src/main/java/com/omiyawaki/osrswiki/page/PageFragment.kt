@@ -1,10 +1,15 @@
 package com.omiyawaki.osrswiki.page
 
+import android.annotation.SuppressLint
+import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Bundle
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -17,7 +22,7 @@ class PageFragment : Fragment() {
     private var _binding: FragmentPageBinding? = null
     private val binding get() = _binding!!
 
-    private val pageViewModel = PageViewModel() // Consider Hilt/ViewModelProvider for ViewModel instantiation
+    private val pageViewModel = PageViewModel()
     private lateinit var pageRepository: PageRepository
     private lateinit var pageContentLoader: PageContentLoader
 
@@ -41,7 +46,9 @@ class PageFragment : Fragment() {
             pageViewModel,
             lifecycleScope,
             onStateUpdated = {
-                updateUiFromViewModel()
+                if (isAdded && _binding != null) {
+                    updateUiFromViewModel()
+                }
             }
         )
     }
@@ -55,11 +62,28 @@ class PageFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("SetJavaScriptEnabled") // For settings.javaScriptEnabled
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         L.d("PageFragment onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg")
 
-        updateUiFromViewModel()
+        binding.pageWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                applyWebViewThemeCss() 
+                if (_binding != null && !pageViewModel.uiState.isLoading && pageViewModel.uiState.error == null) {
+                    binding.pageWebView.visibility = View.VISIBLE
+                    L.d("WebView onPageFinished for URL: $url. Applied CSS and made WebView visible.")
+                } else {
+                    L.d("WebView onPageFinished for URL: $url. Conditions not met to make WebView visible (isLoading=${pageViewModel.uiState.isLoading}, error=${pageViewModel.uiState.error!=null}).")
+                }
+            }
+        }
+        binding.pageWebView.settings.javaScriptEnabled = true
+        setWebViewWidgetBackgroundColor()
+
+
+        updateUiFromViewModel() 
         initiatePageLoad(forceNetwork = false)
 
         binding.errorTextView.setOnClickListener {
@@ -68,64 +92,135 @@ class PageFragment : Fragment() {
         }
     }
 
+    private fun isDarkMode(): Boolean {
+        val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+    }
+
+    private fun setWebViewWidgetBackgroundColor() {
+        if (_binding == null || !isAdded) return
+        // Corrected: Use the base color name; Android resolves it for night mode
+        val backgroundColorRes = R.color.osrs_parchment_bg 
+        val backgroundColorInt = ContextCompat.getColor(requireContext(), backgroundColorRes)
+        binding.pageWebView.setBackgroundColor(backgroundColorInt)
+        L.d("Set WebView widget background color for mode (isDark: ${isDarkMode()}) to hex: ${String.format("#%06X", (0xFFFFFF and backgroundColorInt))}")
+    }
+
+
+    private fun applyWebViewThemeCss() {
+        if (_binding == null || !isAdded) return
+
+        val useDarkMode = isDarkMode()
+        // These resource IDs should correctly resolve to their -night variants if available
+        val backgroundColorRes = R.color.osrs_parchment_bg 
+        val textColorRes = R.color.osrs_text_on_parchment 
+
+        val backgroundColorInt = ContextCompat.getColor(requireContext(), backgroundColorRes)
+        val textColorInt = ContextCompat.getColor(requireContext(), textColorRes)
+
+        val backgroundColorHex = String.format("#%06X", (0xFFFFFF and backgroundColorInt))
+        val textColorHex = String.format("#%06X", (0xFFFFFF and textColorInt))
+
+        L.d("Applying WebView CSS theme. DarkMode: $useDarkMode, Body BG: $backgroundColorHex, Body Text: $textColorHex")
+
+        val css = """
+            body {
+                background-color: $backgroundColorHex !important;
+                color: $textColorHex !important;
+            }
+            p, span, div, li, ul, ol,
+            h1, h2, h3, h4, h5, h6,
+            strong, b, em, i, u, s, strike,
+            th, td, caption, label, legend, summary, details,
+            dt, dd, figure, figcaption, address, blockquote, pre, code, samp, kbd, var, q, cite {
+                color: $textColorHex !important;
+                background-color: transparent !important;
+            }
+            a, a:link, a:visited {
+                color: $textColorHex !important; 
+            }
+            table, tr {
+                background-color: transparent !important;
+            }
+            hr {
+                background-color: $textColorHex !important;
+                border-color: $textColorHex !important;
+            }
+        """.trimIndent().replace("\n", " ") 
+
+        val js = """
+            (function() {
+                var style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = '$css';
+                var head = document.head || document.getElementsByTagName('head')[0];
+                if (head) {
+                    head.appendChild(style);
+                    console.log('OSRSWikiApp: Custom CSS injected.');
+                } else {
+                    console.error('OSRSWikiApp: Could not find head to inject CSS.');
+                }
+            })();
+        """.trimIndent()
+
+        binding.pageWebView.evaluateJavascript(js) { result ->
+            L.d("JavaScript for CSS injection evaluated. Result: $result")
+        }
+    }
+
     private fun initiatePageLoad(forceNetwork: Boolean = false) {
         var idToLoad: Int? = null
         if (!pageIdArg.isNullOrBlank()) {
             try {
                 idToLoad = pageIdArg!!.toInt()
-                // Basic validation: ensure ID is positive, if that's a rule for your page IDs.
-                // if (idToLoad <= 0) {
-                //     L.w("pageIdArg '$pageIdArg' is not a positive integer. Invalidating.")
-                //     idToLoad = null
-                // }
             } catch (e: NumberFormatException) {
                 L.w("pageIdArg '$pageIdArg' is not a valid integer. Will try title.")
-                idToLoad = null // Ensure idToLoad is null if parsing fails
+                idToLoad = null
             }
         }
 
         val currentViewModelPageId = pageViewModel.uiState.pageId
         val currentViewModelTitle = pageViewModel.uiState.title
         val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && pageViewModel.uiState.error == null
-        val alreadyLoadingOrError = pageViewModel.uiState.isLoading || pageViewModel.uiState.error != null
+        //isLoading check was previously here, moved it below to ensure loading state is always set before new request
+        val actualPageTitleFromArgs = pageTitleArg
+
+        pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
+        updateUiFromViewModel() 
+
 
         if (idToLoad != null) {
-            if (forceNetwork || !(currentViewModelPageId == idToLoad && contentAlreadyLoaded)) {
-                if (currentViewModelPageId == idToLoad && alreadyLoadingOrError && !forceNetwork) {
-                    L.d("Page with ID '$idToLoad' is already loading or in error state. UI will reflect. Not forcing reload.")
-                } else {
-                    L.i("Requesting to load page by ID: $idToLoad (Title arg was: '$pageTitleArg')")
-                    pageContentLoader.loadPageById(idToLoad, pageTitleArg, forceNetwork)
-                    return
-                }
+            // Check if we really need to load: same ID, content was loaded, and we are not currently trying to re-load it.
+            if (!forceNetwork && (currentViewModelPageId == idToLoad && contentAlreadyLoaded && !pageViewModel.uiState.isLoading)) {
+                 L.d("Page with ID '$idToLoad' data already present in ViewModel and not forcing network. Reverting loading state.")
+                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false) 
+                updateUiFromViewModel() 
+                return
             } else {
-                L.d("Page with ID '$idToLoad' data already present in ViewModel and not forcing network. UI will reflect.")
+                 L.i("Requesting to load page by ID: $idToLoad (Title arg was: '$actualPageTitleFromArgs')")
+                 pageContentLoader.loadPageById(idToLoad, actualPageTitleFromArgs, forceNetwork)
+                 // return not needed here, loading state already set
+            }
+        } else if (!actualPageTitleFromArgs.isNullOrBlank()) {
+            // Check if we really need to load: same title, content was loaded, and we are not currently trying to re-load it.
+            if (!forceNetwork && (currentViewModelTitle == actualPageTitleFromArgs && contentAlreadyLoaded && !pageViewModel.uiState.isLoading)) {
+                L.d("Page with title '$actualPageTitleFromArgs' data already present in ViewModel and not forcing network. Reverting loading state.")
+                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
                 updateUiFromViewModel()
                 return
-            }
-        }
-        else if (!pageTitleArg.isNullOrBlank()) {
-            if (forceNetwork || !(currentViewModelTitle == pageTitleArg && contentAlreadyLoaded)) {
-                 if (currentViewModelTitle == pageTitleArg && alreadyLoadingOrError && !forceNetwork) {
-                     L.d("Page with title '$pageTitleArg' is already loading or in error state. UI will reflect. Not forcing reload.")
-                 } else {
-                    L.i("Requesting to load page by title: '$pageTitleArg' (ID arg was: '$pageIdArg')")
-                    pageContentLoader.loadPageByTitle(pageTitleArg!!, forceNetwork)
-                    return
-                 }
             } else {
-                L.d("Page with title '$pageTitleArg' data already present in ViewModel and not forcing network. UI will reflect.")
-                updateUiFromViewModel()
-                return
+                L.i("Requesting to load page by title: '$actualPageTitleFromArgs' (ID arg was: '$pageIdArg')")
+                pageContentLoader.loadPageByTitle(actualPageTitleFromArgs, forceNetwork)
+                // return not needed here, loading state already set
             }
-        }
-        else {
-            L.e("Cannot load page: No valid pageId or pageTitle provided. pageIdArg: '$pageIdArg', pageTitleArg: '$pageTitleArg'")
+        } else {
+            L.e("Cannot load page: No valid pageId or pageTitle provided. pageIdArg: '$pageIdArg', pageTitleArg: '$actualPageTitleFromArgs'")
             pageViewModel.uiState = PageUiState(
                 isLoading = false,
                 error = getString(R.string.error_no_article_identifier),
-                title = getString(R.string.title_page_not_specified), // Using more specific error title
-                pageId = null
+                title = getString(R.string.title_page_not_specified),
+                pageId = null,
+                htmlContent = null
             )
             updateUiFromViewModel()
         }
@@ -135,68 +230,45 @@ class PageFragment : Fragment() {
         L.d("PageFragment updateUiFromViewModel. Current state: ${pageViewModel.uiState}")
         val state = pageViewModel.uiState
 
-        // Handle loading state title
-        val displayTitleText = if (state.isLoading) {
-            state.title ?: getString(R.string.label_loading)
-        } else {
-            // Handle loaded or error state title (strip HTML for successful load)
-            state.title?.let { titleHtml ->
-                if (state.error == null) { // Only strip HTML if no error and title is present
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                        Html.fromHtml(titleHtml, Html.FROM_HTML_MODE_LEGACY).toString()
-                    } else {
-                        @Suppress("DEPRECATION")
-                        Html.fromHtml(titleHtml).toString()
-                    }
-                } else {
-                    titleHtml // For error states, title is already set (e.g., by "no identifier" logic or PageContentLoader)
-                }
-            } ?: if (state.error != null) {
-                getString(R.string.label_error_loading_page) // Generic error title if state.title was null during error
-            } else {
-                getString(R.string.label_title_unavailable) // Title unavailable for success state
-            }
-        }
-        binding.pageTitleTextView.text = displayTitleText
-
-        if (state.isLoading) {
-            binding.progressBar.visibility = View.VISIBLE
-            binding.pageContentTextView.visibility = View.GONE
-            binding.errorTextView.visibility = View.GONE
-        } else {
-            binding.progressBar.visibility = View.GONE
-        }
+        binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
 
         state.error?.let { detailedErrorString ->
             L.e("Page load error (technical details): $detailedErrorString")
-            // binding.pageTitleTextView.text is already set above with appropriate error title
-            binding.errorTextView.text = detailedErrorString // MODIFIED LINE: Use the detailed error string
+            binding.errorTextView.text = detailedErrorString
             binding.errorTextView.visibility = View.VISIBLE
-            binding.pageContentTextView.visibility = View.GONE
+            binding.pageWebView.visibility = View.INVISIBLE 
         } ?: run {
-            if (!state.isLoading) binding.errorTextView.visibility = View.GONE
+            binding.errorTextView.visibility = View.GONE
         }
 
-        if (!state.isLoading && state.error == null) {
-            binding.pageContentTextView.visibility = View.VISIBLE
-            binding.pageContentTextView.text = state.htmlContent?.let {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                    Html.fromHtml(it, Html.FROM_HTML_MODE_LEGACY)
-                } else {
-                    @Suppress("DEPRECATION")
-                    Html.fromHtml(it)
-                }
-            } ?: getString(R.string.label_content_unavailable)
-        } else if (!state.isLoading && state.error != null) {
-            // Content already hidden by error block logic above
+        if (state.isLoading || state.error != null) {
+            binding.pageWebView.visibility = View.INVISIBLE 
+            if (state.isLoading) {
+                binding.pageWebView.loadData("", "text/html", null) 
+                setWebViewWidgetBackgroundColor() 
+            }
+        } else { 
+            setWebViewWidgetBackgroundColor() 
+            state.htmlContent?.let { html ->
+                binding.pageWebView.visibility = View.INVISIBLE 
+                val baseUrl = "https://oldschool.runescape.wiki/"
+                binding.pageWebView.loadDataWithBaseURL(baseUrl, html, "text/html", "UTF-8", null)
+            } ?: run {
+                binding.pageWebView.visibility = View.VISIBLE 
+                binding.pageWebView.loadDataWithBaseURL(null, getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
+            }
         }
-        L.i("PageFragment UI updated for title: '${binding.pageTitleTextView.text}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, error: ${state.error != null}")
+        L.i("PageFragment UI updated. ViewModel title: '${state.title}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, error: ${state.error != null}")
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        L.d("PageFragment onDestroyView")
+        binding.pageWebView.stopLoading() 
+        binding.pageWebView.settings.javaScriptEnabled = false
+        (_binding?.root as? ViewGroup)?.removeView(binding.pageWebView)
+        binding.pageWebView.destroy()
         _binding = null
+        L.d("PageFragment onDestroyView")
     }
 
     companion object {

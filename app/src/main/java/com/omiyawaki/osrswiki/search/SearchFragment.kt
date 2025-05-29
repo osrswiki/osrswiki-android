@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 // import com.omiyawaki.osrswiki.MainActivity // Not directly used now for toolbar updates
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
+import com.omiyawaki.osrswiki.page.PageActivity // Added import for PageActivity
 import com.omiyawaki.osrswiki.ui.common.NavigationIconType // Keep if ScreenConfiguration is used elsewhere
 import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration // Keep if used elsewhere
 import com.omiyawaki.osrswiki.ui.main.ScrollableContent
@@ -104,6 +105,8 @@ class SearchFragment : Fragment(),
                 if (newText.isNullOrEmpty()) {
                     viewModel.performSearch("")
                 }
+                // Consider adding a debounce here if you want to search as user types
+                // For now, search is primarily triggered on submit or clear.
                 return true
             }
         })
@@ -187,7 +190,13 @@ class SearchFragment : Fragment(),
 
     override fun onItemClick(item: CleanedSearchResultItem) {
         L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
-        // Navigation logic will be handled by MainActivity via an interface
+        // Navigation logic to PageActivity
+        val intent = PageActivity.newIntent(
+            context = requireContext(),
+            pageTitle = item.title,
+            pageId = item.id?.toString() // Assuming item.id can be null or needs conversion to String
+        )
+        startActivity(intent)
     }
 
     override fun onDestroyView() {
