@@ -5,7 +5,7 @@
 
     <item name="colorSecondary">@color/osrs_gold_accent</item>
     <item name="colorOnSecondary">@color/osrs_text_on_gold</item>
-    <item name="colorSecondaryContainer">@color/osrs_gold_accent</item>
+    <item name="colorSecondaryContainer">@color/osrs_indicator_pink</item>
     <item name="colorOnSecondaryContainer">@color/osrs_text_on_gold</item>
 
     <item name="colorError">@color/md_theme_error</item>
