@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.MainFragment">
+    tools:context="com.omiyawaki.osrswiki.ui.main.MainFragment">
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/main_view_pager"
@@ -24,7 +24,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <com.omiyawaki.osrswiki.navtab.OsrsNavTabLayout
         android:id="@+id/bottom_nav_view"
         android:layout_width="0dp"
         android:layout_height="@dimen/osrs_bottom_nav_bar_height"
@@ -35,7 +35,4 @@
         app:elevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:menu="@menu/menu_bottom_navigation" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintEnd_toEndOf="parent" /> </androidx.constraintlayout.widget.ConstraintLayout>
