@@ -5,13 +5,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 // import androidx.room.migration.Migration // Now used via DatabaseMigrations object
 // import androidx.sqlite.db.SupportSQLiteDatabase // Now used via DatabaseMigrations object
-import com.omiyawaki.osrswiki.OSRSWikiApplication
-import com.omiyawaki.osrswiki.database.ArticleMetaDao
-import com.omiyawaki.osrswiki.database.ArticleMetaEntity
-import com.omiyawaki.osrswiki.database.SavedArticleEntry // New import
-import com.omiyawaki.osrswiki.database.SavedArticleEntryDao // New import
-import com.omiyawaki.osrswiki.database.OfflineAsset // New import
-import com.omiyawaki.osrswiki.database.OfflineAssetDao // New import
+import com.omiyawaki.osrswiki.OSRSWikiApp
 
 @Database(
     entities = [
@@ -41,7 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
-                OSRSWikiApplication.instance.applicationContext,
+                OSRSWikiApp.instance.applicationContext,
                 AppDatabase::class.java,
                 DATABASE_NAME
             )

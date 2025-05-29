@@ -2,7 +2,7 @@ package com.omiyawaki.osrswiki.util.log
 
 import android.util.Log
 import com.omiyawaki.osrswiki.BuildConfig
-import com.omiyawaki.osrswiki.OSRSWikiApplication // Corrected Application class import
+import com.omiyawaki.osrswiki.OSRSWikiApp // Corrected Application class import
 import com.omiyawaki.osrswiki.util.ReleaseUtil   // ReleaseUtil import activated
 
 /** Logging utility like [Log] but with implied tags.  */
@@ -109,7 +109,7 @@ object L {
         LEVEL_E.log("", t) // Log the error locally using our E level.
         // For production releases, also log the crash to the remote reporting service.
         if (ReleaseUtil.isProdRelease) {
-            OSRSWikiApplication.logCrashManually(t) // Call via class name
+            OSRSWikiApp.logCrashManually(t) // Call via class name
         }
     }
 

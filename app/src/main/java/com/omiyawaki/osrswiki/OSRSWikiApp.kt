@@ -4,7 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.omiyawaki.osrswiki.database.AppDatabase      // Room database class
 import com.omiyawaki.osrswiki.database.ArticleMetaDao  // DAO
-import com.omiyawaki.osrswiki.data.repository.ArticleRepository
+import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.search.SearchRepository         // Import SearchRepository
 import com.omiyawaki.osrswiki.network.RetrofitClient       // Retrofit client object
 import com.omiyawaki.osrswiki.network.WikiApiService       // Retrofit service interface
@@ -27,7 +27,7 @@ class OSRSWikiApp : Application() {
     }
 
     // --- Publicly accessible repositories ---
-    lateinit var articleRepository: ArticleRepository
+    lateinit var pageRepository: PageRepository
         private set // Make setter private to control instantiation from within Application class
 
     lateinit var searchRepository: SearchRepository
@@ -41,7 +41,7 @@ class OSRSWikiApp : Application() {
         Log.d(TAG, "OSRSWikiApplication created and manual DI initializing...")
 
         // Initialize repositories that depend on other services/DAOs
-        articleRepository = ArticleRepository(
+        pageRepository = PageRepository(
             mediaWikiApiService = wikiApiService, // from lazy delegate
             articleMetaDao = articleMetaDao,     // from lazy delegate
             applicationContext = this            // provide application context

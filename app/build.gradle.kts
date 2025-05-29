@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
     implementation(libs.kotlinx.serializationJson)
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.loggingInterceptor) // Optional: for logging network requests
     implementation(libs.androidx.core.ktx)
@@ -76,6 +77,8 @@ dependencies {
     implementation(libs.androidxLifecycleViewmodelKtx)
     implementation(libs.androidxLifecycleViewmodelSavedstate)
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidxNavigationFragmentKtx)
+    implementation(libs.androidxNavigationUiKtx)
     implementation(libs.glide.core)
     ksp(libs.glide.ksp)
 

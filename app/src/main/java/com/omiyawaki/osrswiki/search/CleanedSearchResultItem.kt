@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.ui.search
+package com.omiyawaki.osrswiki.search
 
 /**
  * Data class representing a search result item with cleaned snippet for the UI.

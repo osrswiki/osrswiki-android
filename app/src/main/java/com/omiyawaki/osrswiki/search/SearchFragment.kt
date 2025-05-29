@@ -47,7 +47,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
         observeViewModel()
         setupOnBackPressed()
 
-        (activity as? MainActivity)?.updateToolbar(this)
+        // (activity as? MainActivity)?.updateToolbar(this)
     }
 
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
@@ -188,10 +188,10 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
 
     override fun onItemClick(item: CleanedSearchResultItem) {
         L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
-        (activity as? MainActivity)?.getRouter()?.navigateToArticle(
-            articleId = item.id,
-            articleTitle = item.title
-        )
+        // (activity as? MainActivity)?.getRouter()?.navigateToPage(
+        //     pageId = item.id,
+        //     pageTitle = item.title
+        // )
     }
 
     override fun onDestroyView() {

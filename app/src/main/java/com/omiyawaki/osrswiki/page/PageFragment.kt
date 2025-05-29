@@ -59,7 +59,7 @@ class PageFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("PageFragment onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg")
 
-        updateUiFromViewModel() 
+        updateUiFromViewModel()
         initiatePageLoad(forceNetwork = false)
 
         binding.errorTextView.setOnClickListener {
@@ -74,7 +74,7 @@ class PageFragment : Fragment() {
             try {
                 idToLoad = pageIdArg!!.toInt()
                 // Basic validation: ensure ID is positive, if that's a rule for your page IDs.
-                // if (idToLoad <= 0) { 
+                // if (idToLoad <= 0) {
                 //     L.w("pageIdArg '$pageIdArg' is not a positive integer. Invalidating.")
                 //     idToLoad = null
                 // }
@@ -96,11 +96,11 @@ class PageFragment : Fragment() {
                 } else {
                     L.i("Requesting to load page by ID: $idToLoad (Title arg was: '$pageTitleArg')")
                     pageContentLoader.loadPageById(idToLoad, pageTitleArg, forceNetwork)
-                    return 
+                    return
                 }
             } else {
                 L.d("Page with ID '$idToLoad' data already present in ViewModel and not forcing network. UI will reflect.")
-                updateUiFromViewModel() 
+                updateUiFromViewModel()
                 return
             }
         }
@@ -111,11 +111,11 @@ class PageFragment : Fragment() {
                  } else {
                     L.i("Requesting to load page by title: '$pageTitleArg' (ID arg was: '$pageIdArg')")
                     pageContentLoader.loadPageByTitle(pageTitleArg!!, forceNetwork)
-                    return 
+                    return
                  }
             } else {
                 L.d("Page with title '$pageTitleArg' data already present in ViewModel and not forcing network. UI will reflect.")
-                updateUiFromViewModel() 
+                updateUiFromViewModel()
                 return
             }
         }
@@ -123,9 +123,9 @@ class PageFragment : Fragment() {
             L.e("Cannot load page: No valid pageId or pageTitle provided. pageIdArg: '$pageIdArg', pageTitleArg: '$pageTitleArg'")
             pageViewModel.uiState = PageUiState(
                 isLoading = false,
-                error = getString(R.string.error_no_article_identifier), 
+                error = getString(R.string.error_no_article_identifier),
                 title = getString(R.string.title_page_not_specified), // Using more specific error title
-                pageId = null 
+                pageId = null
             )
             updateUiFromViewModel()
         }
@@ -149,7 +149,7 @@ class PageFragment : Fragment() {
                         Html.fromHtml(titleHtml).toString()
                     }
                 } else {
-                    titleHtml // For error states, title is already set by PageContentLoader (e.g., "Page ID: 123" or initial title)
+                    titleHtml // For error states, title is already set (e.g., by "no identifier" logic or PageContentLoader)
                 }
             } ?: if (state.error != null) {
                 getString(R.string.label_error_loading_page) // Generic error title if state.title was null during error
@@ -170,7 +170,7 @@ class PageFragment : Fragment() {
         state.error?.let { detailedErrorString ->
             L.e("Page load error (technical details): $detailedErrorString")
             // binding.pageTitleTextView.text is already set above with appropriate error title
-            binding.errorTextView.text = getString(R.string.page_load_error_network) 
+            binding.errorTextView.text = detailedErrorString // MODIFIED LINE: Use the detailed error string
             binding.errorTextView.visibility = View.VISIBLE
             binding.pageContentTextView.visibility = View.GONE
         } ?: run {

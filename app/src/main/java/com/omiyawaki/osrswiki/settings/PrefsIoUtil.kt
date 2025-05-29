@@ -3,7 +3,7 @@ package com.omiyawaki.osrswiki.settings
 import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import androidx.preference.PreferenceManager
-import com.omiyawaki.osrswiki.OSRSWikiApplication // Adjusted import
+import com.omiyawaki.osrswiki.OSRSWikiApp // Adjusted import
 
 object PrefsIoUtil {
 
@@ -91,7 +91,7 @@ object PrefsIoUtil {
      */
     fun getKey(@StringRes id: Int, vararg formatArgs: Any?): String {
         // Adjusted to use OSRSWikiApplication
-        return OSRSWikiApplication.instance.resources.getString(id, *formatArgs)
+        return OSRSWikiApp.instance.resources.getString(id, *formatArgs)
     }
 
     private fun edit(): SharedPreferences.Editor {
@@ -99,5 +99,5 @@ object PrefsIoUtil {
     }
 
     // Adjusted to use OSRSWikiApplication
-    private val preferences get() = PreferenceManager.getDefaultSharedPreferences(OSRSWikiApplication.instance)
+    private val preferences get() = PreferenceManager.getDefaultSharedPreferences(OSRSWikiApp.instance)
 }

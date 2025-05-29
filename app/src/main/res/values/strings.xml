@@ -36,4 +36,7 @@
     <string name="error_no_article_identifier">Cannot load article: No valid identifier provided.</string>
     <string name="title_page_not_specified">Page Not Specified</string>
 
+    <string name="bottom_nav_title_search">Search</string>
+    <string name="bottom_nav_title_saved">Saved</string>
+    <string name="bottom_nav_title_history">History</string>
 </resources>

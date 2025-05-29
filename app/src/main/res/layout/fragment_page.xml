@@ -4,10 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.article.PageFragment">
+    tools:context=".page.PageFragment">
 
     <TextView
-        android:id="@+id/articleTitleTextView"
+        android:id="@+id/page_title_text_view"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
@@ -28,7 +28,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/articleTitleTextView"
+        app:layout_constraintTop_toBottomOf="@+id/page_title_text_view"
         tools:visibility="visible" />
 
     <ScrollView
@@ -39,10 +39,10 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/articleTitleTextView">
+        app:layout_constraintTop_toBottomOf="@+id/page_title_text_view">
 
         <TextView
-            android:id="@+id/articleContentTextView"
+            android:id="@+id/page_content_text_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="16dp"
@@ -58,14 +58,14 @@
         android:layout_marginEnd="16dp"
         android:gravity="center"
         android:padding="16dp"
-        android:text="@string/label_error_loading_article"
+        android:text="@string/label_error_loading_page"
         android:textAppearance="?attr/textAppearanceSubtitle1"
         android:textColor="?attr/colorError"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/articleTitleTextView"
+        app:layout_constraintTop_toBottomOf="@+id/page_title_text_view"
         tools:visibility="gone" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

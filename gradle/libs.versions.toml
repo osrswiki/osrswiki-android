@@ -24,6 +24,8 @@ retrofitKotlinxSerializationConverter = "1.0.0"
 # Kotlinx Serialization
 kotlinxSerializationJson = "1.7.3"
 
+kotlinxCoroutines = "1.8.0" # Or your desired/latest stable version
+
 # Glide & KSP
 glide = "4.16.0"
 ksp = "2.0.21-1.0.28"
@@ -66,6 +68,8 @@ okhttp-loggingInterceptor = { group = "com.squareup.okhttp3", name = "logging-in
 
 # Kotlinx Serialization
 kotlinx-serializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 
 # Glide
 glide-core = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }

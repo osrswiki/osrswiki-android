@@ -15,7 +15,7 @@ interface ArticleMetaDao {
      * Inserts a new article's metadata.
      * Since 'id' is auto-generated, this will always create a new row.
      * Ensure 'pageId' uniqueness through application logic if needed before calling insert,
-     * or use getMetaByPageId and then update/insert logic as implemented in ArticleRepository.
+     * or use getMetaByPageId and then update/insert logic as implemented in PageRepository.
      *
      * @param entity The article metadata to insert.
      * @return The row ID of the newly inserted entity.

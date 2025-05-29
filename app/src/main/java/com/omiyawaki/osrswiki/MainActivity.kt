@@ -1,125 +1,68 @@
-package com.omiyawaki.osrswiki
+package com.omiyawaki.osrswiki // TODO: Verify this is your correct base package for MainActivity
 
-import android.content.res.Resources
 import android.os.Bundle
+import android.view.Gravity
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentManager
-import com.google.android.material.appbar.MaterialToolbar
-import com.omiyawaki.osrswiki.navigation.AppRouterImpl
-import com.omiyawaki.osrswiki.navigation.Router
-import com.omiyawaki.osrswiki.ui.common.NavigationIconType
-import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
+import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
+import com.omiyawaki.osrswiki.page.ViewHideHandler // TODO: Ensure this import is correct if ViewHideHandler is in a different package
+import com.omiyawaki.osrswiki.ui.main.MainFragment // TODO: Ensure this import is correct
+import com.omiyawaki.osrswiki.ui.main.MainScrollableViewProvider // Import the interface
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), MainScrollableViewProvider {
 
-    private lateinit var toolbar: MaterialToolbar
-    private lateinit var appRouter: Router
-
-    /**
-     * Listener for back stack changes to update the toolbar.
-     * This ensures the toolbar reflects the state of the currently visible fragment.
-     */
-    private val backStackListener = FragmentManager.OnBackStackChangedListener {
-        val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-        if (currentFragment is ScreenConfiguration) {
-            updateToolbar(currentFragment)
-        } else {
-            // Set a default toolbar state if the fragment doesn't provide configuration
-            // or if no fragment is currently in the container (e.g., after all pops).
-            toolbar.title = getString(R.string.app_name) // Assumes R.string.app_name exists
-            toolbar.navigationIcon = null
-            invalidateOptionsMenu() // Clear any menu from a previous fragment
-        }
-    }
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var mainToolbarHideHandler: ViewHideHandler
+    // TODO: Ensure ViewAnimations.ensureTranslationY is accessible, e.g., via:
+    // import com.omiyawaki.osrswiki.util.ViewAnimations or com.omiyawaki.osrswiki.views.ViewAnimations
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        toolbar = findViewById(R.id.main_toolbar)
-        setSupportActionBar(toolbar)
+        setSupportActionBar(binding.mainToolbar)
+        supportActionBar?.title = getString(R.string.app_name)
 
-        // Instantiate the application's router implementation.
-        appRouter = AppRouterImpl(supportFragmentManager, R.id.fragment_container)
-
-        // Register the listener for back stack changes.
-        supportFragmentManager.addOnBackStackChangedListener(backStackListener)
+        mainToolbarHideHandler = ViewHideHandler(
+            hideableView = binding.mainToolbarContainer,
+            anchoredView = null,
+            gravity = Gravity.TOP,
+            updateElevation = true,
+            shouldAlwaysShow = { false } // e.g., return true if a search bar in toolbar is focused
+        )
 
         if (savedInstanceState == null) {
-            // This is the first creation of the Activity.
-            // Navigate to the initial screen.
-            // Replace 'navigateToInitialScreen()' with the actual method in the Router interface,
-            // e.g., 'navigateToSearchScreen()' or 'navigateToHomeFragment()'.
-            appRouter.navigateToSearchScreen() // Ensure this method exists in Router/AppRouterImpl
-        } else {
-            // Activity is being recreated, FragmentManager will restore the back stack.
-            // The listener should handle the toolbar update.
-            // Call listener once to ensure toolbar is updated for the restored top fragment.
-            backStackListener.onBackStackChanged()
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.main_fragment_container, MainFragment.newInstance())
+                .commitNow()
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        // Clean up by removing the listener.
-        supportFragmentManager.removeOnBackStackChangedListener(backStackListener)
-    }
+    // Implementation of MainFragment.MainScrollableViewProvider
+    override fun updateScrollViewForToolbarHandler(scrollableView: View?) {
+        // Ensure ViewHideHandler's setScrollableSource method is correctly called.
+        // This method should now exist in your adapted ViewHideHandler.kt
+        mainToolbarHideHandler.setScrollableSource(scrollableView)
 
-    /**
-     * Updates the toolbar's appearance based on the configuration provided by a Fragment.
-     * @param config The ScreenConfiguration provided by the current fragment.
-     */
-    fun updateToolbar(config: ScreenConfiguration) {
-        toolbar.title = config.getToolbarTitle(::getString)
-
-        when (config.getNavigationIconType()) {
-            NavigationIconType.NONE -> {
-                toolbar.navigationIcon = null
-            }
-            NavigationIconType.BACK -> {
-                // Ensure R.drawable.ic_arrow_back and R.string.nav_back_content_description exist.
-                toolbar.setNavigationIcon(R.drawable.ic_arrow_back)
-                toolbar.setNavigationContentDescription(R.string.nav_back_content_description)
-            }
-            NavigationIconType.CLOSE -> {
-                // Ensure R.drawable.ic_close and R.string.nav_close_content_description exist.
-                toolbar.setNavigationIcon(R.drawable.ic_close)
-                toolbar.setNavigationContentDescription(R.string.nav_close_content_description)
-            }
-            NavigationIconType.MENU -> {
-                /* TODO: Set a menu icon (e.g., R.drawable.ic_menu) and content description */
-                /* For now, behaves like NONE (no icon) */
-                toolbar.navigationIcon = null
-                toolbar.setNavigationContentDescription(null) /* Or R.string.nav_menu_content_description if defined */
-            }
+        if (scrollableView == null) {
+            // If no scrollable view is provided (e.g., current fragment doesn't have one,
+            // or MainFragment is being detached), ensure the toolbar is displayed.
+            mainToolbarHideHandler.ensureDisplayed()
         }
-        // Invalidate the options menu to trigger onPrepareOptionsMenu for the current fragment,
-        // allowing it to update menu items.
-        invalidateOptionsMenu()
+        // Optional: Log when the scrollable source changes
+        // Log.d("MainActivity", "Scrollable source for toolbar hide handler updated: ${scrollableView?.javaClass?.simpleName ?: "null"}")
     }
 
-    /**
-     * Allows fragments to dynamically update the toolbar title.
-     * @param title The new title for the toolbar.
-     */
-    fun updateToolbarTitle(title: String?) {
-        toolbar.title = title
-    }
-
-    /**
-     * Handles the action when the toolbar's navigation icon (e.g., up arrow) is pressed.
-     * Delegates the back navigation to the AppRouter.
-     */
-    override fun onSupportNavigateUp(): Boolean {
-        // Attempt to navigate back using the router.
-        // If the router handles it (e.g., pops a fragment), return true.
-        // Otherwise, fall back to default behavior (which might finish the activity).
-        return appRouter.goBack() || super.onSupportNavigateUp()
-    }
-
-    // Optional: If Fragments need direct access to the router instance.
-    // Consider providing it via ViewModel or other dependency injection mechanisms
-    // for better separation of concerns.
-    // fun getAppRouter(): Router = appRouter
-    fun getRouter(): Router = appRouter
+    // TODO:
+    // 1. Ensure ViewHideHandler.kt and its dependencies (DimenUtil, ViewAnimations) are correctly integrated
+    //    in your project and their imports are correct.
+    // 2. Review MainFragment.kt:
+    //    - Ensure PlaceholderFragment (or your actual fragments like SearchFragment) uses NestedScrollView
+    //      and correctly implements ScrollableContent to provide this NestedScrollView.
+    //    - Ensure MainFragment.notifyMainActivityOfScrollableView() correctly calls this
+    //      updateScrollViewForToolbarHandler method.
+    // 3. Test the toolbar collapse behavior with the PlaceholderFragment.
+    // 4. Plan the adaptation of ViewHideHandler to support RecyclerView for SearchFragment.
 }

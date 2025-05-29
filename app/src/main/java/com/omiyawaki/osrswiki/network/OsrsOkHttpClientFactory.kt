@@ -1,6 +1,6 @@
 package com.omiyawaki.osrswiki.network
 
-import com.omiyawaki.osrswiki.OSRSWikiApplication // Assuming this is your Application class
+import com.omiyawaki.osrswiki.OSRSWikiApp // Assuming this is your Application class
 import com.omiyawaki.osrswiki.database.AppDatabase // Assuming this is your AppDatabase class name
 import com.omiyawaki.osrswiki.network.interceptor.OsrsOfflineAssetInterceptor
 import com.omiyawaki.osrswiki.offline.storage.FileStorageManager
@@ -26,7 +26,7 @@ object OsrsOkHttpClientFactory {
         val offlineAssetDao = AppDatabase.instance.offlineAssetDao() // Corrected: Use .instance
 
         // 2. Create FileStorageManager instance
-        val fileStorageManager = FileStorageManager(OSRSWikiApplication.instance)
+        val fileStorageManager = FileStorageManager(OSRSWikiApp.instance)
 
         // 3. Create OsrsOfflineAssetInterceptor instance
         val osrsOfflineAssetInterceptor = OsrsOfflineAssetInterceptor(

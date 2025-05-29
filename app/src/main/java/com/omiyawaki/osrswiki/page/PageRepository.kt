@@ -1,4 +1,4 @@
-package com.omiyawaki.osrswiki.data.repository
+package com.omiyawaki.osrswiki.page
 
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOn
@@ -8,7 +8,6 @@ import android.util.Log
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.network.WikiApiService
-import com.omiyawaki.osrswiki.page.PageUiState
 import retrofit2.HttpException
 // import com.omiyawaki.osrswiki.util.StringUtil // No longer needed for MD5
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +17,7 @@ import java.io.IOException
 // Date is not strictly needed if using System.currentTimeMillis() directly
 // import java.util.Date
 
-class ArticleRepository (
+class PageRepository (
     private val mediaWikiApiService: WikiApiService,
     private val articleMetaDao: ArticleMetaDao,
     private val applicationContext: Context
@@ -29,7 +28,7 @@ class ArticleRepository (
 companion object {
         private const val ARTICLES_DIR_NAME = "osrs_wiki_articles"
         private const val HTML_EXTENSION = ".html"
-        private const val TAG = "ArticleRepository"
+        private const val TAG = "PageRepository"
     }
 
     // [PREVIOUSLY COMMENTED OUT downloadAndSaveArticle FUNCTION - REMAINS COMMENTED]
