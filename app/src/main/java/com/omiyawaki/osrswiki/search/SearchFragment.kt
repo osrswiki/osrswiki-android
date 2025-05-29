@@ -13,17 +13,24 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.omiyawaki.osrswiki.MainActivity
+// import com.omiyawaki.osrswiki.MainActivity // Not directly used now for toolbar updates
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.ui.common.NavigationIconType
-import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
+import com.omiyawaki.osrswiki.ui.common.NavigationIconType // Keep if ScreenConfiguration is used elsewhere
+import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration // Keep if used elsewhere
+import com.omiyawaki.osrswiki.ui.main.ScrollableContent
+import com.omiyawaki.osrswiki.ui.common.FragmentToolbarPolicyProvider // Added import
+import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy // Added import
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.omiyawaki.osrswiki.util.log.L
 import java.io.IOException
 
-class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClickListener {
+class SearchFragment : Fragment(),
+    ScreenConfiguration, // Retain if other aspects of this interface are used by MainActivity
+    SearchAdapter.OnItemClickListener,
+    ScrollableContent,
+    FragmentToolbarPolicyProvider { // Added FragmentToolbarPolicyProvider
 
     private val viewModel: SearchViewModel by viewModels {
         SearchViewModelFactory(requireActivity().application)
@@ -46,21 +53,23 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
         setupSearchView()
         observeViewModel()
         setupOnBackPressed()
-
-        // (activity as? MainActivity)?.updateToolbar(this)
+        // Toolbar updates are now handled via FragmentToolbarPolicyProvider and MainScrollableViewProvider
     }
 
+    // ScreenConfiguration methods - keep if MainActivity uses them for other purposes
+    // If not, these can be removed if SearchFragment no longer directly configures MainActivity's toolbar
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
-        return getString(R.string.title_search)
+        return getString(R.string.title_search) // This might be irrelevant if toolbar is hidden
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        return NavigationIconType.NONE
+        return NavigationIconType.NONE // This might be irrelevant if toolbar is hidden
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
-        return false
+        return false // This might be irrelevant if toolbar is hidden
     }
+    // End ScreenConfiguration methods
 
     private fun setupRecyclerView() {
         searchAdapter = SearchAdapter(this)
@@ -72,9 +81,8 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
     }
 
     private fun setupSearchView() {
-        // Ensure the SearchView is expanded and set the hint
-        binding.searchView.isIconified = false // <<< ADDED: Force expanded state
-        binding.searchView.queryHint = getString(R.string.search_hint_text) // Re-affirm hint
+        binding.searchView.isIconified = false
+        binding.searchView.queryHint = getString(R.string.search_hint_text)
 
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
@@ -110,11 +118,10 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         searchAdapter.submitData(pagingData)
                     }
                 }
-
+                // ... other observer launches ...
                 launch {
                     viewModel.offlineSearchResults.collect { offlineResults ->
                         L.d("Offline search results count: ${offlineResults.size}")
-                        // TODO: Decide how to display offline results.
                     }
                 }
 
@@ -137,10 +144,8 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                         binding.textViewSearchError.visibility = View.GONE
 
                         if (isLoading) {
-                            L.d("LoadState: Refresh is Loading - Showing ProgressBar")
                             binding.progressBarSearch.visibility = View.VISIBLE
                         } else if (isError) {
-                            L.d("LoadState: Refresh is Error - Showing Error Message. Error: ${error?.message}")
                             val errorMessage = when (error) {
                                 is IOException -> getString(R.string.search_error_network)
                                 else -> error?.localizedMessage ?: getString(R.string.search_error_generic)
@@ -148,16 +153,12 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                             binding.textViewSearchError.text = errorMessage
                             binding.textViewSearchError.visibility = View.VISIBLE
                         } else if (hasResults) {
-                            L.d("LoadState: NotLoading, Has Results - Showing RecyclerView")
                             binding.recyclerViewSearchResults.visibility = View.VISIBLE
-                        } else { 
+                        } else {
                             val currentSearchQuery = viewModel.screenUiState.value.currentQuery
                             if (!currentSearchQuery.isNullOrBlank()) {
-                                L.d("LoadState: NotLoading, No Results for query: $currentSearchQuery - Showing 'No results'")
                                 binding.textViewNoResults.text = getString(R.string.search_no_results)
                                 binding.textViewNoResults.visibility = View.VISIBLE
-                            } else {
-                                L.d("LoadState: NotLoading, No Results, Blank Query - UI is blank (no prompt).")
                             }
                         }
                     }
@@ -176,9 +177,7 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
                     try {
                         requireActivity().onBackPressedDispatcher.onBackPressed()
                     } finally {
-                        if (isAdded) {
-                           isEnabled = true
-                        }
+                        if (isAdded) { isEnabled = true }
                     }
                 }
             }
@@ -188,16 +187,23 @@ class SearchFragment : Fragment(), ScreenConfiguration, SearchAdapter.OnItemClic
 
     override fun onItemClick(item: CleanedSearchResultItem) {
         L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
-        // (activity as? MainActivity)?.getRouter()?.navigateToPage(
-        //     pageId = item.id,
-        //     pageTitle = item.title
-        // )
+        // Navigation logic will be handled by MainActivity via an interface
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         binding.recyclerViewSearchResults.adapter = null
         _binding = null
+    }
+
+    // ScrollableContent implementation
+    override fun getScrollableView(): View? {
+        return _binding?.recyclerViewSearchResults
+    }
+
+    // FragmentToolbarPolicyProvider implementation
+    override fun getToolbarPolicy(): ToolbarPolicy {
+        return ToolbarPolicy.HIDDEN // SearchFragment wants the main toolbar hidden
     }
 
     companion object {

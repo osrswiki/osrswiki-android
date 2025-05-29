@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="osrs_dark_brown_primary">#4C3D2A</color>
-    <color name="osrs_parchment_bg">#ECE0C8</color>
+    <color name="osrs_parchment_bg">#E2DBC8</color>
     <color name="osrs_parchment_surface">#D2B48C</color>
     <color name="osrs_gold_accent">#FFB800</color>
-
+    <color name="osrs_red_selected">#ba0000</color>
+    <color name="osrs_indicator_pink">#FFC0CB</color>
     <color name="osrs_text_on_dark_primary">#F0E6D2</color>
     <color name="osrs_text_on_parchment">#3A2E1C</color>
     <color name="osrs_text_on_gold">#4C3D2A</color>
@@ -12,7 +13,6 @@
     <color name="md_theme_error">#B00020</color>
     <color name="md_theme_onError">#FFFFFF</color>
 
-    <color name="app_theme_background">#E2DBC8</color>
     <color name="ic_launcher_background">#20252c</color>
     <color name="edit_text_input_color">#DE000000</color>
 </resources>

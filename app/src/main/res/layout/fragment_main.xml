@@ -4,7 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.main.MainFragment"> <androidx.viewpager2.widget.ViewPager2
+    tools:context=".ui.main.MainFragment">
+
+    <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/main_view_pager"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -25,7 +27,12 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_view"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/osrs_bottom_nav_bar_height"
+        android:background="@color/osrs_parchment_bg"
+        app:itemIconTint="@color/osrs_bottom_nav_icon_selector"
+        app:itemTextColor="@color/osrs_bottom_nav_text_selector"
+        app:itemPaddingTop="8dp"
+        app:elevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

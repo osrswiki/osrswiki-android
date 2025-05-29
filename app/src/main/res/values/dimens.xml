@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="leadImageWidth">320dp</dimen>
-    <item name="articleHeaderViewScreenHeightRatio" type="dimen" format="float">0.40</item>
+    <dimen name="osrs_bottom_nav_bar_height">72dp</dimen>
+
+    <dimen name="leadImageWidth">300dp</dimen>
+    <item name="articleHeaderViewScreenHeightRatio" type="dimen" format="float">0.35</item>
 </resources>
