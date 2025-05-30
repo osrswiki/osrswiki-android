@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    // alias(libs.plugins.kotlinParcelize)
+    id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {
@@ -56,21 +58,17 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.preference.ktx) // Added for SharedPreferences utilities
 
+    implementation(libs.apacheCommonsLang3)
+
     // Room components
-    implementation(libs.androidx.room.runtime) // Assuming alias exists in libs.versions.toml
-    implementation(libs.androidx.room.ktx)     // Assuming alias exists
-    kspDebug(libs.androidx.room.compiler)       // Assuming alias exists
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     {
         attributes {
             attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
         }
     }
-//    kspDebug(libs.androidx.room.common)       // Explicitly add room-common for KSP
-//    {
-//        attributes {
-//            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class.java, Usage.JAVA_RUNTIME))
-//        }
-//    }
 
     // Added dependencies
     implementation(libs.androidx.constraintlayout)

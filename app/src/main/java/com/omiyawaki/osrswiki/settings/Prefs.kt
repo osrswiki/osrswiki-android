@@ -1,17 +1,12 @@
 package com.omiyawaki.osrswiki.settings
 
-import com.omiyawaki.osrswiki.R // Adjusted import for OSRSWiki R class
-
-/** Shared preferences utility for convenient POJO access.  */
+// Minimal placeholder for Prefs.
+// You'll need to integrate this with your actual SharedPreferences implementation.
 object Prefs {
+    // Default to true for now, mirroring Wikipedia's ReadingListPage entity's default behavior.
+    // Replace with actual preference loading logic.
+    var isDownloadingReadingListArticlesEnabled: Boolean = true
+        private set // Or implement get() to read from SharedPreferences
 
-    var appChannel: String? // Explicitly typing for clarity, can be inferred
-        get() = PrefsIoUtil.getString(R.string.preference_key_app_channel, null)
-        set(channel) = PrefsIoUtil.setString(R.string.preference_key_app_channel, channel)
-
-    val appChannelKey: String // Explicitly typing for clarity
-        get() = PrefsIoUtil.getKey(R.string.preference_key_app_channel)
-
-    // Other preferences from Wikipedia's Prefs.kt can be added here if and when needed.
-    // For now, only appChannel and appChannelKey are included to support ReleaseUtil.kt.
+    // Add other preferences as needed, e.g., from Wikipedia's Prefs if you mirror them.
 }

@@ -14,10 +14,18 @@ import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
+import com.omiyawaki.osrswiki.dataclient.WikiSite
+import com.omiyawaki.osrswiki.page.action.PageActionItem
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.log.L
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class PageFragment : Fragment() {
@@ -34,9 +42,10 @@ class PageFragment : Fragment() {
 
     private var visualStateCallbackIdCounter: Long = 0
 
+    private val pageActionItemCallback = PageActionItemCallback()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Arguments are now processed here from the bundle
         arguments?.let {
             pageIdArg = it.getString(ARG_PAGE_ID)
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
@@ -48,7 +57,7 @@ class PageFragment : Fragment() {
         pageContentLoader = PageContentLoader(
             pageRepository,
             pageViewModel,
-            lifecycleScope,
+            lifecycleScope, 
             onStateUpdated = {
                 if (isAdded && _binding != null) {
                     updateUiFromViewModel()
@@ -69,25 +78,22 @@ class PageFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        L.d("PageFragment onViewCreated. Page ID from member: $pageIdArg, Page Title from member: $pageTitleArg")
+        L.d("PageFragment onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg")
 
         binding.pageWebView.webViewClient = object : WebViewClient() {
             @SuppressLint("RequiresApi")
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 L.d("WebView onPageFinished for URL: $url.")
-
                 applyWebViewStylingAndRevealBody()
-
                 if (view == null || _binding == null || !isAdded) {
-                    L.w("onPageFinished: WebView, binding, or fragment not in a valid state to proceed with visibility.")
+                    L.w("onPageFinished: WebView, binding, or fragment not in a valid state.")
                     return
                 }
-
                 if (!pageViewModel.uiState.isLoading && pageViewModel.uiState.error == null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         val currentCallbackId = ++visualStateCallbackIdCounter
-                        L.d("Requesting postVisualStateCallback (ID: $currentCallbackId) to make WebView widget visible.")
+                        L.d("Requesting postVisualStateCallback (ID: $currentCallbackId)")
                         view.postVisualStateCallback(currentCallbackId, object : WebView.VisualStateCallback() {
                             override fun onComplete(requestId: Long) {
                                 if (requestId == currentCallbackId && isAdded && _binding != null) {
@@ -100,7 +106,7 @@ class PageFragment : Fragment() {
                                 } else if (requestId != currentCallbackId) {
                                     L.w("WebView VisualStateCallback.onComplete: Mismatched requestId. Expected $currentCallbackId, got $requestId.")
                                 } else {
-                                     L.d("WebView VisualStateCallback.onComplete (ID: $requestId): Fragment not added or binding null.")
+                                   L.d("WebView VisualStateCallback.onComplete (ID: $requestId): Fragment not added or binding null.")
                                 }
                             }
                         })
@@ -126,8 +132,11 @@ class PageFragment : Fragment() {
         binding.pageWebView.settings.javaScriptEnabled = true
         setWebViewWidgetBackgroundColor()
 
+        binding.pageActionsTabLayout.callback = pageActionItemCallback
+        binding.pageActionsTabLayout.update()
+
         updateUiFromViewModel()
-        initiatePageLoad(forceNetwork = false) // This will use the member pageIdArg/pageTitleArg
+        initiatePageLoad(forceNetwork = false)
 
         binding.errorTextView.setOnClickListener {
             L.i("Retry button clicked. pageIdArg: $pageIdArg, pageTitleArg: $pageTitleArg. Forcing network.")
@@ -136,14 +145,13 @@ class PageFragment : Fragment() {
     }
 
     private fun isDarkMode(): Boolean {
-        val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+        if (!isAdded) return false
+        return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
     }
 
     private fun setWebViewWidgetBackgroundColor() {
         if (_binding == null || !isAdded) return
-        val backgroundColorRes = R.color.osrs_parchment_bg
-        val backgroundColorInt = ContextCompat.getColor(requireContext(), backgroundColorRes)
+        val backgroundColorInt = ContextCompat.getColor(requireContext(), R.color.osrs_parchment_bg)
         binding.pageWebView.setBackgroundColor(backgroundColorInt)
         L.d("Set WebView WIDGET background color for mode (isDark: ${isDarkMode()}) to hex: ${String.format("#%06X", (0xFFFFFF and backgroundColorInt))}")
     }
@@ -154,7 +162,6 @@ class PageFragment : Fragment() {
             return
         }
         L.d("applyWebViewStylingAndRevealBody called.")
-
         val cssString: String
         try {
             cssString = requireContext().assets.open("styles/wiki_content.css").bufferedReader().use { it.readText() }
@@ -163,7 +170,6 @@ class PageFragment : Fragment() {
             L.e("Error reading wiki_content.css from assets", e)
             return
         }
-
         val escapedCssString = cssString
             .replace("\\", "\\\\")
             .replace("`", "\\`")
@@ -171,42 +177,32 @@ class PageFragment : Fragment() {
             .replace("\n", "\\n")
 
         val injectCssJs = """
-            (function() {
-                var style = document.getElementById('osrsWikiInjectedStyle');
-                if (!style) {
-                    style = document.createElement('style');
-                    style.id = 'osrsWikiInjectedStyle';
-                    style.type = 'text/css';
-                    var head = document.head || document.getElementsByTagName('head')[0];
-                    if (head) {
-                        head.appendChild(style);
-                    } else {
-                        console.error('OSRSWikiApp: Could not find head to inject CSS.');
-                        return;
-                    }
-                }
-                style.innerHTML = '${escapedCssString}';
-                console.log('OSRSWikiApp: styles/wiki_content.css injected/updated.');
-            })();
+             (function() {
+                 var style = document.getElementById('osrsWikiInjectedStyle');
+                 if (!style) {
+                     style = document.createElement('style');
+                     style.id = 'osrsWikiInjectedStyle';
+                     style.type = 'text/css';
+                     var head = document.head || document.getElementsByTagName('head')[0];
+                     if (head) { head.appendChild(style); } else { console.error('OSRSWikiApp: Could not find head to inject CSS.'); return; }
+                 }
+                 style.innerHTML = '${escapedCssString}';
+                 console.log('OSRSWikiApp: styles/wiki_content.css injected/updated.');
+             })();
         """.trimIndent()
 
         binding.pageWebView.evaluateJavascript(injectCssJs) { result ->
             L.d("JavaScript for CSS injection from assets evaluated. Result: $result")
-
             val themeClass = if (isDarkMode()) "theme-dark" else "theme-light"
             val applyThemeAndRevealBodyJs = """
-                (function() {
-                    if (!document.body) { 
-                        console.error('OSRSWikiApp: document.body not ready for class list or style manipulation.');
-                        return; 
-                    }
-                    document.body.classList.remove('theme-light', 'theme-dark');
-                    document.body.classList.add('$themeClass');
-                    document.body.style.visibility = 'visible'; 
-                    console.log('OSRSWikiApp: Applied theme class (' + '$themeClass' + ') and set body.style.visibility to visible.');
-                })();
+                 (function() {
+                     if (!document.body) { console.error('OSRSWikiApp: document.body not ready.'); return; }
+                     document.body.classList.remove('theme-light', 'theme-dark');
+                     document.body.classList.add('$themeClass');
+                     document.body.style.visibility = 'visible';
+                     console.log('OSRSWikiApp: Applied theme class (' + '$themeClass' + ') and set body.style.visibility to visible.');
+                 })();
             """.trimIndent()
-
             binding.pageWebView.evaluateJavascript(applyThemeAndRevealBodyJs) { themeResult ->
                 L.d("JavaScript for applying theme class and revealing body evaluated. Result: $themeResult")
             }
@@ -227,7 +223,7 @@ class PageFragment : Fragment() {
             }
         }
 
-        val currentViewModelPageId = pageViewModel.uiState.pageId
+        val currentViewModelPageId: Int? = pageViewModel.uiState.pageId 
         val currentViewModelTitle = pageViewModel.uiState.title
         val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && pageViewModel.uiState.error == null
 
@@ -260,7 +256,7 @@ class PageFragment : Fragment() {
                 isLoading = false,
                 error = getString(R.string.error_no_article_identifier),
                 title = getString(R.string.title_page_not_specified),
-                pageId = null,
+                pageId = null, 
                 htmlContent = null
             )
             updateUiFromViewModel()
@@ -283,7 +279,7 @@ class PageFragment : Fragment() {
         }
 
         if (state.isLoading || state.error != null) {
-            if (binding.pageWebView.visibility == View.VISIBLE || state.isLoading) {
+            if (binding.pageWebView.visibility == View.VISIBLE || (state.isLoading && state.htmlContent == null) ) {
                  binding.pageWebView.visibility = View.INVISIBLE
             }
             if (state.isLoading && state.htmlContent == null && binding.pageWebView.url == null) {
@@ -296,11 +292,10 @@ class PageFragment : Fragment() {
                 """.trimIndent()
                 binding.pageWebView.loadData(blankHtml, "text/html", "UTF-8")
             }
-        } else { 
-            state.htmlContent?.let { htmlBodySnippet -> // Assume htmlContent is just the body snippet
+        } else {
+            state.htmlContent?.let { htmlBodySnippet ->
                 L.d("Loading actual HTML content into WebView.")
                 binding.pageWebView.visibility = View.INVISIBLE
-                
                 val finalHtml = """
                     <!DOCTYPE html>
                     <html>
@@ -314,7 +309,6 @@ class PageFragment : Fragment() {
                     </body>
                     </html>
                 """.trimIndent()
-
                 val baseUrl = "https://oldschool.runescape.wiki/"
                 binding.pageWebView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
             } ?: run {
@@ -323,14 +317,57 @@ class PageFragment : Fragment() {
                 binding.pageWebView.loadDataWithBaseURL(null, getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
             }
         }
+        refreshSaveButtonState()
         L.i("PageFragment UI updated. ViewModel title: '${state.title}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, error: ${state.error != null}")
+    }
+
+    private fun refreshSaveButtonState() {
+        if (_binding == null || !isAdded || context == null) {
+            L.v("refreshSaveButtonState: Fragment not in a state to update UI.")
+            return
+        }
+
+        val currentTitleForSaving = pageTitleArg
+        if (currentTitleForSaving.isNullOrBlank()) {
+            L.w("refreshSaveButtonState: No page title available. Cannot check save state.")
+            binding.pageActionsTabLayout.updateActionItemIcon(PageActionItem.SAVE, PageActionItem.getSaveIcon(false))
+            return
+        }
+
+        val currentPageTitle = PageTitle(text = currentTitleForSaving, wikiSite = WikiSite.OSRS_WIKI)
+        L.d("refreshSaveButtonState: Checking for title '${currentPageTitle.displayText}'")
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val isSaved = withContext(Dispatchers.IO) {
+                try {
+                    val readingListDao = AppDatabase.instance.readingListDao()
+                    val readingListPageDao = AppDatabase.instance.readingListPageDao()
+                    val defaultList = readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist()
+                    
+                    readingListPageDao.getPageByListIdAndTitle(
+                        wiki = currentPageTitle.wikiSite,
+                        lang = currentPageTitle.wikiSite.languageCode,
+                        ns = currentPageTitle.namespace(),
+                        apiTitle = currentPageTitle.prefixedText,
+                        listId = defaultList.id
+                    ) != null
+                } catch (e: Exception) {
+                    L.e("Error checking save state for title '${currentPageTitle.displayText}'", e)
+                    false 
+                }
+            }
+            if (isAdded && _binding != null) {
+                 binding.pageActionsTabLayout.updateActionItemIcon(PageActionItem.SAVE, PageActionItem.getSaveIcon(isSaved))
+                 L.d("Save button state updated. IsSaved: $isSaved for title: ${currentPageTitle.displayText}")
+            }
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding?.pageWebView?.let { webView ->
             webView.stopLoading()
-            (_binding?.root as? ViewGroup)?.removeView(webView)
+            (webView.parent as? ViewGroup)?.removeView(webView)
             webView.destroy()
         }
         _binding = null
@@ -349,6 +386,104 @@ class PageFragment : Fragment() {
                     putString(ARG_PAGE_TITLE, pageTitle)
                 }
             }
+        }
+    }
+
+    private inner class PageActionItemCallback : PageActionItem.Callback {
+        private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
+            if (!isAdded || _binding == null || context == null) return
+
+            val snackbar = Snackbar.make(binding.root, message, length)
+                .setAnchorView(binding.pageActionsTabLayout)
+
+            val snackbarBgColorResId: Int
+            val snackbarTextColorResId: Int
+
+            if (isDarkMode()) { // Current app theme is Dark, Snackbar uses Light Theme appearance
+                snackbarBgColorResId = R.color.snackbar_background_light_appearance // e.g., your light parchment #E2DBC8
+                snackbarTextColorResId = R.color.snackbar_text_color_light_appearance  // e.g., your dark text for light bg #3A2E1C
+            } else { // Current app theme is Light, Snackbar uses Dark Theme appearance
+                snackbarBgColorResId = R.color.snackbar_background_dark_appearance  // e.g., your dark bg #28221d
+                snackbarTextColorResId = R.color.snackbar_text_color_dark_appearance   // e.g., your light text for dark bg #f4eaea
+            }
+
+            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), snackbarBgColorResId))
+            snackbar.setTextColor(ContextCompat.getColor(requireContext(), snackbarTextColorResId))
+            snackbar.show()
+        }
+
+        override fun onSaveSelected() {
+            if (!isAdded || _binding == null || context == null) return
+
+            val currentTitleForSaving = pageTitleArg
+            if (currentTitleForSaving.isNullOrBlank()) {
+                showThemedSnackbar(getString(R.string.cannot_save_page_no_title), Snackbar.LENGTH_SHORT)
+                L.w("Save action: No page title available (pageTitleArg is blank).")
+                return
+            }
+
+            val currentPageTitle = PageTitle(text = currentTitleForSaving, wikiSite = WikiSite.OSRS_WIKI)
+            L.d("Save action triggered for page: ${currentPageTitle.displayText} (prefixed: ${currentPageTitle.prefixedText})")
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                var message: String = getString(R.string.error_generic_save_unsave)
+                try {
+                    val readingListDao = AppDatabase.instance.readingListDao()
+                    val readingListPageDao = AppDatabase.instance.readingListPageDao()
+                    val defaultList = withContext(Dispatchers.IO) {
+                         readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist()
+                    }
+
+                    val existingEntry = withContext(Dispatchers.IO) {
+                        readingListPageDao.getPageByListIdAndTitle(
+                            wiki = currentPageTitle.wikiSite,
+                            lang = currentPageTitle.wikiSite.languageCode,
+                            ns = currentPageTitle.namespace(),
+                            apiTitle = currentPageTitle.prefixedText,
+                            listId = defaultList.id
+                        )
+                    }
+
+                    if (existingEntry != null) {
+                        withContext(Dispatchers.IO) {
+                            readingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry))
+                            L.i("Page '${currentPageTitle.displayText}' marked for deletion from list '${defaultList.title}'.")
+                        }
+                        message = "'${currentPageTitle.displayText}' removed from saved pages."
+                    } else { 
+                        val titlesAdded = withContext(Dispatchers.IO) {
+                            readingListPageDao.addPagesToList(defaultList, listOf(currentPageTitle), Prefs.isDownloadingReadingListArticlesEnabled)
+                        }
+                        if (titlesAdded.isNotEmpty()) {
+                            L.i("Page '${currentPageTitle.displayText}' added to list '${defaultList.title}'.")
+                            message = "'${currentPageTitle.displayText}' saved."
+                        } else {
+                            L.w("Page '${currentPageTitle.displayText}' was not added. It might already exist in DB or an error occurred.")
+                            message = "Page could not be saved (may already exist or error)."
+                        }
+                    }
+                    if (isAdded) refreshSaveButtonState()
+                } catch (e: Exception) {
+                    L.e("Error during save/unsave operation for title '${currentPageTitle.displayText}'", e)
+                    // message is already set to generic error string by default
+                }
+                if(isAdded && _binding != null) showThemedSnackbar(message)
+            }
+        }
+
+        override fun onFindInArticleSelected() {
+            L.d("Find in article selected - Not yet implemented")
+            if (isAdded && _binding != null) showThemedSnackbar("Find in page: Not yet implemented.", Snackbar.LENGTH_SHORT)
+        }
+
+        override fun onThemeSelected() {
+            L.d("Theme selected - Not yet implemented")
+            if (isAdded && _binding != null) showThemedSnackbar("Appearance: Not yet implemented.", Snackbar.LENGTH_SHORT)
+        }
+
+        override fun onContentsSelected() {
+            L.d("Contents selected - Not yet implemented")
+            if (isAdded && _binding != null) showThemedSnackbar("Contents: Not yet implemented.", Snackbar.LENGTH_SHORT)
         }
     }
 }

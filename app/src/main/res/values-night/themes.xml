@@ -22,5 +22,7 @@
 
     <item name="android:statusBarColor">@color/osrs_parchment_bg</item>
     <item name="android:windowLightStatusBar">false</item>
+
+    <item name="placeholder_color">@color/osrs_text_on_parchment</item>
   </style>
 </resources>
