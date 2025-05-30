@@ -16,22 +16,22 @@ import androidx.recyclerview.widget.LinearLayoutManager
 // import com.omiyawaki.osrswiki.MainActivity // Not directly used now for toolbar updates
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.page.PageActivity // Added import for PageActivity
-import com.omiyawaki.osrswiki.ui.common.NavigationIconType // Keep if ScreenConfiguration is used elsewhere
-import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration // Keep if used elsewhere
+import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.ui.common.NavigationIconType
+import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
 import com.omiyawaki.osrswiki.ui.main.ScrollableContent
-import com.omiyawaki.osrswiki.ui.common.FragmentToolbarPolicyProvider // Added import
-import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy // Added import
+import com.omiyawaki.osrswiki.ui.common.FragmentToolbarPolicyProvider
+import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import com.omiyawaki.osrswiki.util.log.L
 import java.io.IOException
 
 class SearchFragment : Fragment(),
-    ScreenConfiguration, // Retain if other aspects of this interface are used by MainActivity
+    ScreenConfiguration,
     SearchAdapter.OnItemClickListener,
     ScrollableContent,
-    FragmentToolbarPolicyProvider { // Added FragmentToolbarPolicyProvider
+    FragmentToolbarPolicyProvider {
 
     private val viewModel: SearchViewModel by viewModels {
         SearchViewModelFactory(requireActivity().application)
@@ -54,23 +54,19 @@ class SearchFragment : Fragment(),
         setupSearchView()
         observeViewModel()
         setupOnBackPressed()
-        // Toolbar updates are now handled via FragmentToolbarPolicyProvider and MainScrollableViewProvider
     }
 
-    // ScreenConfiguration methods - keep if MainActivity uses them for other purposes
-    // If not, these can be removed if SearchFragment no longer directly configures MainActivity's toolbar
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
-        return getString(R.string.title_search) // This might be irrelevant if toolbar is hidden
+        return getString(R.string.title_search)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        return NavigationIconType.NONE // This might be irrelevant if toolbar is hidden
+        return NavigationIconType.NONE
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
-        return false // This might be irrelevant if toolbar is hidden
+        return false
     }
-    // End ScreenConfiguration methods
 
     private fun setupRecyclerView() {
         searchAdapter = SearchAdapter(this)
@@ -105,8 +101,6 @@ class SearchFragment : Fragment(),
                 if (newText.isNullOrEmpty()) {
                     viewModel.performSearch("")
                 }
-                // Consider adding a debounce here if you want to search as user types
-                // For now, search is primarily triggered on submit or clear.
                 return true
             }
         })
@@ -121,19 +115,16 @@ class SearchFragment : Fragment(),
                         searchAdapter.submitData(pagingData)
                     }
                 }
-                // ... other observer launches ...
                 launch {
                     viewModel.offlineSearchResults.collect { offlineResults ->
                         L.d("Offline search results count: ${offlineResults.size}")
                     }
                 }
-
                 launch {
                     viewModel.screenUiState.collect { screenState ->
                         L.d("Screen UI State: MessageResId=${screenState.messageResId}, Query=${screenState.currentQuery}")
                     }
                 }
-
                 launch {
                     searchAdapter.loadStateFlow.collectLatest { loadStates ->
                         val isLoading = loadStates.refresh is LoadState.Loading
@@ -189,12 +180,13 @@ class SearchFragment : Fragment(),
     }
 
     override fun onItemClick(item: CleanedSearchResultItem) {
-        L.d("Search item clicked: Title='${item.title}', ID='${item.id}'")
-        // Navigation logic to PageActivity
+        L.d("SearchFragment onItemClick: Item Title='${item.title}', Item ID='${item.id}'") // Kept original useful log
+        // Removed the extra L.i logs for item.title, item.id, and pageIdString
+
         val intent = PageActivity.newIntent(
             context = requireContext(),
             pageTitle = item.title,
-            pageId = item.id?.toString() // Assuming item.id can be null or needs conversion to String
+            pageId = item.id?.toString()
         )
         startActivity(intent)
     }
@@ -205,14 +197,12 @@ class SearchFragment : Fragment(),
         _binding = null
     }
 
-    // ScrollableContent implementation
     override fun getScrollableView(): View? {
         return _binding?.recyclerViewSearchResults
     }
 
-    // FragmentToolbarPolicyProvider implementation
     override fun getToolbarPolicy(): ToolbarPolicy {
-        return ToolbarPolicy.HIDDEN // SearchFragment wants the main toolbar hidden
+        return ToolbarPolicy.HIDDEN
     }
 
     companion object {

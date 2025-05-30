@@ -8,7 +8,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.util.log.L
 
-class PageActivity : AppCompatActivity() { // Changed class name
+class PageActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPageBinding
     private var pageTitleArg: String? = null
@@ -25,20 +25,20 @@ class PageActivity : AppCompatActivity() { // Changed class name
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
 
+        // Removed L.i("PageActivity onCreate - Retrieved from Intent: ...")
+
         supportActionBar?.title = pageTitleArg ?: getString(R.string.app_name)
 
         if (savedInstanceState == null) {
-            // We assume OsrsPageFragment will be renamed to PageFragment
             val fragment = PageFragment.newInstance(pageId = pageIdArg, pageTitle = pageTitleArg)
             supportFragmentManager.beginTransaction()
                 .replace(R.id.page_fragment_container, fragment)
                 .commit()
-            L.d("PageActivity created. Title: $pageTitleArg, ID: $pageIdArg")
+            L.d("PageActivity fragment committed. Initial Title: $pageTitleArg, Initial ID: $pageIdArg")
         }
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        // onBackPressed() is deprecated, use onBackPressedDispatcher for consistency
         onBackPressedDispatcher.onBackPressed()
         return true
     }
@@ -48,7 +48,8 @@ class PageActivity : AppCompatActivity() { // Changed class name
         const val EXTRA_PAGE_ID = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_ID"
 
         fun newIntent(context: Context, pageTitle: String?, pageId: String?): Intent {
-            return Intent(context, PageActivity::class.java).apply { // Changed class reference
+            // Removed L.i("PageActivity.newIntent called with...")
+            return Intent(context, PageActivity::class.java).apply {
                 putExtra(EXTRA_PAGE_TITLE, pageTitle)
                 putExtra(EXTRA_PAGE_ID, pageId)
             }
