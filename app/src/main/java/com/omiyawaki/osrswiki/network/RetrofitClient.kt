@@ -6,9 +6,8 @@ import com.omiyawaki.osrswiki.BuildConfig // For User-Agent
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Response
-import okhttp3.logging.HttpLoggingInterceptor
+// HttpLoggingInterceptor is no longer instantiated here; OkHttpClientFactory.offlineClient includes one.
 import retrofit2.Retrofit
 import java.io.IOException
 
@@ -21,6 +20,7 @@ object RetrofitClient {
         isLenient = true
     }
 
+    // UserAgentInterceptor remains specific to this RetrofitClient
     private class UserAgentInterceptor : Interceptor {
         @Throws(IOException::class)
         override fun intercept(chain: Interceptor.Chain): Response {
@@ -32,28 +32,20 @@ object RetrofitClient {
         }
     }
 
-    private val okHttpClient: OkHttpClient by lazy {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) { // Only log in debug builds
-                HttpLoggingInterceptor.Level.BODY
-            } else {
-                HttpLoggingInterceptor.Level.NONE
-            }
-        }
-        OkHttpClient.Builder()
-            .addInterceptor(UserAgentInterceptor()) // Add User-Agent interceptor
-            .addInterceptor(loggingInterceptor)   // Add logging interceptor
-            // Add other configurations like timeouts if needed
-            // .connectTimeout(30, TimeUnit.SECONDS)
-            // .readTimeout(30, TimeUnit.SECONDS)
-            // .writeTimeout(30, TimeUnit.SECONDS)
+    // OkHttpClient is now derived from OkHttpClientFactory.offlineClient
+    // and then customized with the UserAgentInterceptor.
+    private val customHttpClientForRetrofit by lazy {
+        OkHttpClientFactory.offlineClient.newBuilder()
+            .addInterceptor(UserAgentInterceptor()) // Add User-Agent interceptor specific to Retrofit
+            // The HttpLoggingInterceptor is already part of OkHttpClientFactory.offlineClient
+            // The OfflineCacheInterceptor is also already part of OkHttpClientFactory.offlineClient
             .build()
     }
 
     private val retrofitInstance: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient)
+            .client(customHttpClientForRetrofit) // Use the customized client
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }

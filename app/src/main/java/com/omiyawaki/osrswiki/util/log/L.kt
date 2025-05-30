@@ -2,8 +2,8 @@ package com.omiyawaki.osrswiki.util.log
 
 import android.util.Log
 import com.omiyawaki.osrswiki.BuildConfig
-import com.omiyawaki.osrswiki.OSRSWikiApp // Corrected Application class import
-import com.omiyawaki.osrswiki.util.ReleaseUtil   // ReleaseUtil import activated
+import com.omiyawaki.osrswiki.OSRSWikiApp // Ensure this import is correct
+import com.omiyawaki.osrswiki.util.ReleaseUtil  // Ensure this import is correct
 
 /** Logging utility like [Log] but with implied tags.  */
 object L {
@@ -95,46 +95,37 @@ object L {
 
     @JvmStatic
     fun logRemoteErrorIfProd(t: Throwable) {
-        if (ReleaseUtil.isProdRelease) {
+        if (ReleaseUtil.isProdRelease) { // Make sure ReleaseUtil.isProdRelease is accessible
             logRemoteError(t)
         } else {
-            // For non-production builds, re-throw the exception to make it crash loudly.
             throw RuntimeException(t)
         }
     }
 
-    // Favor logRemoteErrorIfProd(). If it's worth consuming bandwidth and developer hours, it's
-    // worth crashing on everything but prod
     fun logRemoteError(t: Throwable) {
-        LEVEL_E.log("", t) // Log the error locally using our E level.
-        // For production releases, also log the crash to the remote reporting service.
-        if (ReleaseUtil.isProdRelease) {
-            OSRSWikiApp.logCrashManually(t) // Call via class name
+        LEVEL_E.log("", t)
+        if (ReleaseUtil.isProdRelease) { // Make sure ReleaseUtil.isProdRelease is accessible
+            OSRSWikiApp.logCrashManually(t) // Make sure OSRSWikiApp.logCrashManually(t) exists
         }
     }
 
     private abstract class LogLevel {
         abstract fun logLevel(tag: String?, msg: String?, t: Throwable?)
         fun log(msg: String, t: Throwable?) {
-            if (ReleaseUtil.isDevRelease) {
-                // For development builds, use detailed tags including class, method, and line number.
+            if (ReleaseUtil.isDevRelease) { // Make sure ReleaseUtil.isDevRelease is accessible
                 val element = Thread.currentThread().stackTrace[STACK_INDEX]
                 logLevel(element.className, stackTraceElementToMessagePrefix(element) + msg, t)
             } else {
-                // For release builds, use the application ID as the tag.
                 logLevel(BuildConfig.APPLICATION_ID, msg, t)
             }
         }
 
         private fun stackTraceElementToMessagePrefix(element: StackTraceElement): String {
-            // Extracts method name and line number for log messages.
             return element.methodName + "():" + element.lineNumber + ": "
         }
 
         companion object {
-            // Defines the stack trace depth to find the calling method.
-            // This might need adjustment if the call hierarchy changes significantly.
-            private const val STACK_INDEX = 4 // this must be 4 for the call order: L.e -> LEVEL_E.log -> LogLevel.log
+            private const val STACK_INDEX = 4
         }
     }
 }

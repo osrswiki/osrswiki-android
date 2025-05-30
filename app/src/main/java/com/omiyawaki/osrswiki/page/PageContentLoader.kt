@@ -1,112 +1,208 @@
 package com.omiyawaki.osrswiki.page
 
-import com.omiyawaki.osrswiki.R // Required for R.string.label_loading
-import com.omiyawaki.osrswiki.util.Result
+import android.content.Context
+import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.dataclient.WikiSite
+import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
+import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
+import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.util.Result // Ensure this is your Result class
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.URLEncoder
 
-/**
- * Handles the logic of fetching article data using PageRepository
- * and updating the PageViewModel. Signals updates via a callback.
- */
 class PageContentLoader(
+    private val context: Context,
     private val pageRepository: PageRepository,
     private val pageViewModel: PageViewModel,
-    private val coroutineScope: CoroutineScope, // e.g., lifecycleScope from Fragment
-    private val onStateUpdated: () -> Unit     // Callback to notify when UI should refresh
+    private val readingListPageDao: ReadingListPageDao,
+    private val offlineObjectDao: OfflineObjectDao,
+    private val coroutineScope: CoroutineScope,
+    private val onStateUpdated: () -> Unit
 ) {
-    fun loadPageByTitle(articleQueryTitle: String, forceNetwork: Boolean = false) {
-        // Update ViewModel to loading state
-        pageViewModel.uiState = PageUiState(isLoading = true, title = articleQueryTitle, pageId = null)
-        L.d("PageContentLoader: Set state to loading for title '$articleQueryTitle'")
-        onStateUpdated() // Notify UI for initial loading state
+    private val baseApiUrl = "https://oldschool.runescape.wiki/api.php"
 
-        L.d("PageContentLoader: Loading article by title '$articleQueryTitle', forceNetwork: $forceNetwork")
+    // Constructs API URL using apiTitle (prefixed MediaWiki title)
+    private fun constructApiParseUrlFromApiTitle(apiTitle: String): String {
+        val encodedApiTitle = URLEncoder.encode(apiTitle, "UTF-8")
+        return "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&page=$encodedApiTitle"
+    }
+
+    // Constructs API URL using MediaWiki pageId (less used for cache lookups if worker saves by apiTitle)
+    @Suppress("unused") // May not be used for cache lookup if cache is keyed by apiTitle-URL
+    private fun constructApiParseUrlFromPageId(pageId: Int): String {
+        return "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&pageid=$pageId"
+    }
+
+    fun loadPageByTitle(articleQueryTitle: String, forceNetwork: Boolean = false) {
+        L.d("loadPageByTitle called for: \"$articleQueryTitle\", forceNetwork: $forceNetwork")
+        pageViewModel.uiState = PageUiState(isLoading = true, title = articleQueryTitle, pageId = null)
+        onStateUpdated()
 
         coroutineScope.launch {
-            pageRepository.getArticleByTitle(title = articleQueryTitle, forceNetwork = forceNetwork)
-                .catch { e -> // Catch exceptions from the flow itself
-                    L.e("PageContentLoader: Flow collection error for title '$articleQueryTitle'", e)
-                    pageViewModel.uiState = PageUiState(
-                        isLoading = false,
-                        title = articleQueryTitle, // Keep the queried title for context
-                        pageId = null, // ID is unknown/irrelevant if load by title failed this way
-                        error = "Failed to load article due to an unexpected error: ${e.message}"
-                    )
-                    onStateUpdated() // Notify UI
+            if (!forceNetwork) {
+                L.d("Attempting to load '$articleQueryTitle' from Reading List Offline Cache.")
+                val apiTitle = articleQueryTitle // articleQueryTitle is the apiTitle
+                val lang = WikiSite.OSRS_WIKI.languageCode
+
+                val readingListPage = withContext(Dispatchers.IO) {
+                    readingListPageDao.findPageInAnyList(WikiSite.OSRS_WIKI, lang, Namespace.MAIN, apiTitle)
                 }
-                .collectLatest { result ->
-                    L.d("PageContentLoader: Received result for title '$articleQueryTitle': $result")
+
+                if (readingListPage != null && readingListPage.offline && readingListPage.status == ReadingListPage.STATUS_SAVED) {
+                    L.i("Page '$apiTitle' (RL ID: ${readingListPage.id}) found in reading list, marked offline and saved. Attempting cache load.")
+                    val cacheKeyUrl = constructApiParseUrlFromApiTitle(apiTitle) // Use apiTitle for cache key
+                    val parsedData = OfflineCacheUtil.readAndParseOfflinePageContent(
+                        context.applicationContext,
+                        offlineObjectDao,
+                        cacheKeyUrl,
+                        lang
+                    )
+
+                    if (parsedData?.text != null) {
+                        L.i("Successfully loaded '$apiTitle' from Reading List Offline Cache.")
+                        pageViewModel.uiState = PageUiState(
+                            isLoading = false, error = null,
+                            pageId = parsedData.pageid, // Use pageid from parsed data
+                            title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
+                            htmlContent = parsedData.text,
+                            wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
+                            revisionId = parsedData.revid,
+                            lastFetchedTimestamp = readingListPage.mtime,
+                            localFilePath = null,
+                            isCurrentlyOffline = true
+                        )
+                        onStateUpdated()
+                        return@launch
+                    } else {
+                        L.w("Failed to load '$apiTitle' from Reading List Offline Cache (content null or parse error). Falling back.")
+                    }
+                } else {
+                    L.d("Page '$apiTitle' not eligible for Reading List Offline Cache load (ReadingListPage: $readingListPage).")
+                }
+            }
+
+            L.d("Proceeding to load '$articleQueryTitle' via PageRepository (forceNetwork: $forceNetwork).")
+            pageRepository.getArticleByTitle(title = articleQueryTitle, forceNetwork = forceNetwork)
+                .catch { e -> // ... (existing error handling) ...
+                    L.e("Flow collection error for title '$articleQueryTitle'", e)
+                    pageViewModel.uiState = PageUiState(
+                        isLoading = false, title = articleQueryTitle, pageId = null,
+                        error = "Failed to load article: ${e.message}"
+                    )
+                    onStateUpdated()
+                }
+                .collectLatest { result -> // ... (existing result processing) ...
+                    L.d("Received result from PageRepository for title '$articleQueryTitle': $result")
                     when (result) {
                         is Result.Loading -> {
-                            pageViewModel.uiState = PageUiState(isLoading = true, title = articleQueryTitle, pageId = null)
+                            pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data // result.data is PageUiState
-                            L.i("PageContentLoader: Successfully loaded article: '${result.data.title}' (queried as title '$articleQueryTitle') with pageId ${result.data.pageId}")
+                            pageViewModel.uiState = result.data
+                            L.i("Successfully loaded article via PageRepository: '${result.data.title}'")
                         }
                         is Result.Error -> {
-                            L.e("PageContentLoader: Error loading article with title '$articleQueryTitle': ${result.message}", result.throwable)
+                            L.e("Error from PageRepository for title '$articleQueryTitle': ${result.message}", result.throwable)
                             pageViewModel.uiState = PageUiState(
-                                isLoading = false,
-                                title = articleQueryTitle, // Keep the queried title for context
-                                pageId = null,
+                                isLoading = false, title = articleQueryTitle, pageId = null,
                                 error = "Error: ${result.message}"
                             )
                         }
                     }
-                    onStateUpdated() // Notify UI after processing the result
+                    onStateUpdated()
                 }
         }
     }
 
-    // Added initialDisplayTitle parameter
     fun loadPageById(pageId: Int, initialDisplayTitle: String?, forceNetwork: Boolean = false) {
-        val displayTitleDuringLoad = initialDisplayTitle ?: "Loading..." // Or use a string resource like R.string.label_loading
-
-        // Update ViewModel to loading state
+        // initialDisplayTitle is expected to be the apiTitle (prefixed MediaWiki title)
+        val displayTitleDuringLoad = initialDisplayTitle ?: context.getString(R.string.label_loading)
+        L.d("loadPageById called for pageId: $pageId, initialDisplayTitle (as apiTitle): '$initialDisplayTitle', forceNetwork: $forceNetwork")
         pageViewModel.uiState = PageUiState(isLoading = true, title = displayTitleDuringLoad, pageId = pageId)
-        L.d("PageContentLoader: Set state to loading for page ID '$pageId', display title: '$displayTitleDuringLoad'")
-        onStateUpdated() // Notify UI for initial loading state
-
-        L.d("PageContentLoader: Loading article by page ID '$pageId', forceNetwork: $forceNetwork")
+        onStateUpdated()
 
         coroutineScope.launch {
-            pageRepository.getArticle(pageId = pageId, forceNetwork = forceNetwork)
-                .catch { e -> // Catch exceptions from the flow itself
-                    L.e("PageContentLoader: Flow collection error for page ID '$pageId'", e)
-                    pageViewModel.uiState = PageUiState(
-                        isLoading = false,
-                        title = displayTitleDuringLoad, // Use initial display title for context on error
-                        pageId = pageId,
-                        error = "Failed to load article (ID: $pageId) due to an unexpected error: ${e.message}"
-                    )
-                    onStateUpdated() // Notify UI
+            if (!forceNetwork && initialDisplayTitle != null) { // Check cache only if we have initialDisplayTitle (apiTitle)
+                val apiTitle = initialDisplayTitle
+                val lang = WikiSite.OSRS_WIKI.languageCode
+                L.d("Attempting to load page by ID $pageId (apiTitle: '$apiTitle') from Reading List Offline Cache.")
+
+                val readingListPage = withContext(Dispatchers.IO) {
+                    readingListPageDao.findPageInAnyList(WikiSite.OSRS_WIKI, lang, Namespace.MAIN, apiTitle)
                 }
-                .collectLatest { result ->
-                    L.d("PageContentLoader: Received result for page ID '$pageId': $result")
+
+                if (readingListPage != null && readingListPage.offline && readingListPage.status == ReadingListPage.STATUS_SAVED) {
+                    L.i("Page '$apiTitle' (RL ID: ${readingListPage.id}) found in reading list, marked offline and saved. Attempting cache load.")
+                    val cacheKeyUrl = constructApiParseUrlFromApiTitle(apiTitle) // Use apiTitle for cache key
+                    val parsedData = OfflineCacheUtil.readAndParseOfflinePageContent(
+                        context.applicationContext,
+                        offlineObjectDao,
+                        cacheKeyUrl,
+                        lang
+                    )
+
+                    if (parsedData?.text != null) {
+                        L.i("Successfully loaded page for apiTitle '$apiTitle' (original pageId: $pageId) from Reading List Offline Cache.")
+                        pageViewModel.uiState = PageUiState(
+                            isLoading = false, error = null,
+                            pageId = parsedData.pageid ?: pageId, // Prefer pageid from parsed data
+                            title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
+                            htmlContent = parsedData.text,
+                            wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
+                            revisionId = parsedData.revid,
+                            lastFetchedTimestamp = readingListPage.mtime,
+                            localFilePath = null,
+                            isCurrentlyOffline = true
+                        )
+                        onStateUpdated()
+                        return@launch
+                    } else {
+                        L.w("Failed to load '$apiTitle' (original pageId: $pageId) from Reading List Offline Cache. Falling back.")
+                    }
+                } else {
+                    L.d("Page with apiTitle '$apiTitle' (original pageId: $pageId) not eligible for Reading List Offline Cache load (ReadingListPage: $readingListPage).")
+                }
+            } else if (initialDisplayTitle == null && !forceNetwork) {
+                L.w("Cannot check Reading List Offline Cache for pageId $pageId without apiTitle (initialDisplayTitle). Proceeding to PageRepository.")
+            }
+
+            // Fallback to PageRepository
+            L.d("Proceeding to load pageId $pageId via PageRepository (forceNetwork: $forceNetwork).")
+            pageRepository.getArticle(pageId = pageId, forceNetwork = forceNetwork)
+                .catch { e -> // ... (existing error handling) ...
+                    L.e("Flow collection error for page ID '$pageId'", e)
+                    pageViewModel.uiState = PageUiState(
+                        isLoading = false, title = displayTitleDuringLoad, pageId = pageId,
+                        error = "Failed to load article (ID: $pageId): ${e.message}"
+                    )
+                    onStateUpdated()
+                }
+                .collectLatest { result -> // ... (existing result processing) ...
+                    L.d("Received result from PageRepository for page ID '$pageId': $result")
                     when (result) {
                         is Result.Loading -> {
-                             pageViewModel.uiState = PageUiState(isLoading = true, title = displayTitleDuringLoad, pageId = pageId)
+                            pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data // result.data is PageUiState which has the canonical title and pageId
-                            L.i("PageContentLoader: Successfully loaded article: '${result.data.title}' (queried by ID '$pageId', received pageId ${result.data.pageId})")
+                            pageViewModel.uiState = result.data
+                            L.i("Successfully loaded article via PageRepository: '${result.data.title}'")
                         }
                         is Result.Error -> {
-                            L.e("PageContentLoader: Error loading article with page ID '$pageId': ${result.message}", result.throwable)
+                            L.e("Error from PageRepository for page ID '$pageId': ${result.message}", result.throwable)
                             pageViewModel.uiState = PageUiState(
-                                isLoading = false,
-                                title = displayTitleDuringLoad, // Use initial display title for context on error
-                                pageId = pageId,
+                                isLoading = false, title = displayTitleDuringLoad, pageId = pageId,
                                 error = "Error loading page (ID: $pageId): ${result.message}"
                             )
                         }
                     }
-                    onStateUpdated() // Notify UI after processing the result
+                    onStateUpdated()
                 }
         }
     }
