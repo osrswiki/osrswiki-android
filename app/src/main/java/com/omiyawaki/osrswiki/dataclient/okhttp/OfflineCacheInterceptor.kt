@@ -1,14 +1,14 @@
 package com.omiyawaki.osrswiki.dataclient.okhttp
 
 import android.content.Context
-import android.util.Log
-import com.omiyawaki.osrswiki.OSRSWikiApp // Added import for your Application class
+import android.util.Log // Already has this import
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.offline.db.OfflineObject
 import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
-import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage // For STATUS_SAVED constant
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
-import kotlinx.coroutines.launch // Added import for coroutine launch
+import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Protocol
@@ -25,14 +25,14 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
 internal class OfflineCacheInterceptor(
-    private val context: Context, // context is available if OSRSWikiApp.instance is not preferred directly
+    private val context: Context,
     private val offlineObjectDao: OfflineObjectDao,
     private val readingListPageDao: ReadingListPageDao,
-    private val appDatabase: AppDatabase // appDatabase instance is passed in
+    private val appDatabase: AppDatabase
 ) : Interceptor {
 
     companion object {
-        private const val TAG = "OfflineCacheIntercept"
+        // private const val TAG = "OfflineCacheIntercept" // Commented out
         private const val HEADER_OFFLINE_SAVE = "X-Offline-Save"
         private const val HEADER_PAGE_LIB_IDS = "X-Offline-Save-PageLibIds"
 
@@ -60,25 +60,24 @@ internal class OfflineCacheInterceptor(
                 try {
                     saveResponse(originalRequest, response, offlineSaveHeaderValue!!)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error saving response for URL: ${originalRequest.url}", e)
+                    Log.e("OSRSWIKI_INTERCEPTOR", "[E] Error saving response for URL: ${originalRequest.url}", e)
                 }
             }
             return response
         } catch (e: IOException) {
-            Log.w(TAG, "Network request failed for ${originalRequest.url}, attempting to serve from cache.", e)
+            Log.e("OSRSWIKI_INTERCEPTOR", "[W] Network request failed for ${originalRequest.url}, attempting to serve from cache.", e)
             val cachedResponse = serveFromCache(originalRequest)
             if (cachedResponse != null) {
-                Log.i(TAG, "Serving ${originalRequest.url} from cache.")
+                Log.e("OSRSWIKI_INTERCEPTOR", "[I] Serving ${originalRequest.url} from cache.")
                 return cachedResponse
             }
-            Log.e(TAG, "Failed to serve ${originalRequest.url} from cache. Rethrowing.")
+            Log.e("OSRSWIKI_INTERCEPTOR", "[E] Failed to serve ${originalRequest.url} from cache. Rethrowing.")
             throw e
         }
     }
 
     private fun saveResponse(request: Request, response: Response, saveHeaderValue: String) {
         val url = request.url.toString()
-        // TODO: Determine lang more dynamically if needed, e.g., from request headers or WikiSite object
         val lang = request.header("Accept-Language")?.split(",")?.firstOrNull()?.split(";")?.firstOrNull()?.trim() ?: "en"
 
         val saveType = if (saveHeaderValue == SAVE_TYPE_VALUE_READING_LIST) {
@@ -90,7 +89,7 @@ internal class OfflineCacheInterceptor(
         val hashedFilename = hashUrl(url, lang)
         val storageDir = getStorageDirectory(saveType)
         if (storageDir == null) {
-            Log.e(TAG, "Could not get storage directory for saveType: $saveType. Aborting save.")
+            Log.e("OSRSWIKI_INTERCEPTOR", "[E] Could not get storage directory for saveType: $saveType. Aborting save.")
             return
         }
         storageDir.mkdirs()
@@ -102,38 +101,35 @@ internal class OfflineCacheInterceptor(
             "${entry.key}: ${entry.value.joinToString(", ")}"
         }.joinToString("\n")
         FileOutputStream(metadataFile).use { it.write(headersString.toByteArray(StandardCharsets.UTF_8)) }
-        Log.d(TAG, "Saved metadata for $url to ${metadataFile.absolutePath}")
+        Log.e("OSRSWIKI_INTERCEPTOR", "[D] Saved metadata for $url to ${metadataFile.absolutePath}")
 
         response.peekBody(Long.MAX_VALUE).byteStream().use { inputStream ->
             FileOutputStream(contentFile).use { outputStream ->
                 inputStream.copyTo(outputStream)
             }
         }
-        Log.d(TAG, "Saved content for $url to ${contentFile.absolutePath}")
+        Log.e("OSRSWIKI_INTERCEPTOR", "[D] Saved content for $url to ${contentFile.absolutePath}")
 
         val pageLibIdsStr = request.header(HEADER_PAGE_LIB_IDS) ?: ""
 
         val offlineObject = OfflineObject(
             url = url,
             lang = lang,
-            path = hashedFilename, // This is just the hash, full path constructed using storageDir
+            path = hashedFilename,
             status = OfflineObject.STATUS_SAVED,
             usedByStr = if (saveType == OfflineObject.SAVE_TYPE_READING_LIST) pageLibIdsStr else "",
             saveType = saveType
         )
 
-        // Database operations are performed within a transaction.
-        // Calls to suspend functions from here need to be in a coroutine.
         appDatabase.runInTransaction {
             val insertedOfflineObjectId = offlineObjectDao.insertOfflineObject(offlineObject)
-            Log.i(TAG, "Offline object metadata saved to DB for $url with ID: $insertedOfflineObjectId")
+            Log.e("OSRSWIKI_INTERCEPTOR", "[I] Offline object metadata saved to DB for $url with ID: $insertedOfflineObjectId")
 
             if (saveType == OfflineObject.SAVE_TYPE_READING_LIST && pageLibIdsStr.isNotBlank()) {
                 val pageIds = pageLibIdsStr.trim('|').split('|').mapNotNull { it.toLongOrNull() }
                 if (pageIds.isNotEmpty()) {
                     val currentTime = System.currentTimeMillis()
                     pageIds.forEach { pageId ->
-                        // Launch a coroutine to call the suspend DAO function
                         OSRSWikiApp.instance.applicationScope.launch {
                             try {
                                 readingListPageDao.updatePageStatusToSavedAndMtime(
@@ -141,9 +137,9 @@ internal class OfflineCacheInterceptor(
                                     ReadingListPage.STATUS_SAVED,
                                     currentTime
                                 )
-                                Log.d(TAG, "Updated status for ReadingListPage ID $pageId to SAVED.")
+                                Log.e("OSRSWIKI_INTERCEPTOR", "[D] Updated status for ReadingListPage ID $pageId to SAVED.")
                             } catch (e: Exception) {
-                                Log.e(TAG, "Error updating status for ReadingListPage ID $pageId via app scope", e)
+                                Log.e("OSRSWIKI_INTERCEPTOR", "[E] Error updating status for ReadingListPage ID $pageId via app scope", e)
                             }
                         }
                     }
@@ -154,7 +150,6 @@ internal class OfflineCacheInterceptor(
 
     private fun serveFromCache(request: Request): Response? {
         val url = request.url.toString()
-        // TODO: Determine lang more dynamically
         val lang = request.header("Accept-Language")?.split(",")?.firstOrNull()?.split(";")?.firstOrNull()?.trim() ?: "en"
 
 
@@ -168,7 +163,7 @@ internal class OfflineCacheInterceptor(
             if (foundObject != null) {
                 val storageDir = getStorageDirectory(currentSaveType)
                 if (storageDir == null) {
-                    Log.w(TAG, "Storage directory for type $currentSaveType is null, skipping cache check for this type.")
+                    Log.e("OSRSWIKI_INTERCEPTOR", "[W] Storage directory for type $currentSaveType is null, skipping cache check for this type.")
                     continue
                 }
 
@@ -179,16 +174,16 @@ internal class OfflineCacheInterceptor(
                     offlineObjectFromDb = foundObject
                     contentFile = currentContentFile
                     metadataFile = currentMetadataFile
-                    Log.d(TAG, "Found valid cache entry for $url with type: $currentSaveType")
+                    Log.e("OSRSWIKI_INTERCEPTOR", "[D] Found valid cache entry for $url with type: $currentSaveType")
                     break
                 } else {
-                    Log.w(TAG, "Cache files missing for $url (type: $currentSaveType) despite DB entry. Path: ${currentContentFile.path}")
+                    Log.e("OSRSWIKI_INTERCEPTOR", "[W] Cache files missing for $url (type: $currentSaveType) despite DB entry. Path: ${currentContentFile.path}")
                 }
             }
         }
 
         if (offlineObjectFromDb == null || contentFile == null || metadataFile == null || !contentFile.exists() || !metadataFile.exists()) {
-            Log.d(TAG, "No valid cache entry found for $url after checking all types.")
+            Log.e("OSRSWIKI_INTERCEPTOR", "[D] No valid cache entry found for $url after checking all types.")
             return null
         }
 
@@ -207,24 +202,23 @@ internal class OfflineCacheInterceptor(
 
             val contentTypeString = headersMap["Content-Type"]?.firstOrNull()
                 ?: headersMap["content-type"]?.firstOrNull()
-                ?: "application/octet-stream" // Default if not found
+                ?: "application/octet-stream"
             val mediaType = contentTypeString.toMediaTypeOrNull()
 
-            // Use okio's buffer and source correctly with use to ensure closure
             val responseBody = contentFile.source().buffer().use { bufferedSource ->
                 bufferedSource.readByteString().toResponseBody(mediaType)
             }
 
             return Response.Builder()
                 .request(request)
-                .protocol(Protocol.HTTP_1_1) // Or determine from saved metadata if available
-                .code(HttpURLConnection.HTTP_OK) // Or determine from saved metadata
+                .protocol(Protocol.HTTP_1_1)
+                .code(HttpURLConnection.HTTP_OK)
                 .message("OK (served from cache)")
                 .headers(okHttpHeadersBuilder.build())
                 .body(responseBody)
                 .build()
         } catch (e: Exception) {
-            Log.e(TAG, "Error serving $url from cache files.", e)
+            Log.e("OSRSWIKI_INTERCEPTOR", "[E] Error serving $url from cache files.", e)
             return null
         }
     }
@@ -235,20 +229,18 @@ internal class OfflineCacheInterceptor(
                 File(context.filesDir, SUBDIR_INTERNAL_RL)
             }
             OfflineObject.SAVE_TYPE_FULL_ARCHIVE -> {
-                // Ensure this directory is robustly handled, permission checks might be needed if truly external.
-                // context.getExternalFilesDir() is app-specific external storage, no special permissions needed.
-                val externalDir = context.getExternalFilesDir(null) // Using null for root of app-specific external files
+                val externalDir = context.getExternalFilesDir(null)
                 externalDir?.let { File(File(it, SUBDIR_EXTERNAL_FA), SUBDIR_EXTERNAL_FA_CONTENT) }
             }
             else -> {
-                Log.e(TAG, "Unknown saveType: $saveType")
+                Log.e("OSRSWIKI_INTERCEPTOR", "[E] Unknown saveType: $saveType")
                 null
             }
         }
     }
 
     private fun hashUrl(url: String, lang: String): String {
-        val key = "$url-$lang" // Ensure lang is part of the key for uniqueness
+        val key = "$url-$lang"
         val digest = MessageDigest.getInstance("SHA-256")
         val hashBytes = digest.digest(key.toByteArray(StandardCharsets.UTF_8))
         return hashBytes.joinToString("") { "%02x".format(it) }

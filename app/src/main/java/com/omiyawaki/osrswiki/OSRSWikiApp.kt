@@ -8,8 +8,13 @@ import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.search.SearchRepository         // Import SearchRepository
 import com.omiyawaki.osrswiki.network.RetrofitClient       // Retrofit client object
 import com.omiyawaki.osrswiki.network.WikiApiService       // Retrofit service interface
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
 
 class OSRSWikiApp : Application() {
+    // Define an application-wide CoroutineScope
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // Or Dispatchers.Default
 
     // --- Manually managed singleton dependencies ---
 

@@ -121,6 +121,12 @@ interface ReadingListPageDao {
     @Query("DELETE FROM ReadingListPage WHERE status = :status")
     suspend fun purgePagesByStatus(status: Long = ReadingListPage.STATUS_QUEUE_FOR_DELETE)
 
+
+    @Query(
+        "SELECT * FROM ReadingListPage WHERE wiki = :wiki AND lang = :lang AND namespace = :ns AND apiTitle = :apiTitle AND listId = :listId LIMIT 1"
+    )
+    fun observePageByListIdAndTitle(wiki: WikiSite, lang: String, ns: Namespace, apiTitle: String, listId: Long): kotlinx.coroutines.flow.Flow<ReadingListPage?>
+
     // --- Methods for SavedPageSyncWorker ---
     @Query("SELECT * FROM ReadingListPage WHERE offline = 1 AND (status = :statusQueueForSave OR status = :statusQueueForForcedSave)")
     suspend fun getPagesToProcessForSaving(

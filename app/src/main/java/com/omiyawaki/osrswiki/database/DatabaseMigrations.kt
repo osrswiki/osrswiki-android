@@ -1,7 +1,8 @@
 package com.omiyawaki.osrswiki.database
 
-import androidx.room.migration.Migration // Ensure this is uncommented or present
-import androidx.sqlite.db.SupportSQLiteDatabase // Ensure this is uncommented or present
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.omiyawaki.osrswiki.offline.db.OfflineObject // Added import
 
 /**
  * Contains Room database migrations for the application.
@@ -51,12 +52,64 @@ object DatabaseMigrations {
         }
     }
 
-    // Example for future migrations:
-    // val MIGRATION_7_8 = object : Migration(7, 8) {
-    //     override fun migrate(database: SupportSQLiteDatabase) {
-    //         // database.execSQL("ALTER TABLE ...")
-    //     }
-    // }
+    val MIGRATION_7_8: Migration = object : Migration(7, 8) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Create ReadingList table
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS `ReadingList` (
+                    `title` TEXT NOT NULL, 
+                    `description` TEXT, 
+                    `mtime` INTEGER NOT NULL, 
+                    `atime` INTEGER NOT NULL, 
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                    `isDefault` INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
 
-    // Actual migrations (like MIGRATION_7_8) will be added here.
+            // Create ReadingListPage table
+            // WikiSite and Namespace are stored as TEXT due to TypeConverters
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS `ReadingListPage` (
+                    `wiki` TEXT NOT NULL, 
+                    `namespace` TEXT NOT NULL, 
+                    `displayTitle` TEXT NOT NULL, 
+                    `apiTitle` TEXT NOT NULL, 
+                    `description` TEXT, 
+                    `thumbUrl` TEXT, 
+                    `listId` INTEGER NOT NULL, 
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                    `mtime` INTEGER NOT NULL, 
+                    `atime` INTEGER NOT NULL, 
+                    `offline` INTEGER NOT NULL, 
+                    `status` INTEGER NOT NULL, 
+                    `sizeBytes` INTEGER NOT NULL, 
+                    `lang` TEXT NOT NULL, 
+                    `revId` INTEGER NOT NULL, 
+                    `remoteId` INTEGER NOT NULL,
+                    FOREIGN KEY(`listId`) REFERENCES `ReadingList`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+            """.trimIndent())
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_ReadingListPage_listId` ON `ReadingListPage` (`listId`)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_ReadingListPage_apiTitle_lang` ON `ReadingListPage` (`apiTitle`, `lang`)")
+
+            // Create OfflineObject table
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS `OfflineObject` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+                    `url` TEXT NOT NULL, 
+                    `lang` TEXT NOT NULL, 
+                    `path` TEXT NOT NULL, 
+                    `status` INTEGER NOT NULL, 
+                    `usedByStr` TEXT NOT NULL
+                )
+            """.trimIndent())
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_OfflineObject_url_lang` ON `OfflineObject` (`url`, `lang`)")
+        }
+    }
+
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `offline_objects` ADD COLUMN `saveType` TEXT NOT NULL DEFAULT '${OfflineObject.SAVE_TYPE_READING_LIST}'")
+        }
+    }
 }

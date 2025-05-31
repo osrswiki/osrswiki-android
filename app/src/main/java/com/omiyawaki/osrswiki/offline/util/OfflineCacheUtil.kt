@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.offline.util
 
 import android.content.Context
+import android.text.Html // Added for HTML stripping
 // import com.omiyawaki.osrswiki.dataclient.okhttp.OfflineCacheInterceptor // Not strictly needed for constants if defined here
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
 import com.omiyawaki.osrswiki.network.model.ParseResult // Added direct import
@@ -42,6 +43,18 @@ object OfflineCacheUtil {
         val digest = MessageDigest.getInstance("SHA-256")
         val hashBytes = digest.digest(key.toByteArray(StandardCharsets.UTF_8))
         return hashBytes.joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * Strips HTML tags from a given string.
+     * If the input string is null or empty, it returns the input string as is.
+     */
+    fun stripHtml(htmlString: String?): String? {
+        if (htmlString.isNullOrEmpty()) {
+            return htmlString
+        }
+        // FROM_HTML_MODE_LEGACY is used for general purpose HTML stripping.
+        return Html.fromHtml(htmlString, Html.FROM_HTML_MODE_LEGACY).toString().trim()
     }
 
     suspend fun readAndParseOfflinePageContent(

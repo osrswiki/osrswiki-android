@@ -1,8 +1,9 @@
 package com.omiyawaki.osrswiki.network
 
-import com.omiyawaki.osrswiki.OSRSWikiApp // Assuming this is your Application class
-import com.omiyawaki.osrswiki.database.AppDatabase // Assuming this is your AppDatabase class name
-import com.omiyawaki.osrswiki.network.interceptor.OsrsOfflineAssetInterceptor
+import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.database.AppDatabase
+import com.omiyawaki.osrswiki.network.interceptor.OfflineAssetInterceptor // Your existing interceptor
+import com.omiyawaki.osrswiki.dataclient.okhttp.OfflineCacheInterceptor // Our new interceptor
 import com.omiyawaki.osrswiki.offline.storage.FileStorageManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -11,7 +12,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Factory object for creating OkHttpClient instances, particularly for offline-enabled operations.
  */
-object OsrsOkHttpClientFactory {
+object OkHttpClientFactory {
 
     private const val DEFAULT_TIMEOUT_SECONDS = 30L
 
@@ -21,39 +22,42 @@ object OsrsOkHttpClientFactory {
     }
 
     private fun buildOfflineCapableClient(): OkHttpClient {
-        // 1. Get DAO instance
-        // AppDatabase.instance already uses OSRSWikiApplication.instance.applicationContext for initialization
-        val offlineAssetDao = AppDatabase.instance.offlineAssetDao() // Corrected: Use .instance
+        val context = OSRSWikiApp.instance.applicationContext
+        val appDatabase = AppDatabase.instance
 
-        // 2. Create FileStorageManager instance
-        val fileStorageManager = FileStorageManager(OSRSWikiApp.instance)
-
-        // 3. Create OsrsOfflineAssetInterceptor instance
-        val osrsOfflineAssetInterceptor = OsrsOfflineAssetInterceptor(
+        // Dependencies for OfflineAssetInterceptor (your existing one)
+        val offlineAssetDao = appDatabase.offlineAssetDao() 
+        val fileStorageManager = FileStorageManager(context)
+        val offlineAssetInterceptor = OfflineAssetInterceptor(
             offlineAssetDao = offlineAssetDao,
             fileStorageManager = fileStorageManager
         )
 
-        // 4. Build OkHttpClient
+        // Dependencies for our new OfflineCacheInterceptor
+        val offlineObjectDao = appDatabase.offlineObjectDao()
+        val readingListPageDao = appDatabase.readingListPageDao()
+        val offlineCacheInterceptor = OfflineCacheInterceptor(
+            context = context,
+            offlineObjectDao = offlineObjectDao,
+            readingListPageDao = readingListPageDao,
+            appDatabase = appDatabase
+        )
+
         val builder = OkHttpClient.Builder()
             .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .addInterceptor(osrsOfflineAssetInterceptor) // Add our custom interceptor
+            .addInterceptor(offlineAssetInterceptor)  // Your existing interceptor
+            .addInterceptor(offlineCacheInterceptor) // Our new interceptor for page content caching
 
         // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging
-        // Ensure this doesn't conflict with how your existing RetrofitClient gets its OkHttpClient
-        // For example, if BuildConfig.DEBUG:
-        // if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { // You'd need to import your BuildConfig
+        // Assuming your BuildConfig is accessible, e.g., com.omiyawaki.osrswiki.BuildConfig
+        // if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { 
         val loggingInterceptor = HttpLoggingInterceptor()
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
         builder.addInterceptor(loggingInterceptor)
         // }
-
+    
         return builder.build()
     }
-
-    // You might have another method here for a "standard" OkHttpClient if needed,
-    // or this factory could solely provide the offline-capable one.
-    // val standardClient: OkHttpClient by lazy { ... }
 }

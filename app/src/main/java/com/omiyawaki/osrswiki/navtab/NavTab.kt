@@ -14,7 +14,7 @@ import com.omiyawaki.osrswiki.R // Ensure R is imported from the application pac
  * @property viewPagerIndex The index of the ViewPager2 page this tab corresponds to, if any.
  * Null if this tab does not directly control a ViewPager2 page (e.g., the "More" tab).
  */
-enum class OsrsNavTab(
+enum class NavTab(
     @IdRes val id: Int,
     @StringRes val textResId: Int,
     @DrawableRes val iconResId: Int,
@@ -26,17 +26,17 @@ enum class OsrsNavTab(
 
     companion object {
         /**
-         * Finds an OsrsNavTab by its menu item resource ID.
+         * Finds an NavTab by its menu item resource ID.
          * @param id The resource ID of the menu item.
-         * @return The corresponding OsrsNavTab, or null if not found.
+         * @return The corresponding NavTab, or null if not found.
          */
-        fun fromId(@IdRes id: Int): OsrsNavTab? = entries.find { it.id == id }
+        fun fromId(@IdRes id: Int): NavTab? = entries.find { it.id == id }
 
         /**
-         * Finds an OsrsNavTab by its ViewPager2 index.
+         * Finds an NavTab by its ViewPager2 index.
          * @param index The index of the page in the ViewPager2.
-         * @return The corresponding OsrsNavTab, or null if no tab is associated with that index.
+         * @return The corresponding NavTab, or null if no tab is associated with that index.
          */
-        fun fromViewPagerIndex(index: Int): OsrsNavTab? = entries.find { it.viewPagerIndex == index }
+        fun fromViewPagerIndex(index: Int): NavTab? = entries.find { it.viewPagerIndex == index }
     }
 }

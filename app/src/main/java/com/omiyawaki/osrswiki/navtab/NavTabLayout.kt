@@ -9,22 +9,22 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 
 /**
  * Custom BottomNavigationView that populates its menu items programmatically
- * based on the OsrsNavTab enum, mirroring Wikipedia's NavTabLayout approach.
+ * based on the NavTab enum, mirroring Wikipedia's NavTabLayout approach.
  * This allows for centralized definition of navigation tabs in Kotlin
  * rather than relying on a static menu XML file.
  */
-class OsrsNavTabLayout(context: Context, attrs: AttributeSet) : BottomNavigationView(context, attrs) {
+class NavTabLayout(context: Context, attrs: AttributeSet) : BottomNavigationView(context, attrs) {
 
     init {
         // Clear any menu items that might have been inflated from an XML attribute
         // or a previous state, ensuring a clean slate for programmatic item addition.
         menu.clear()
 
-        // Add navigation items based on the OsrsNavTab enum.
+        // Add navigation items based on the NavTab enum.
         // Items are sorted to ensure that tabs corresponding to ViewPager2 pages
         // appear first and in their correct order, followed by any other tabs (e.g., "More").
         // The 'order' parameter in menu.add is derived from the iteration index after sorting.
-        OsrsNavTab.entries
+        NavTab.entries
             .sortedWith(compareBy(nullsLast()) { it.viewPagerIndex }) // Sorts by viewPagerIndex; tabs without it (null) go last.
             .forEachIndexed { order, tab ->
                 // Use tab.id as the itemId for the menu item. This ID should correspond

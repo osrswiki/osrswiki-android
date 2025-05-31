@@ -1,7 +1,7 @@
 package com.omiyawaki.osrswiki.offline.downloader
 
 import android.util.Log
-import com.omiyawaki.osrswiki.network.interceptor.OsrsOfflineAssetInterceptor
+import com.omiyawaki.osrswiki.network.interceptor.OfflineAssetInterceptor
 import com.omiyawaki.osrswiki.database.SavedArticleEntry
 import com.omiyawaki.osrswiki.database.SavedArticleEntryDao
 import com.omiyawaki.osrswiki.database.ArticleSaveStatus // Import the correct enum
@@ -18,7 +18,7 @@ import java.io.IOException
 // Local ArticleSaveStatus object removed, use the one from SavedArticleEntry.kt (now database package)
 
 class ArticleDownloader(
-    private val okHttpClient: OkHttpClient, // Must be configured with OsrsOfflineAssetInterceptor
+    private val okHttpClient: OkHttpClient, // Must be configured with OfflineAssetInterceptor
     private val savedArticleEntryDao: SavedArticleEntryDao,
     private val mediaWikiApiBaseUrl: String = "https://oldschool.runescape.wiki/api.php"
 ) {
@@ -72,10 +72,10 @@ class ArticleDownloader(
             Log.d(TAG, "Requesting HTML download for $articleHtmlUrl, to be handled by interceptor.")
             val htmlRequestBuilder = Request.Builder()
                 .url(articleHtmlUrl)
-                .header(OsrsOfflineAssetInterceptor.HEADER_SAVE_ASSET, "true")
-                .header(OsrsOfflineAssetInterceptor.HEADER_SAVED_ARTICLE_ENTRY_ID, entryId.toString())
-                .header(OsrsOfflineAssetInterceptor.HEADER_ASSET_ORIGINAL_URL, articleHtmlUrl)
-                .header(OsrsOfflineAssetInterceptor.HEADER_ASSET_TYPE, "html")
+                .header(OfflineAssetInterceptor.HEADER_SAVE_ASSET, "true")
+                .header(OfflineAssetInterceptor.HEADER_SAVED_ARTICLE_ENTRY_ID, entryId.toString())
+                .header(OfflineAssetInterceptor.HEADER_ASSET_ORIGINAL_URL, articleHtmlUrl)
+                .header(OfflineAssetInterceptor.HEADER_ASSET_TYPE, "html")
 
             val htmlRequest = htmlRequestBuilder.build() // Call .build() here
             val htmlResponse = okHttpClient.newCall(htmlRequest).execute()
@@ -108,10 +108,10 @@ class ArticleDownloader(
                     Log.d(TAG, "Requesting image download for $imageUrl, to be handled by interceptor.")
                     val imageRequestBuilder = Request.Builder() // Create new builder instance
                         .url(imageUrl)
-                        .header(OsrsOfflineAssetInterceptor.HEADER_SAVE_ASSET, "true")
-                        .header(OsrsOfflineAssetInterceptor.HEADER_SAVED_ARTICLE_ENTRY_ID, entryId.toString())
-                        .header(OsrsOfflineAssetInterceptor.HEADER_ASSET_ORIGINAL_URL, imageUrl)
-                        .header(OsrsOfflineAssetInterceptor.HEADER_ASSET_TYPE, "image")
+                        .header(OfflineAssetInterceptor.HEADER_SAVE_ASSET, "true")
+                        .header(OfflineAssetInterceptor.HEADER_SAVED_ARTICLE_ENTRY_ID, entryId.toString())
+                        .header(OfflineAssetInterceptor.HEADER_ASSET_ORIGINAL_URL, imageUrl)
+                        .header(OfflineAssetInterceptor.HEADER_ASSET_TYPE, "image")
 
                     val imageRequest = imageRequestBuilder.build() // Call .build() here
                     try {

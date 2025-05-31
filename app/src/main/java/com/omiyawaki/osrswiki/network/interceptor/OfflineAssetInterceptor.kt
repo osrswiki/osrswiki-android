@@ -8,12 +8,11 @@ import kotlinx.coroutines.flow.firstOrNull // Import for .firstOrNull()
 import kotlinx.coroutines.runBlocking // For synchronous execution of suspend DAO functions
 import okhttp3.Interceptor
 import okhttp3.Response
-import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 import java.io.File
 import java.io.IOException
 
-class OsrsOfflineAssetInterceptor(
+class OfflineAssetInterceptor(
     private val offlineAssetDao: OfflineAssetDao, // Injected DAO
     private val fileStorageManager: FileStorageManager // Injected FileStorageManager
 ) : Interceptor {

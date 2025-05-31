@@ -9,9 +9,21 @@
     <color name="osrs_text_on_dark_primary">#F0E6D2</color>
     <color name="osrs_text_on_parchment">#3A2E1C</color>
     <color name="osrs_text_on_gold">#4C3D2A</color>
-    <color name="pure_black">#000000</color> <color name="md_theme_error">#B00020</color>
+    <color name="pure_black">#000000</color>
+    <color name="md_theme_error">#B00020</color>
     <color name="md_theme_onError">#FFFFFF</color>
 
     <color name="ic_launcher_background">#20252c</color>
     <color name="edit_text_input_color">#DE000000</color>
+
+    <color name="snackbar_dark_bg">#28221d</color>
+    <color name="snackbar_light_text">#f4eaea</color>
+
+    <color name="osrs_parchment_bg_dark_theme_value">#28221d</color>
+    <color name="osrs_text_on_parchment_dark_theme_value">#f4eaea</color>
+
+    <color name="snackbar_background_light_appearance">#E2DBC8</color>
+    <color name="snackbar_text_color_light_appearance">#3A2E1C</color>
+    <color name="snackbar_background_dark_appearance">#28221d</color>
+    <color name="snackbar_text_color_dark_appearance">#f4eaea</color>
 </resources>
