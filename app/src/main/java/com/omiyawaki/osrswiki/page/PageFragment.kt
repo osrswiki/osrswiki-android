@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.util.Log // Ensure android.util.Log is imported
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -151,7 +151,7 @@ class PageFragment : Fragment() {
         updateUiFromViewModel() // Initial UI update
         initiatePageLoad(forceNetwork = false)
         observeAndRefreshSaveButtonState() // Start observing save state
-        
+
         binding.errorTextView.setOnClickListener {
             L.i("Retry button clicked. pageIdArg: $pageIdArg, pageTitleArg: $pageTitleArg. Forcing network.")
             initiatePageLoad(forceNetwork = true)
@@ -316,7 +316,7 @@ class PageFragment : Fragment() {
         } else {
             state.htmlContent?.let { htmlBodySnippet ->
                 L.d("Loading actual HTML content into WebView.")
-                binding.pageWebView.visibility = View.INVISIBLE
+                binding.pageWebView.visibility = View.INVISIBLE 
                 val finalHtml = """
                         <!DOCTYPE html>
                         <html>
@@ -334,7 +334,7 @@ class PageFragment : Fragment() {
                 binding.pageWebView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
             } ?: run {
                 L.w("Attempting to display content, but htmlContent is null and not loading/error state.")
-                binding.pageWebView.visibility = View.VISIBLE
+                binding.pageWebView.visibility = View.VISIBLE 
                 binding.pageWebView.loadDataWithBaseURL(null, getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
             }
         }
@@ -479,17 +479,28 @@ class PageFragment : Fragment() {
 
         override fun onSaveSelected() {
             if (!isAdded || _binding == null) return
+            android.util.Log.e("PFragment_SAVE_TEST", "onSaveSelected --- ENTRY POINT REACHED ---");
+
+            // Log values used to derive plainTextForApi
+            val pvmPlainTextTitle = pageViewModel.uiState.plainTextTitle
+            val pvmHtmlContent = pageViewModel.uiState.htmlContent
+            val pTitleArg = pageTitleArg
+            android.util.Log.e("PFragment_SAVE_TEST", "Values for plainTextForApi: pvmPlainTextTitle='${pvmPlainTextTitle}', pvmHtmlContent is " + (if(pvmHtmlContent != null) "NOT NULL" else "NULL") + ", pageTitleArg='${pTitleArg}'");
 
             val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
                 ?: pageTitleArg?.takeIf { it.isNotBlank() }
+            android.util.Log.e("PFragment_SAVE_TEST", "Derived plainTextForApi: '${plainTextForApi}'");
+
             val htmlTextForDisplay = pageViewModel.uiState.title?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
                 ?: plainTextForApi
 
             if (plainTextForApi.isNullOrBlank()) {
+                android.util.Log.e("PFragment_SAVE_TEST", "plainTextForApi IS NULL OR BLANK. Will show snackbar and return.");
                 showThemedSnackbar(getString(R.string.cannot_save_page_no_title), Snackbar.LENGTH_SHORT)
-                Log.e("OSRSWIKI_DEBUG", "onSaveSelected - No plain text page title available for API operations.")
+                // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - No plain text page title available for API operations.") // Original OSRSWIKI_DEBUG log
                 return
             }
+            android.util.Log.e("PFragment_SAVE_TEST", "plainTextForApi IS VALID. Proceeding with save logic.");
 
             val currentThumb = pageViewModel.uiState.imageUrl
             val currentPageTitle = PageTitle(
@@ -500,7 +511,7 @@ class PageFragment : Fragment() {
                 description = null,
                 displayText = htmlTextForDisplay ?: plainTextForApi
             )
-            Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Action triggered for apiTitle: ${currentPageTitle.prefixedText} (displayTitle: ${currentPageTitle.displayText})")
+            // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Action triggered for apiTitle: ${currentPageTitle.prefixedText} (displayTitle: ${currentPageTitle.displayText})") // Original OSRSWIKI_DEBUG log
 
             val titleForSnackbar = currentPageTitle.prefixedText
 
@@ -524,17 +535,23 @@ class PageFragment : Fragment() {
                             excludedStatus = -1L
                         )
                     }
-                    Log.e("OSRSWIKI_DEBUG", "onSaveSelected - DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}")
+                    // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}") // Original OSRSWIKI_DEBUG log
+                    android.util.Log.e("PFragment_SAVE_TEST", "DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}")
+
 
                     if (existingEntry != null) {
+                        // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - existingEntry is NOT NULL. Offline: ${existingEntry.offline}") // Original OSRSWIKI_DEBUG log
+                        android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NOT NULL. Offline: ${existingEntry.offline}, Status: ${existingEntry.status}")
                         if (existingEntry.offline) {
-                            Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry found AND IS OFFLINE (or queued). Marking for DELETION of offline files.")
+                            // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry found AND IS OFFLINE (or queued). Marking for DELETION of offline files.") // Original OSRSWIKI_DEBUG log
+                            android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS TRUE. Marking for DELETION.")
                             withContext(Dispatchers.IO) {
                                 localReadingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry))
                             }
                             message = "'$titleForSnackbar' offline version will be removed."
                         } else {
-                            Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry found but IS NOT OFFLINE. Marking for SAVE/DOWNLOAD.")
+                            // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry found but IS NOT OFFLINE. Marking for SAVE/DOWNLOAD.") // Original OSRSWIKI_DEBUG log
+                            android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS FALSE. Marking for SAVE/DOWNLOAD.")
                             withContext(Dispatchers.IO) {
                                 localReadingListPageDao.markPagesForOffline(listOf(existingEntry), offline = true, forcedSave = false)
                             }
@@ -545,8 +562,10 @@ class PageFragment : Fragment() {
                             }
                         }
                     } else {
-                        Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry NOT found. Adding to list and marking for download.")
+                        // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Entry NOT found. Adding to list and marking for download.") // Original OSRSWIKI_DEBUG log
+                        android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NULL. Adding new page to list.")
                         val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
+                        android.util.Log.e("PFragment_SAVE_TEST", "For new page, Prefs.isDownloadingReadingListArticlesEnabled = $downloadEnabled")
                         val titlesAdded = withContext(Dispatchers.IO) {
                             localReadingListPageDao.addPagesToList(
                                 defaultList,
@@ -571,7 +590,8 @@ class PageFragment : Fragment() {
                     // However, for immediate feedback after click, it might be desired. Let's keep it for now.
                     if (isAdded) refreshSaveButtonState() 
                 } catch (e: Exception) {
-                    Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Error during save/unsave operation for title '$titleForSnackbar'", e)
+                    // Log.e("OSRSWIKI_DEBUG", "onSaveSelected - Error during save/unsave operation for title '$titleForSnackbar'", e) // Original OSRSWIKI_DEBUG log
+                    android.util.Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '$titleForSnackbar'", e)
                 }
                 if(isAdded && _binding != null) showThemedSnackbar(message)
             }

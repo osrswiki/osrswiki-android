@@ -71,6 +71,7 @@ class PageContentLoader(
                             isLoading = false, error = null,
                             pageId = parsedData.pageid, // Use pageid from parsed data
                             title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
+                            plainTextTitle = parsedData.title ?: apiTitle, // Ensure plainTextTitle is set
                             htmlContent = parsedData.text,
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,
@@ -154,6 +155,7 @@ class PageContentLoader(
                             isLoading = false, error = null,
                             pageId = parsedData.pageid ?: pageId, // Prefer pageid from parsed data
                             title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
+                            plainTextTitle = parsedData.title ?: apiTitle, // Ensure plainTextTitle is set
                             htmlContent = parsedData.text,
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,

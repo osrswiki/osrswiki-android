@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.readinglist.db
 
+import android.util.Log // Import android.util.Log
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -65,7 +66,12 @@ interface ReadingListPageDao {
             }
         }
         if (addedDisplayTitles.isNotEmpty() && downloadEnabled) {
-            SavedPageSyncWorker.enqueue(OSRSWikiApp.instance.applicationContext)
+            val appContext = OSRSWikiApp.instance.applicationContext
+            Log.e("RLPageDao_SAVE_TEST", "addPagesToList: About to enqueue SavedPageSyncWorker. downloadEnabled=true. Context is " + (if(appContext == null) "NULL" else "NOT NULL"))
+            SavedPageSyncWorker.enqueue(appContext)
+            Log.e("RLPageDao_SAVE_TEST", "addPagesToList: Enqueued SavedPageSyncWorker.")
+        } else {
+            Log.e("RLPageDao_SAVE_TEST", "addPagesToList: NOT enqueuing SavedPageSyncWorker. addedDisplayTitlesEmpty=${addedDisplayTitles.isEmpty()}, downloadEnabled=${downloadEnabled}")
         }
         // TODO: FlowEventBus.post(ArticleSavedOrDeletedEvent(true, ...))
         return addedDisplayTitles
@@ -75,7 +81,6 @@ interface ReadingListPageDao {
     fun markPagesForOffline(pages: List<ReadingListPage>, offline: Boolean, forcedSave: Boolean) {
         var needsSync = false
         pages.forEach { page ->
-            // Condition to check if an update is actually needed to avoid redundant operations/syncs
             val statusRequiresUpdate = if (offline) {
                 page.status != ReadingListPage.STATUS_QUEUE_FOR_SAVE && page.status != ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE
             } else {
@@ -83,7 +88,7 @@ interface ReadingListPageDao {
             }
 
             if (page.offline == offline && !forcedSave && !statusRequiresUpdate) {
-                return@forEach // No change needed for this page under these conditions
+                return@forEach // No change needed
             }
 
             page.offline = offline
@@ -98,7 +103,12 @@ interface ReadingListPageDao {
             needsSync = true
         }
         if (needsSync) {
-            SavedPageSyncWorker.enqueue(OSRSWikiApp.instance.applicationContext)
+            val appContext = OSRSWikiApp.instance.applicationContext
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForOffline: About to enqueue SavedPageSyncWorker. needsSync=true. Context is " + (if(appContext == null) "NULL" else "NOT NULL"))
+            SavedPageSyncWorker.enqueue(appContext)
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForOffline: Enqueued SavedPageSyncWorker.")
+        } else {
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForOffline: NOT enqueuing SavedPageSyncWorker. needsSync=false")
         }
     }
 
@@ -113,9 +123,14 @@ interface ReadingListPageDao {
             }
         }
         if (needsSync) {
-            SavedPageSyncWorker.enqueue(OSRSWikiApp.instance.applicationContext)
-            // TODO: FlowEventBus.post(ArticleSavedOrDeletedEvent(false, ...))
+            val appContext = OSRSWikiApp.instance.applicationContext
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForDeletion: About to enqueue SavedPageSyncWorker. needsSync=true. Context is " + (if(appContext == null) "NULL" else "NOT NULL"))
+            SavedPageSyncWorker.enqueue(appContext)
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForDeletion: Enqueued SavedPageSyncWorker.")
+        } else {
+            Log.e("RLPageDao_SAVE_TEST", "markPagesForDeletion: NOT enqueuing SavedPageSyncWorker. needsSync=false")
         }
+        // TODO: FlowEventBus.post(ArticleSavedOrDeletedEvent(false, ...))
     }
 
     @Query("DELETE FROM ReadingListPage WHERE status = :status")
