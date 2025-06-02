@@ -1,11 +1,13 @@
 package com.omiyawaki.osrswiki.search
 
+import android.text.Html // <<< ADDED IMPORT
 import android.view.LayoutInflater
+import android.view.View // <<< ADDED IMPORT
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
-import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // Generated from item_search_result.xml
+import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 
 class SearchAdapter(
     private val onItemClickListener: OnItemClickListener
@@ -35,8 +37,17 @@ class SearchAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: CleanedSearchResultItem) {
-            binding.searchItemTitle.text = item.title
-            binding.searchItemSnippet.text = item.snippet
+            // Clean title before setting
+            binding.searchItemTitle.text = Html.fromHtml(item.title, Html.FROM_HTML_MODE_LEGACY).toString()
+
+            // Check if snippet is empty and set visibility accordingly
+            if (item.snippet.isNotBlank()) {
+                binding.searchItemSnippet.text = Html.fromHtml(item.snippet, Html.FROM_HTML_MODE_LEGACY).toString()
+                binding.searchItemSnippet.visibility = View.VISIBLE
+            } else {
+                binding.searchItemSnippet.visibility = View.GONE
+            }
+
             binding.root.setOnClickListener {
                 listener.onItemClick(item)
             }
@@ -44,7 +55,8 @@ class SearchAdapter(
     }
 
     companion object {
-        private val SEARCH_RESULT_COMPARATOR = object : DiffUtil.ItemCallback<CleanedSearchResultItem>() {
+        // Visibility changed to internal in a previous step
+        internal val SEARCH_RESULT_COMPARATOR = object : DiffUtil.ItemCallback<CleanedSearchResultItem>() {
             override fun areItemsTheSame(oldItem: CleanedSearchResultItem, newItem: CleanedSearchResultItem): Boolean =
                 oldItem.id == newItem.id
 

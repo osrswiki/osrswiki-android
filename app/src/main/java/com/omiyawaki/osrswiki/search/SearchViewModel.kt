@@ -11,8 +11,8 @@ import androidx.paging.cachedIn
 import androidx.paging.map
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.search.SearchRepository // <<< CORRECTED IMPORT
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
+import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -20,52 +20,59 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-// import kotlinx.coroutines.flow.emptyFlow // No longer needed for this specific use case
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.flowOf // <<< ADDED IMPORT
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
+import java.util.Locale // For lowercase comparison
+
+// Assuming CleanedSearchResultItem is defined in its own file and imported correctly:
+// import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
 
 /**
- * Data class representing a search result item with cleaned snippet for the UI.
- */
-
-/**
- * UI state for the Search screen, primarily for messages not directly tied to PagingData or results.
+ * UI state for the Search screen.
  */
 data class SearchScreenUiState(
     val messageResId: Int? = null,
-    val currentQuery: String? = null
+    val messageArg: String? = null,
+    val showOfflineIndicator: Boolean = false
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-@Suppress("unused")
-class SearchViewModel(private val searchRepository: SearchRepository) : ViewModel() {
+class SearchViewModel(
+    private val searchRepository: SearchRepository,
+    val isOnline: StateFlow<Boolean>
+) : ViewModel() {
 
-@Suppress("unused")
-private companion object {
-        private const val TAG = "SearchViewModel"
+    private companion object {
+        private const val TAG = "SearchViewModel" // Ensure TAG is defined for logging
         private const val SEARCH_DEBOUNCE_MS = 300L
+        private const val FTS_SNIPPET_MAX_LENGTH = 160
+        private const val SNIPPET_WINDOW_RADIUS = 70
     }
 
     private val _currentQuery = MutableStateFlow<String?>(null)
+    val currentQuery: StateFlow<String?> = _currentQuery.asStateFlow()
 
-    private val _screenUiState = MutableStateFlow(SearchScreenUiState(messageResId = R.string.search_enter_query_prompt))
+    private val _screenUiState = MutableStateFlow(SearchScreenUiState())
     val screenUiState: StateFlow<SearchScreenUiState> = _screenUiState.asStateFlow()
 
-    val searchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
+    val onlineSearchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
         .debounce(SEARCH_DEBOUNCE_MS)
+        .distinctUntilChanged()
         .flatMapLatest { query ->
-            if (query.isNullOrBlank()) {
-                _screenUiState.value = SearchScreenUiState(messageResId = R.string.search_enter_query_prompt, currentQuery = query)
-                flowOf(PagingData.empty()) // <<< MODIFIED: Emit PagingData.empty() to clear results
+            if (query.isNullOrBlank() || !isOnline.value) {
+                flowOf(PagingData.empty())
             } else {
-                _screenUiState.value = SearchScreenUiState(messageResId = null, currentQuery = query)
                 Log.d(TAG, "Fetching online results for query: '$query'")
-                searchRepository.getSearchResultStream(query)
+                searchRepository.getOnlineSearchResultStream(query)
                     .map { pagingData: PagingData<NetworkSearchResult> ->
-                        pagingData.map { networkResult ->
+                        pagingData.map { networkResult: NetworkSearchResult ->
                             mapNetworkResultToCleanedItem(networkResult)
                         }
                     }
@@ -73,25 +80,69 @@ private companion object {
         }
         .cachedIn(viewModelScope)
 
-    private val _offlineSearchResults = MutableStateFlow<List<CleanedSearchResultItem>>(emptyList())
-    val offlineSearchResults: StateFlow<List<CleanedSearchResultItem>> = _offlineSearchResults.asStateFlow()
+    private val offlineTitleResultsFlow: Flow<List<CleanedSearchResultItem>> = _currentQuery
+        .debounce(SEARCH_DEBOUNCE_MS)
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
+            val trimmedQuery = query?.trim()
+            if (trimmedQuery.isNullOrBlank()) {
+                flowOf(emptyList())
+            } else {
+                Log.d(TAG, "Fetching offline title search for query: '$trimmedQuery'")
+                searchRepository.searchOfflineArticlesByTitle(trimmedQuery)
+                    .map { articleMetaList ->
+                        articleMetaList.map { articleMeta ->
+                            mapArticleMetaToCleanedItem(articleMeta)
+                        }
+                    }
+            }
+        }
+
+    private val ftsResultsFlow: Flow<List<CleanedSearchResultItem>> = _currentQuery
+        .debounce(SEARCH_DEBOUNCE_MS)
+        .distinctUntilChanged()
+        .flatMapLatest { query ->
+            val trimmedQuery = query?.trim()
+            if (trimmedQuery.isNullOrBlank()) {
+                flowOf(emptyList())
+            } else {
+                Log.d(TAG, "Fetching FTS offline content search for query: '$trimmedQuery'")
+                searchRepository.searchOfflineFtsContent(trimmedQuery)
+                    .map { ftsResultList ->
+                        ftsResultList.map { ftsResult ->
+                            mapOfflinePageFtsToCleanedItem(ftsResult, trimmedQuery) // Pass query
+                        }
+                    }
+            }
+        }
+
+    val combinedOfflineResultsList: StateFlow<List<CleanedSearchResultItem>> =
+        offlineTitleResultsFlow.combine(ftsResultsFlow) { titleResults, ftsRes ->
+            val combined = mutableListOf<CleanedSearchResultItem>()
+            combined.addAll(ftsRes)
+            val ftsIds = ftsRes.map { it.id }.toSet()
+            combined.addAll(titleResults.filterNot { ftsIds.contains(it.id) })
+            Log.d(TAG, "Combined offline results: ${combined.size} items")
+            combined
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     init {
         viewModelScope.launch {
-            _currentQuery
+            _currentQuery.combine(isOnline) { query, online -> Pair(query, online) }
                 .debounce(SEARCH_DEBOUNCE_MS)
-                .flatMapLatest { query ->
-                    Log.d(TAG, "Preparing for offline title search for query: '$query'")
-                    searchRepository.searchOfflineArticles(query ?: "")
-                }
-                .map { articleMetaList ->
-                    articleMetaList.map { articleMeta ->
-                        mapArticleMetaToCleanedItem(articleMeta)
+                .collect { (query, online) ->
+                    val trimmedQuery = query?.trim()
+                    if (trimmedQuery.isNullOrBlank()) {
+                        _screenUiState.value = SearchScreenUiState(
+                            messageResId = R.string.search_enter_query_prompt,
+                            showOfflineIndicator = !online
+                        )
+                    } else {
+                        _screenUiState.value = SearchScreenUiState(
+                            messageArg = trimmedQuery,
+                            showOfflineIndicator = !online
+                        )
                     }
-                }
-                .collect { results ->
-                    _offlineSearchResults.value = results
-                    Log.d(TAG, "Offline title search results updated: ${results.size} items for query: '${_currentQuery.value}'")
                 }
         }
     }
@@ -105,16 +156,14 @@ private companion object {
     private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
         val rawSnippet = networkResult.snippet
         val cleanSnippet = rawSnippet?.let { htmlContent ->
-            val afterFromHtml = Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
-            val afterNewlineReplace = afterFromHtml.replace('\n', ' ')
-            val finalSnippet = afterNewlineReplace.trim()
-            finalSnippet
+            Html.fromHtml(htmlContent, Html.FROM_HTML_MODE_LEGACY).toString()
+                .replace('\n', ' ').trim()
         } ?: ""
-
         return CleanedSearchResultItem(
             id = networkResult.pageid.toString(),
             title = networkResult.title,
-            snippet = cleanSnippet
+            snippet = cleanSnippet,
+            isFtsResult = false
         )
     }
 
@@ -122,21 +171,39 @@ private companion object {
         return CleanedSearchResultItem(
             id = articleMeta.pageId.toString(),
             title = articleMeta.title,
-            snippet = ""
+            snippet = "Offline (Title Match)",
+            isFtsResult = false
         )
     }
-}
 
-@Suppress("unused")
-class SearchViewModelFactory(private val application: Application) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
+    private fun mapOfflinePageFtsToCleanedItem(ftsResult: OfflinePageFts, query: String?): CleanedSearchResultItem {
+        val ftsUrl = ftsResult.url
+        Log.d(TAG, "mapOfflinePageFtsToCleanedItem - URL: $ftsUrl, Received Query: '$query'. Setting empty snippet for now.")
+
+        // No longer generating KWIC snippet; will be handled by ViewHolder visibility
+        val displaySnippet = "" // Intentionally empty for FTS results for now
+
+        return CleanedSearchResultItem(
+            id = ftsUrl,
+            title = ftsResult.title, // Title is assumed to be cleaned during indexing
+            snippet = displaySnippet,
+            isFtsResult = true
+        )
+    }
+} // <<< End of SearchViewModel class
+
+@Suppress("UNCHECKED_CAST")
+class SearchViewModelFactory(
+    private val application: Application,
+    private val isOnlineFlow: StateFlow<Boolean>
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
             val osrsWikiApplication = application as? OSRSWikiApp
                 ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
             val repository = osrsWikiApplication.searchRepository
-            return SearchViewModel(repository) as T
+            return SearchViewModel(repository, isOnlineFlow) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
-}
+} // <<< End of SearchViewModelFactory class

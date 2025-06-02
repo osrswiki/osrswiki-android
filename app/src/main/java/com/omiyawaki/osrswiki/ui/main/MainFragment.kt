@@ -12,6 +12,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMainBinding
+import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment // Added import for SavedPagesFragment
 import com.omiyawaki.osrswiki.search.SearchFragment
 import com.omiyawaki.osrswiki.ui.common.FragmentToolbarPolicyProvider
 import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy
@@ -196,7 +197,7 @@ class MainFragment : Fragment() {
             fragments[position]?.let { return it }
 
             val newFragment = when (position) {
-                0 -> PlaceholderFragment.newInstance("Saved Tab")
+                0 -> SavedPagesFragment() // Changed from PlaceholderFragment
                 1 -> SearchFragment.newInstance()
                 else -> throw IllegalStateException("Invalid position $position for ViewPager2. Max items: $numTabs")
             }
@@ -205,15 +206,11 @@ class MainFragment : Fragment() {
         }
 
         fun getFragmentAt(position: Int, fragmentManager: FragmentManager): Fragment? {
-            // Attempt to find by tag first if FragmentManager has retained it.
-            // This is more robust than relying solely on the 'fragments' map after process death.
-            // However, for ViewPager2, direct access to created fragments is usually via the adapter's internal cache.
-            // The 'fragments' map is for this adapter instance's lifetime.
             return fragments[position]
         }
     }
 
-    // PlaceholderFragment for "Saved"
+    // PlaceholderFragment for "Saved" - Can be removed if no longer used elsewhere
     class PlaceholderFragment : Fragment(), ScrollableContent, FragmentToolbarPolicyProvider {
         private var scrollableView: androidx.core.widget.NestedScrollView? = null
         private var placeholderText: String = "Placeholder"

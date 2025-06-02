@@ -15,6 +15,7 @@ import com.omiyawaki.osrswiki.page.PageTitle
 import com.omiyawaki.osrswiki.readinglist.database.ReadingList
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker // Import the worker
+import kotlinx.coroutines.flow.Flow // Added import for Flow
 // TODO: Uncomment and implement/adapt these dependencies later
 // import com.omiyawaki.osrswiki.concurrency.FlowEventBus
 // import com.omiyawaki.osrswiki.events.ArticleSavedOrDeletedEvent
@@ -40,6 +41,10 @@ interface ReadingListPageDao {
     @Query("SELECT * FROM ReadingListPage WHERE listId = :listId AND status != :excludedStatus ORDER BY mtime DESC")
     fun getPagesByListId(listId: Long, excludedStatus: Long = ReadingListPage.STATUS_QUEUE_FOR_DELETE): List<ReadingListPage>
 
+    // New method for the "Saved Pages" tab
+    @Query("SELECT * FROM ReadingListPage WHERE offline = 1 AND status = :statusSaved ORDER BY atime DESC")
+    fun getFullySavedPagesObservable(statusSaved: Long = ReadingListPage.STATUS_SAVED): Flow<List<ReadingListPage>>
+
     @Query("SELECT * FROM ReadingListPage WHERE wiki = :wiki AND lang = :lang AND namespace = :ns AND apiTitle = :apiTitle AND listId = :listId AND status != :excludedStatus LIMIT 1")
     fun getPageByListIdAndTitle(wiki: WikiSite, lang: String, ns: Namespace, apiTitle: String, listId: Long, excludedStatus: Long = ReadingListPage.STATUS_QUEUE_FOR_DELETE): ReadingListPage?
 
@@ -57,7 +62,7 @@ interface ReadingListPageDao {
                     if (this.offline) {
                         this.status = ReadingListPage.STATUS_QUEUE_FOR_SAVE
                     } else {
-                        this.status = ReadingListPage.STATUS_SAVED
+                        this.status = ReadingListPage.STATUS_SAVED // Note: If not for offline, marking as SAVED but size might be 0
                         this.sizeBytes = 0
                     }
                 }

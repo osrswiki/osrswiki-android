@@ -2,73 +2,87 @@ package com.omiyawaki.osrswiki
 
 import android.app.Application
 import android.util.Log
-import com.omiyawaki.osrswiki.database.AppDatabase      // Room database class
-import com.omiyawaki.osrswiki.database.ArticleMetaDao  // DAO
+import com.omiyawaki.osrswiki.database.AppDatabase
+import com.omiyawaki.osrswiki.database.ArticleMetaDao
+import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
+import com.omiyawaki.osrswiki.network.RetrofitClient
+import com.omiyawaki.osrswiki.network.WikiApiService
 import com.omiyawaki.osrswiki.page.PageRepository
-import com.omiyawaki.osrswiki.search.SearchRepository         // Import SearchRepository
-import com.omiyawaki.osrswiki.network.RetrofitClient       // Retrofit client object
-import com.omiyawaki.osrswiki.network.WikiApiService       // Retrofit service interface
+import com.omiyawaki.osrswiki.search.SearchRepository
+import com.omiyawaki.osrswiki.util.NetworkMonitor // <<< ADDED Import for NetworkMonitor
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.StateFlow // <<< ADDED Import for StateFlow
 
 class OSRSWikiApp : Application() {
     // Define an application-wide CoroutineScope
-    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO) // Or Dispatchers.Default
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // --- Manually managed singleton dependencies ---
+    // --- Singleton dependencies provided by the Application class ---
 
-    // Updated to use the companion object instance from OSRSWikiDatabase
+    // Database instance (AppDatabase.instance itself is a lazy singleton)
     private val database: AppDatabase by lazy {
-        AppDatabase.instance
+        AppDatabase.instance // This uses OSRSWikiApp.instance.applicationContext internally
     }
 
+    // DAO instances
     private val articleMetaDao: ArticleMetaDao by lazy {
-        database.articleMetaDao() // Accessing the DAO from DB instance
+        database.articleMetaDao()
     }
 
+    private val offlinePageFtsDao: OfflinePageFtsDao by lazy {
+        database.offlinePageFtsDao()
+    }
+
+    // Network service instance
     private val wikiApiService: WikiApiService by lazy {
-        RetrofitClient.apiService // Accessing the service from RetrofitClient object
+        RetrofitClient.apiService
     }
 
-    // --- Publicly accessible repositories ---
-    lateinit var pageRepository: PageRepository
-        private set // Make setter private to control instantiation from within Application class
+    // Network Monitor instance
+    private val networkMonitor: NetworkMonitor by lazy { // <<< ADDED NetworkMonitor instantiation
+        NetworkMonitor(applicationContext) // `this` or `applicationContext` can be used here
+    }
 
-    lateinit var searchRepository: SearchRepository
-        private set // Make setter private to control instantiation from within Application class
+    // Publicly accessible StateFlow for network status
+    val currentNetworkStatus: StateFlow<Boolean> by lazy { // <<< ADDED Public accessor for isOnline StateFlow
+        networkMonitor.isOnline // Exposes the StateFlow from NetworkMonitor
+    }
+
+    // Repository instances
+    val pageRepository: PageRepository by lazy {
+        PageRepository(
+            mediaWikiApiService = wikiApiService,
+            articleMetaDao = articleMetaDao,
+            applicationContext = this
+        )
+    }
+
+    val searchRepository: SearchRepository by lazy {
+        SearchRepository(
+            apiService = wikiApiService,
+            articleMetaDao = articleMetaDao,
+            offlinePageFtsDao = offlinePageFtsDao
+        )
+    }
 
     // --- Application Lifecycle ---
 
     override fun onCreate() {
         super.onCreate()
-        instance = this // Ensure instance is set before any dependencies might need it
-        Log.d(TAG, "OSRSWikiApplication created and manual DI initializing...")
-
-        // Initialize repositories that depend on other services/DAOs
-        pageRepository = PageRepository(
-            mediaWikiApiService = wikiApiService, // from lazy delegate
-            articleMetaDao = articleMetaDao,     // from lazy delegate
-            applicationContext = this            // provide application context
-        )
-
-        searchRepository = SearchRepository(
-            apiService = wikiApiService,        // from lazy delegate
-            articleMetaDao = articleMetaDao     // from lazy delegate
-        )
-
-        Log.d(TAG, "Manual DI setup complete in OSRSWikiApplication.")
+        instance = this // Set the static instance reference
+        Log.d(TAG, "OSRSWikiApplication created and instance set.")
+        // networkMonitor and other lazy properties will be initialized on first access.
     }
 
     companion object {
         private const val TAG = "OSRSWikiApplication"
         lateinit var instance: OSRSWikiApp
-            private set
+            private set // Setter remains private
 
-        // Example: Manual crash logging function (if you still need it)
         fun logCrashManually(throwable: Throwable) {
             Log.e("OSRSWikiAppCrash", "Manual crash log from Application", throwable)
-            // Consider adding more sophisticated logging here if needed
         }
     }
 }

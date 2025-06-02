@@ -50,4 +50,11 @@
     <string name="title_page_not_specified">Page Not Specified</string>
     <string name="label_content_unavailable">Content unavailable for this page.</string>
 
+    <string name="saved_pages_empty_message">No pages saved for offline reading yet.</string>
+    <string name="saved_page_last_accessed_format">Last accessed: %s</string>
+
+    <string name="search_no_results_for_query">No results found for \"%1$s\"</string>
+    <string name="offline_search_active_message">Currently offline. Showing saved pages.</string>
+    <string name="offline_indicator_generic">You are currently offline.</string>
+
 </resources>

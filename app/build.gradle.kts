@@ -58,7 +58,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.preference.ktx) // Added for SharedPreferences utilities
     implementation(libs.androidx.work.runtime.ktx) // This alias should match what you defined in libs.versions.toml
-
+    implementation(libs.jsoup)
     implementation(libs.apacheCommonsLang3)
 
     // Room components
