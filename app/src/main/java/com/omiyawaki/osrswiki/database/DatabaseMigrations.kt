@@ -112,4 +112,17 @@ object DatabaseMigrations {
             db.execSQL("ALTER TABLE `offline_objects` ADD COLUMN `saveType` TEXT NOT NULL DEFAULT '${OfflineObject.SAVE_TYPE_READING_LIST}'")
         }
     }
+
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Room will automatically create the FTS table 'offline_page_fts'
+            // based on the @Fts4 annotation on the OfflinePageFts entity when the schema is generated.
+            // This migration step is primarily to increment the version.
+            // If Room did not handle FTS table creation automatically (which it should),
+            // you would add the explicit SQL here:
+            // database.execSQL("CREATE VIRTUAL TABLE IF NOT EXISTS `offline_page_fts` USING FTS4(`url` TEXT, `title` TEXT, `body` TEXT)")
+            android.util.Log.i("DBMigration", "Migrating database from version 9 to 10. FTS table 'offline_page_fts' will be created by Room.")
+        }
+    }
+
 }

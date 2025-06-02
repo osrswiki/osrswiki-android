@@ -6,5 +6,6 @@ package com.omiyawaki.osrswiki.search
 data class CleanedSearchResultItem(
     val id: String, // pageid as String
     val title: String,
-    val snippet: String // Cleaned snippet
+    val snippet: String,
+    val isFtsResult: Boolean = false
 )
