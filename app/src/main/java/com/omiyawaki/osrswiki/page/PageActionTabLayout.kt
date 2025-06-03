@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.Log // Import Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.widget.LinearLayout
@@ -49,6 +50,7 @@ class PageActionTabLayout @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     var callback: PageActionItem.Callback? = null
+    private val CLICK_DEBUG_TAG = "PageActionTabLayout_Click" // Define a tag for logging
 
     init {
         orientation = HORIZONTAL
@@ -57,12 +59,13 @@ class PageActionTabLayout @JvmOverloads constructor(
 
     fun update() {
         removeAllViews()
+        Log.d(CLICK_DEBUG_TAG, "update() called. Callback is null: ${callback == null}") // Log callback state during update
 
         val itemsToDisplay = PageActionItem.DEFAULT_BOTTOM_BAR_ITEMS_ORDER
         val typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
 
         val tintColor = ResourceUtilPlaceholder.getThemedColorStateList(context, R.attr.placeholder_color)
-                        ?: android.content.res.ColorStateList.valueOf(0xFF808080.toInt()) // Fallback to a gray
+            ?: android.content.res.ColorStateList.valueOf(0xFF808080.toInt()) // Fallback to a gray
 
         val backgroundResId = ResourceUtilPlaceholder.getThemedAttributeId(context, androidx.appcompat.R.attr.selectableItemBackgroundBorderless)
         val actualBackgroundResId = if (backgroundResId != 0) backgroundResId else android.R.drawable.list_selector_background
@@ -82,7 +85,6 @@ class PageActionTabLayout @JvmOverloads constructor(
                 setTextColor(tintColor)
                 textAlignment = TEXT_ALIGNMENT_CENTER
                 setTypeface(typeface, Typeface.NORMAL)
-                // Use the renamed, more generic dimension resource
                 setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimensionPixelSize(R.dimen.page_action_label_text_size).toFloat())
                 maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
@@ -95,8 +97,14 @@ class PageActionTabLayout @JvmOverloads constructor(
                 setCompoundDrawablesWithIntrinsicBounds(0, pageAction.defaultIconResId, 0, 0)
                 compoundDrawablePadding = -DimenUtilPlaceholder.dpToPx(context,4f)
 
-                setOnClickListener {
-                    callback?.let { cb -> pageAction.select(cb) }
+                setOnClickListener { clickedView ->
+                    Log.d(CLICK_DEBUG_TAG, "View clicked! Action: $pageAction (View ID: ${clickedView.id}), Current PageActionTabLayout.callback is null: ${this@PageActionTabLayout.callback == null}")
+                    this@PageActionTabLayout.callback?.let { cb ->
+                        Log.d(CLICK_DEBUG_TAG, "Callback is NOT null. Calling pageAction.select() for $pageAction")
+                        pageAction.select(cb)
+                    } ?: run {
+                        Log.w(CLICK_DEBUG_TAG, "Callback IS NULL. Cannot select action $pageAction.")
+                    }
                 }
                 isFocusable = true
             }
@@ -108,7 +116,7 @@ class PageActionTabLayout @JvmOverloads constructor(
     fun updateActionItemIcon(action: PageActionItem, @DrawableRes iconResId: Int) {
         findViewById<MaterialTextView>(action.viewIdRes)?.let { view ->
             val tintColor = ResourceUtilPlaceholder.getThemedColorStateList(context, R.attr.placeholder_color)
-                            ?: android.content.res.ColorStateList.valueOf(0xFF808080.toInt()) // Fallback
+                ?: android.content.res.ColorStateList.valueOf(0xFF808080.toInt()) // Fallback
             TextViewCompat.setCompoundDrawableTintList(view, tintColor)
             view.setCompoundDrawablesWithIntrinsicBounds(0, iconResId, 0, 0)
         }

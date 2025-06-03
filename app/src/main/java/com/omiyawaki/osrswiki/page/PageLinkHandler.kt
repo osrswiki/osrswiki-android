@@ -1,11 +1,15 @@
 package com.omiyawaki.osrswiki.page
 
-import android.content.Context // Ensure Context is imported
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.util.Log
 import android.widget.Toast
-import com.omiyawaki.osrswiki.page.PageViewModel
+import com.omiyawaki.osrswiki.page.PageViewModel // Retained for now, though not used in revised onInternalArticleLinkClicked
 import com.omiyawaki.osrswiki.util.Result
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,23 +17,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Handles clicks on links within a WebView by implementing LinkHandler's abstract methods.
- *
- * @param constructionContext The context passed during construction, used for the LinkHandler base class.
- * @param coroutineScope The CoroutineScope to launch async operations.
- * @param pageRepository The repository to fetch page data.
- * @param pageViewModel The ViewModel associated with the current page, used to determine its offline status.
- */
 class PageLinkHandler(
-    constructionContext: Context, // This is supplied by PageFragment (e.g., requireContext())
+    constructionContext: Context,
     private val coroutineScope: CoroutineScope,
     private val pageRepository: PageRepository,
-    private val pageViewModel: PageViewModel
-) : LinkHandler(constructionContext) { // Pass the context to the LinkHandler base class
-
-    // Note: Inside this class, 'this.context' or simply 'context' will refer to the
-    // 'protected val context: Context' inherited from LinkHandler.
+    private val pageViewModel: PageViewModel // Kept for now, but onInternalArticleLinkClicked won't use its offline state
+) : LinkHandler(constructionContext) {
 
     companion object {
         private const val TAG = "PageLinkHandler"
@@ -37,45 +30,58 @@ class PageLinkHandler(
 
     override fun onInternalArticleLinkClicked(articleTitleWithUnderscores: String, fullUri: Uri) {
         val targetPageTitleWithSpaces = articleTitleWithUnderscores.replace('_', ' ')
-        val isCurrentPageActuallyOffline = pageViewModel.uiState.isCurrentlyOffline
-
-        Log.d(TAG, "Handling internal link. Target title: '$targetPageTitleWithSpaces' (was '$articleTitleWithUnderscores'), Current page is offline: $isCurrentPageActuallyOffline, URI: $fullUri")
+        Log.d(TAG, "Attempting to handle internal link. Target title: '$targetPageTitleWithSpaces', URI: $fullUri")
 
         coroutineScope.launch {
+            var navigationAttempted = false
+            // Step 1: Try to get the target page from repository, prioritizing offline cache
             pageRepository.getArticleByTitle(targetPageTitleWithSpaces, forceNetwork = false)
                 .collectLatest { result ->
+                    // Prevent multiple navigation attempts if the flow emits more than one terminal state quickly
+                    if (navigationAttempted && (result is Result.Success || result is Result.Error)) {
+                        Log.d(TAG, "Navigation already attempted for '$targetPageTitleWithSpaces', ignoring further emissions for this click.")
+                        return@collectLatest
+                    }
+
                     when (result) {
                         is Result.Success -> {
-                            val loadedUiState = result.data
-                            if (loadedUiState.isCurrentlyOffline) {
-                                Log.i(TAG, "Link target '$targetPageTitleWithSpaces' (pageId ${loadedUiState.pageId}) is available offline. Navigating.")
-                                // Use inherited 'context'
-                                context.startActivity(PageActivity.newIntent(context, loadedUiState.plainTextTitle, loadedUiState.pageId?.toString()))
+                            val loadedTargetUiState = result.data
+                            // Check if the successfully loaded target page is marked as offline and has content
+                            if (loadedTargetUiState.isCurrentlyOffline && loadedTargetUiState.htmlContent != null) {
+                                Log.i(TAG, "Target '$targetPageTitleWithSpaces' (ID: ${loadedTargetUiState.pageId}) found OFFLINE with content. Navigating offline.")
+                                context.startActivity(PageActivity.newIntent(context, loadedTargetUiState.plainTextTitle, loadedTargetUiState.pageId?.toString()))
+                                navigationAttempted = true
                             } else {
-                                if (isCurrentPageActuallyOffline) {
-                                    Log.i(TAG, "Link target '$targetPageTitleWithSpaces' is NOT available offline, but current page IS. Notifying user.")
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, "Page '${loadedUiState.plainTextTitle ?: targetPageTitleWithSpaces}' is not available offline.", Toast.LENGTH_LONG).show()
-                                    }
-                                } else {
-                                    Log.i(TAG, "Link target '$targetPageTitleWithSpaces' is NOT available offline. Current page is ONLINE. Navigating online.")
+                                // Target page found but not marked as offline with content, or it was a network fetch because it wasn't in cache.
+                                Log.i(TAG, "Target '$targetPageTitleWithSpaces' not found as usable offline content by repository (isCurrentlyOffline=${loadedTargetUiState.isCurrentlyOffline}, htmlContentIsNull=${loadedTargetUiState.htmlContent == null}). Checking network for online navigation.")
+                                if (isNetworkAvailable()) {
+                                    Log.i(TAG, "Network is available. Navigating ONLINE to '$targetPageTitleWithSpaces'.")
                                     context.startActivity(PageActivity.newIntent(context, targetPageTitleWithSpaces, null))
+                                } else {
+                                    Log.w(TAG, "Target '$targetPageTitleWithSpaces' not available offline and NO network connection.")
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Page '$targetPageTitleWithSpaces' is not available for offline viewing and there is no network connection.", Toast.LENGTH_LONG).show()
+                                    }
                                 }
+                                navigationAttempted = true
                             }
                         }
                         is Result.Error -> {
-                            Log.w(TAG, "Error loading link target '$targetPageTitleWithSpaces': ${result.message}")
-                            if (isCurrentPageActuallyOffline) {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Page '$targetPageTitleWithSpaces' is not available offline and could not be loaded.", Toast.LENGTH_LONG).show()
-                                }
-                            } else {
-                                Log.w(TAG, "Error loading link target '$targetPageTitleWithSpaces' from an ONLINE page. Attempting navigation by title.")
+                            Log.w(TAG, "Error initially fetching target '$targetPageTitleWithSpaces' from repository (forceNetwork=false): ${result.message}")
+                            if (isNetworkAvailable()) {
+                                Log.i(TAG, "Network is available. Attempting ONLINE navigation to '$targetPageTitleWithSpaces' due to previous error loading from cache.")
                                 context.startActivity(PageActivity.newIntent(context, targetPageTitleWithSpaces, null))
+                            } else {
+                                Log.w(TAG, "Error fetching '$targetPageTitleWithSpaces' and NO network connection.")
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Could not load page '$targetPageTitleWithSpaces'. No network connection.", Toast.LENGTH_LONG).show()
+                                }
                             }
+                            navigationAttempted = true
                         }
                         is Result.Loading -> {
-                            Log.d(TAG, "Loading link target '$targetPageTitleWithSpaces'...")
+                            Log.d(TAG, "Loading link target '$targetPageTitleWithSpaces' from repository...")
+                            // Do nothing here, wait for Success or Error state from collectLatest
                         }
                     }
                 }
@@ -87,7 +93,6 @@ class PageLinkHandler(
         try {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // Use inherited 'context'
             if (intent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(intent)
             } else {
@@ -98,5 +103,24 @@ class PageLinkHandler(
             Log.e(TAG, "Could not handle external link $uri", e)
             Toast.makeText(context, "Error opening link.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    @SuppressLint("MissingPermission") // Ensure network state permission is in Manifest
+    private fun isNetworkAvailable(): Boolean {
+        // 'context' is inherited from LinkHandler
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        if (connectivityManager != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = connectivityManager.activeNetwork
+                val capabilities = connectivityManager.getNetworkCapabilities(network)
+                return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            } else {
+                @Suppress("DEPRECATION")
+                val networkInfo = connectivityManager.activeNetworkInfo
+                @Suppress("DEPRECATION")
+                return networkInfo != null && networkInfo.isConnected
+            }
+        }
+        return false
     }
 }
