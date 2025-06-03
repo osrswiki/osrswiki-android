@@ -10,25 +10,28 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
 import com.omiyawaki.osrswiki.offline.db.OfflineObject
 import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
 import com.omiyawaki.osrswiki.network.OkHttpClientFactory
+import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.page.PageTitle
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
-import com.omiyawaki.osrswiki.util.extractTextFromHtmlString // <<< UPDATED import
+import com.omiyawaki.osrswiki.util.Result as AppResult
+import com.omiyawaki.osrswiki.util.extractTextFromHtmlString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import okhttp3.Response
-import org.json.JSONObject // <<< ADDED for JSON parsing
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.net.URLEncoder
-import java.nio.charset.Charset // For reading file content
+import java.nio.charset.Charset
 
 class SavedPageSyncWorker(
     appContext: Context,
@@ -39,18 +42,19 @@ class SavedPageSyncWorker(
     private val offlineObjectDao: OfflineObjectDao by lazy { AppDatabase.instance.offlineObjectDao() }
     private val ftsDao: OfflinePageFtsDao by lazy { AppDatabase.instance.offlinePageFtsDao() }
     private val okHttpClient by lazy { OkHttpClientFactory.offlineClient }
+    private val pageRepository: PageRepository by lazy {
+        (applicationContext as OSRSWikiApp).pageRepository
+    }
 
     private val baseApiUrl = "https://oldschool.runescape.wiki/api.php"
     private val loggerTag = "OSRSWIKI_WORKER"
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        Log.e(loggerTag, "!!! SavedPageSyncWorker: doWork() method CALLED !!!") // <<< ADD THIS VERY EARLY LOG (use Log.e to make it stand out)
-
-        Log.d(loggerTag, "SavedPageSyncWorker started.") // Existing log
+        Log.e(loggerTag, "!!! SavedPageSyncWorker: doWork() method CALLED !!!")
+        Log.d(loggerTag, "SavedPageSyncWorker started.")
         var overallSuccess = true
 
         try {
-            // ... rest of your existing doWork() method ...
             val pagesToSave = readingListPageDao.getPagesToProcessForSaving()
             if (pagesToSave.isNotEmpty()) {
                 Log.i(loggerTag, "Found ${pagesToSave.size} page(s) to save.")
@@ -70,7 +74,6 @@ class SavedPageSyncWorker(
             } else {
                 Log.d(loggerTag, "No pages found to delete.")
             }
-
         } catch (e: Exception) {
             Log.e(loggerTag, "Critical error during SavedPageSyncWorker execution.", e)
             overallSuccess = false
@@ -80,124 +83,113 @@ class SavedPageSyncWorker(
         return@withContext if (overallSuccess) Result.success() else Result.failure()
     }
 
-
     private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Boolean {
         var allItemsInThisBatchProcessedSuccessfully = true
         for (page in pagesToSave) {
-            var pageSuccessfullyFetched = false
-            var pageSuccessfullyIndexed = false
+            var pageSuccessfullyFetchedForMech2 = false
+            var pageSuccessfullyIndexedForMech2 = false
+            var pageSuccessfullySavedToArticleMeta = false
+            var contentFile: File? = null
+
+            // Declare variables for extracted data at the top of the loop for this page iteration
+            var M1_pageId: Int? = null
+            var M1_canonicalTitle: String? = null
+            var htmlContentFromJSon: String? = null
 
             val pageTitleHelper = ReadingListPage.toPageTitle(page)
-            val canonicalPageUrl = pageTitleHelper.uri // Used as the key for FTS
+            val canonicalPageUrlForFts = pageTitleHelper.uri
 
-            Log.d(loggerTag, "----------------------------------------------------") // Log separator for each page
-            Log.i(loggerTag, "Attempting to save and index page: '${page.displayTitle}' (URL: $canonicalPageUrl, ReadingListPgID: ${page.id})")
+            Log.d(loggerTag, "----------------------------------------------------")
+            Log.i(loggerTag, "Attempting to save and index page: '${page.displayTitle}' (URL for FTS: $canonicalPageUrlForFts, ReadingListPgID: ${page.id})")
 
             try {
                 val encodedApiTitle = URLEncoder.encode(page.apiTitle, "UTF-8")
-                val apiRequestUrl = "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&page=$encodedApiTitle"
-
-                val request = Request.Builder()
-                    .url(apiRequestUrl)
+                val apiRequestUrl = "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle|pageid|title&redirects=true&disableeditsection=true&disablelimitreport=true&page=$encodedApiTitle"
+                val request = Request.Builder().url(apiRequestUrl)
                     .header("X-Offline-Save", "readinglist")
                     .header("X-Offline-Save-PageLibIds", "|${page.id}|")
                     .build()
-
                 Log.d(loggerTag, "Requesting API URL for page ID ${page.id}: $apiRequestUrl")
 
                 var response: Response? = null
                 try {
                     response = okHttpClient.newCall(request).execute()
                     if (response.isSuccessful) {
-                        pageSuccessfullyFetched = true
+                        pageSuccessfullyFetchedForMech2 = true
                         Log.i(loggerTag, "Successfully fetched API response for: ${page.displayTitle}")
 
                         val offlineObjectForHtml = offlineObjectDao.getOfflineObjectByUrl(apiRequestUrl)
-                        Log.d(loggerTag, "OfflineObject lookup by apiRequestUrl ('$apiRequestUrl'): ${if (offlineObjectForHtml != null) "FOUND" else "NOT FOUND"}")
-
-                        if (offlineObjectForHtml != null) {
-                            Log.d(loggerTag, "Found OfflineObject: ID=${offlineObjectForHtml.id}, Path='${offlineObjectForHtml.path}', SaveType='${offlineObjectForHtml.saveType}', URL='${offlineObjectForHtml.url}'")
-                            if (offlineObjectForHtml.saveType == OfflineObject.SAVE_TYPE_READING_LIST) {
-                                val baseDir = File(applicationContext.filesDir, "offline_pages_rl")
-                                val contentFile = File(baseDir, offlineObjectForHtml.path + ".1")
-
-                                Log.d(loggerTag, "Expected content file path: ${contentFile.absolutePath}")
-                                Log.d(loggerTag, "Content file exists: ${contentFile.exists()}")
-
-                                if (contentFile.exists()) {
-                                    var htmlContentFromJSon: String? = null
-                                    try {
-                                        val jsonFileContent = contentFile.readText(Charsets.UTF_8)
-                                        Log.d(loggerTag, "Read content file (JSON), length: ${jsonFileContent.length}. Snippet: ${jsonFileContent.take(200)}")
-                                        val jsonResponse = JSONObject(jsonFileContent)
-                                        htmlContentFromJSon = jsonResponse.optJSONObject("parse")
-                                            ?.optString("text") // Get the string value of "text"
-                                        Log.d(loggerTag, "Extracted HTML from JSON. Is HTML null? ${htmlContentFromJSon == null}. HTML snippet: ${htmlContentFromJSon?.take(200)}")
-                                    } catch (jsonEx: Exception) {
-                                        Log.e(loggerTag, "Failed to parse JSON or extract HTML from ${contentFile.absolutePath}", jsonEx)
-                                    }
-
-                                    if (htmlContentFromJSon != null) {
-                                        val extractedText = extractTextFromHtmlString(htmlContentFromJSon)
-                                        Log.d(loggerTag, "Text extracted by Jsoup. Is text null? ${extractedText == null}. Extracted text snippet: ${extractedText?.take(200)}")
-
-                                        if (extractedText != null && extractedText.isNotBlank()) {
-                                            val cleanDisplayTitle = Html.fromHtml(page.displayTitle, Html.FROM_HTML_MODE_LEGACY).toString()
-                                            Log.d(loggerTag, "Cleaned display title for FTS: '$cleanDisplayTitle'")
-
-                                            val ftsEntry = OfflinePageFts(
-                                                url = canonicalPageUrl,
-                                                title = cleanDisplayTitle,
-                                                body = extractedText
-                                            )
-                                            try {
-                                                Log.d(loggerTag, "Preparing to delete/insert FTS entry for URL: $canonicalPageUrl")
-                                                ftsDao.deletePageContentByUrl(canonicalPageUrl)
-                                                ftsDao.insertPageContent(ftsEntry)
-                                                pageSuccessfullyIndexed = true
-                                                Log.i(loggerTag, "Successfully indexed page: $canonicalPageUrl (ID: ${page.id})")
-                                            } catch (e: Exception) {
-                                                Log.e(loggerTag, "Error during FTS DB operation for page $canonicalPageUrl (ID: ${page.id}): ${e.message}", e)
-                                            }
-                                        } else {
-                                            Log.w(loggerTag, "Extracted text by Jsoup is null or blank for: $canonicalPageUrl (ID: ${page.id}). Skipping FTS insert.")
-                                        }
-                                    } else {
-                                        Log.w(loggerTag, "Extracted HTML content from JSON was null for: $canonicalPageUrl (ID: ${page.id}). Cannot index.")
-                                    }
-                                } else {
-                                    Log.w(loggerTag, "Offline content file not found for $canonicalPageUrl (ID: ${page.id}) at expected path: ${contentFile.absolutePath}. Cannot index.")
-                                }
-                            } else {
-                                Log.w(loggerTag, "OfflineObject found for $apiRequestUrl but has unexpected saveType: ${offlineObjectForHtml.saveType}. Skipping FTS indexing for this object.")
-                            }
+                        if (offlineObjectForHtml != null && offlineObjectForHtml.saveType == OfflineObject.SAVE_TYPE_READING_LIST) {
+                            val baseDir = File(applicationContext.filesDir, "offline_pages_rl")
+                            contentFile = File(baseDir, offlineObjectForHtml.path + ".1")
+                            Log.d(loggerTag, "Expected content file for JSON: ${contentFile.absolutePath}, Exists: ${contentFile.exists()}")
                         } else {
-                            Log.w(loggerTag, "OfflineObject not found for apiRequestUrl: $apiRequestUrl. Cannot locate file to index.")
+                            Log.w(loggerTag, "OfflineObject not found for reading list type or is null for URL: $apiRequestUrl")
                         }
+
+                        if (contentFile?.exists() == true) {
+                            try {
+                                val jsonFileContent = contentFile.readText(Charsets.UTF_8)
+                                val jsonResponse = JSONObject(jsonFileContent)
+                                val parseObject = jsonResponse.optJSONObject("parse") // parseObject is local to this try block
+                                if (parseObject != null) {
+                                    M1_pageId = parseObject.optInt("pageid", 0).takeIf { it != 0 }
+                                    M1_canonicalTitle = if (parseObject.has("title") && !parseObject.isNull("title")) parseObject.getString("title") else null
+                                    htmlContentFromJSon = if (parseObject.has("text") && !parseObject.isNull("text")) parseObject.getString("text") else null
+                                    Log.d(loggerTag, "Extracted from JSON: pageId=$M1_pageId, canonicalTitle='$M1_canonicalTitle'. HTML isNull: ${htmlContentFromJSon == null}")
+
+                                    if (M1_pageId != null) {
+                                        readingListPageDao.updateMediaWikiPageId(page.id, M1_pageId)
+                                        Log.i(loggerTag, "Updated ReadingListPage (ID: ${page.id}) with mediaWikiPageId: $M1_pageId")
+                                    }
+                                } else { Log.w(loggerTag, "No 'parse' object in JSON response for ${page.displayTitle}") }
+                            } catch (jsonEx: Exception) { Log.e(loggerTag, "Failed to parse JSON from ${contentFile.absolutePath}", jsonEx) }
+                        } else { Log.w(loggerTag, "Content file for JSON response not found for ${page.displayTitle}") }
+
+                        // Now use the loop-scoped M1_canonicalTitle and htmlContentFromJSon
+                        if (htmlContentFromJSon != null) {
+                            val extractedText = extractTextFromHtmlString(htmlContentFromJSon)
+                            if (extractedText?.isNotBlank() == true) {
+                                val cleanDisplayTitle = Html.fromHtml(page.displayTitle, Html.FROM_HTML_MODE_LEGACY).toString()
+                                val ftsEntry = OfflinePageFts(url = canonicalPageUrlForFts, title = cleanDisplayTitle, body = extractedText)
+                                try {
+                                    ftsDao.deletePageContentByUrl(canonicalPageUrlForFts)
+                                    ftsDao.insertPageContent(ftsEntry)
+                                    pageSuccessfullyIndexedForMech2 = true
+                                    Log.i(loggerTag, "Successfully FTS-indexed page: $canonicalPageUrlForFts")
+                                } catch (e: Exception) { Log.e(loggerTag, "Error FTS DB op for $canonicalPageUrlForFts", e) }
+                            } else { Log.w(loggerTag, "Extracted text for FTS is blank for $canonicalPageUrlForFts") }
+                        } else { Log.w(loggerTag, "HTML from JSON was null for FTS for ${page.displayTitle}") }
+
+                        if (M1_pageId != null) {
+                            Log.d(loggerTag, "Attempting ArticleMeta save (PageRepository) for pageId: $M1_pageId ('${page.displayTitle}', API Canonical: '$M1_canonicalTitle')")
+                            try {
+                                val repoSaveResult = pageRepository.saveArticleOffline(pageId = M1_pageId, displayTitleFromUi = page.displayTitle)
+                                if (repoSaveResult is AppResult.Success) {
+                                    pageSuccessfullySavedToArticleMeta = true
+                                    Log.i(loggerTag, "Successfully saved pageId $M1_pageId to ArticleMeta.")
+                                } else if (repoSaveResult is AppResult.Error) {
+                                    Log.e(loggerTag, "Failed to save pageId $M1_pageId to ArticleMeta: ${repoSaveResult.message}")
+                                }
+                            } catch (e: Exception) { Log.e(loggerTag, "Exception PageRepository.saveArticleOffline for $M1_pageId", e) }
+                        } else { Log.w(loggerTag, "Cannot save to ArticleMeta: Valid pageId not extracted for '${page.displayTitle}'.") }
 
                         val totalSize = offlineObjectDao.getTotalBytesForPageId(page.id, applicationContext)
                         readingListPageDao.updatePageSizeBytes(page.id, totalSize)
-                        Log.d(loggerTag, "Updated size for page ID ${page.id} to $totalSize bytes.")
+                        readingListPageDao.updatePageStatusToSavedAndMtime(page.id, currentTimeMs = System.currentTimeMillis())
+                        Log.d(loggerTag, "Updated ReadingListPage status to SAVED & size for page ID ${page.id} to $totalSize bytes.")
+                    } else { Log.w(loggerTag, "Failed to fetch page ${page.displayTitle}. HTTP: ${response.code}") }
+                } finally { response?.body?.close() }
+            } catch (ioe: IOException) { Log.e(loggerTag, "IOException for ${page.displayTitle}", ioe)
+            } catch (e: Exception) { Log.e(loggerTag, "Unexpected error for ${page.displayTitle}", e) }
 
-                    } else {
-                        Log.w(loggerTag, "Failed to fetch page ${page.displayTitle} (ID: ${page.id}). HTTP Code: ${response.code}")
-                    }
-                } finally {
-                    response?.body?.close()
-                }
-            } catch (ioe: IOException) {
-                Log.e(loggerTag, "IOException while processing page ${page.displayTitle} (ID: ${page.id}) for saving/indexing", ioe)
-            } catch (e: Exception) {
-                Log.e(loggerTag, "Unexpected error processing page ${page.displayTitle} (ID: ${page.id}) for saving/indexing", e)
-            }
-
-            Log.d(loggerTag, "Page processing finished. Fetched: $pageSuccessfullyFetched, Indexed: $pageSuccessfullyIndexed for page ID ${page.id}")
-            if (!(pageSuccessfullyFetched && pageSuccessfullyIndexed)) {
+            Log.d(loggerTag, "Page processing fin. Mech2Fetch: $pageSuccessfullyFetchedForMech2, Mech2Index: $pageSuccessfullyIndexedForMech2, ArtMetaSave: $pageSuccessfullySavedToArticleMeta for page ID ${page.id}")
+            if (!(pageSuccessfullyFetchedForMech2 && pageSuccessfullyIndexedForMech2 && pageSuccessfullySavedToArticleMeta )) {
                 allItemsInThisBatchProcessedSuccessfully = false
             }
-            Log.d(loggerTag, "----------------------------------------------------") // Log separator
+            Log.d(loggerTag, "----------------------------------------------------")
         }
-        Log.d(loggerTag, "Page saving/indexing batch finished. Overall success for this batch: $allItemsInThisBatchProcessedSuccessfully")
+        Log.d(loggerTag, "Page saving batch finished. Overall success: $allItemsInThisBatchProcessedSuccessfully")
         return allItemsInThisBatchProcessedSuccessfully
     }
 
@@ -206,46 +198,55 @@ class SavedPageSyncWorker(
         Log.i(loggerTag, "Starting deletion process for ${pagesToDelete.size} pages.")
         for (page in pagesToDelete) {
             val pageTitleHelper = ReadingListPage.toPageTitle(page)
-            val canonicalPageUrl = pageTitleHelper.uri
+            val canonicalPageUrlForFts = pageTitleHelper.uri
+
+            val M1_pageId_for_delete: Int? = page.mediaWikiPageId // Use the stored Int? field directly
+
             try {
-                Log.i(loggerTag, "Processing page for deletion: Title='${page.displayTitle}', URL='${canonicalPageUrl}', ReadingListPage.ID=${page.id}")
+                Log.i(loggerTag, "Processing page for deletion: Title='${page.displayTitle}', URL for FTS='${canonicalPageUrlForFts}', ReadingListPg.ID=${page.id}, MediaWiki PageID for ArticleMeta: $M1_pageId_for_delete")
 
                 offlineObjectDao.deleteObjectsForPageIds(listOf(page.id), applicationContext)
+                Log.i(loggerTag, "Successfully deleted offline objects (Mech2) for page: ${page.displayTitle}")
 
                 try {
-                    ftsDao.deletePageContentByUrl(canonicalPageUrl)
-                    Log.i(loggerTag, "Successfully deleted FTS entry for page: $canonicalPageUrl (ID: ${page.id})")
-                } catch (e: Exception) {
-                    Log.e(loggerTag, "Error deleting FTS entry for page $canonicalPageUrl (ID: ${page.id}): ${e.message}", e)
-                    allItemsInThisBatchProcessedSuccessfully = false
-                }
+                    ftsDao.deletePageContentByUrl(canonicalPageUrlForFts)
+                    Log.i(loggerTag, "Successfully deleted FTS entry for: $canonicalPageUrlForFts")
+                } catch (e: Exception) { Log.e(loggerTag, "Error deleting FTS for $canonicalPageUrlForFts", e) }
+
+                if (M1_pageId_for_delete != null && M1_pageId_for_delete != 0) { // Check for valid non-zero ID
+                    Log.d(loggerTag, "Attempting ArticleMeta deletion (PageRepository) for MediaWiki pageId: $M1_pageId_for_delete")
+                    try {
+                        val removeResult = pageRepository.removeArticleOffline(pageId = M1_pageId_for_delete)
+                        if (removeResult is AppResult.Success) {
+                            Log.i(loggerTag, "Successfully removed MediaWiki pageId $M1_pageId_for_delete from ArticleMeta.")
+                        } else if (removeResult is AppResult.Error) {
+                            Log.w(loggerTag, "Failed to remove MediaWiki pageId $M1_pageId_for_delete from ArticleMeta: ${removeResult.message}")
+                        }
+                    } catch (e: Exception) { Log.e(loggerTag, "Exception PageRepository.removeArticleOffline for $M1_pageId_for_delete", e) }
+                } else { Log.w(loggerTag, "Cannot remove from ArticleMeta: MediaWiki pageId not available/valid in ReadingListPage for '${page.displayTitle}'.") }
 
                 val newStatusAfterDeletion = ReadingListPage.STATUS_SAVED
                 readingListPageDao.updatePageAfterOfflineDeletion(page.id, newStatusAfterDeletion, System.currentTimeMillis())
-                Log.i(loggerTag, "Successfully processed file deletion and DB update for page: ${page.displayTitle} (ID: ${page.id}). Status set to $newStatusAfterDeletion, offline=false.")
-
+                Log.i(loggerTag, "Updated ReadingListPage status for ${page.displayTitle} (ID: ${page.id}). Status: $newStatusAfterDeletion, offline=false.")
             } catch (e: Exception) {
-                Log.e(loggerTag, "Error processing page ${page.displayTitle} (ID: ${page.id}) for deletion", e)
+                Log.e(loggerTag, "Error processing deletion for ${page.displayTitle} (ID: ${page.id})", e)
                 allItemsInThisBatchProcessedSuccessfully = false
             }
         }
-        Log.d(loggerTag, "Page deletion batch finished. Success status for this batch: $allItemsInThisBatchProcessedSuccessfully")
+        Log.d(loggerTag, "Page deletion batch finished. Overall success: $allItemsInThisBatchProcessedSuccessfully")
         return allItemsInThisBatchProcessedSuccessfully
     }
 
     companion object {
         private const val UNIQUE_WORK_NAME = "SavedPageSyncWorker"
-
         fun enqueue(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
-
             val workRequest = OneTimeWorkRequestBuilder<SavedPageSyncWorker>()
                 .setConstraints(constraints)
                 .addTag(UNIQUE_WORK_NAME)
                 .build()
-
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_WORK_NAME,
                 ExistingWorkPolicy.REPLACE,
