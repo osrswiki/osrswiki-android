@@ -1,6 +1,6 @@
 package com.omiyawaki.osrswiki.readinglist.db
 
-import android.util.Log // Import android.util.Log
+import android.util.Log
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -8,18 +8,14 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
-import com.omiyawaki.osrswiki.OSRSWikiApp // Import your Application class
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.page.Namespace
 import com.omiyawaki.osrswiki.page.PageTitle
 import com.omiyawaki.osrswiki.readinglist.database.ReadingList
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
-import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker // Import the worker
-import kotlinx.coroutines.flow.Flow // Added import for Flow
-// TODO: Uncomment and implement/adapt these dependencies later
-// import com.omiyawaki.osrswiki.concurrency.FlowEventBus
-// import com.omiyawaki.osrswiki.events.ArticleSavedOrDeletedEvent
-// import com.omiyawaki.osrswiki.readinglist.sync.ReadingListSyncAdapter
+import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReadingListPageDao {
@@ -41,7 +37,6 @@ interface ReadingListPageDao {
     @Query("SELECT * FROM ReadingListPage WHERE listId = :listId AND status != :excludedStatus ORDER BY mtime DESC")
     fun getPagesByListId(listId: Long, excludedStatus: Long = ReadingListPage.STATUS_QUEUE_FOR_DELETE): List<ReadingListPage>
 
-    // New method for the "Saved Pages" tab
     @Query("SELECT * FROM ReadingListPage WHERE offline = 1 AND status = :statusSaved ORDER BY atime DESC")
     fun getFullySavedPagesObservable(statusSaved: Long = ReadingListPage.STATUS_SAVED): Flow<List<ReadingListPage>>
 
@@ -62,9 +57,10 @@ interface ReadingListPageDao {
                     if (this.offline) {
                         this.status = ReadingListPage.STATUS_QUEUE_FOR_SAVE
                     } else {
-                        this.status = ReadingListPage.STATUS_SAVED // Note: If not for offline, marking as SAVED but size might be 0
+                        this.status = ReadingListPage.STATUS_SAVED
                         this.sizeBytes = 0
                     }
+                    // mediaWikiPageId is not set here, will be set by SavedPageSyncWorker
                 }
                 insertReadingListPage(newPage)
                 addedDisplayTitles.add(title.displayText)
@@ -78,7 +74,6 @@ interface ReadingListPageDao {
         } else {
             Log.e("RLPageDao_SAVE_TEST", "addPagesToList: NOT enqueuing SavedPageSyncWorker. addedDisplayTitlesEmpty=${addedDisplayTitles.isEmpty()}, downloadEnabled=${downloadEnabled}")
         }
-        // TODO: FlowEventBus.post(ArticleSavedOrDeletedEvent(true, ...))
         return addedDisplayTitles
     }
 
@@ -135,17 +130,13 @@ interface ReadingListPageDao {
         } else {
             Log.e("RLPageDao_SAVE_TEST", "markPagesForDeletion: NOT enqueuing SavedPageSyncWorker. needsSync=false")
         }
-        // TODO: FlowEventBus.post(ArticleSavedOrDeletedEvent(false, ...))
     }
 
     @Query("DELETE FROM ReadingListPage WHERE status = :status")
     suspend fun purgePagesByStatus(status: Long = ReadingListPage.STATUS_QUEUE_FOR_DELETE)
 
-
-    @Query(
-        "SELECT * FROM ReadingListPage WHERE wiki = :wiki AND lang = :lang AND namespace = :ns AND apiTitle = :apiTitle AND listId = :listId LIMIT 1"
-    )
-    fun observePageByListIdAndTitle(wiki: WikiSite, lang: String, ns: Namespace, apiTitle: String, listId: Long): kotlinx.coroutines.flow.Flow<ReadingListPage?>
+    @Query("SELECT * FROM ReadingListPage WHERE wiki = :wiki AND lang = :lang AND namespace = :ns AND apiTitle = :apiTitle AND listId = :listId LIMIT 1")
+    fun observePageByListIdAndTitle(wiki: WikiSite, lang: String, ns: Namespace, apiTitle: String, listId: Long): Flow<ReadingListPage?>
 
     // --- Methods for SavedPageSyncWorker ---
     @Query("SELECT * FROM ReadingListPage WHERE offline = 1 AND (status = :statusQueueForSave OR status = :statusQueueForForcedSave)")
@@ -177,4 +168,8 @@ interface ReadingListPageDao {
 
     @Query("UPDATE ReadingListPage SET status = :newStatus, mtime = :currentTimeMs WHERE id = :pageId")
     suspend fun updatePageStatusToSavedAndMtime(pageId: Long, newStatus: Long = ReadingListPage.STATUS_SAVED, currentTimeMs: Long)
+
+    // <<< NEW METHOD to update MediaWiki Page ID >>>
+    @Query("UPDATE ReadingListPage SET mediaWikiPageId = :mwPageId WHERE id = :id")
+    suspend fun updateMediaWikiPageId(id: Long, mwPageId: Int)
 }

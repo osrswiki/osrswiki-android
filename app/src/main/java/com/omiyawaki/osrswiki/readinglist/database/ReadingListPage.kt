@@ -27,12 +27,14 @@ data class ReadingListPage(
     var sizeBytes: Long = 0,
     var lang: String,
     var revId: Long = 0,
-    var remoteId: Long = 0
+    var remoteId: Long = 0,
+    var mediaWikiPageId: Int? = null // <<< NEW FIELD to store MediaWiki int page ID
 ) : Serializable {
 
     constructor(title: PageTitle) :
             this(title.wikiSite, title.namespace(), title.displayText, title.prefixedText, // Use title.prefixedText for apiTitle
                 title.description, title.thumbUrl, lang = title.wikiSite.languageCode) {
+        // mediaWikiPageId will be null here initially; SavedPageSyncWorker will update it
         val now = System.currentTimeMillis()
         mtime = now
         atime = now
@@ -60,15 +62,15 @@ data class ReadingListPage(
 
         fun toPageTitle(page: ReadingListPage): PageTitle {
             val wiki = page.wiki.apply { if (this.languageCode != page.lang) this.languageCode = page.lang }
-            // Corrected PageTitle constructor call using named arguments
+            // PageTitle constructor doesn't take mediaWikiPageId, that's fine.
+            // This helper is used elsewhere; if other places need pageId in PageTitle, PageTitle itself would need modification.
             return PageTitle(
                 namespace = page.namespace,
-                text = page.apiTitle, // apiTitle from ReadingListPage is the prefixed text for PageTitle
+                text = page.apiTitle,
                 wikiSite = wiki,
                 thumbUrl = page.thumbUrl,
                 description = page.description,
                 displayText = page.displayTitle
-                // fragment can be null by default if not stored in ReadingListPage
             )
         }
     }

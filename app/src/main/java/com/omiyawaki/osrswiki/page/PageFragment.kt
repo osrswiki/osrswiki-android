@@ -12,11 +12,11 @@ import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-// Removed: import android.webkit.WebViewClient // We will use our AppWebViewClient
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider // Added for PageViewModel instantiation
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -25,10 +25,8 @@ import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.page.action.PageActionItem
-// New imports for link handling
-import com.omiyawaki.osrswiki.page.LinkHandler
-import com.omiyawaki.osrswiki.page.PageLinkHandler
-import com.omiyawaki.osrswiki.page.AppWebViewClient
+// PageLinkHandler is the concrete implementation
+// AppWebViewClient uses LinkHandler interface, but we instantiate PageLinkHandler
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
@@ -45,13 +43,14 @@ class PageFragment : Fragment() {
     private var _binding: FragmentPageBinding? = null
     private val binding get() = _binding!!
 
-    private val pageViewModel = PageViewModel()
+    // Use ViewModelProvider for proper ViewModel lifecycle management
+    private lateinit var pageViewModel: PageViewModel
     private lateinit var pageRepository: PageRepository
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var readingListPageDao: ReadingListPageDao
 
-    // For link handling
-    private lateinit var linkHandler: LinkHandler
+    // Explicitly typed as PageLinkHandler
+    private lateinit var pageLinkHandler: PageLinkHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
@@ -68,8 +67,22 @@ class PageFragment : Fragment() {
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
         }
         Log.d(WEBVIEW_DEBUG_TAG,"onCreate - Args processed: ID: $pageIdArg, Title: $pageTitleArg")
+
+        // Initialize PageViewModel
+        // Assuming PageViewModel has a constructor that might take PageRepository if needed,
+        // or PageRepository is accessed via Application class as before for other components.
+        // For simplicity, if PageViewModel has a no-arg constructor or uses application context for repo:
+        pageViewModel = PageViewModel()
+        // If PageViewModel requires PageRepository via constructor and you use a Factory:
+        // val factory = PageViewModelFactory( (requireActivity().applicationContext as OSRSWikiApp).pageRepository )
+        // pageViewModel = ViewModelProvider(this, factory).get(PageViewModel::class.java)
+
+        // Initialize PageRepository (as it was before)
         pageRepository = (requireActivity().applicationContext as OSRSWikiApp).pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
+
+        // If PageViewModel needs repository explicitly set after creation (not typical for Android ViewModels)
+        // pageViewModel.setRepository(pageRepository) // Example, if such a method existed
     }
 
     override fun onCreateView(
@@ -87,10 +100,11 @@ class PageFragment : Fragment() {
         Log.d(WEBVIEW_DEBUG_TAG,"onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg")
 
         val appDb = AppDatabase.instance
+        // Pass the correctly initialized pageViewModel instance
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
             pageRepository = pageRepository,
-            pageViewModel = pageViewModel,
+            pageViewModel = pageViewModel, // Pass the class member viewModel
             readingListPageDao = appDb.readingListPageDao(),
             offlineObjectDao = appDb.offlineObjectDao(),
             coroutineScope = this.viewLifecycleOwner.lifecycleScope,
@@ -102,13 +116,19 @@ class PageFragment : Fragment() {
             }
         )
 
-        // Initialize LinkHandler and AppWebViewClient
-        linkHandler = PageLinkHandler(requireContext())
+        // Initialize PageLinkHandler
+        // It will now take PageViewModel to dynamically access uiState.isCurrentlyOffline
+        pageLinkHandler = PageLinkHandler(
+            requireContext(),
+            viewLifecycleOwner.lifecycleScope,
+            pageRepository,
+            pageViewModel // Pass the PageViewModel instance
+        )
 
-        binding.pageWebView.webViewClient = object : AppWebViewClient(linkHandler) {
+        binding.pageWebView.webViewClient = object : AppWebViewClient(pageLinkHandler) { // Pass the concrete PageLinkHandler
             @RequiresApi(Build.VERSION_CODES.M)
             override fun onPageCommitVisible(view: WebView?, url: String?) {
-                super.onPageCommitVisible(view, url) // Call super for base AppWebViewClient behavior (e.g. logging)
+                super.onPageCommitVisible(view, url)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageCommitVisible for URL: $url. Making WebView visible and applying styles.")
                 if (isAdded && _binding != null) {
                     binding.pageWebView.visibility = View.VISIBLE
@@ -118,9 +138,9 @@ class PageFragment : Fragment() {
                 }
             }
 
-            @SuppressLint("RequiresApi") // Kept from original, ensure it's still relevant
+            @SuppressLint("RequiresApi")
             override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url) // Call super for base AppWebViewClient behavior (e.g. logging)
+                super.onPageFinished(view, url)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageFinished for URL: $url. Current WebView visibility: ${binding.pageWebView?.visibility}")
                 if (isAdded && _binding != null) {
                     if (binding.pageWebView.visibility != View.VISIBLE) {
@@ -136,8 +156,6 @@ class PageFragment : Fragment() {
                     Log.w(WEBVIEW_DEBUG_TAG, "onPageFinished: Fragment not added or binding null.")
                 }
             }
-            // Note: onReceivedError and onReceivedHttpError are already handled (logged) by the base AppWebViewClient.
-            // If more specific error handling is needed in PageFragment, override them here too.
         }
 
         binding.pageWebView.webChromeClient = object : WebChromeClient() {
@@ -154,9 +172,9 @@ class PageFragment : Fragment() {
         binding.pageActionsTabLayout.callback = pageActionItemCallback
         binding.pageActionsTabLayout.update()
 
-        updateUiFromViewModel()
-        initiatePageLoad(forceNetwork = false)
-        observeAndRefreshSaveButtonState()
+        updateUiFromViewModel() // Initial UI update based on potentially empty ViewModel state
+        initiatePageLoad(forceNetwork = false) // Start loading page content
+        observeAndRefreshSaveButtonState() // Observe save state
 
         binding.errorTextView.setOnClickListener {
             Log.i(WEBVIEW_DEBUG_TAG, "Retry button clicked. pageIdArg: $pageIdArg, pageTitleArg: $pageTitleArg. Forcing network.")
@@ -281,18 +299,24 @@ class PageFragment : Fragment() {
             }
         }
 
+        // Access ViewModel's state directly
         val currentViewModelPageId: Int? = pageViewModel.uiState.pageId
         val currentViewModelPlainTextTitle = pageViewModel.uiState.plainTextTitle
         val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && pageViewModel.uiState.error == null
 
         pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
-        updateUiFromViewModel()
+        updateUiFromViewModel() // Reflect loading state immediately
 
         if (idToLoad != null) {
             if (!forceNetwork && currentViewModelPageId == idToLoad && contentAlreadyLoaded) {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with ID '$idToLoad' data already present. Reverting loading state.")
-                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
+                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false) // Stop loading indication
                 updateUiFromViewModel()
+                // Ensure WebView is visible if content was already loaded
+                if (_binding != null && binding.pageWebView.visibility != View.VISIBLE && pageViewModel.uiState.htmlContent != null) {
+                    binding.pageWebView.visibility = View.VISIBLE
+                    applyWebViewStylingAndRevealBody() // Re-apply styles if needed
+                }
                 return
             } else {
                 Log.i(WEBVIEW_DEBUG_TAG, "Requesting to load page by ID: $idToLoad (Title arg was: '$currentTitleToLoadArg')")
@@ -301,8 +325,13 @@ class PageFragment : Fragment() {
         } else if (!currentTitleToLoadArg.isNullOrBlank()) {
             if (!forceNetwork && currentViewModelPlainTextTitle == currentTitleToLoadArg && contentAlreadyLoaded) {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with title '$currentTitleToLoadArg' data already present. Reverting loading state.")
-                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
+                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false) // Stop loading indication
                 updateUiFromViewModel()
+                // Ensure WebView is visible if content was already loaded
+                if (_binding != null && binding.pageWebView.visibility != View.VISIBLE && pageViewModel.uiState.htmlContent != null) {
+                    binding.pageWebView.visibility = View.VISIBLE
+                    applyWebViewStylingAndRevealBody() // Re-apply styles if needed
+                }
                 return
             } else {
                 Log.i(WEBVIEW_DEBUG_TAG, "Requesting to load page by title: '$currentTitleToLoadArg' (ID arg was: '$currentIdToLoadArg')")
@@ -323,12 +352,12 @@ class PageFragment : Fragment() {
     }
 
     private fun updateUiFromViewModel() {
-        if (!isAdded || !isVisible || _binding == null) { // Added !isVisible check
+        if (!isAdded || !isVisible || _binding == null) {
             Log.w(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Fragment not in a valid state (not added, not visible, or binding is null).")
             return
         }
         Log.d(WEBVIEW_DEBUG_TAG, "PageFragment updateUiFromViewModel. Current state: ${pageViewModel.uiState}")
-        val state = pageViewModel.uiState
+        val state = pageViewModel.uiState // Use the ViewModel's state directly
 
         binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
 
@@ -336,16 +365,19 @@ class PageFragment : Fragment() {
             Log.e(WEBVIEW_DEBUG_TAG, "Page load error (technical details): $detailedErrorString")
             binding.errorTextView.text = detailedErrorString
             binding.errorTextView.visibility = View.VISIBLE
-            binding.pageWebView.visibility = View.INVISIBLE
+            binding.pageWebView.visibility = View.INVISIBLE // Hide WebView on error
         } ?: run {
-            binding.errorTextView.visibility = View.GONE
+            binding.errorTextView.visibility = View.GONE // Hide error view if no error
         }
 
         if (state.isLoading || state.error != null) {
+            // If loading or error, ensure WebView is hidden, especially if it was previously visible
+            // or if it's a fresh load (isLoading and no content yet).
             if (binding.pageWebView.visibility == View.VISIBLE || (state.isLoading && state.htmlContent == null) ) {
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Setting WebView WIDGET to INVISIBLE because isLoading or error.")
                 binding.pageWebView.visibility = View.INVISIBLE
             }
+            // Preload WebView with a blank page only if it's truly a fresh load attempt without any prior content/URL
             if (state.isLoading && state.htmlContent == null && (binding.pageWebView.url == null || binding.pageWebView.url == "about:blank")) {
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Loading blank data into WebView as it's a fresh load.")
                 val blankHtml = """
@@ -356,9 +388,11 @@ class PageFragment : Fragment() {
                     """.trimIndent()
                 binding.pageWebView.loadData(blankHtml, "text/html", "UTF-8")
             }
-        } else {
+        } else { // Not loading and no error, means we should have content
             state.htmlContent?.let { htmlBodySnippet ->
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Preparing to load actual HTML content. Current WebView visibility: ${binding.pageWebView.visibility}")
+                // Ensure WebView is initially invisible before loading new content to prevent flash of unstyled content (FUOC)
+                // The onPageCommitVisible will make it visible after styles are applied.
                 binding.pageWebView.visibility = View.INVISIBLE
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Set WebView WIDGET to INVISIBLE before loadDataWithBaseURL.")
 
@@ -379,10 +413,9 @@ class PageFragment : Fragment() {
                             <meta name="viewport" content="width=device-width, initial-scale=1.0">
                             <title>${state.title ?: pageTitleArg ?: "OSRS Wiki"}</title>
                             <style>
-                                /* Immediately set background and hide body to prevent FUOC */
                                 html { background-color: $backgroundColorHex !important; }
                                 body {
-                                    visibility: hidden; /* REMOVED !important */
+                                    visibility: hidden;
                                     background-color: $backgroundColorHex !important;
                                 }
                             </style>
@@ -397,17 +430,16 @@ class PageFragment : Fragment() {
                 binding.pageWebView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: loadDataWithBaseURL called. Waiting for WebViewClient callbacks to make visible and style.")
 
-            } ?: run {
+            } ?: run { // htmlContent is null, but not loading and no error (should ideally not happen if logic is correct)
                 Log.w(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: htmlContent is null, but not loading and no error. Displaying 'content unavailable'.")
-                binding.pageWebView.visibility = View.VISIBLE
+                binding.pageWebView.visibility = View.VISIBLE // Make it visible to show the message
                 binding.pageWebView.loadDataWithBaseURL(null, getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
             }
         }
-        Log.i(WEBVIEW_DEBUG_TAG, "PageFragment UI updated. ViewModel plainTextTitle: '${state.plainTextTitle}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, error: ${state.error != null}, htmlContent isNull: ${state.htmlContent == null}")
+        Log.i(WEBVIEW_DEBUG_TAG, "PageFragment UI updated. ViewModel plainTextTitle: '${state.plainTextTitle}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, isOffline: ${state.isCurrentlyOffline}, error: ${state.error != null}, htmlContent isNull: ${state.htmlContent == null}")
     }
 
     private fun observeAndRefreshSaveButtonState() {
-        // ... (content of this method remains unchanged) ...
         pageStateObserverJob?.cancel()
 
         val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
@@ -415,7 +447,7 @@ class PageFragment : Fragment() {
 
         if (plainTextForApi.isNullOrBlank()) {
             Log.e("PFragment_SAVE_TEST", "observeAndRefreshSaveButtonState - No plain text title. Cannot observe.")
-            updateSaveIcon(null)
+            updateSaveIcon(null) // Update icon to default (unsaved)
             return
         }
 
@@ -443,7 +475,6 @@ class PageFragment : Fragment() {
     }
 
     private fun updateSaveIcon(entry: ReadingListPage?) {
-        // ... (content of this method remains unchanged) ...
         if (!isAdded || _binding == null) {
             L.v("updateSaveIcon: Fragment not in a state to update UI.")
             return
@@ -453,8 +484,9 @@ class PageFragment : Fragment() {
         Log.e("PFragment_SAVE_TEST", "updateSaveIcon - Icon updated. IsActuallySavedAndOffline: $isActuallySavedAndOffline for apiTitle: ${entry?.apiTitle ?: pageViewModel.uiState.plainTextTitle ?: pageTitleArg}")
     }
 
+    // This method might be redundant if observeAndRefreshSaveButtonState is always sufficient.
+    // Kept for now if called from specific non-observing contexts.
     private fun refreshSaveButtonState() {
-        // ... (content of this method remains unchanged) ...
         Log.d("PFragment_SAVE_TEST", "Legacy refreshSaveButtonState called (will soon be fully replaced by observer)")
         val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
             ?: pageTitleArg?.takeIf { it.isNotBlank() }
@@ -477,7 +509,7 @@ class PageFragment : Fragment() {
                     ns = tempPageTitle.namespace(),
                     apiTitle = tempPageTitle.prefixedText,
                     listId = defaultListId,
-                    excludedStatus = -1L // Assuming -1L means don't exclude based on status for this check
+                    excludedStatus = -1L // No exclusion based on status for this check
                 )
             }
             updateSaveIcon(entry)
@@ -513,11 +545,10 @@ class PageFragment : Fragment() {
     }
 
     private inner class PageActionItemCallback : PageActionItem.Callback {
-        // ... (content of this inner class remains unchanged) ...
         private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
             if (!isAdded || _binding == null) return
             val snackbar = Snackbar.make(binding.root, message, length)
-                .setAnchorView(binding.pageActionsTabLayout)
+                .setAnchorView(binding.pageActionsTabLayout) // Anchor to bottom navigation/actions
             val snackbarBgColorResId: Int
             val snackbarTextColorResId: Int
 
@@ -535,111 +566,141 @@ class PageFragment : Fragment() {
         }
 
         override fun onSaveSelected() {
-            if (!isAdded || _binding == null) return
-            android.util.Log.e("PFragment_SAVE_TEST", "onSaveSelected --- ENTRY POINT REACHED ---");
+            Log.d("SaveActionDebug", "onSaveSelected CALLED for page: ${pageViewModel.uiState.plainTextTitle ?: pageTitleArg}")
+
+            if (!isAdded || _binding == null) {
+                Log.w("SaveActionDebug", "onSaveSelected exiting early: !isAdded (${!isAdded}), _binding == null (${_binding == null})")
+                return
+            }
+
+            Log.e("PFragment_SAVE_TEST", "onSaveSelected --- ENTRY POINT REACHED --- current VM title: '${pageViewModel.uiState.plainTextTitle}', VM pageId: ${pageViewModel.uiState.pageId}, arg pageTitle: '$pageTitleArg'");
 
             val pvmPlainTextTitle = pageViewModel.uiState.plainTextTitle
             val pvmHtmlContent = pageViewModel.uiState.htmlContent
-            val pTitleArg = pageTitleArg
-            android.util.Log.e("PFragment_SAVE_TEST", "Values for plainTextForApi: pvmPlainTextTitle='${pvmPlainTextTitle}', pvmHtmlContent is " + (if(pvmHtmlContent != null) "NOT NULL" else "NULL") + ", pageTitleArg='${pTitleArg}'");
+            val pTitleArg = pageTitleArg // Make sure this is being captured if needed
+            Log.e("PFragment_SAVE_TEST", "Values for plainTextForApi: pvmPlainTextTitle='${pvmPlainTextTitle}', pvmHtmlContent is " + (if(pvmHtmlContent != null) "NOT NULL" else "NULL") + ", pageTitleArg='${pTitleArg}'");
 
             val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
                 ?: pageTitleArg?.takeIf { it.isNotBlank() }
-            android.util.Log.e("PFragment_SAVE_TEST", "Derived plainTextForApi: '${plainTextForApi}'");
-
-            val htmlTextForDisplay = pageViewModel.uiState.title?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
-                ?: plainTextForApi
+            Log.e("PFragment_SAVE_TEST", "Derived plainTextForApi: '${plainTextForApi}'");
 
             if (plainTextForApi.isNullOrBlank()) {
-                android.util.Log.e("PFragment_SAVE_TEST", "plainTextForApi IS NULL OR BLANK. Will show snackbar and return.");
+                Log.e("PFragment_SAVE_TEST", "plainTextForApi IS NULL OR BLANK. Will show snackbar and return.");
                 showThemedSnackbar(getString(R.string.cannot_save_page_no_title), Snackbar.LENGTH_SHORT)
                 return
             }
-            android.util.Log.e("PFragment_SAVE_TEST", "plainTextForApi IS VALID. Proceeding with save logic.");
+            Log.e("PFragment_SAVE_TEST", "plainTextForApi IS VALID. Proceeding with save logic.");
 
-            val currentThumb = pageViewModel.uiState.imageUrl
-            val currentPageTitle = PageTitle(
-                namespace = null, // Assuming default namespace for articles
-                text = plainTextForApi,
-                wikiSite = WikiSite.OSRS_WIKI, // Ensure this is the correct WikiSite instance
-                thumbUrl = currentThumb,
-                description = null, // You might get this from PageViewModel if available
-                displayText = htmlTextForDisplay ?: plainTextForApi
-            )
+            // Add detailed logs for each step before launch
+            var debugStep = "START"
+            try {
+                debugStep = "htmlTextForDisplay"
+                val htmlTextForDisplay = pageViewModel.uiState.title?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
+                    ?: plainTextForApi
+                Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi'")
 
-            val titleForSnackbar = currentPageTitle.prefixedText
+                debugStep = "currentThumb"
+                val currentThumb = pageViewModel.uiState.imageUrl
+                Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi'")
 
-            viewLifecycleOwner.lifecycleScope.launch {
-                var message: String = getString(R.string.error_generic_save_unsave)
-                var existingEntry: ReadingListPage? = null
-                try {
-                    val readingListDao = AppDatabase.instance.readingListDao()
-                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao() // This is the same as readingListPageDao above
-                    val defaultList = withContext(Dispatchers.IO) {
-                        readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist()
-                    }
+                debugStep = "currentPageTitle"
+                val currentPageTitle = PageTitle(
+                    namespace = null,
+                    text = plainTextForApi,
+                    wikiSite = WikiSite.OSRS_WIKI, // Ensure WikiSite.OSRS_WIKI is not null
+                    thumbUrl = currentThumb,
+                    description = null,
+                    displayText = htmlTextForDisplay // Removed redundant ?: plainTextForApi as htmlTextForDisplay already falls back
+                )
+                Log.d("PFragment_SAVE_TEST", "$debugStep created for '$plainTextForApi': ${currentPageTitle.prefixedText}")
 
-                    existingEntry = withContext(Dispatchers.IO) {
-                        localReadingListPageDao.getPageByListIdAndTitle(
-                            wiki = currentPageTitle.wikiSite,
-                            lang = currentPageTitle.wikiSite.languageCode,
-                            ns = currentPageTitle.namespace(),
-                            apiTitle = currentPageTitle.prefixedText,
-                            listId = defaultList.id,
-                            excludedStatus = -1L // Assuming -1L means don't exclude based on status for this check
-                        )
-                    }
-                    android.util.Log.e("PFragment_SAVE_TEST", "DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}")
+                debugStep = "titleForSnackbar"
+                val titleForSnackbar = currentPageTitle.prefixedText
+                Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi': $titleForSnackbar. About to launch coroutine.")
 
+                debugStep = "LAUNCHING_COROUTINE"
+                viewLifecycleOwner.lifecycleScope.launch {
+                    Log.e("PFragment_SAVE_TEST", "Save coroutine STARTED for '${titleForSnackbar}'")
+                    // ... (rest of coroutine logic from your last revision with more Log.d)
+                    var message: String = getString(R.string.error_generic_save_unsave)
+                    var existingEntry: ReadingListPage? = null
+                    try {
+                        Log.d("PFragment_SAVE_TEST", "Coroutine for '${titleForSnackbar}': Inside try block, before DAO calls.")
+                        val readingListDao = AppDatabase.instance.readingListDao() // Potential NPE if AppDatabase.instance is null
+                        val localReadingListPageDao = AppDatabase.instance.readingListPageDao() // Potential NPE
+                        Log.d("PFragment_SAVE_TEST", "Coroutine for '${titleForSnackbar}': DAO instances obtained.")
 
-                    if (existingEntry != null) {
-                        android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NOT NULL. Offline: ${existingEntry.offline}, Status: ${existingEntry.status}")
-                        if (existingEntry.offline) { // Assuming 'offline' means it's saved and available offline
-                            android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS TRUE. Marking for DELETION.")
-                            withContext(Dispatchers.IO) {
-                                localReadingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry))
-                            }
-                            message = "'$titleForSnackbar' offline version will be removed."
-                        } else { // It's in a list, but not marked as offline, or download failed/pending. Mark for save.
-                            android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS FALSE. Marking for SAVE/DOWNLOAD.")
-                            withContext(Dispatchers.IO) {
-                                // Assuming this method correctly updates status for download/offline availability
-                                localReadingListPageDao.markPagesForOffline(listOf(existingEntry), offline = true, forcedSave = false)
-                            }
-                            if (Prefs.isDownloadingReadingListArticlesEnabled) { // Check user preference
-                                message = "'$titleForSnackbar' queued for download."
-                            } else {
-                                message = "'$titleForSnackbar' marked for offline availability."
-                            }
+                        val defaultList = withContext(Dispatchers.IO) {
+                            Log.d("PFragment_SAVE_TEST", "Coroutine for '${titleForSnackbar}': Getting default list (IO).")
+                            readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist()
                         }
-                    } else { // existingEntry IS NULL
-                        android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NULL. Adding new page to list.")
-                        val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
-                        android.util.Log.e("PFragment_SAVE_TEST", "For new page, Prefs.isDownloadingReadingListArticlesEnabled = $downloadEnabled")
-                        val titlesAdded = withContext(Dispatchers.IO) {
-                            localReadingListPageDao.addPagesToList(
-                                defaultList,
-                                listOf(currentPageTitle),
-                                downloadEnabled // This flag should control if it's also queued for download
+                        Log.d("PFragment_SAVE_TEST", "Coroutine for '${titleForSnackbar}': Default list ID: ${defaultList.id}.")
+
+                        existingEntry = withContext(Dispatchers.IO) {
+                            Log.d("PFragment_SAVE_TEST", "Coroutine for '${titleForSnackbar}': Getting page by list ID and title (IO) for apiTitle: ${currentPageTitle.prefixedText}.")
+                            localReadingListPageDao.getPageByListIdAndTitle(
+                                wiki = currentPageTitle.wikiSite,
+                                lang = currentPageTitle.wikiSite.languageCode,
+                                ns = currentPageTitle.namespace(),
+                                apiTitle = currentPageTitle.prefixedText,
+                                listId = defaultList.id,
+                                excludedStatus = -1L
                             )
                         }
-                        if (titlesAdded.isNotEmpty()) {
-                            L.i("Page '$titleForSnackbar' added to list '${defaultList.title}'.")
-                            if (downloadEnabled) {
-                                message = "'$titleForSnackbar' saved and queued for download."
+                        Log.e("PFragment_SAVE_TEST", "DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}")
+
+                        if (existingEntry != null) {
+                            Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NOT NULL. Offline: ${existingEntry.offline}, Status: ${existingEntry.status}")
+                            if (existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_SAVED) {
+                                Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS TRUE. Marking for DELETION.")
+                                withContext(Dispatchers.IO) {
+                                    localReadingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry))
+                                }
+                                message = "'$titleForSnackbar' offline version will be removed."
                             } else {
-                                message = "'$titleForSnackbar' saved to reading list."
+                                Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS FALSE. Marking for SAVE/DOWNLOAD.")
+                                val downloadWillBeAttempted = Prefs.isDownloadingReadingListArticlesEnabled
+                                withContext(Dispatchers.IO) {
+                                    localReadingListPageDao.markPagesForOffline(listOf(existingEntry), offline = true, forcedSave = false)
+                                }
+                                message = if (downloadWillBeAttempted) {
+                                    "'$titleForSnackbar' queued for download."
+                                } else {
+                                    "'$titleForSnackbar' marked for offline availability (will be saved without content if downloads disabled)."
+                                }
                             }
                         } else {
-                            L.w("Page '$titleForSnackbar' was not added. It might already exist or an error occurred.")
-                            message = "Page '$titleForSnackbar' could not be saved (may already exist or error)."
+                            Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NULL. Adding new page to list.")
+                            val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
+                            val titlesAdded = withContext(Dispatchers.IO) {
+                                localReadingListPageDao.addPagesToList(
+                                    defaultList,
+                                    listOf(currentPageTitle),
+                                    downloadEnabled
+                                )
+                            }
+                            if (titlesAdded.isNotEmpty()) {
+                                L.i("Page '$titleForSnackbar' added to list '${defaultList.title}'.")
+                                message = if (downloadEnabled) {
+                                    "'$titleForSnackbar' saved and queued for download."
+                                } else {
+                                    "'$titleForSnackbar' saved to reading list."
+                                }
+                            } else {
+                                L.w("Page '$titleForSnackbar' was not added. It might already exist or an error occurred.")
+                                message = "Page '$titleForSnackbar' could not be saved (may already exist or error)."
+                            }
                         }
+                    } catch (e: Exception) {
+                        Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '$titleForSnackbar' (Inside Coroutine)", e)
+                        message = getString(R.string.error_generic_save_unsave)
                     }
-                    if(isAdded) refreshSaveButtonState() // Refresh icon immediately based on intended state
-                } catch (e: Exception) {
-                    android.util.Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '$titleForSnackbar'", e)
-                }
-                if(isAdded && _binding != null) showThemedSnackbar(message)
+                    if(isAdded && _binding != null) showThemedSnackbar(message)
+                } // End of coroutine launch
+            } catch (e: Exception) {
+                // Catch any exception that happens BEFORE the coroutine launch
+                Log.e("PFragment_SAVE_TEST", "FATAL Exception in onSaveSelected for '$plainTextForApi' BEFORE coroutine launch at step '$debugStep'", e)
+                if(isAdded && _binding != null) showThemedSnackbar(getString(R.string.error_generic_save_unsave))
             }
         }
 
