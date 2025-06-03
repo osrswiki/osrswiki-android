@@ -36,6 +36,7 @@ local.properties
 
 # Log files
 *.log
+*.logcat
 
 # Memory allocation reports and profiler snapshots
 *.hprof
