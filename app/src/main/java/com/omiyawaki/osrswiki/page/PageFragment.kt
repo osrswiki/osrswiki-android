@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import android.webkit.WebViewClient
+// Removed: import android.webkit.WebViewClient // We will use our AppWebViewClient
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -25,6 +25,10 @@ import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.page.action.PageActionItem
+// New imports for link handling
+import com.omiyawaki.osrswiki.page.LinkHandler
+import com.omiyawaki.osrswiki.page.PageLinkHandler
+import com.omiyawaki.osrswiki.page.AppWebViewClient
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
@@ -45,6 +49,9 @@ class PageFragment : Fragment() {
     private lateinit var pageRepository: PageRepository
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var readingListPageDao: ReadingListPageDao
+
+    // For link handling
+    private lateinit var linkHandler: LinkHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
@@ -95,10 +102,13 @@ class PageFragment : Fragment() {
             }
         )
 
-        binding.pageWebView.webViewClient = object : WebViewClient() {
+        // Initialize LinkHandler and AppWebViewClient
+        linkHandler = PageLinkHandler(requireContext())
+
+        binding.pageWebView.webViewClient = object : AppWebViewClient(linkHandler) {
             @RequiresApi(Build.VERSION_CODES.M)
             override fun onPageCommitVisible(view: WebView?, url: String?) {
-                super.onPageCommitVisible(view, url)
+                super.onPageCommitVisible(view, url) // Call super for base AppWebViewClient behavior (e.g. logging)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageCommitVisible for URL: $url. Making WebView visible and applying styles.")
                 if (isAdded && _binding != null) {
                     binding.pageWebView.visibility = View.VISIBLE
@@ -108,9 +118,9 @@ class PageFragment : Fragment() {
                 }
             }
 
-            @SuppressLint("RequiresApi")
+            @SuppressLint("RequiresApi") // Kept from original, ensure it's still relevant
             override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
+                super.onPageFinished(view, url) // Call super for base AppWebViewClient behavior (e.g. logging)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageFinished for URL: $url. Current WebView visibility: ${binding.pageWebView?.visibility}")
                 if (isAdded && _binding != null) {
                     if (binding.pageWebView.visibility != View.VISIBLE) {
@@ -126,7 +136,10 @@ class PageFragment : Fragment() {
                     Log.w(WEBVIEW_DEBUG_TAG, "onPageFinished: Fragment not added or binding null.")
                 }
             }
+            // Note: onReceivedError and onReceivedHttpError are already handled (logged) by the base AppWebViewClient.
+            // If more specific error handling is needed in PageFragment, override them here too.
         }
+
         binding.pageWebView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 consoleMessage?.let {
@@ -195,11 +208,11 @@ class PageFragment : Fragment() {
                         style.id = 'osrsWikiInjectedStyle';
                         style.type = 'text/css';
                         var head = document.head || document.getElementsByTagName('head')[0];
-                        if (head) { 
-                            head.appendChild(style); 
+                        if (head) {
+                            head.appendChild(style);
                             console.log('OSRSWikiApp: Style element appended to head.');
-                        } else { 
-                            console.error('OSRSWikiApp: Could not find head to inject CSS.'); 
+                        } else {
+                            console.error('OSRSWikiApp: Could not find head to inject CSS.');
                             return 'Error: No head element found.';
                         }
                     }
@@ -216,8 +229,8 @@ class PageFragment : Fragment() {
                 val themeClass = if (isDarkMode()) "theme-dark" else "theme-light"
                 val applyThemeAndRevealBodyJs = """
                         (function() {
-                            if (!document.body) { 
-                                console.error('OSRSWikiApp: document.body not ready.'); 
+                            if (!document.body) {
+                                console.error('OSRSWikiApp: document.body not ready.');
                                 return 'Error: No body element found.';
                             }
                             document.body.classList.remove('theme-light', 'theme-dark');
@@ -234,8 +247,8 @@ class PageFragment : Fragment() {
             } else {
                 val justRevealBodyJs = """
                        (function() {
-                           if (document.body) { 
-                               document.body.style.visibility = 'visible'; 
+                           if (document.body) {
+                               document.body.style.visibility = 'visible';
                                console.log('OSRSWikiApp: (Fallback due to CSS injection issue) Set body.style.visibility to visible.');
                                return 'Body visibility set (fallback).';
                            } else {
@@ -368,9 +381,9 @@ class PageFragment : Fragment() {
                             <style>
                                 /* Immediately set background and hide body to prevent FUOC */
                                 html { background-color: $backgroundColorHex !important; }
-                                body { 
+                                body {
                                     visibility: hidden; /* REMOVED !important */
-                                    background-color: $backgroundColorHex !important; 
+                                    background-color: $backgroundColorHex !important;
                                 }
                             </style>
                         </head>
@@ -464,7 +477,7 @@ class PageFragment : Fragment() {
                     ns = tempPageTitle.namespace(),
                     apiTitle = tempPageTitle.prefixedText,
                     listId = defaultListId,
-                    excludedStatus = -1L
+                    excludedStatus = -1L // Assuming -1L means don't exclude based on status for this check
                 )
             }
             updateSaveIcon(entry)
@@ -546,11 +559,11 @@ class PageFragment : Fragment() {
 
             val currentThumb = pageViewModel.uiState.imageUrl
             val currentPageTitle = PageTitle(
-                namespace = null,
+                namespace = null, // Assuming default namespace for articles
                 text = plainTextForApi,
-                wikiSite = WikiSite.OSRS_WIKI,
+                wikiSite = WikiSite.OSRS_WIKI, // Ensure this is the correct WikiSite instance
                 thumbUrl = currentThumb,
-                description = null,
+                description = null, // You might get this from PageViewModel if available
                 displayText = htmlTextForDisplay ?: plainTextForApi
             )
 
@@ -561,7 +574,7 @@ class PageFragment : Fragment() {
                 var existingEntry: ReadingListPage? = null
                 try {
                     val readingListDao = AppDatabase.instance.readingListDao()
-                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao()
+                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao() // This is the same as readingListPageDao above
                     val defaultList = withContext(Dispatchers.IO) {
                         readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist()
                     }
@@ -573,7 +586,7 @@ class PageFragment : Fragment() {
                             ns = currentPageTitle.namespace(),
                             apiTitle = currentPageTitle.prefixedText,
                             listId = defaultList.id,
-                            excludedStatus = -1L
+                            excludedStatus = -1L // Assuming -1L means don't exclude based on status for this check
                         )
                     }
                     android.util.Log.e("PFragment_SAVE_TEST", "DAO Query for apiTitle '${currentPageTitle.prefixedText}', Entry found: ${existingEntry != null}, Offline: ${existingEntry?.offline}, Status: ${existingEntry?.status}")
@@ -581,24 +594,25 @@ class PageFragment : Fragment() {
 
                     if (existingEntry != null) {
                         android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NOT NULL. Offline: ${existingEntry.offline}, Status: ${existingEntry.status}")
-                        if (existingEntry.offline) {
+                        if (existingEntry.offline) { // Assuming 'offline' means it's saved and available offline
                             android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS TRUE. Marking for DELETION.")
                             withContext(Dispatchers.IO) {
                                 localReadingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry))
                             }
                             message = "'$titleForSnackbar' offline version will be removed."
-                        } else {
+                        } else { // It's in a list, but not marked as offline, or download failed/pending. Mark for save.
                             android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry.offline IS FALSE. Marking for SAVE/DOWNLOAD.")
                             withContext(Dispatchers.IO) {
+                                // Assuming this method correctly updates status for download/offline availability
                                 localReadingListPageDao.markPagesForOffline(listOf(existingEntry), offline = true, forcedSave = false)
                             }
-                            if (Prefs.isDownloadingReadingListArticlesEnabled) {
+                            if (Prefs.isDownloadingReadingListArticlesEnabled) { // Check user preference
                                 message = "'$titleForSnackbar' queued for download."
                             } else {
                                 message = "'$titleForSnackbar' marked for offline availability."
                             }
                         }
-                    } else {
+                    } else { // existingEntry IS NULL
                         android.util.Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NULL. Adding new page to list.")
                         val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
                         android.util.Log.e("PFragment_SAVE_TEST", "For new page, Prefs.isDownloadingReadingListArticlesEnabled = $downloadEnabled")
@@ -606,7 +620,7 @@ class PageFragment : Fragment() {
                             localReadingListPageDao.addPagesToList(
                                 defaultList,
                                 listOf(currentPageTitle),
-                                downloadEnabled
+                                downloadEnabled // This flag should control if it's also queued for download
                             )
                         }
                         if (titlesAdded.isNotEmpty()) {
@@ -621,7 +635,7 @@ class PageFragment : Fragment() {
                             message = "Page '$titleForSnackbar' could not be saved (may already exist or error)."
                         }
                     }
-                    if (isAdded) refreshSaveButtonState()
+                    if(isAdded) refreshSaveButtonState() // Refresh icon immediately based on intended state
                 } catch (e: Exception) {
                     android.util.Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '$titleForSnackbar'", e)
                 }

@@ -24,14 +24,14 @@ import com.omiyawaki.osrswiki.ui.main.ScrollableContent
 import com.omiyawaki.osrswiki.ui.common.FragmentToolbarPolicyProvider
 import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine // <<< ADDED IMPORT
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.omiyawaki.osrswiki.util.log.L
 import java.io.IOException
 
 class SearchFragment : Fragment(),
     ScreenConfiguration,
-    SearchAdapter.OnItemClickListener, // Assuming OfflineSearchAdapter uses this too
+    SearchAdapter.OnItemClickListener,
     ScrollableContent,
     FragmentToolbarPolicyProvider {
 
@@ -42,8 +42,8 @@ class SearchFragment : Fragment(),
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var onlineSearchAdapter: SearchAdapter // Your PagingDataAdapter
-    private lateinit var offlineSearchAdapter: OfflineSearchAdapter // <<< Use the new ListAdapter
+    private lateinit var onlineSearchAdapter: SearchAdapter
+    private lateinit var offlineSearchAdapter: OfflineSearchAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -75,7 +75,7 @@ class SearchFragment : Fragment(),
 
     private fun setupRecyclerViewAdapters() {
         onlineSearchAdapter = SearchAdapter(this)
-        offlineSearchAdapter = OfflineSearchAdapter(this) // <<< Instantiate new adapter
+        offlineSearchAdapter = OfflineSearchAdapter(this)
 
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
         L.i("RecyclerView adapters initialized.")
@@ -109,12 +109,14 @@ class SearchFragment : Fragment(),
                         Pair(isOnline, query?.trim())
                     }.collectLatest { (isOnline, trimmedQuery) ->
                         // Set offline indicator text and visibility
+                        // Ensure R.string.offline_indicator_generic ("You are currently offline.")
+                        // and R.string.offline_search_active_message ("Currently offline. Searching saved pages.")
+                        // are defined in strings.xml.
                         if (!isOnline && !trimmedQuery.isNullOrBlank()) {
                             binding.textViewOfflineIndicator.text = getString(R.string.offline_search_active_message)
                             binding.textViewOfflineIndicator.isVisible = true
                         } else if (!isOnline && trimmedQuery.isNullOrBlank()) {
-                            // Optionally, show a persistent "You are offline" message even with no query
-                            binding.textViewOfflineIndicator.text = getString(R.string.offline_indicator_generic) // New string: "You are currently offline."
+                            binding.textViewOfflineIndicator.text = getString(R.string.offline_indicator_generic)
                             binding.textViewOfflineIndicator.isVisible = true
                         }
                         else {
@@ -126,9 +128,6 @@ class SearchFragment : Fragment(),
                                 binding.recyclerViewSearchResults.adapter = onlineSearchAdapter
                                 L.d("Switched to OnlineSearchAdapter.")
                             }
-                            // UI updates for online mode will be primarily driven by onlineSearchAdapter.loadStateFlow
-                            // and the onlineSearchResultsFlow collection below.
-                            // If query is blank, PagingAdapter will show empty.
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
                             }
@@ -137,13 +136,9 @@ class SearchFragment : Fragment(),
                                 binding.recyclerViewSearchResults.adapter = offlineSearchAdapter
                                 L.d("Switched to OfflineSearchAdapter.")
                             }
-                            // UI for offline will be driven by combinedOfflineResultsList collection.
-                            // If query is blank, the combinedOfflineResultsList should be empty.
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
                             } else {
-                                // If there's a query, visibility will be handled by combinedOfflineResultsList collector
-                                // ensure progress bar is hidden for offline mode search.
                                 binding.progressBarSearch.isVisible = false
                             }
                         }
@@ -156,7 +151,6 @@ class SearchFragment : Fragment(),
                         if (binding.recyclerViewSearchResults.adapter == onlineSearchAdapter) {
                             L.d("Submitting Online PagingData")
                             onlineSearchAdapter.submitData(pagingData)
-                            // Visibility of recycler/no results for online is handled by loadStateFlow
                         }
                     }
                 }
@@ -176,10 +170,10 @@ class SearchFragment : Fragment(),
                                     binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                                 }
                             } else {
-                                updateUiForBlankQuery() // Handles blank query state for offline too
+                                updateUiForBlankQuery()
                             }
-                            binding.progressBarSearch.isVisible = false // Ensure progress bar is hidden
-                            binding.textViewSearchError.isVisible = false // No specific error state for offline list from ViewModel
+                            binding.progressBarSearch.isVisible = false
+                            binding.textViewSearchError.isVisible = false
                         }
                     }
                 }
@@ -195,7 +189,6 @@ class SearchFragment : Fragment(),
                         val currentQuery = viewModel.currentQuery.value?.trim()
 
                         binding.progressBarSearch.isVisible = isLoading
-                        // Default visibility states
                         binding.recyclerViewSearchResults.isVisible = false
                         binding.textViewNoResults.isVisible = false
                         binding.textViewSearchError.isVisible = false
@@ -213,72 +206,26 @@ class SearchFragment : Fragment(),
                             if (onlineSearchAdapter.itemCount > 0) {
                                 binding.recyclerViewSearchResults.isVisible = true
                             } else {
-                                // No results for a non-blank query
                                 if (!currentQuery.isNullOrBlank()) {
                                     binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                                     binding.textViewNoResults.isVisible = true
                                 } else {
-                                    // Query is blank, handled by updateUiForBlankQuery or initial state
                                     updateUiForBlankQuery()
                                 }
                             }
                         }
                     }
                 }
-                // Note: viewModel.screenUiState can still be used for one-off messages or if the
-                // "enter query" prompt needs to be shown explicitly outside of the blank query logic.
-                // The current logic in updateUiForBlankQuery covers the "enter query" prompt.
             }
         }
     }
 
-    // New helper function specifically for blank query state
     private fun updateUiForBlankQuery() {
         binding.progressBarSearch.isVisible = false
         binding.recyclerViewSearchResults.isVisible = false
         binding.textViewSearchError.isVisible = false
         binding.textViewNoResults.text = getString(R.string.search_enter_query_prompt)
         binding.textViewNoResults.isVisible = true
-        // The offline indicator visibility when query is blank is handled in the main combine block.
-    }
-
-
-    private fun updateUiForNoQuery(query: String?, isOnline: Boolean) {
-        if (query.isNullOrBlank()) {
-            binding.progressBarSearch.isVisible = false
-            binding.recyclerViewSearchResults.isVisible = false
-            binding.textViewSearchError.isVisible = false
-            binding.textViewNoResults.isVisible = true
-            binding.textViewNoResults.text = getString(R.string.search_enter_query_prompt)
-            // Offline indicator for blank query is handled by the main combine block
-            if (!isOnline) { // Ensure offline indicator shows if query is blank AND offline
-                binding.textViewOfflineIndicator.isVisible = true
-                binding.textViewOfflineIndicator.text = getString(R.string.offline_search_active_message)
-            } else {
-                binding.textViewOfflineIndicator.isVisible = false
-            }
-        }
-    }
-
-    private fun updateUiForOfflineResults(isOfflineListEmpty: Boolean, currentQueryFromViewModel: String?) {
-        // This is called when offlineSearchAdapter is active AND its list updates
-        val query = currentQueryFromViewModel?.trim()
-
-        binding.progressBarSearch.isVisible = false
-        binding.recyclerViewSearchResults.isVisible = !isOfflineListEmpty
-        binding.textViewSearchError.isVisible = false
-
-        if (isOfflineListEmpty) {
-            if (!query.isNullOrBlank()) {
-                binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, query)
-                binding.textViewNoResults.isVisible = true
-            } else {
-                binding.textViewNoResults.text = getString(R.string.search_enter_query_prompt)
-                binding.textViewNoResults.isVisible = true
-            }
-        } else {
-            binding.textViewNoResults.isVisible = false
-        }
     }
 
     private fun setupOnBackPressed() {
@@ -286,16 +233,23 @@ class SearchFragment : Fragment(),
             override fun handleOnBackPressed() {
                 if (binding.searchView.query.isNotEmpty()) {
                     binding.searchView.setQuery("", false)
-                    viewModel.performSearch("")
+                    // viewModel.performSearch("") // This will be triggered by onQueryTextChange
                 } else {
                     isEnabled = false
                     try {
                         if (isResumed && parentFragmentManager.backStackEntryCount > 0) {
                             parentFragmentManager.popBackStack()
                         } else if (isResumed) {
+                            // Fallback to activity's default dispatcher if fragment cannot pop
                             requireActivity().onBackPressedDispatcher.onBackPressed()
                         }
                     } finally {
+                        // Re-enable the callback only if it's still added to the dispatcher
+                        // and was disabled by this specific handler. This check might be complex
+                        // depending on how NavController handles its own dispatcher additions.
+                        // A simpler approach is often to just let NavController handle it if possible,
+                        // or ensure this callback is always active and checks conditions.
+                        // For now, keeping the original re-enable logic.
                         if (isAdded && !isEnabled) { isEnabled = true }
                     }
                 }
