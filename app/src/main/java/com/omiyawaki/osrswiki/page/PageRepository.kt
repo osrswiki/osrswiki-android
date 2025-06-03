@@ -6,14 +6,13 @@ import kotlinx.coroutines.flow.flowOn
 import android.content.Context
 import android.util.Log
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
-// import com.omiyawaki.osrswiki.database.ArticleMetaEntity // Not directly used in this modified version from user output, but kept for context
 import com.omiyawaki.osrswiki.network.WikiApiService
 import retrofit2.HttpException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil // Corrected import path
+import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
 
 class PageRepository (
     private val mediaWikiApiService: WikiApiService,
@@ -28,29 +27,26 @@ companion object {
         private const val TAG = "PageRepository"
     }
 
-    // [PREVIOUSLY COMMENTED OUT downloadAndSaveArticle FUNCTION - REMAINS COMMENTED]
-
     fun getArticle(pageId: Int, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
         Log.d(TAG, "getArticle called for pageId: $pageId, forceNetwork: $forceNetwork")
 
         if (!forceNetwork) {
-            Log.d(TAG, "Attempting to load pageId: $pageId from local cache.")
+            Log.d(TAG, "getArticle (by ID): Attempting to load pageId: $pageId from local cache.")
             try {
                 val localMeta = articleMetaDao.getMetaByPageId(pageId)
+                Log.d(TAG, "getArticle (by ID): DAO query for pageId $pageId returned: $localMeta")
                 if (localMeta != null && localMeta.localFilePath.isNotEmpty()) {
+                    Log.d(TAG, "getArticle (by ID): localMeta for $pageId found with path ${localMeta.localFilePath}")
                     val localFile = File(localMeta.localFilePath)
                     if (localFile.exists()) {
-                        Log.i(TAG, "Found pageId: $pageId ('${localMeta.title}') in local cache at ${localFile.absolutePath}")
+                        Log.i(TAG, "getArticle (by ID): Found pageId: $pageId ('${localMeta.title}') in local cache at ${localFile.absolutePath}")
                         val htmlContent = localFile.readText()
-                        // Assuming localMeta.title is already plain text (canonical)
                         val uiState = PageUiState(
-                            isLoading = false,
-                            error = null,
-                            imageUrl = null,
+                            isLoading = false, error = null, imageUrl = null,
                             pageId = localMeta.pageId,
-                            title = localMeta.title, // Use canonical title for display if HTML version isn't stored
-                            plainTextTitle = localMeta.title, // Canonical title is plain text
+                            title = localMeta.title, 
+                            plainTextTitle = localMeta.title,
                             htmlContent = htmlContent,
                             wikiUrl = localMeta.wikiUrl,
                             revisionId = localMeta.revisionId,
@@ -61,16 +57,17 @@ companion object {
                         emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
                         return@flow
                     } else {
-                        Log.w(TAG, "Local cache metadata found for pageId: $pageId ('${localMeta.title}') but file missing: ${localMeta.localFilePath}")
+                        Log.w(TAG, "getArticle (by ID): Local cache metadata found for pageId: $pageId ('${localMeta.title}') but file missing: ${localMeta.localFilePath}")
                     }
                 } else {
-                    Log.d(TAG, "pageId: $pageId not found in local cache metadata or no local file path.")
+                    Log.d(TAG, "getArticle (by ID): pageId: $pageId not found in local cache metadata or no local file path.")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error reading pageId: $pageId from local cache: ${e.message}", e)
+                Log.e(TAG, "getArticle (by ID): Error reading pageId: $pageId from local cache: ${e.message}", e)
             }
         }
 
+        Log.d(TAG, "getArticle (by ID): Attempting to fetch pageId $pageId from network.")
         try {
             val articleParseApiResponse = mediaWikiApiService.getArticleParseDataByPageId(pageId)
             val parseResult = articleParseApiResponse.parse
@@ -82,23 +79,18 @@ companion object {
                 return@flow
             }
 
-            val fetchedCanonicalTitle = parseResult.title // This is usually plain text from MediaWiki 'title' field
-            val fetchedDisplayTitle = parseResult.displaytitle ?: fetchedCanonicalTitle // This can contain HTML
+            val fetchedCanonicalTitle = parseResult.title
+            val fetchedDisplayTitle = parseResult.displaytitle ?: fetchedCanonicalTitle
             Log.i(TAG, "Network fetch for pageId $pageId yielded canonical title: '$fetchedCanonicalTitle', display title: '$fetchedDisplayTitle'")
-
             val articleUrl = "https://oldschool.runescape.wiki/w/${fetchedCanonicalTitle.replace(" ", "_")}"
             val htmlContentFromParse = parseResult.text
-
-            // Use OfflineCacheUtil to get a plain text version of the display title
             val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(fetchedDisplayTitle) ?: fetchedCanonicalTitle
 
             val uiState = PageUiState(
-                isLoading = false,
-                error = null,
-                imageUrl = null,
+                isLoading = false, error = null, imageUrl = null,
                 pageId = parseResult.pageid ?: pageId,
-                title = fetchedDisplayTitle, // Use display title (with HTML) from API for UI
-                plainTextTitle = plainTextDisplayTitle, // Use stripped version for logic/API params
+                title = fetchedDisplayTitle, 
+                plainTextTitle = plainTextDisplayTitle,
                 htmlContent = htmlContentFromParse,
                 wikiUrl = articleUrl,
                 revisionId = parseResult.revid,
@@ -110,16 +102,13 @@ companion object {
             emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
         } catch (e: HttpException) {
             val errorBody = try { e.response()?.errorBody()?.string() } catch (_: Exception) { "Error body unreadable" } ?: "Unknown API error"
-            val errorMsg = "API request failed for pageId $pageId: ${e.code()} - $errorBody"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "API request failed for pageId $pageId: ${e.code()} - $errorBody"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         } catch (e: IOException) {
-            val errorMsg = "Network I/O error while fetching details for pageId $pageId: ${e.message}"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "Network I/O error while fetching details for pageId $pageId: ${e.message}"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         } catch (e: Exception) {
-            val errorMsg = "Unexpected error while fetching article by pageId $pageId: ${e.message}"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "Unexpected error while fetching article by pageId $pageId: ${e.message}"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         }
     }.flowOn(Dispatchers.IO)
@@ -127,25 +116,23 @@ companion object {
     fun getArticleByTitle(title: String, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
         Log.d(TAG, "getArticleByTitle called for: \"$title\", forceNetwork: $forceNetwork")
-        // title parameter here is assumed to be a plain text, canonical title for API lookup
 
         if (!forceNetwork) {
-            Log.d(TAG, "Attempting to load \"$title\" (assumed canonical) from local cache.")
+            Log.d(TAG, "getArticleByTitle: Attempting to load \"$title\" (assumed canonical) from local cache.")
             try {
-                val localMeta = articleMetaDao.getMetaByExactTitle(title) // Uses plain text title for lookup
+                val localMeta = articleMetaDao.getMetaByExactTitle(title) // Query is now case-insensitive
+                Log.d(TAG, "getArticleByTitle: DAO query for title '$title' returned: $localMeta")
                 if (localMeta != null && localMeta.localFilePath.isNotEmpty()) {
+                    Log.d(TAG, "getArticleByTitle: localMeta for '$title' found with path ${localMeta.localFilePath}")
                     val localFile = File(localMeta.localFilePath)
                     if (localFile.exists()) {
                         Log.i(TAG, "Found \"$title\" in local cache at ${localFile.absolutePath}")
                         val htmlContent = localFile.readText()
-                        // Assuming localMeta.title is already plain text (canonical)
                         val uiState = PageUiState(
-                            isLoading = false,
-                            error = null,
-                            imageUrl = null,
+                            isLoading = false, error = null, imageUrl = null,
                             pageId = localMeta.pageId,
-                            title = localMeta.title, // Use canonical title for display if HTML version isn't stored
-                            plainTextTitle = localMeta.title, // Canonical title is plain text
+                            title = localMeta.title, 
+                            plainTextTitle = localMeta.title,
                             htmlContent = htmlContent,
                             wikiUrl = localMeta.wikiUrl,
                             revisionId = localMeta.revisionId,
@@ -159,7 +146,7 @@ companion object {
                         Log.w(TAG, "Local cache metadata found for \"$title\" but file missing: ${localMeta.localFilePath}")
                     }
                 } else {
-                    Log.d(TAG, "\"$title\" not found in local cache metadata or no local file path.")
+                    Log.d(TAG, "\"$title\" not found in local cache metadata by exact title or no local file path.")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error reading \"$title\" from local cache: ${e.message}", e)
@@ -168,7 +155,6 @@ companion object {
 
         Log.d(TAG, "Attempting to fetch \"$title\" (assumed canonical) from network.")
         try {
-            // When fetching by title, the 'title' param to API should be canonical (plain text)
             val articleParseApiResponseByTitle = mediaWikiApiService.getArticleTextContentByTitle(title = title)
             val parseResultByTitle = articleParseApiResponseByTitle.parse
 
@@ -181,22 +167,17 @@ companion object {
 
             val htmlContentFromTitleParse = parseResultByTitle.text
             val pageIdFromTitleParse = parseResultByTitle.pageid
-            val canonicalTitleFromTitleParse = parseResultByTitle.title // Should be plain text
-            val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse // Can be HTML
+            val canonicalTitleFromTitleParse = parseResultByTitle.title 
+            val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse
             val revIdFromTitleParse = parseResultByTitle.revid
             val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitleFromTitleParse.replace(" ", "_")}"
-
-            // Use OfflineCacheUtil to get a plain text version of the display title
             val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(displayTitleFromTitleParse) ?: canonicalTitleFromTitleParse
 
-
             val uiState = PageUiState(
-                isLoading = false,
-                error = null,
-                imageUrl = null,
+                isLoading = false, error = null, imageUrl = null,
                 pageId = pageIdFromTitleParse,
-                title = displayTitleFromTitleParse, // For display (can be HTML)
-                plainTextTitle = plainTextDisplayTitle, // For logic/API params
+                title = displayTitleFromTitleParse, 
+                plainTextTitle = plainTextDisplayTitle,
                 htmlContent = htmlContentFromTitleParse,
                 wikiUrl = finalWikiUrl,
                 revisionId = revIdFromTitleParse,
@@ -208,16 +189,13 @@ companion object {
             emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
         } catch (e: HttpException) {
             val errorBody = try { e.response()?.errorBody()?.string() } catch (_: Exception) { "Error body unreadable" } ?: "Unknown API error"
-            val errorMsg = "API request failed for title '$title': ${e.code()} - $errorBody"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "API request failed for title '$title': ${e.code()} - $errorBody"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         } catch (e: IOException) {
-            val errorMsg = "Network/IO error while fetching details for title '$title': ${e.message}"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "Network/IO error while fetching details for title '$title': ${e.message}"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         } catch (e: Exception) {
-            val errorMsg = "Unexpected error while fetching article by title '$title': ${e.message}"
-            Log.e(TAG, errorMsg, e)
+            val errorMsg = "Unexpected error while fetching article by title '$title': ${e.message}"; Log.e(TAG, errorMsg, e)
             emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e))
         }
     }.flowOn(Dispatchers.IO)
@@ -225,8 +203,9 @@ companion object {
     fun isArticleOffline(pageId: Int): kotlinx.coroutines.flow.Flow<Boolean> {
         Log.d(TAG, "Checking offline status for pageId: $pageId")
         return articleMetaDao.getMetaByPageIdFlow(pageId).map { meta ->
-            val isOffline = meta != null && meta.localFilePath.isNotEmpty()
-            Log.d(TAG, "PageId: $pageId, Meta: ${meta != null}, FilePath: ${meta?.localFilePath}, IsOffline: $isOffline")
+            val fileExists = meta?.localFilePath?.isNotEmpty() == true && File(meta.localFilePath).exists()
+            val isOffline = meta != null && meta.localFilePath.isNotEmpty() && fileExists
+            Log.d(TAG, "PageId: $pageId, Meta: ${meta != null}, FilePath: ${meta?.localFilePath}, File Exists: $fileExists, IsOffline: $isOffline")
             isOffline
         }
     }
@@ -253,11 +232,9 @@ companion object {
                 } else {
                     Log.w(TAG, "No local file path found in metadata for pageId $pageId. Skipping file deletion.")
                 }
-
                 articleMetaDao.delete(articleMeta)
                 Log.i(TAG, "Successfully removed article metadata for pageId $pageId from database.")
                 com.omiyawaki.osrswiki.util.Result.Success(Unit)
-
             } catch (e: Exception) {
                 Log.e(TAG, "Error removing article offline for pageId $pageId: ${e.message}", e)
                 com.omiyawaki.osrswiki.util.Result.Error("Error removing article: ${e.message}", e)
@@ -267,14 +244,9 @@ companion object {
 
     suspend fun saveArticleOffline(pageId: Int, displayTitleFromUi: String?): com.omiyawaki.osrswiki.util.Result<Unit> {
         Log.d(TAG, "Attempting to save article offline. PageId: $pageId, DisplayTitleFromUI: \"$displayTitleFromUi\"")
-        // This 'displayTitleFromUi' might still contain HTML.
-        // The API call below should use a canonical/plain text title if possible,
-        // or the pageId which is more reliable.
-        // The existing call uses pageId, which is good.
-
+        
         return withContext(Dispatchers.IO) {
             try {
-                // Step 1: Fetch comprehensive article data using pageId
                 val apiResponse = mediaWikiApiService.getArticleParseDataByPageId(pageId = pageId)
                 val parseResult = apiResponse.parse
 
@@ -284,12 +256,14 @@ companion object {
                     return@withContext com.omiyawaki.osrswiki.util.Result.Error(errorMsg)
                 }
 
-                val canonicalTitle = parseResult.title // This is the canonical (plain text) title from API
+                val canonicalTitle = parseResult.title 
                 val htmlContent = parseResult.text
                 val revisionId = parseResult.revid
                 val fetchedPageId = parseResult.pageid
 
-                // Step 2: Construct canonical URL and local file path
+                // ADDED LOG to see the exact title being stored
+                Log.i(TAG, "saveArticleOffline: For pageId $fetchedPageId, canonicalTitle from API to be stored is: \"$canonicalTitle\"")
+
                 val articleUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}"
                 val fileName = "$fetchedPageId$HTML_EXTENSION"
                 val articlesDir = File(applicationContext.filesDir, ARTICLES_DIR_NAME)
@@ -301,7 +275,6 @@ companion object {
                 }
                 val articleFile = File(articlesDir, fileName)
 
-                // Step 3: Save HTML content to file
                 try {
                     articleFile.writeText(htmlContent)
                     Log.i(TAG, "Successfully saved HTML content for '$canonicalTitle' (PageID $fetchedPageId) to: ${articleFile.absolutePath}")
@@ -310,51 +283,39 @@ companion object {
                     return@withContext com.omiyawaki.osrswiki.util.Result.Error("Failed to save article HTML to file: ${e.message}", e)
                 }
 
-                // Step 4: Create or Update ArticleMetaEntity in database
                 val existingMeta = articleMetaDao.getMetaByPageId(fetchedPageId)
                 val currentTime = System.currentTimeMillis()
 
                 if (existingMeta != null) {
-                    // Update existing entity
                     val updatedMeta = existingMeta.copy(
-                        title = canonicalTitle, // Store canonical (plain text) title
+                        title = canonicalTitle, 
                         wikiUrl = articleUrl,
                         localFilePath = articleFile.absolutePath,
                         lastFetchedTimestamp = currentTime,
                         revisionId = revisionId,
-                        categories = existingMeta.categories
+                        categories = existingMeta.categories 
                     )
                     articleMetaDao.update(updatedMeta)
                     Log.i(TAG, "Successfully updated metadata for '$canonicalTitle' (PageID: $fetchedPageId) in database.")
                 } else {
-                    // Insert new entity
-                    val newMeta = com.omiyawaki.osrswiki.database.ArticleMetaEntity( // Ensure full path if not imported
-                        id = 0L,
-                        pageId = fetchedPageId,
-                        title = canonicalTitle, // Store canonical (plain text) title
-                        wikiUrl = articleUrl,
-                        localFilePath = articleFile.absolutePath,
-                        lastFetchedTimestamp = currentTime,
-                        revisionId = revisionId,
-                        categories = null
+                    val newMeta = com.omiyawaki.osrswiki.database.ArticleMetaEntity(
+                        id = 0L, pageId = fetchedPageId, title = canonicalTitle,
+                        wikiUrl = articleUrl, localFilePath = articleFile.absolutePath,
+                        lastFetchedTimestamp = currentTime, revisionId = revisionId, categories = null
                     )
                     articleMetaDao.insert(newMeta)
                     Log.i(TAG, "Successfully inserted new metadata for '$canonicalTitle' (PageID: $fetchedPageId) in database.")
                 }
                 com.omiyawaki.osrswiki.util.Result.Success(Unit)
-
             } catch (e: HttpException) {
                 val errorBody = try { e.response()?.errorBody()?.string() } catch (_: Exception) { "Error body unreadable" } ?: "Unknown API error"
-                val errorMsg = "API request failed for pageId $pageId during save: ${e.code()} - $errorBody"
-                Log.e(TAG, errorMsg, e)
+                val errorMsg = "API request failed for pageId $pageId during save: ${e.code()} - $errorBody"; Log.e(TAG, errorMsg, e)
                 com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e)
             } catch (e: IOException) {
-                val errorMsg = "Network/IO error for pageId $pageId during save: ${e.message}"
-                Log.e(TAG, errorMsg, e)
+                val errorMsg = "Network/IO error for pageId $pageId during save: ${e.message}"; Log.e(TAG, errorMsg, e)
                 com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e)
             } catch (e: Exception) {
-                val errorMsg = "Unexpected error for pageId $pageId during save: ${e.message}"
-                Log.e(TAG, errorMsg, e)
+                val errorMsg = "Unexpected error for pageId $pageId during save: ${e.message}"; Log.e(TAG, errorMsg, e)
                 com.omiyawaki.osrswiki.util.Result.Error(errorMsg, e)
             }
         }
