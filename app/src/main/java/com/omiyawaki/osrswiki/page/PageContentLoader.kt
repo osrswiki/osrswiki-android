@@ -76,7 +76,7 @@ class PageContentLoader(
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,
                             lastFetchedTimestamp = readingListPage.mtime,
-                            localFilePath = null,
+                            localFilePath = null, // Assuming ReadingList cache doesn't use PageRepository's file path directly
                             isCurrentlyOffline = true
                         )
                         onStateUpdated()
@@ -91,7 +91,7 @@ class PageContentLoader(
 
             L.d("Proceeding to load '$articleQueryTitle' via PageRepository (forceNetwork: $forceNetwork).")
             pageRepository.getArticleByTitle(title = articleQueryTitle, forceNetwork = forceNetwork)
-                .catch { e -> // ... (existing error handling) ...
+                .catch { e ->
                     L.e("Flow collection error for title '$articleQueryTitle'", e)
                     pageViewModel.uiState = PageUiState(
                         isLoading = false, title = articleQueryTitle, pageId = null,
@@ -99,15 +99,28 @@ class PageContentLoader(
                     )
                     onStateUpdated()
                 }
-                .collectLatest { result -> // ... (existing result processing) ...
+                .collectLatest { result ->
+                    // This log will still likely show a truncated PageUiState for Success cases,
+                    // but the new logs within the Success branch will provide clear details.
                     L.d("Received result from PageRepository for title '$articleQueryTitle': $result")
                     when (result) {
                         is Result.Loading -> {
                             pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data
-                            L.i("Successfully loaded article via PageRepository: '${result.data.title}'")
+                            val pageUiState = result.data
+                            pageViewModel.uiState = pageUiState
+                            
+                            L.i("Successfully loaded article via PageRepository: '${pageUiState.title}'")
+
+                            // --- ADDED DETAILED LOGGING FOR CRITICAL PageUiState FIELDS ---
+                            L.d(">>>> PageUiState for '${pageUiState.title}' (ID: ${pageUiState.pageId}) via PageRepository <<<<")
+                            L.d("  isCurrentlyOffline: ${pageUiState.isCurrentlyOffline}")
+                            L.d("  localFilePath: ${pageUiState.localFilePath}")
+                            L.d("  revisionId: ${pageUiState.revisionId}")
+                            L.d("  wikiUrl: ${pageUiState.wikiUrl}")
+                            L.d("  htmlContent (first 150 chars): ${pageUiState.htmlContent?.take(150)?.replace("\n", " ") ?: "null"}")
+                            // --- END OF ADDED DETAILED LOGGING ---
                         }
                         is Result.Error -> {
                             L.e("Error from PageRepository for title '$articleQueryTitle': ${result.message}", result.throwable)
@@ -160,7 +173,7 @@ class PageContentLoader(
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,
                             lastFetchedTimestamp = readingListPage.mtime,
-                            localFilePath = null,
+                            localFilePath = null, // Assuming ReadingList cache doesn't use PageRepository's file path
                             isCurrentlyOffline = true
                         )
                         onStateUpdated()
@@ -178,7 +191,7 @@ class PageContentLoader(
             // Fallback to PageRepository
             L.d("Proceeding to load pageId $pageId via PageRepository (forceNetwork: $forceNetwork).")
             pageRepository.getArticle(pageId = pageId, forceNetwork = forceNetwork)
-                .catch { e -> // ... (existing error handling) ...
+                .catch { e ->
                     L.e("Flow collection error for page ID '$pageId'", e)
                     pageViewModel.uiState = PageUiState(
                         isLoading = false, title = displayTitleDuringLoad, pageId = pageId,
@@ -186,15 +199,25 @@ class PageContentLoader(
                     )
                     onStateUpdated()
                 }
-                .collectLatest { result -> // ... (existing result processing) ...
+                .collectLatest { result ->
                     L.d("Received result from PageRepository for page ID '$pageId': $result")
                     when (result) {
                         is Result.Loading -> {
                             pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data
-                            L.i("Successfully loaded article via PageRepository: '${result.data.title}'")
+                            val pageUiState = result.data
+                            pageViewModel.uiState = pageUiState
+                            L.i("Successfully loaded article via PageRepository: '${pageUiState.title}'")
+
+                            // --- ADDED DETAILED LOGGING FOR CRITICAL PageUiState FIELDS ---
+                            L.d(">>>> PageUiState for '${pageUiState.title}' (ID: ${pageUiState.pageId}) via PageRepository <<<<")
+                            L.d("  isCurrentlyOffline: ${pageUiState.isCurrentlyOffline}")
+                            L.d("  localFilePath: ${pageUiState.localFilePath}")
+                            L.d("  revisionId: ${pageUiState.revisionId}")
+                            L.d("  wikiUrl: ${pageUiState.wikiUrl}")
+                            L.d("  htmlContent (first 150 chars): ${pageUiState.htmlContent?.take(150)?.replace("\n", " ") ?: "null"}")
+                            // --- END OF ADDED DETAILED LOGGING ---
                         }
                         is Result.Error -> {
                             L.e("Error from PageRepository for page ID '$pageId': ${result.message}", result.throwable)

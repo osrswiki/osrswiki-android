@@ -45,7 +45,7 @@ companion object {
                         val uiState = PageUiState(
                             isLoading = false, error = null, imageUrl = null,
                             pageId = localMeta.pageId,
-                            title = localMeta.title, 
+                            title = localMeta.title,
                             plainTextTitle = localMeta.title,
                             htmlContent = htmlContent,
                             wikiUrl = localMeta.wikiUrl,
@@ -89,7 +89,7 @@ companion object {
             val uiState = PageUiState(
                 isLoading = false, error = null, imageUrl = null,
                 pageId = parseResult.pageid ?: pageId,
-                title = fetchedDisplayTitle, 
+                title = fetchedDisplayTitle,
                 plainTextTitle = plainTextDisplayTitle,
                 htmlContent = htmlContentFromParse,
                 wikiUrl = articleUrl,
@@ -115,6 +115,8 @@ companion object {
 
     fun getArticleByTitle(title: String, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
+        // --- ADDED MEGA_DEBUG_TRACE LOG ---
+        Log.e("MEGA_DEBUG_TRACE", "PageRepository.getArticleByTitle ENTERED - Title: '$title', ForceNetwork: $forceNetwork")
         Log.d(TAG, "getArticleByTitle called for: \"$title\", forceNetwork: $forceNetwork")
 
         if (!forceNetwork) {
@@ -131,7 +133,7 @@ companion object {
                         val uiState = PageUiState(
                             isLoading = false, error = null, imageUrl = null,
                             pageId = localMeta.pageId,
-                            title = localMeta.title, 
+                            title = localMeta.title,
                             plainTextTitle = localMeta.title,
                             htmlContent = htmlContent,
                             wikiUrl = localMeta.wikiUrl,
@@ -167,7 +169,7 @@ companion object {
 
             val htmlContentFromTitleParse = parseResultByTitle.text
             val pageIdFromTitleParse = parseResultByTitle.pageid
-            val canonicalTitleFromTitleParse = parseResultByTitle.title 
+            val canonicalTitleFromTitleParse = parseResultByTitle.title
             val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse
             val revIdFromTitleParse = parseResultByTitle.revid
             val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitleFromTitleParse.replace(" ", "_")}"
@@ -176,7 +178,7 @@ companion object {
             val uiState = PageUiState(
                 isLoading = false, error = null, imageUrl = null,
                 pageId = pageIdFromTitleParse,
-                title = displayTitleFromTitleParse, 
+                title = displayTitleFromTitleParse,
                 plainTextTitle = plainTextDisplayTitle,
                 htmlContent = htmlContentFromTitleParse,
                 wikiUrl = finalWikiUrl,
