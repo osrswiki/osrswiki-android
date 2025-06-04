@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
+import com.omiyawaki.osrswiki.history.db.HistoryEntry // Added import
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.ui.common.NavigationIconType
 import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
@@ -259,11 +260,12 @@ class SearchFragment : Fragment(),
     }
 
     override fun onItemClick(item: CleanedSearchResultItem) {
-        L.d("SearchFragment onItemClick: Item Title='${item.title}', Item ID='${item.id}', IsFTS=${item.isFtsResult}")
+        L.d("SearchFragment onItemClick: Item Title='${item.title}', Item ID='${item.id}', IsFTS=${item.isFtsResult}, Source=SOURCE_SEARCH")
         val intent = PageActivity.newIntent(
             context = requireContext(),
             pageTitle = item.title,
-            pageId = item.id
+            pageId = item.id,
+            source = HistoryEntry.SOURCE_SEARCH // Added source
         )
         startActivity(intent)
     }

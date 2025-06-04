@@ -65,14 +65,15 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
     }
 
     // Implementation of SavedPagesFragment.NavigationProvider
-    override fun displayPageFragment(pageApiTitle: String?, pageNumericId: String?) {
-        L.d("MainActivity: displayPageFragment called with apiTitle='$pageApiTitle', numericId='$pageNumericId'")
-        appRouter.navigateToPage(pageId = pageNumericId, pageTitle = pageApiTitle)
+    override fun displayPageFragment(pageApiTitle: String?, pageNumericId: String?, source: Int) {
+        L.d("MainActivity: displayPageFragment called with apiTitle='$pageApiTitle', numericId='$pageNumericId', source='$source'")
+        // Pass the source to the appRouter
+        appRouter.navigateToPage(pageId = pageNumericId, pageTitle = pageApiTitle, source = source)
     }
 
     // TODO: (Review existing TODOs from original file if they are still relevant)
     // 1. Ensure ViewHideHandler.kt and its dependencies (DimenUtil, ViewAnimations) are correctly integrated
-    //    (This should be mostly complete, ViewAnimations not used by ViewHideHandler directly now)
+    //   (This should be mostly complete, ViewAnimations not used by ViewHideHandler directly now)
     // 2. Review MainFragment.kt: (These points are addressed by the new policy system)
     // 3. Test the toolbar collapse behavior (Now conditional based on policy)
     // 4. Plan the adaptation of ViewHideHandler to support RecyclerView for SearchFragment. (This was done)
