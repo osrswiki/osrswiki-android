@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.database.AppDatabase // For accessing DAO
 import com.omiyawaki.osrswiki.databinding.FragmentSavedPagesBinding
+import com.omiyawaki.osrswiki.history.db.HistoryEntry // Added import
 import com.omiyawaki.osrswiki.page.PageFragment
 import com.omiyawaki.osrswiki.page.PageTitle
 import com.omiyawaki.osrswiki.readinglist.adapter.SavedPagesAdapter
@@ -42,7 +43,7 @@ class SavedPagesFragment : Fragment() {
     private lateinit var savedPagesAdapter: SavedPagesAdapter
 
     interface NavigationProvider {
-        fun displayPageFragment(pageApiTitle: String?, pageNumericId: String?)
+        fun displayPageFragment(pageApiTitle: String?, pageNumericId: String?, source: Int) // Added source parameter
     }
 
     override fun onCreateView(
@@ -84,13 +85,18 @@ class SavedPagesFragment : Fragment() {
 
     private fun navigateToPage(savedPage: ReadingListPage) {
         val pageApiTitleForFragmentArg = savedPage.apiTitle
-        val pageNumericIdForFragmentArg: String? = null
+        val pageNumericIdForFragmentArg: String? = null // Assuming pageId is not used or derived from apiTitle for saved pages
 
-        Log.d("SavedPagesFragment", "Requesting navigation to PageFragment with apiTitle: '$pageApiTitleForFragmentArg', numericId: '$pageNumericIdForFragmentArg'")
+        Log.d("SavedPagesFragment", "Requesting navigation to PageFragment with apiTitle: '$pageApiTitleForFragmentArg', numericId: '$pageNumericIdForFragmentArg', source: SOURCE_SAVED_PAGE")
 
         val host = parentFragment as? NavigationProvider ?: activity as? NavigationProvider
         if (host != null) {
-            host.displayPageFragment(pageApiTitleForFragmentArg, pageNumericIdForFragmentArg)
+            // Pass the specific source for navigation from saved pages
+            host.displayPageFragment(
+                pageApiTitleForFragmentArg,
+                pageNumericIdForFragmentArg,
+                HistoryEntry.SOURCE_SAVED_PAGE
+            )
         } else {
             Log.e("SavedPagesFragment", "Host (Activity or ParentFragment) must implement NavigationProvider.")
             Toast.makeText(requireContext(), "Navigation not set up. Could not open: $pageApiTitleForFragmentArg", Toast.LENGTH_LONG).show()
@@ -99,7 +105,7 @@ class SavedPagesFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        binding.savedPagesRecyclerView.adapter = null
+        binding.savedPagesRecyclerView.adapter = null // Important to prevent memory leaks with RecyclerView adapter
         _binding = null
     }
 }

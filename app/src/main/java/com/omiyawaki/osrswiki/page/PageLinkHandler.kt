@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import com.omiyawaki.osrswiki.history.db.HistoryEntry // Added import
 import com.omiyawaki.osrswiki.page.PageViewModel // Retained for now, though not used in revised onInternalArticleLinkClicked
 import com.omiyawaki.osrswiki.util.Result
 import kotlinx.coroutines.CoroutineScope
@@ -49,14 +50,24 @@ class PageLinkHandler(
                             // Check if the successfully loaded target page is marked as offline and has content
                             if (loadedTargetUiState.isCurrentlyOffline && loadedTargetUiState.htmlContent != null) {
                                 Log.i(TAG, "Target '$targetPageTitleWithSpaces' (ID: ${loadedTargetUiState.pageId}) found OFFLINE with content. Navigating offline.")
-                                context.startActivity(PageActivity.newIntent(context, loadedTargetUiState.plainTextTitle, loadedTargetUiState.pageId?.toString()))
+                                context.startActivity(PageActivity.newIntent(
+                                    context,
+                                    loadedTargetUiState.plainTextTitle,
+                                    loadedTargetUiState.pageId?.toString(),
+                                    HistoryEntry.SOURCE_INTERNAL_LINK // Added source
+                                ))
                                 navigationAttempted = true
                             } else {
                                 // Target page found but not marked as offline with content, or it was a network fetch because it wasn't in cache.
                                 Log.i(TAG, "Target '$targetPageTitleWithSpaces' not found as usable offline content by repository (isCurrentlyOffline=${loadedTargetUiState.isCurrentlyOffline}, htmlContentIsNull=${loadedTargetUiState.htmlContent == null}). Checking network for online navigation.")
                                 if (isNetworkAvailable()) {
                                     Log.i(TAG, "Network is available. Navigating ONLINE to '$targetPageTitleWithSpaces'.")
-                                    context.startActivity(PageActivity.newIntent(context, targetPageTitleWithSpaces, null))
+                                    context.startActivity(PageActivity.newIntent(
+                                        context,
+                                        targetPageTitleWithSpaces,
+                                        null,
+                                        HistoryEntry.SOURCE_INTERNAL_LINK // Added source
+                                    ))
                                 } else {
                                     Log.w(TAG, "Target '$targetPageTitleWithSpaces' not available offline and NO network connection.")
                                     withContext(Dispatchers.Main) {
@@ -70,7 +81,12 @@ class PageLinkHandler(
                             Log.w(TAG, "Error initially fetching target '$targetPageTitleWithSpaces' from repository (forceNetwork=false): ${result.message}")
                             if (isNetworkAvailable()) {
                                 Log.i(TAG, "Network is available. Attempting ONLINE navigation to '$targetPageTitleWithSpaces' due to previous error loading from cache.")
-                                context.startActivity(PageActivity.newIntent(context, targetPageTitleWithSpaces, null))
+                                context.startActivity(PageActivity.newIntent(
+                                    context,
+                                    targetPageTitleWithSpaces,
+                                    null,
+                                    HistoryEntry.SOURCE_INTERNAL_LINK // Added source
+                                ))
                             } else {
                                 Log.w(TAG, "Error fetching '$targetPageTitleWithSpaces' and NO network connection.")
                                 withContext(Dispatchers.Main) {

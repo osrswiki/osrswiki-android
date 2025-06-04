@@ -20,9 +20,9 @@ class AppRouterImpl(
             .commit()
     }
 
-    override fun navigateToPage(pageId: String?, pageTitle: String?) {
+    override fun navigateToPage(pageId: String?, pageTitle: String?, source: Int) {
         // Use PageFragment.newInstance to create the fragment and pass arguments
-        val fragment = PageFragment.newInstance(pageId = pageId, pageTitle = pageTitle)
+        val fragment = PageFragment.newInstance(pageId = pageId, pageTitle = pageTitle, source = source)
         fragmentManager.beginTransaction()
             .replace(containerId, fragment)
             .addToBackStack(PageFragment::class.java.name) // Optional: add to back stack

@@ -53,6 +53,7 @@ class PageFragment : Fragment() {
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
+    private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK // Default, will be overwritten by argument
 
     private val pageActionItemCallback = PageActionItemCallback()
     private var pageStateObserverJob: Job? = null
@@ -65,8 +66,9 @@ class PageFragment : Fragment() {
         arguments?.let {
             pageIdArg = it.getString(ARG_PAGE_ID)
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
+            navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK) // Retrieve source
         }
-        Log.d(WEBVIEW_DEBUG_TAG,"onCreate - Args processed: ID: $pageIdArg, Title: $pageTitleArg")
+        Log.d(WEBVIEW_DEBUG_TAG,"onCreate - Args processed: ID: $pageIdArg, Title: $pageTitleArg, Source: $navigationSource")
         pageViewModel = PageViewModel() // Consider using ViewModelProvider
         pageRepository = (requireActivity().applicationContext as OSRSWikiApp).pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
@@ -84,7 +86,7 @@ class PageFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        Log.d(WEBVIEW_DEBUG_TAG,"onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg")
+        Log.d(WEBVIEW_DEBUG_TAG,"onViewCreated. Page ID: $pageIdArg, Page Title: $pageTitleArg, Nav Source: $navigationSource")
 
         val appDb = AppDatabase.instance
         pageContentLoader = PageContentLoader(
@@ -123,9 +125,7 @@ class PageFragment : Fragment() {
                                 Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline): Styling complete. Making WebView widget VISIBLE.")
                                 binding.pageWebView.visibility = View.VISIBLE
                                 // Log history after WebView is made visible for the first time for this content
-                                // TODO: The source (HistoryEntry.SOURCE_INTERNAL_LINK) should be made dynamic.
-                                // Ensure HistoryEntry.SOURCE_INTERNAL_LINK and other source constants are defined.
-                                logPageVisit(HistoryEntry.SOURCE_INTERNAL_LINK)
+                                logPageVisit()
                             } else {
                                 Log.w(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline) callback: Fragment not added or binding null when trying to make WebView visible.")
                             }
@@ -155,9 +155,7 @@ class PageFragment : Fragment() {
                                 binding.pageWebView.visibility = View.VISIBLE
                                 if (url != null && !url.startsWith("data:") && !url.equals("about:blank", ignoreCase = true)) {
                                     // Log history after WebView is made visible for the first time for this content
-                                    // TODO: The source (HistoryEntry.SOURCE_INTERNAL_LINK) should be made dynamic.
-                                    // Ensure HistoryEntry.SOURCE_INTERNAL_LINK and other source constants are defined.
-                                    logPageVisit(HistoryEntry.SOURCE_INTERNAL_LINK)
+                                    logPageVisit()
                                 }
                             } else {
                                 Log.w(WEBVIEW_DEBUG_TAG, "onPageFinished (online) callback: Fragment not added or binding null when trying to make WebView visible.")
@@ -201,7 +199,7 @@ class PageFragment : Fragment() {
         }
     }
 
-    private fun logPageVisit(source: Int) {
+    private fun logPageVisit() { // Removed source parameter
         if (!isAdded || _binding == null) {
             Log.w(HISTORY_DEBUG_TAG, "logPageVisit: Fragment not in a valid state to log history.")
             return
@@ -231,7 +229,7 @@ class PageFragment : Fragment() {
             }
         }
 
-        Log.d(HISTORY_DEBUG_TAG, "logPageVisit: Logging visit for page: ${state.plainTextTitle}, URL: ${state.wikiUrl}")
+        Log.d(HISTORY_DEBUG_TAG, "logPageVisit: Logging visit for page: ${state.plainTextTitle}, URL: ${state.wikiUrl}, Source: $navigationSource")
 
         val pageTitleForHistory = CommonPageTitle(
             uri = state.wikiUrl!!,
@@ -246,7 +244,7 @@ class PageFragment : Fragment() {
         val historyEntry = HistoryEntry(
             pageTitle = pageTitleForHistory,
             timestamp = Date(),
-            source = source
+            source = navigationSource // Use the class member
         )
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -561,13 +559,15 @@ class PageFragment : Fragment() {
     companion object {
         private const val ARG_PAGE_ID = "pageId"
         private const val ARG_PAGE_TITLE = "pageTitle"
+        private const val ARG_PAGE_SOURCE = "pageSource" // New argument key
 
         @JvmStatic
-        fun newInstance(pageId: String?, pageTitle: String?): PageFragment =
+        fun newInstance(pageId: String?, pageTitle: String?, source: Int): PageFragment = // Added source parameter
             PageFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_PAGE_ID, pageId)
                     putString(ARG_PAGE_TITLE, pageTitle)
+                    putInt(ARG_PAGE_SOURCE, source) // Put source into arguments
                 }
             }
     }
@@ -641,7 +641,7 @@ class PageFragment : Fragment() {
                             Log.e("PFragment_SAVE_TEST", "Path taken: existingEntry IS NULL. Adding new page to list.")
                             val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
                             val titlesAdded = withContext(Dispatchers.IO) { localReadingListPageDao.addPagesToList(defaultList, listOf(currentPageTitle), downloadEnabled) }
-                            if (titlesAdded.isNotEmpty()) { L.i("Page '$titleForSnackbar' added to list '${defaultList.title}'."); message = if (downloadEnabled) "'$titleForSnackbar' saved and queued for download." else "'$titleForSnackbar' saved to reading list."
+                            if (titlesAdded.isNotEmpty()) { L.i("Page '$titleForSnackbar' added to list '${defaultList.title}'."); message = if (downloadEnabled) "'$titleForSnackbar' saved and queued for download." else "'$titleForSnackbar' saved to reading list." // Corrected typo in variable name
                             } else { L.w("Page '$titleForSnackbar' was not added. It might already exist or an error occurred."); message = "Page '$titleForSnackbar' could not be saved (may already exist or error)." }
                         }
                     } catch (e: Exception) { Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '${titleForSnackbar}' (Inside Coroutine)", e); message = getString(R.string.error_generic_save_unsave) }
