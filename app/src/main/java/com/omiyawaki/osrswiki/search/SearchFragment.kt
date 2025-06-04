@@ -17,7 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.history.db.HistoryEntry // Added import
+import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.ui.common.NavigationIconType
 import com.omiyawaki.osrswiki.ui.common.ScreenConfiguration
@@ -56,40 +56,53 @@ class SearchFragment : Fragment(),
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Setup the new Toolbar within SearchFragment
+        binding.searchFragmentToolbar.setNavigationOnClickListener {
+            // Trigger the same logic as the system back press
+            activity?.onBackPressedDispatcher?.onBackPressed()
+        }
+        // Optionally, if you want to set a title (though SearchView usually takes full width)
+        // binding.searchFragmentToolbar.title = getString(R.string.title_search)
+
         setupRecyclerViewAdapters()
-        setupSearchView()
+        setupSearchView() // This will now configure the SearchView within the new Toolbar
         observeViewModel()
-        setupOnBackPressed()
+        setupOnBackPressed() // Existing back press logic
     }
 
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
+        // This is for MainActivity's toolbar, which is hidden.
+        // The title for SearchFragment's own toolbar can be set directly if needed.
         return getString(R.string.title_search)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
+        // This is for MainActivity's toolbar, which is hidden.
         return NavigationIconType.NONE
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
+        // This is for MainActivity's toolbar. SearchFragment can manage its own menu on its toolbar if needed.
         return false
     }
 
     private fun setupRecyclerViewAdapters() {
         onlineSearchAdapter = SearchAdapter(this)
         offlineSearchAdapter = OfflineSearchAdapter(this)
-
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
         L.i("RecyclerView adapters initialized.")
     }
 
     private fun setupSearchView() {
-        binding.searchView.isIconified = false
+        // binding.searchView is still the correct reference to the SearchView,
+        // even though it's now inside searchFragmentToolbar in the XML.
+        binding.searchView.isIconified = false // Keep it expanded
         binding.searchView.queryHint = getString(R.string.search_hint_text)
-
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 viewModel.performSearch(query?.trim() ?: "")
-                binding.searchView.clearFocus()
+                binding.searchView.clearFocus() // Hide keyboard
                 return true
             }
 
@@ -98,29 +111,25 @@ class SearchFragment : Fragment(),
                 return true
             }
         })
+        // Request focus for the SearchView when the fragment becomes visible
+        binding.searchView.requestFocus()
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-
                 // Main UI mode controller based on network status and query
                 launch {
                     viewModel.isOnline.combine(viewModel.currentQuery) { isOnline, query ->
                         Pair(isOnline, query?.trim())
                     }.collectLatest { (isOnline, trimmedQuery) ->
-                        // Set offline indicator text and visibility
-                        // Ensure R.string.offline_indicator_generic ("You are currently offline.")
-                        // and R.string.offline_search_active_message ("Currently offline. Searching saved pages.")
-                        // are defined in strings.xml.
                         if (!isOnline && !trimmedQuery.isNullOrBlank()) {
                             binding.textViewOfflineIndicator.text = getString(R.string.offline_search_active_message)
                             binding.textViewOfflineIndicator.isVisible = true
                         } else if (!isOnline && trimmedQuery.isNullOrBlank()) {
                             binding.textViewOfflineIndicator.text = getString(R.string.offline_indicator_generic)
                             binding.textViewOfflineIndicator.isVisible = true
-                        }
-                        else {
+                        } else {
                             binding.textViewOfflineIndicator.isVisible = false
                         }
 
@@ -162,7 +171,6 @@ class SearchFragment : Fragment(),
                         if (binding.recyclerViewSearchResults.adapter == offlineSearchAdapter) {
                             L.d("Submitting Combined Offline List: ${combinedOfflineList.size} items")
                             offlineSearchAdapter.submitList(combinedOfflineList)
-
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             if (!currentQuery.isNullOrBlank()) {
                                 binding.recyclerViewSearchResults.isVisible = combinedOfflineList.isNotEmpty()
@@ -234,24 +242,18 @@ class SearchFragment : Fragment(),
             override fun handleOnBackPressed() {
                 if (binding.searchView.query.isNotEmpty()) {
                     binding.searchView.setQuery("", false)
-                    // viewModel.performSearch("") // This will be triggered by onQueryTextChange
                 } else {
                     isEnabled = false
                     try {
+                        // Try to pop from parent fragment manager if this fragment was added to backstack
+                        // Or let activity handle if no parent backstack or specific logic needed
                         if (isResumed && parentFragmentManager.backStackEntryCount > 0) {
-                            parentFragmentManager.popBackStack()
+                             parentFragmentManager.popBackStack()
                         } else if (isResumed) {
-                            // Fallback to activity's default dispatcher if fragment cannot pop
                             requireActivity().onBackPressedDispatcher.onBackPressed()
                         }
                     } finally {
-                        // Re-enable the callback only if it's still added to the dispatcher
-                        // and was disabled by this specific handler. This check might be complex
-                        // depending on how NavController handles its own dispatcher additions.
-                        // A simpler approach is often to just let NavController handle it if possible,
-                        // or ensure this callback is always active and checks conditions.
-                        // For now, keeping the original re-enable logic.
-                        if (isAdded && !isEnabled) { isEnabled = true }
+                         if (isAdded && !isEnabled) { isEnabled = true }
                     }
                 }
             }
@@ -265,15 +267,14 @@ class SearchFragment : Fragment(),
             context = requireContext(),
             pageTitle = item.title,
             pageId = item.id,
-            source = HistoryEntry.SOURCE_SEARCH // Added source
+            source = HistoryEntry.SOURCE_SEARCH
         )
         startActivity(intent)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        binding.recyclerViewSearchResults.adapter = null
-        _binding = null
+        _binding = null // Clear binding
     }
 
     override fun getScrollableView(): View? {
@@ -281,6 +282,7 @@ class SearchFragment : Fragment(),
     }
 
     override fun getToolbarPolicy(): ToolbarPolicy {
+        // MainActivity's toolbar should be hidden as SearchFragment now has its own.
         return ToolbarPolicy.HIDDEN
     }
 

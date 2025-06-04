@@ -24,5 +24,9 @@
     <item name="android:windowLightStatusBar">false</item>
 
     <item name="placeholder_color">@color/osrs_text_on_parchment</item>
+
+    <item name="tabCountBackgroundColor">@color/osrs_gold_accent</item>
+    <item name="tabCountTextColor">@color/osrs_text_on_gold</item>
+    <item name="tabCountBorderColor">@color/osrs_text_on_gold</item>
   </style>
 </resources>

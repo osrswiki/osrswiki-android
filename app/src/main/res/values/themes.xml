@@ -24,6 +24,10 @@
         <item name="android:windowLightStatusBar">true</item>
 
         <item name="placeholder_color">@color/osrs_dark_brown_primary</item>
+
+        <item name="tabCountBackgroundColor">@color/osrs_gold_accent</item>
+        <item name="tabCountTextColor">@color/osrs_text_on_gold</item>
+        <item name="tabCountBorderColor">@color/osrs_text_on_gold</item>
     </style>
 
     <style name="Theme.OSRSWiki.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />

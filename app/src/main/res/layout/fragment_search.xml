@@ -6,34 +6,55 @@
     android:layout_height="match_parent"
     tools:context=".search.SearchFragment">
 
+    <FrameLayout
+        android:id="@+id/search_toolbar_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface" 
+        android:elevation="4dp" 
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/search_fragment_toolbar" 
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_arrow_back" 
+            app:navigationIconTint="?attr/colorOnSurface"> 
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                app:iconifiedByDefault="false"
+                app:queryHint="@string/search_hint_text"
+                android:imeOptions="actionSearch|flagNoExtractUi" 
+                android:inputType="text"
+                app:searchIcon="@null" 
+                app:closeIcon="@drawable/ic_close" 
+                app:queryBackground="@android:color/transparent" />
+                </com.google.android.material.appbar.MaterialToolbar>
+    </FrameLayout>
+
     <TextView
         android:id="@+id/textViewOfflineIndicator"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content" 
         android:gravity="center"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
-        android:paddingTop="2dp"  android:paddingBottom="2dp" android:textAppearance="?attr/textAppearanceCaption"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:textAppearance="?attr/textAppearanceCaption"
         android:background="?attr/colorError"
         android:textColor="?attr/colorOnError"
         android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/searchView"
+        app:layout_constraintTop_toBottomOf="@+id/search_toolbar_container" 
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         tools:text="Currently offline. Showing saved pages." />
-
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/searchView"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:iconifiedByDefault="false"
-        app:queryHint="@string/search_hint_text"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="24dp"  app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewSearchResults"
@@ -42,7 +63,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        app:layout_constraintTop_toBottomOf="@+id/textViewOfflineIndicator" 
         tools:listitem="@layout/item_search_result" />
 
     <ProgressBar
@@ -54,7 +75,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        app:layout_constraintTop_toBottomOf="@+id/search_toolbar_container" 
         tools:visibility="gone" />
 
     <TextView
@@ -71,7 +92,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        app:layout_constraintTop_toBottomOf="@+id/search_toolbar_container"
         tools:text="Error message here" />
 
     <TextView
@@ -88,7 +109,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/searchView"
+        app:layout_constraintTop_toBottomOf="@+id/search_toolbar_container"
         tools:visibility="visible" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -26,6 +26,9 @@ import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao // Ensure this p
 import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao   // Ensure this path is correct
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao     // Ensure this path is correct
 
+// Converters
+import com.omiyawaki.osrswiki.database.converters.DateConverter // Import the new DateConverter
+
 
 @Database(
     entities = [
@@ -38,10 +41,13 @@ import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao     // Ensure this p
         OfflinePageFts::class,
         HistoryEntry::class // <<< ADDED HISTORY ENTITY
     ],
-    version = 11, // <<< INCREMENTED VERSION
-    exportSchema = false // Consider setting to true and managing schemas if preferred
+    version = 11, // <<< Current version
+    exportSchema = false
 )
-@TypeConverters(com.omiyawaki.osrswiki.database.TypeConverters::class) // Ensure this handles java.util.Date if not handled by Room by default
+@TypeConverters(
+    com.omiyawaki.osrswiki.database.TypeConverters::class, // Your existing converters
+    DateConverter::class                                   // Our new DateConverter
+)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun articleMetaDao(): ArticleMetaDao
@@ -68,8 +74,6 @@ abstract class AppDatabase : RoomDatabase() {
             //     DatabaseMigrations.MIGRATION_8_9,
             //     DatabaseMigrations.MIGRATION_9_10
             // )
-            // For development, especially when adding new tables, fallbackToDestructiveMigration
-            // can simplify things. For production, you'd define a MIGRATION_10_11.
             .fallbackToDestructiveMigration() // <<< ADDED FOR DEVELOPMENT SIMPLICITY
             .build()
         }
