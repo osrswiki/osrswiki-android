@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -59,44 +60,68 @@ class SearchFragment : Fragment(),
         super.onViewCreated(view, savedInstanceState)
         L.d("SearchFragment: onViewCreated called.")
 
-        L.d("SearchFragment: Setting up searchFragmentToolbar. Current visibility: ${binding.searchFragmentToolbar.visibility}")
+        // Setup this fragment's own toolbar's navigation
         binding.searchFragmentToolbar.setNavigationOnClickListener {
-            L.d("SearchFragment: searchFragmentToolbar navigation clicked.")
+            L.d("SearchFragment: searchFragmentToolbar navigation icon clicked.")
+            // This could pop the back stack or navigate to the previous ViewPager page in MainFragment
+            // For now, relying on standard activity back press dispatcher behavior
             activity?.onBackPressedDispatcher?.onBackPressed()
         }
 
         setupRecyclerViewAdapters()
-        setupSearchView() 
+        setupSearchView()
         observeViewModel()
         setupOnBackPressed()
 
         L.d("SearchFragment: onViewCreated: searchFragmentToolbar.isVisible = ${binding.searchFragmentToolbar.isVisible}")
         L.d("SearchFragment: onViewCreated: searchView.isVisible = ${binding.searchView.isVisible}")
-        if (_binding != null) {
-             L.d("SearchFragment: onViewCreated: searchView parent is searchFragmentToolbar: ${binding.searchView.parent == binding.searchToolbarContainer.findViewById(R.id.search_fragment_toolbar)}")
-        }
     }
 
     override fun onResume() {
         super.onResume()
         L.d("SearchFragment: onResume called.")
-        if (_binding != null) { 
-            val focusRequested = binding.searchView.requestFocus()
-            L.d("SearchFragment: onResume: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
+        if (_binding != null) {
+            // Set this fragment's toolbar as the SupportActionBar
+            val appCompatActivity = activity as? AppCompatActivity
+            appCompatActivity?.setSupportActionBar(binding.searchFragmentToolbar)
+            L.d("SearchFragment: Set searchFragmentToolbar as SupportActionBar.")
+
+            // Set the title for this fragment's toolbar
+            binding.searchFragmentToolbar.title = getString(R.string.title_search) // Use appropriate string resource
+            L.d("SearchFragment: Toolbar title set to '${binding.searchFragmentToolbar.title}'.")
+
+
+            // Request focus for the SearchView and show keyboard
+            binding.searchView.post { // Post to ensure view is ready
+                val focusRequested = binding.searchView.requestFocus()
+                L.d("SearchFragment: onResume: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
+                // Consider explicitly showing the keyboard if requestFocus isn't enough
+                // val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                // imm.showSoftInput(binding.searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
+            }
+
             L.d("SearchFragment: onResume: searchFragmentToolbar.isVisible = ${binding.searchFragmentToolbar.isVisible}")
             L.d("SearchFragment: onResume: searchView.isVisible = ${binding.searchView.isVisible}")
         }
     }
 
+    // ScreenConfiguration interface methods
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
+        // This method might not be actively used by MainActivity to set title for SearchFragment's toolbar anymore,
+        // as SearchFragment now manages its own toolbar title directly in onResume.
+        // However, keeping it for interface completeness or other potential uses.
         return getString(R.string.title_search)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        return NavigationIconType.NONE
+        // This is also part of ScreenConfiguration. For searchFragmentToolbar,
+        // navigation is handled by searchFragmentToolbar.setNavigationOnClickListener.
+        // MainActivity won't be configuring this toolbar based on this type.
+        return NavigationIconType.BACK // Or NONE if navigation icon is solely managed by searchFragmentToolbar
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
+        // SearchFragment's own toolbar does not inflate a separate menu resource.
         return false
     }
 
@@ -109,15 +134,15 @@ class SearchFragment : Fragment(),
 
     private fun setupSearchView() {
         L.d("SearchFragment: setupSearchView called.")
-        binding.searchView.isIconified = false 
+        binding.searchView.isIconified = false // Keep it expanded
         binding.searchView.queryHint = getString(R.string.search_hint_text)
-        L.d("SearchFragment: setupSearchView: searchView.isIconified=${binding.searchView.isIconified}, queryHint set. Current visibility: ${binding.searchView.visibility}")
+        L.d("SearchFragment: setupSearchView: searchView.isIconified=${binding.searchView.isIconified}, queryHint set.")
 
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 L.d("SearchFragment: onQueryTextSubmit: $query")
                 viewModel.performSearch(query?.trim() ?: "")
-                binding.searchView.clearFocus() 
+                binding.searchView.clearFocus() // Hide keyboard on submit
                 return true
             }
 
@@ -126,8 +151,6 @@ class SearchFragment : Fragment(),
                 return true
             }
         })
-        val focusRequested = binding.searchView.requestFocus()
-        L.d("SearchFragment: setupSearchView: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
     }
 
     private fun observeViewModel() {
@@ -155,7 +178,7 @@ class SearchFragment : Fragment(),
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
                             }
-                        } else { 
+                        } else { // Offline
                             if (binding.recyclerViewSearchResults.adapter != offlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = offlineSearchAdapter
                                 L.d("SearchFragment: Switched to OfflineSearchAdapter.")
@@ -163,7 +186,7 @@ class SearchFragment : Fragment(),
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
                             } else {
-                                binding.progressBarSearch.isVisible = false
+                                binding.progressBarSearch.isVisible = false // Offline search is quick
                             }
                         }
                     }
@@ -190,7 +213,7 @@ class SearchFragment : Fragment(),
                                 if (combinedOfflineList.isEmpty()) {
                                     binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                                 }
-                            } else {
+                            } else { // Blank query, offline
                                 updateUiForBlankQuery()
                             }
                             binding.progressBarSearch.isVisible = false
@@ -209,11 +232,13 @@ class SearchFragment : Fragment(),
                         val currentQuery = viewModel.currentQuery.value?.trim()
 
                         binding.progressBarSearch.isVisible = isLoading
-                        binding.recyclerViewSearchResults.isVisible = false 
+                        // Initial state assumption for recycler/noResults/error:
+                        binding.recyclerViewSearchResults.isVisible = false
                         binding.textViewNoResults.isVisible = false
                         binding.textViewSearchError.isVisible = false
 
                         if (isLoading) {
+                            // ProgressBar is visible, other views are hidden
                         } else if (isError) {
                             val errorMessage = when (error) {
                                 is IOException -> getString(R.string.search_error_network)
@@ -221,15 +246,15 @@ class SearchFragment : Fragment(),
                             }
                             binding.textViewSearchError.text = errorMessage
                             binding.textViewSearchError.isVisible = true
-                        } else { 
+                        } else { // Not loading, not error -> check adapter item count
                             if (onlineSearchAdapter.itemCount > 0) {
                                 binding.recyclerViewSearchResults.isVisible = true
-                            } else {
-                                if (!currentQuery.isNullOrBlank()) {
+                            } else { // No items from adapter
+                                if (!currentQuery.isNullOrBlank()) { // And query was not blank
                                     binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                                     binding.textViewNoResults.isVisible = true
-                                } else {
-                                    updateUiForBlankQuery()
+                                } else { // Query was blank
+                                    updateUiForBlankQuery() // Show "enter query" prompt
                                 }
                             }
                         }
@@ -251,17 +276,15 @@ class SearchFragment : Fragment(),
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (binding.searchView.query.isNotEmpty()) {
-                    binding.searchView.setQuery("", false)
+                    binding.searchView.setQuery("", false) // Clear query first
                 } else {
-                    isEnabled = false
+                    isEnabled = false // Disable this callback to allow default navigation
                     try {
-                        if (isResumed && parentFragmentManager.backStackEntryCount > 0) {
-                            requireActivity().onBackPressedDispatcher.onBackPressed()
-                        } else if (isResumed) {
-                            requireActivity().onBackPressedDispatcher.onBackPressed()
-                        }
+                        // Standard way to trigger back press for fragment/activity
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
                     } finally {
-                        if (isAdded && !isEnabled) { isEnabled = true }
+                        // Re-enable only if still added to prevent issues if fragment is quickly re-added
+                        if (isAdded) { isEnabled = true }
                     }
                 }
             }
@@ -283,15 +306,18 @@ class SearchFragment : Fragment(),
     override fun onDestroyView() {
         super.onDestroyView()
         L.d("SearchFragment: onDestroyView.")
-        _binding = null 
+        _binding = null
     }
 
+    // ScrollableContent interface method
     override fun getScrollableView(): View? {
         return _binding?.recyclerViewSearchResults
     }
 
+    // FragmentToolbarPolicyProvider interface method
     override fun getToolbarPolicy(): ToolbarPolicy {
         L.d("SearchFragment: getToolbarPolicy called, returning HIDDEN.")
+        // This tells MainFragment to hide MainActivity's main_toolbar when SearchFragment is active
         return ToolbarPolicy.HIDDEN
     }
 

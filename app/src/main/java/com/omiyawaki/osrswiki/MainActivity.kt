@@ -4,11 +4,12 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment 
+import androidx.fragment.app.Fragment
+import com.google.android.material.appbar.MaterialToolbar
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
-import com.omiyawaki.osrswiki.navigation.AppRouterImpl 
+import com.omiyawaki.osrswiki.navigation.AppRouterImpl
 import com.omiyawaki.osrswiki.page.ViewHideHandler
-import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment 
+import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.main.MainScrollableViewProvider
 import com.omiyawaki.osrswiki.ui.common.ToolbarPolicy
@@ -18,7 +19,10 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var mainToolbarHideHandler: ViewHideHandler
-    private lateinit var appRouter: AppRouterImpl 
+    private lateinit var appRouter: AppRouterImpl
+
+    // Public accessor for the main toolbar
+    val mainBindingToolbar: MaterialToolbar get() = binding.mainToolbar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +35,7 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
 
         setSupportActionBar(binding.mainToolbar)
         L.d("MainActivity: onCreate: mainToolbar set as SupportActionBar.")
-        supportActionBar?.title = getString(R.string.app_name) 
+        supportActionBar?.title = getString(R.string.app_name)
         L.d("MainActivity: onCreate: Default title set to '${supportActionBar?.title}'")
 
         mainToolbarHideHandler = ViewHideHandler(
@@ -88,7 +92,7 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
         val initialMainToolbarMenuSize = binding.mainToolbar.menu.size()
         val initialMainToolbarTitle = supportActionBar?.title
         L.d("MainActivity: onResume (Initial Check): mainToolbarContainer.visibility=${binding.mainToolbarContainer.visibility}, mainToolbar.isShown=$initialIsMainToolbarShown, mainToolbar.height=$initialMainToolbarHeight, mainToolbar.menu.size=$initialMainToolbarMenuSize, supportActionBar.title='$initialMainToolbarTitle'")
-        
+
         invalidateOptionsMenu()
         L.d("MainActivity: onResume: invalidateOptionsMenu() called.")
 
