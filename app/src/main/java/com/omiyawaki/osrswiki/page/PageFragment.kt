@@ -13,6 +13,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.annotation.RequiresApi
+import androidx.appcompat.widget.PopupMenu // Added import
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -20,8 +21,8 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.common.models.PageTitle as CommonPageTitle // For History/Backstack
-import com.omiyawaki.osrswiki.page.PageTitle as PagePackagePageTitle // For ReadingList interactions
+import com.omiyawaki.osrswiki.common.models.PageTitle as CommonPageTitle
+import com.omiyawaki.osrswiki.page.PageTitle as PagePackagePageTitle
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.dataclient.WikiSite
@@ -52,10 +53,10 @@ class PageFragment : Fragment() {
     private lateinit var pageLinkHandler: PageLinkHandler
 
     private var pageIdArg: String? = null
-    private var pageTitleArg: String? = null // This is likely the prefixed/underscored title string
+    private var pageTitleArg: String? = null
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
 
-    private val pageActionItemCallback = PageActionItemCallback()
+    private val pageActionItemCallback = PageActionItemCallback() // Existing callback for actions
     private var pageStateObserverJob: Job? = null
 
     private val WEBVIEW_DEBUG_TAG = "PFragment_WebViewDebug"
@@ -68,7 +69,7 @@ class PageFragment : Fragment() {
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
             navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
         }
-        pageViewModel = PageViewModel() // Consider using ViewModelProvider for proper lifecycle
+        pageViewModel = PageViewModel()
         pageRepository = (requireActivity().applicationContext as OSRSWikiApp).pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
     }
@@ -121,7 +122,7 @@ class PageFragment : Fragment() {
                             }
                         }
                     } else {
-                        applyWebViewStylingAndRevealBody {} // Re-apply styles if needed
+                        applyWebViewStylingAndRevealBody {}
                     }
                 }
             }
@@ -140,7 +141,7 @@ class PageFragment : Fragment() {
                             }
                         }
                     } else if (url != null && !url.startsWith("data:") && !url.equals("about:blank", ignoreCase = true)) {
-                        applyWebViewStylingAndRevealBody {} // Re-apply styles if needed
+                        applyWebViewStylingAndRevealBody {}
                     }
                 }
             }
@@ -165,6 +166,43 @@ class PageFragment : Fragment() {
         binding.errorTextView.setOnClickListener { initiatePageLoad(forceNetwork = true) }
     }
 
+    // Method to be called from PageActivity to show the overflow menu
+    fun showPageOverflowMenu(anchorView: View) {
+        if (!isAdded || context == null) return
+        val popup = PopupMenu(requireContext(), anchorView)
+        popup.menuInflater.inflate(R.menu.menu_page_overflow, popup.menu)
+
+        // TODO: Dynamically update menu item titles/icons if needed (e.g., "Save" vs "Unsave")
+        // For example:
+        // val saveItem = popup.menu.findItem(R.id.menu_page_overflow_save)
+        // saveItem?.title = if (/* some condition for isSaved */ true) "Unsave page" else "Save page"
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.menu_page_overflow_save -> {
+                    pageActionItemCallback.onSaveSelected()
+                    true
+                }
+                R.id.menu_page_overflow_find_in_article -> {
+                    pageActionItemCallback.onFindInArticleSelected()
+                    true
+                }
+                R.id.menu_page_overflow_appearance -> {
+                    pageActionItemCallback.onThemeSelected()
+                    true
+                }
+                R.id.menu_page_overflow_contents -> {
+                    pageActionItemCallback.onContentsSelected()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+        L.d("Page overflow menu shown.")
+    }
+
+
     private fun logPageVisit() {
         if (!isAdded || _binding == null) { Log.w(HISTORY_DEBUG_TAG, "logPageVisit: Fragment not in a valid state to log history."); return }
         val currentOsrsApp = OSRSWikiApp.instance
@@ -177,7 +215,7 @@ class PageFragment : Fragment() {
         }
 
         if (currentTab != null && currentTab.backStack.isNotEmpty()) {
-            val lastBackStackUrl = currentTab.backStack.last().pageTitle.wikiUrl // Assuming CommonPageTitle has wikiUrl
+            val lastBackStackUrl = currentTab.backStack.last().pageTitle.wikiUrl
             if (lastBackStackUrl == state.wikiUrl) {
                 val lastBackStackItem = currentTab.backStack.last()
                 val newScrollY = binding.pageWebView.scrollY
@@ -189,17 +227,15 @@ class PageFragment : Fragment() {
             }
         }
 
-        // Use CommonPageTitle (com.omiyawaki.osrswiki.common.models.PageTitle) for HistoryEntry and PageBackStackItem
         val commonPageTitleForHistory = CommonPageTitle(
             wikiUrl = state.wikiUrl!!,
             displayText = state.title ?: state.plainTextTitle!!,
             pageId = state.pageId ?: -1,
-            apiPath = state.plainTextTitle!! // This is the URL-encoded title part from ViewModel
+            apiPath = state.plainTextTitle!!
         )
 
         val historyEntry = HistoryEntry(
             pageTitle = commonPageTitleForHistory,
-            // timestamp = Date(), // timestamp now defaults in HistoryEntry constructor
             source = navigationSource
         )
 
@@ -209,7 +245,7 @@ class PageFragment : Fragment() {
                     AppDatabase.instance.historyEntryDao().upsertEntry(historyEntry)
                     Log.d(HISTORY_DEBUG_TAG, "Global history upserted for: ${commonPageTitleForHistory.apiPath}")
                 } catch (e: Exception) {
-                    L.e("$HISTORY_DEBUG_TAG: Error upserting history entry", e) // Corrected L.e() call
+                    L.e("$HISTORY_DEBUG_TAG: Error upserting history entry", e)
                 }
             }
         }
@@ -217,7 +253,7 @@ class PageFragment : Fragment() {
         if (currentTab == null) { Log.e(HISTORY_DEBUG_TAG, "logPageVisit: Current tab is null. Cannot add to tab backstack."); return }
 
         val pageBackStackItem = PageBackStackItem(
-            pageTitle = commonPageTitleForHistory, // Use CommonPageTitle here
+            pageTitle = commonPageTitleForHistory,
             historyEntry = historyEntry,
             scrollY = binding.pageWebView.scrollY
         )
@@ -290,11 +326,11 @@ class PageFragment : Fragment() {
 
     private fun initiatePageLoad(forceNetwork: Boolean = false) {
         val currentIdToLoadArg = pageIdArg
-        val currentTitleToLoadArg = pageTitleArg // This is the prefixed/underscored title
+        val currentTitleToLoadArg = pageTitleArg
         var idToLoad: Int? = null
         if (!currentIdToLoadArg.isNullOrBlank()) { try { idToLoad = currentIdToLoadArg.toInt() } catch (e: NumberFormatException) { idToLoad = null }}
         val currentViewModelPageId: Int? = pageViewModel.uiState.pageId
-        val currentViewModelPlainTextTitle = pageViewModel.uiState.plainTextTitle // This is also likely prefixed/underscored
+        val currentViewModelPlainTextTitle = pageViewModel.uiState.plainTextTitle
         val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && pageViewModel.uiState.error == null
 
         pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null); updateUiFromViewModel()
@@ -338,7 +374,7 @@ class PageFragment : Fragment() {
                     <style>html{background-color:$backgroundColorHex !important;}body{visibility:hidden;background-color:$backgroundColorHex !important;}</style>
                     </head><body> $htmlBodySnippet</body></html>
                 """.trimIndent()
-                val baseUrl = state.wikiUrl ?: WikiSite.OSRS_WIKI.url() // Use state.wikiUrl if available
+                val baseUrl = state.wikiUrl ?: WikiSite.OSRS_WIKI.url()
                 binding.pageWebView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
             } ?: run {
                 if (binding.pageWebView.visibility != View.VISIBLE) binding.pageWebView.visibility = View.VISIBLE
@@ -424,7 +460,7 @@ class PageFragment : Fragment() {
             }}
     }
 
-    private inner class PageActionItemCallback : PageActionItem.Callback {
+    internal inner class PageActionItemCallback : PageActionItem.Callback { // Made internal for access from showPageOverflowMenu if needed, or keep private and call directly
         private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
             if (!isAdded || _binding == null) return
             val snackbar = Snackbar.make(binding.root, message, length).setAnchorView(binding.pageActionsTabLayout)

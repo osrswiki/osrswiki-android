@@ -49,11 +49,10 @@ class MainFragment : Fragment(), MenuProvider {
     private var tabCountsViewInstance: TabCountsView? = null
     private var showTabCountsAnimation = false
 
-    // ViewPager page indices
-    companion object { // Removed 'private' modifier here
+    companion object {
         const val SAVED_PAGES_FRAGMENT_INDEX = 0
         const val SEARCH_FRAGMENT_INDEX = 1
-        const val MORE_FRAGMENT_PLACEHOLDER_INDEX = 2 // Or handle 'More' differently if not a ViewPager page
+        const val MORE_FRAGMENT_PLACEHOLDER_INDEX = 2
 
         fun newInstance() = MainFragment()
     }
@@ -82,13 +81,11 @@ class MainFragment : Fragment(), MenuProvider {
         L.d("MainFragment: MenuProvider: onViewCreated: MenuProvider added.")
         setupViewPager()
         if (savedInstanceState == null) {
-            // Default to Search tab
             binding.mainViewPager.setCurrentItem(SEARCH_FRAGMENT_INDEX, false)
             L.d("MainFragment: Set initial ViewPager item to $SEARCH_FRAGMENT_INDEX (SearchFragment)")
         }
         setupBottomNavigation()
 
-        // Observe tab count changes
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 OSRSWikiApp.instance.tabCountFlow.collectLatest { count ->
@@ -99,9 +96,23 @@ class MainFragment : Fragment(), MenuProvider {
         }
     }
 
+    fun navigateToSearchTab() {
+        L.d("MainFragment: navigateToSearchTab() called.")
+        if (_binding != null) { // Ensure binding is available before using it
+            if (binding.mainViewPager.currentItem != SEARCH_FRAGMENT_INDEX) {
+                binding.mainViewPager.setCurrentItem(SEARCH_FRAGMENT_INDEX, false) // smoothScroll = false for immediate switch
+                L.d("MainFragment: Navigated ViewPager to SEARCH_FRAGMENT_INDEX ($SEARCH_FRAGMENT_INDEX).")
+            } else {
+                L.d("MainFragment: ViewPager already at SEARCH_FRAGMENT_INDEX. No navigation needed.")
+            }
+        } else {
+            L.e("MainFragment: Binding is null in navigateToSearchTab(). Cannot navigate.")
+        }
+    }
+
     private fun setupViewPager() {
         binding.mainViewPager.adapter = ViewPagerAdapter(this)
-        binding.mainViewPager.isUserInputEnabled = false // Typically false if driven by bottom nav
+        binding.mainViewPager.isUserInputEnabled = false
         binding.mainViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
@@ -110,8 +121,6 @@ class MainFragment : Fragment(), MenuProvider {
                 }
                 L.d("MainFragment: ViewPager page selected: $position. Notifying activity of toolbar state.")
                 notifyActivityOfToolbarState()
-                // Invalidate options menu to ensure the correct menu items are shown/hidden
-                // and MainActivity's toolbar (if active) gets repopulated by this MenuProvider.
                 L.d("MainFragment: ViewPager page selected: $position. Invalidating options menu.")
                 requireActivity().invalidateOptionsMenu()
             }
@@ -126,7 +135,7 @@ class MainFragment : Fragment(), MenuProvider {
                 R.id.nav_search_bottom -> SEARCH_FRAGMENT_INDEX
                 R.id.nav_more_bottom -> {
                     showMorePopupMenu(binding.bottomNavView.findViewById(R.id.nav_more_bottom))
-                    -1 // Indicate no ViewPager change for 'More'
+                    -1
                 }
                 else -> -1
             }
@@ -137,23 +146,19 @@ class MainFragment : Fragment(), MenuProvider {
                 }
                 true
             } else {
-                // Re-select the previous item if 'More' was clicked, to keep bottom nav visually consistent
                 if (item.itemId == R.id.nav_more_bottom && previousItemIndex < binding.bottomNavView.menu.size()) {
-                     // Check if previousItemIndex is valid before trying to access menu item
-                    if (previousItemIndex >= 0) { // Ensure previousItemIndex is not negative
+                    if (previousItemIndex >= 0) {
                         binding.bottomNavView.menu.getItem(previousItemIndex).isChecked = true
                     }
                 }
                 false
             }
         }
-        // Ensure initial bottom nav state matches ViewPager's current item
         if (binding.mainViewPager.adapter?.itemCount ?: 0 > 0) {
             val currentVPItem = binding.mainViewPager.currentItem
             if (currentVPItem < binding.bottomNavView.menu.size()) {
                 binding.bottomNavView.menu.getItem(currentVPItem).isChecked = true
             }
-            // Initial toolbar state notification post layout
             view?.post { notifyActivityOfToolbarState() }
         }
     }
@@ -181,9 +186,8 @@ class MainFragment : Fragment(), MenuProvider {
         }
         val scrollableViewForChildren = (currentChildFragment as? ScrollableContent)?.getScrollableView()
 
-        // Determine the toolbar policy based on the current child fragment
         val childFragmentPolicy = (currentChildFragment as? FragmentToolbarPolicyProvider)?.getToolbarPolicy()
-            ?: ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT // Default policy if child doesn't specify
+            ?: ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT
 
         L.d("MainFragment: notifyActivityOfToolbarState: Child is ${currentChildFragment?.javaClass?.simpleName}, requested policy: $childFragmentPolicy")
 
@@ -191,17 +195,14 @@ class MainFragment : Fragment(), MenuProvider {
         val appCompatActivity = activity as? AppCompatActivity
 
         if (childFragmentPolicy == ToolbarPolicy.HIDDEN) {
-            // If child (e.g., SearchFragment) wants MainActivity's toolbar hidden because it will use its own
             L.d("MainFragment: Child requests HIDDEN policy. Telling MainActivity to hide its toolbar container.")
             mainViewProvider?.updateToolbarState(this, scrollableViewForChildren, ToolbarPolicy.HIDDEN)
         } else {
-            // If child wants MainActivity's toolbar to be visible (e.g., SavedPagesFragment)
             L.d("MainFragment: Child requests VISIBLE policy ($childFragmentPolicy). Ensuring MainActivity's toolbar is active SupportActionBar.")
             mainActivity?.mainBindingToolbar?.let {
                 appCompatActivity?.setSupportActionBar(it)
                 L.d("MainFragment: Set MainActivity's own toolbar as SupportActionBar.")
             }
-            // Apply the child's requested policy (e.g., COLLAPSIBLE_WITH_CONTENT) to MainActivity's toolbar
             mainViewProvider?.updateToolbarState(this, scrollableViewForChildren, childFragmentPolicy)
             L.d("MainFragment: Told MainActivity to apply policy $childFragmentPolicy to its toolbar.")
         }
@@ -210,15 +211,13 @@ class MainFragment : Fragment(), MenuProvider {
     override fun onResume() {
         super.onResume()
         L.d("MainFragment: onResume. Notifying activity of toolbar state.")
-        // Post to ensure views are measured, especially important for initial setup or after config change
         view?.post { notifyActivityOfToolbarState() }
-        // Also invalidate options menu in case MainActivity's toolbar became active again
         requireActivity().invalidateOptionsMenu()
     }
 
     override fun onDetach() {
         super.onDetach()
-        mainViewProvider?.updateToolbarState(null, null, ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT) // Default on detach
+        mainViewProvider?.updateToolbarState(null, null, ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT)
         mainViewProvider = null
     }
 
@@ -267,7 +266,6 @@ class MainFragment : Fragment(), MenuProvider {
             tabCountsViewInstance = null
         }
 
-        // Hide search icon if current page is SearchFragment
         val searchMenuItem = menu.findItem(R.id.menu_search)
         if (binding.mainViewPager.currentItem == SEARCH_FRAGMENT_INDEX) {
             searchMenuItem?.isVisible = false
@@ -283,18 +281,16 @@ class MainFragment : Fragment(), MenuProvider {
         return when (menuItem.itemId) {
             R.id.menu_search -> {
                 L.d("MainFragment: Search icon selected. Navigating to SearchFragment.")
-                binding.mainViewPager.setCurrentItem(SEARCH_FRAGMENT_INDEX, false)
-                true // Item handled
+                navigateToSearchTab() // Use the new method
+                true
             }
-            // R.id.menu_tabs is handled by its actionView's OnClickListener
-            else -> false // Item not handled by this fragment
+            else -> false
         }
     }
 
     private class ViewPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
         private val fragments = mutableMapOf<Int, Fragment>()
-        // Define number of tabs based on constants
-        private val numTabs = 2 // Corresponds to SAVED_PAGES_FRAGMENT_INDEX and SEARCH_FRAGMENT_INDEX
+        private val numTabs = 2
 
         override fun getItemCount(): Int = numTabs
 
@@ -310,13 +306,10 @@ class MainFragment : Fragment(), MenuProvider {
         }
 
         fun getFragmentAt(position: Int, fragmentManager: FragmentManager): Fragment? {
-            // Standard way to get fragment from FragmentStateAdapter
             return fragmentManager.findFragmentByTag("f$position") ?: fragments[position]
         }
     }
 
-    // PlaceholderFragment for 'More' or other tabs if they were ViewPager pages
-    // Kept for reference but not directly used by bottom nav's 'More' currently
     class PlaceholderFragment : Fragment(), ScrollableContent, FragmentToolbarPolicyProvider {
         private var scrollableView: androidx.core.widget.NestedScrollView? = null
         private var placeholderText: String = "Placeholder"
@@ -338,7 +331,7 @@ class MainFragment : Fragment(), MenuProvider {
             return scrollView
         }
         override fun getScrollableView(): View? = scrollableView
-        override fun getToolbarPolicy(): ToolbarPolicy = ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT // Example
+        override fun getToolbarPolicy(): ToolbarPolicy = ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT
         companion object {
             private const val ARG_TEXT = "placeholder_text"
             fun newInstance(text: String): PlaceholderFragment {

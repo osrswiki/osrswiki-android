@@ -12,13 +12,57 @@
         android:layout_height="wrap_content"
         android:theme="@style/Theme.OSRSWiki.AppBarOverlay">
 
-        <androidx.appcompat.widget.Toolbar
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/page_toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/Theme.OSRSWiki.PopupOverlay" />
+            app:popupTheme="@style/Theme.OSRSWiki.PopupOverlay"
+            app:contentInsetStartWithNavigation="0dp">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/page_toolbar_search_button"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:hint="@string/page_toolbar_search_hint"
+                    android:textColorHint="?android:attr/textColorSecondary"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:background="@android:drawable/editbox_background"  app:drawableStartCompat="@drawable/ic_search_white_24dp"  app:drawableTint="?android:attr/textColorSecondary"
+                    android:drawablePadding="8dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:layout_marginEnd="8dp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <com.omiyawaki.osrswiki.views.TabCountsView
+                    android:id="@+id/page_toolbar_tab_counts_view"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/page_toolbar_tabs_content_description"
+                    android:clickable="true"
+                    android:focusable="true"/>
+                    <ImageView
+                    android:id="@+id/page_toolbar_overflow_menu_button"
+                    android:layout_width="48dp"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_more_vert_white_24dp" app:tint="?attr/colorControlNormal" android:contentDescription="@string/page_toolbar_overflow_content_description"
+                    android:padding="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.fragment.app.FragmentContainerView
