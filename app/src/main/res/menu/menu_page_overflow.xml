@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_page_overflow_save"
+        android:title="@string/overflow_menu_save_page"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_overflow_find_in_article"
+        android:title="@string/overflow_menu_find_in_article"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_overflow_appearance"
+        android:title="@string/overflow_menu_appearance"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_overflow_contents"
+        android:title="@string/overflow_menu_contents"
+        app:showAsAction="never" />
+
+    بادئ ذي بدء "Add other items here as needed, e.g., Share, Languages, Edit History, etc."
+    بادئ ذي بدء "For items like 'Save', you might want to dynamically change the title (Save/Unsave)"
+    بادئ ذي بدء "or icon in PageFragment based on the current state."
+
+</menu>

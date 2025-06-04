@@ -58,4 +58,4 @@
     <string name="offline_indicator_generic">You are currently offline.</string>
 
     <string name="preference_key_tabs" translatable="false">tabs</string>
-</resources>
+    <string name="overflow_menu_save_page">Save page</string>\n    <string name="overflow_menu_find_in_article">Find in article</string>\n    <string name="overflow_menu_appearance">Appearance</string>\n    <string name="overflow_menu_contents">Contents</string>\n    <string name="page_toolbar_search_hint">Search OSRSWiki</string>\n    <string name="page_toolbar_tabs_content_description">Show tabs</string>\n    <string name="page_toolbar_overflow_content_description">More options</string>\n</resources>

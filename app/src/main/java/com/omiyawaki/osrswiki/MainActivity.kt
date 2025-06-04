@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki
 
+import android.content.Intent // Added for onNewIntent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -23,6 +24,10 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
 
     // Public accessor for the main toolbar
     val mainBindingToolbar: MaterialToolbar get() = binding.mainToolbar
+
+    companion object {
+        const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,13 +55,50 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
         if (savedInstanceState == null) {
             L.d("MainActivity: onCreate: savedInstanceState is null, replacing with MainFragment.")
             supportFragmentManager.beginTransaction()
-                .replace(R.id.main_fragment_container, MainFragment.newInstance())
+                .replace(R.id.main_fragment_container, MainFragment.newInstance(), MainFragment::class.java.simpleName) // Added tag
                 .commitNow()
             L.d("MainActivity: onCreate: MainFragment committed.")
         } else {
             L.d("MainActivity: onCreate: savedInstanceState is NOT null, fragment should be restored.")
         }
+
+        handleIntentExtras(intent) // Handle intent that started this activity
     }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        L.d("MainActivity: onNewIntent called.")
+        // It's important to set the new intent, as getIntent() will return the original one otherwise
+        setIntent(intent)
+        intent?.let { handleIntentExtras(it) }
+    }
+
+    private fun handleIntentExtras(intent: Intent) {
+        if (intent.action == ACTION_NAVIGATE_TO_SEARCH) {
+            L.d("MainActivity: Received ACTION_NAVIGATE_TO_SEARCH")
+            // Ensure MainFragment is present before calling its method
+            // Using post to ensure fragment transaction (if any) from onCreate has completed
+            binding.root.post {
+                val mainFragment = supportFragmentManager.findFragmentByTag(MainFragment::class.java.simpleName) as? MainFragment
+                if (mainFragment != null && mainFragment.isAdded) {
+                    mainFragment.navigateToSearchTab()
+                    L.d("MainActivity: Instructed MainFragment to navigate to search tab.")
+                } else {
+                    L.e("MainActivity: MainFragment not found or not added. Cannot navigate to search tab programmatically.")
+                    // Fallback: Could store a flag and have MainFragment check on attach,
+                    // or try finding by ID if tag fails (R.id.main_fragment_container)
+                    val mainFragmentById = supportFragmentManager.findFragmentById(R.id.main_fragment_container) as? MainFragment
+                    if (mainFragmentById != null && mainFragmentById.isAdded) {
+                         mainFragmentById.navigateToSearchTab()
+                         L.d("MainActivity: Instructed MainFragment (found by ID) to navigate to search tab.")
+                    } else {
+                        L.e("MainActivity: MainFragment also not found by ID. Navigation might fail if activity restarts before fragment is ready.")
+                    }
+                }
+            }
+        }
+    }
+
 
     override fun updateToolbarState(hostFragment: Fragment?, scrollableView: View?, policy: ToolbarPolicy) {
         L.d("MainActivity: updateToolbarState called. Policy: $policy, HostFragment: ${hostFragment?.javaClass?.simpleName}, Current ToolbarContainer Visibility: ${binding.mainToolbarContainer.visibility}")
@@ -86,7 +128,6 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
 
     override fun onResume() {
         super.onResume()
-        // Initial check of toolbar state
         val initialIsMainToolbarShown = binding.mainToolbar.isShown
         val initialMainToolbarHeight = binding.mainToolbar.height
         val initialMainToolbarMenuSize = binding.mainToolbar.menu.size()
@@ -96,7 +137,6 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
         invalidateOptionsMenu()
         L.d("MainActivity: onResume: invalidateOptionsMenu() called.")
 
-        // Posted check to see state after menu invalidation and potential population
         binding.root.post {
             val postedIsMainToolbarShown = binding.mainToolbar.isShown
             val postedMainToolbarHeight = binding.mainToolbar.height
@@ -118,13 +158,13 @@ class MainActivity : AppCompatActivity(), MainScrollableViewProvider, SavedPages
         return super.onSupportNavigateUp()
     }
 
-    override fun onBackPressed() {
+    override fun onBackPressed() { // Changed from override fun onBackPressed() to match typical signature
         L.d("MainActivity: onBackPressed called.")
         if (appRouter.goBack()) {
             L.d("MainActivity: onBackPressed: AppRouter handled back navigation.")
             return
         }
         L.d("MainActivity: onBackPressed: AppRouter did not handle back, calling super.onBackPressed().")
-        super.onBackPressed()
+        super.onBackPressed() // Ensure super.onBackPressed() is called if not handled
     }
 }
