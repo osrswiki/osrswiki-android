@@ -51,39 +51,52 @@ class SearchFragment : Fragment(),
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSearchBinding.inflate(inflater, container, false)
+        L.d("SearchFragment: onCreateView.")
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        L.d("SearchFragment: onViewCreated called.")
 
-        // Setup the new Toolbar within SearchFragment
+        L.d("SearchFragment: Setting up searchFragmentToolbar. Current visibility: ${binding.searchFragmentToolbar.visibility}")
         binding.searchFragmentToolbar.setNavigationOnClickListener {
-            // Trigger the same logic as the system back press
+            L.d("SearchFragment: searchFragmentToolbar navigation clicked.")
             activity?.onBackPressedDispatcher?.onBackPressed()
         }
-        // Optionally, if you want to set a title (though SearchView usually takes full width)
-        // binding.searchFragmentToolbar.title = getString(R.string.title_search)
 
         setupRecyclerViewAdapters()
-        setupSearchView() // This will now configure the SearchView within the new Toolbar
+        setupSearchView() 
         observeViewModel()
-        setupOnBackPressed() // Existing back press logic
+        setupOnBackPressed()
+
+        L.d("SearchFragment: onViewCreated: searchFragmentToolbar.isVisible = ${binding.searchFragmentToolbar.isVisible}")
+        L.d("SearchFragment: onViewCreated: searchView.isVisible = ${binding.searchView.isVisible}")
+        if (_binding != null) {
+             L.d("SearchFragment: onViewCreated: searchView parent is searchFragmentToolbar: ${binding.searchView.parent == binding.searchToolbarContainer.findViewById(R.id.search_fragment_toolbar)}")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        L.d("SearchFragment: onResume called.")
+        if (_binding != null) { 
+            val focusRequested = binding.searchView.requestFocus()
+            L.d("SearchFragment: onResume: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
+            L.d("SearchFragment: onResume: searchFragmentToolbar.isVisible = ${binding.searchFragmentToolbar.isVisible}")
+            L.d("SearchFragment: onResume: searchView.isVisible = ${binding.searchView.isVisible}")
+        }
     }
 
     override fun getToolbarTitle(getString: (id: Int) -> String): String {
-        // This is for MainActivity's toolbar, which is hidden.
-        // The title for SearchFragment's own toolbar can be set directly if needed.
         return getString(R.string.title_search)
     }
 
     override fun getNavigationIconType(): NavigationIconType {
-        // This is for MainActivity's toolbar, which is hidden.
         return NavigationIconType.NONE
     }
 
     override fun hasCustomOptionsMenu(): Boolean {
-        // This is for MainActivity's toolbar. SearchFragment can manage its own menu on its toolbar if needed.
         return false
     }
 
@@ -91,18 +104,20 @@ class SearchFragment : Fragment(),
         onlineSearchAdapter = SearchAdapter(this)
         offlineSearchAdapter = OfflineSearchAdapter(this)
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
-        L.i("RecyclerView adapters initialized.")
+        L.i("SearchFragment: RecyclerView adapters initialized.")
     }
 
     private fun setupSearchView() {
-        // binding.searchView is still the correct reference to the SearchView,
-        // even though it's now inside searchFragmentToolbar in the XML.
-        binding.searchView.isIconified = false // Keep it expanded
+        L.d("SearchFragment: setupSearchView called.")
+        binding.searchView.isIconified = false 
         binding.searchView.queryHint = getString(R.string.search_hint_text)
+        L.d("SearchFragment: setupSearchView: searchView.isIconified=${binding.searchView.isIconified}, queryHint set. Current visibility: ${binding.searchView.visibility}")
+
         binding.searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
+                L.d("SearchFragment: onQueryTextSubmit: $query")
                 viewModel.performSearch(query?.trim() ?: "")
-                binding.searchView.clearFocus() // Hide keyboard
+                binding.searchView.clearFocus() 
                 return true
             }
 
@@ -111,14 +126,13 @@ class SearchFragment : Fragment(),
                 return true
             }
         })
-        // Request focus for the SearchView when the fragment becomes visible
-        binding.searchView.requestFocus()
+        val focusRequested = binding.searchView.requestFocus()
+        L.d("SearchFragment: setupSearchView: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
     }
 
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Main UI mode controller based on network status and query
                 launch {
                     viewModel.isOnline.combine(viewModel.currentQuery) { isOnline, query ->
                         Pair(isOnline, query?.trim())
@@ -136,15 +150,15 @@ class SearchFragment : Fragment(),
                         if (isOnline) {
                             if (binding.recyclerViewSearchResults.adapter != onlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = onlineSearchAdapter
-                                L.d("Switched to OnlineSearchAdapter.")
+                                L.d("SearchFragment: Switched to OnlineSearchAdapter.")
                             }
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
                             }
-                        } else { // Offline mode
+                        } else { 
                             if (binding.recyclerViewSearchResults.adapter != offlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = offlineSearchAdapter
-                                L.d("Switched to OfflineSearchAdapter.")
+                                L.d("SearchFragment: Switched to OfflineSearchAdapter.")
                             }
                             if (trimmedQuery.isNullOrBlank()) {
                                 updateUiForBlankQuery()
@@ -155,21 +169,19 @@ class SearchFragment : Fragment(),
                     }
                 }
 
-                // Observe Online Paged Search Results
                 launch {
                     viewModel.onlineSearchResultsFlow.collectLatest { pagingData ->
                         if (binding.recyclerViewSearchResults.adapter == onlineSearchAdapter) {
-                            L.d("Submitting Online PagingData")
+                            L.d("SearchFragment: Submitting Online PagingData")
                             onlineSearchAdapter.submitData(pagingData)
                         }
                     }
                 }
 
-                // Observe Combined Offline Results
                 launch {
                     viewModel.combinedOfflineResultsList.collectLatest { combinedOfflineList ->
                         if (binding.recyclerViewSearchResults.adapter == offlineSearchAdapter) {
-                            L.d("Submitting Combined Offline List: ${combinedOfflineList.size} items")
+                            L.d("SearchFragment: Submitting Combined Offline List: ${combinedOfflineList.size} items")
                             offlineSearchAdapter.submitList(combinedOfflineList)
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             if (!currentQuery.isNullOrBlank()) {
@@ -187,7 +199,6 @@ class SearchFragment : Fragment(),
                     }
                 }
 
-                // Observe Load States for Paging (Online Search)
                 launch {
                     onlineSearchAdapter.loadStateFlow.collectLatest { loadStates ->
                         if (binding.recyclerViewSearchResults.adapter != onlineSearchAdapter) return@collectLatest
@@ -198,12 +209,11 @@ class SearchFragment : Fragment(),
                         val currentQuery = viewModel.currentQuery.value?.trim()
 
                         binding.progressBarSearch.isVisible = isLoading
-                        binding.recyclerViewSearchResults.isVisible = false
+                        binding.recyclerViewSearchResults.isVisible = false 
                         binding.textViewNoResults.isVisible = false
                         binding.textViewSearchError.isVisible = false
 
                         if (isLoading) {
-                            // Progress bar is already visible
                         } else if (isError) {
                             val errorMessage = when (error) {
                                 is IOException -> getString(R.string.search_error_network)
@@ -211,7 +221,7 @@ class SearchFragment : Fragment(),
                             }
                             binding.textViewSearchError.text = errorMessage
                             binding.textViewSearchError.isVisible = true
-                        } else { // Not loading, no error
+                        } else { 
                             if (onlineSearchAdapter.itemCount > 0) {
                                 binding.recyclerViewSearchResults.isVisible = true
                             } else {
@@ -245,15 +255,13 @@ class SearchFragment : Fragment(),
                 } else {
                     isEnabled = false
                     try {
-                        // Try to pop from parent fragment manager if this fragment was added to backstack
-                        // Or let activity handle if no parent backstack or specific logic needed
                         if (isResumed && parentFragmentManager.backStackEntryCount > 0) {
-                             parentFragmentManager.popBackStack()
+                            requireActivity().onBackPressedDispatcher.onBackPressed()
                         } else if (isResumed) {
                             requireActivity().onBackPressedDispatcher.onBackPressed()
                         }
                     } finally {
-                         if (isAdded && !isEnabled) { isEnabled = true }
+                        if (isAdded && !isEnabled) { isEnabled = true }
                     }
                 }
             }
@@ -274,7 +282,8 @@ class SearchFragment : Fragment(),
 
     override fun onDestroyView() {
         super.onDestroyView()
-        _binding = null // Clear binding
+        L.d("SearchFragment: onDestroyView.")
+        _binding = null 
     }
 
     override fun getScrollableView(): View? {
@@ -282,7 +291,7 @@ class SearchFragment : Fragment(),
     }
 
     override fun getToolbarPolicy(): ToolbarPolicy {
-        // MainActivity's toolbar should be hidden as SearchFragment now has its own.
+        L.d("SearchFragment: getToolbarPolicy called, returning HIDDEN.")
         return ToolbarPolicy.HIDDEN
     }
 

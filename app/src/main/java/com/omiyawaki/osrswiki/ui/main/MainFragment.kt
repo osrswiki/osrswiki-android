@@ -66,7 +66,9 @@ class MainFragment : Fragment(), MenuProvider {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        L.d("MainFragment: MenuProvider: onViewCreated: Adding MenuProvider.")
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+        L.d("MainFragment: MenuProvider: onViewCreated: MenuProvider added.")
         setupViewPager()
         if (savedInstanceState == null) {
             binding.mainViewPager.setCurrentItem(1, false)
@@ -79,9 +81,6 @@ class MainFragment : Fragment(), MenuProvider {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 OSRSWikiApp.instance.tabCountFlow.collectLatest { count ->
                     L.d("Tab count changed: $count, invalidating options menu.")
-                    // Potentially set showTabCountsAnimation = true here if an animation is desired
-                    // for specific types of count changes, though onPrepareMenu will handle the
-                    // current animation flag.
                     requireActivity().invalidateOptionsMenu()
                 }
             }
@@ -98,11 +97,6 @@ class MainFragment : Fragment(), MenuProvider {
                     binding.bottomNavView.menu.getItem(position).isChecked = true
                 }
                 notifyActivityOfToolbarState()
-                // No need to invalidate options menu here if tabCountFlow handles it,
-                // unless page change itself should re-evaluate other menu items.
-                // For tab count specifically, flow collector is better.
-                // However, Wikipedia does invalidate menu on page change, so keeping it for now
-                // if other menu items depend on the current fragment.
                 requireActivity().invalidateOptionsMenu()
             }
         })
@@ -155,32 +149,37 @@ class MainFragment : Fragment(), MenuProvider {
     }
 
     fun notifyActivityOfToolbarState() {
+        // Determine scrollable view from the current child fragment within MainFragment's ViewPager
         val currentAdapter = binding.mainViewPager.adapter as? ViewPagerAdapter
         val currentPosition = binding.mainViewPager.currentItem
         val currentChildFragment = if (currentPosition < (currentAdapter?.itemCount ?: 0)) {
             currentAdapter?.getFragmentAt(currentPosition, childFragmentManager)
         } else { null }
-        val scrollableView = if (currentChildFragment is ScrollableContent) currentChildFragment.getScrollableView() else null
-        val policy = if (currentChildFragment is FragmentToolbarPolicyProvider) {
-            currentChildFragment.getToolbarPolicy()
-        } else {
-            if (currentPosition == 0 || currentPosition == 1) ToolbarPolicy.HIDDEN else ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT
-        }
-        mainViewProvider?.updateToolbarState(currentChildFragment, scrollableView, policy)
+        val scrollableViewForChildren = if (currentChildFragment is ScrollableContent) currentChildFragment.getScrollableView() else null
+
+        // Policy for MainActivity's toolbar when MainFragment is active:
+        // We want MainActivity's toolbar to be visible to show TabCountsView.
+        // Child fragments (e.g., SearchFragment) can still manage their *own* internal toolbars independently.
+        // This policy specifically applies to MainActivity's main toolbar.
+        val policyForMainActivityToolbar = ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT // Or ToolbarPolicy.VISIBLE or a new non-collapsing policy if preferred
+        L.d("MainFragment: notifyActivityOfToolbarState: Setting MainActivity toolbar policy to: $policyForMainActivityToolbar. HostFragment passed to MainActivity will be MainFragment itself.")
+
+        // Call MainActivity's updateToolbarState.
+        // The hostFragment is MainFragment (this).
+        // The scrollableView is derived from MainFragment's currently active child page,
+        // allowing MainActivity's toolbar to react to scrolling within that child.
+        mainViewProvider?.updateToolbarState(this, scrollableViewForChildren, policyForMainActivityToolbar)
     }
 
     override fun onResume() {
         super.onResume()
         view?.post { notifyActivityOfToolbarState() }
-        // Initial menu update is now handled by the tabCountFlow collector.
-        // Explicit invalidateOptionsMenu() here might still be useful if other menu items
-        // need to refresh onResume independently of tab count.
-        // For tab count specific updates, the flow collector is the primary mechanism.
-        // requireActivity().invalidateOptionsMenu() // Kept for broader menu refresh if needed.
     }
 
     override fun onDetach() {
         super.onDetach()
+        // When MainFragment is detached, MainActivity might revert to a default policy or be updated by another fragment.
+        // For now, setting a generic default. This might need refinement based on overall app navigation.
         mainViewProvider?.updateToolbarState(null, null, ToolbarPolicy.COLLAPSIBLE_WITH_CONTENT)
         mainViewProvider = null
     }
@@ -191,40 +190,61 @@ class MainFragment : Fragment(), MenuProvider {
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+        L.d("MainFragment: MenuProvider: onCreateMenu called.")
         menuInflater.inflate(R.menu.menu_main_toolbar, menu)
     }
 
     override fun onPrepareMenu(menu: Menu) {
+        L.d("MainFragment: MenuProvider: onPrepareMenu called.")
         val tabsMenuItem = menu.findItem(R.id.menu_tabs)
-        // Tab count is now sourced from the flow, but onPrepareMenu is still where it's applied.
-        // The invalidateOptionsMenu() call from the flow collector triggers this.
-        val currentTabCount = OSRSWikiApp.instance.tabList.size // Or OSRSWikiApp.instance.tabCountFlow.value
+        val currentTabCount = OSRSWikiApp.instance.tabList.size
+        L.d("MainFragment: MenuProvider: onPrepareMenu: currentTabCount = $currentTabCount")
 
-        if (tabsMenuItem != null) {
-            if (currentTabCount > 0) {
-                tabsMenuItem.isVisible = true
-                if (tabCountsViewInstance == null) {
-                    tabCountsViewInstance = TabCountsView(requireContext()).apply {
-                        setOnClickListener {
-                            Toast.makeText(requireContext(), "Tab switcher clicked! ($currentTabCount tabs)", Toast.LENGTH_SHORT).show()
-                            L.d("TabCountsView clicked. Current tabs: $currentTabCount")
-                            // TODO: Launch actual Tab Switcher UI
-                        }
+        if (tabsMenuItem == null) {
+            L.e("MainFragment: MenuProvider: onPrepareMenu: tabsMenuItem is NULL. Check R.id.menu_tabs and menu_main_toolbar.xml inflation.")
+            return 
+        } else {
+            L.d("MainFragment: MenuProvider: onPrepareMenu: tabsMenuItem found (ID: ${tabsMenuItem.itemId}).")
+        }
+
+        if (currentTabCount > 0) {
+            L.d("MainFragment: MenuProvider: onPrepareMenu: currentTabCount > 0. Preparing TabCountsView.")
+            tabsMenuItem.isVisible = true
+            L.d("MainFragment: MenuProvider: onPrepareMenu: tabsMenuItem.isVisible = true")
+            if (tabCountsViewInstance == null) {
+                L.d("MainFragment: MenuProvider: onPrepareMenu: Instantiating TabCountsView...")
+                tabCountsViewInstance = TabCountsView(requireContext()).apply {
+                    setOnClickListener {
+                        Toast.makeText(requireContext(), "Tab switcher clicked! ($currentTabCount tabs)", Toast.LENGTH_SHORT).show()
+                        L.d("TabCountsView clicked. Current tabs: $currentTabCount")
+                        // TODO: Launch actual Tab Switcher UI
                     }
                 }
-                tabCountsViewInstance?.updateTabCount(showTabCountsAnimation)
-                tabsMenuItem.actionView = tabCountsViewInstance
-                showTabCountsAnimation = false
+                L.d("MainFragment: MenuProvider: onPrepareMenu: TabCountsView instantiated.")
             } else {
-                tabsMenuItem.isVisible = false
-                tabsMenuItem.actionView = null
-                tabCountsViewInstance = null
+                L.d("MainFragment: MenuProvider: onPrepareMenu: Reusing existing TabCountsView instance.")
             }
+            
+            tabCountsViewInstance?.let {
+                L.d("MainFragment: MenuProvider: onPrepareMenu: Calling updateTabCount(${OSRSWikiApp.instance.tabList.size}, $showTabCountsAnimation) on TabCountsView instance.")
+                it.updateTabCount(showTabCountsAnimation) 
+            }
+
+            tabsMenuItem.actionView = tabCountsViewInstance
+            L.d("MainFragment: MenuProvider: onPrepareMenu: tabCountsViewInstance set as actionView for menu_tabs.")
+            showTabCountsAnimation = false
+        } else {
+            L.d("MainFragment: MenuProvider: onPrepareMenu: currentTabCount is 0 or less.")
+            tabsMenuItem.isVisible = false
+            L.d("MainFragment: MenuProvider: onPrepareMenu: tabsMenuItem.isVisible = false")
+            tabsMenuItem.actionView = null
+            L.d("MainFragment: MenuProvider: onPrepareMenu: tabsMenuItem.actionView = null")
+            tabCountsViewInstance = null 
         }
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-        return false
+        return false 
     }
 
     private class ViewPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
