@@ -21,10 +21,13 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.common.models.PageTitle as CommonPageTitle // Alias to avoid confusion
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.dataclient.WikiSite
+import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.action.PageActionItem
+import com.omiyawaki.osrswiki.page.tabs.PageBackStackItem
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
@@ -35,6 +38,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import java.util.Date
 
 class PageFragment : Fragment() {
 
@@ -54,15 +58,16 @@ class PageFragment : Fragment() {
     private var pageStateObserverJob: Job? = null
 
     private val WEBVIEW_DEBUG_TAG = "PFragment_WebViewDebug"
+    private val HISTORY_DEBUG_TAG = "PFragment_HistoryDebug"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            pageIdArg = it.getString(ARG_PAGE_ID) // Now defined in companion object
-            pageTitleArg = it.getString(ARG_PAGE_TITLE) // Now defined in companion object
+            pageIdArg = it.getString(ARG_PAGE_ID)
+            pageTitleArg = it.getString(ARG_PAGE_TITLE)
         }
         Log.d(WEBVIEW_DEBUG_TAG,"onCreate - Args processed: ID: $pageIdArg, Title: $pageTitleArg")
-        pageViewModel = PageViewModel()
+        pageViewModel = PageViewModel() // Consider using ViewModelProvider
         pageRepository = (requireActivity().applicationContext as OSRSWikiApp).pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
     }
@@ -110,20 +115,24 @@ class PageFragment : Fragment() {
                 super.onPageCommitVisible(view, url)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageCommitVisible for URL: $url. Current page isOffline: ${pageViewModel.uiState.isCurrentlyOffline}")
                 if (isAdded && _binding != null && pageViewModel.uiState.isCurrentlyOffline) {
-                    // This is an OFFLINE page, attempt to style/reveal here using onPageCommitVisible
                     Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible: OFFLINE page detected. Applying styles and revealing.")
-                    if (binding.pageWebView.visibility != View.VISIBLE) {
+                    val wasAlreadyVisible = binding.pageWebView.visibility == View.VISIBLE
+                    if (!wasAlreadyVisible) {
                         applyWebViewStylingAndRevealBody {
                             if (isAdded && _binding != null) {
                                 Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline): Styling complete. Making WebView widget VISIBLE.")
                                 binding.pageWebView.visibility = View.VISIBLE
+                                // Log history after WebView is made visible for the first time for this content
+                                // TODO: The source (HistoryEntry.SOURCE_INTERNAL_LINK) should be made dynamic.
+                                // Ensure HistoryEntry.SOURCE_INTERNAL_LINK and other source constants are defined.
+                                logPageVisit(HistoryEntry.SOURCE_INTERNAL_LINK)
                             } else {
                                 Log.w(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline) callback: Fragment not added or binding null when trying to make WebView visible.")
                             }
                         }
                     } else {
                         Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline): WebView already visible. Re-applying styles if necessary.")
-                         applyWebViewStylingAndRevealBody {
+                        applyWebViewStylingAndRevealBody {
                             Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline): Styles re-applied to already visible WebView.")
                         }
                     }
@@ -137,13 +146,19 @@ class PageFragment : Fragment() {
                 super.onPageFinished(view, url)
                 Log.d(WEBVIEW_DEBUG_TAG, "WebView onPageFinished for URL: $url. Current page isOffline: ${pageViewModel.uiState.isCurrentlyOffline}. WebView visibility: ${binding.pageWebView?.visibility}")
                 if (isAdded && _binding != null && !pageViewModel.uiState.isCurrentlyOffline) {
-                    // This is an ONLINE page, use onPageFinished for styling/reveal
                     Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished: ONLINE page detected. Applying styles and revealing for URL: $url.")
-                    if (binding.pageWebView.visibility != View.VISIBLE) {
+                    val wasAlreadyVisible = binding.pageWebView.visibility == View.VISIBLE
+                    if (!wasAlreadyVisible) {
                         applyWebViewStylingAndRevealBody {
                             if (isAdded && _binding != null) {
                                 Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished (online): Styling complete. Making WebView widget VISIBLE.")
                                 binding.pageWebView.visibility = View.VISIBLE
+                                if (url != null && !url.startsWith("data:") && !url.equals("about:blank", ignoreCase = true)) {
+                                    // Log history after WebView is made visible for the first time for this content
+                                    // TODO: The source (HistoryEntry.SOURCE_INTERNAL_LINK) should be made dynamic.
+                                    // Ensure HistoryEntry.SOURCE_INTERNAL_LINK and other source constants are defined.
+                                    logPageVisit(HistoryEntry.SOURCE_INTERNAL_LINK)
+                                }
                             } else {
                                 Log.w(WEBVIEW_DEBUG_TAG, "onPageFinished (online) callback: Fragment not added or binding null when trying to make WebView visible.")
                             }
@@ -154,10 +169,10 @@ class PageFragment : Fragment() {
                             Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished (online): Styles re-applied to already visible WebView for URL: $url.")
                         }
                     } else {
-                         Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished (online): WebView already visible but URL is data/blank, or other. No primary styling action. URL: $url")
+                        Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished (online): WebView already visible but URL is data/blank, or other. No primary styling action. URL: $url")
                     }
                 } else if (isAdded) {
-                     Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished: OFFLINE page or state not yet online. Styling should have been handled by onPageCommitVisible. isOffline: ${pageViewModel.uiState.isCurrentlyOffline}")
+                    Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished: OFFLINE page or state not yet online. Styling should have been handled by onPageCommitVisible. isOffline: ${pageViewModel.uiState.isCurrentlyOffline}")
                 }
             }
         }
@@ -185,6 +200,82 @@ class PageFragment : Fragment() {
             initiatePageLoad(forceNetwork = true)
         }
     }
+
+    private fun logPageVisit(source: Int) {
+        if (!isAdded || _binding == null) {
+            Log.w(HISTORY_DEBUG_TAG, "logPageVisit: Fragment not in a valid state to log history.")
+            return
+        }
+
+        val currentOsrsApp = OSRSWikiApp.instance
+        val currentTab = currentOsrsApp.currentTab
+        val state = pageViewModel.uiState
+
+        if (state.isLoading || state.error != null || state.htmlContent == null || state.wikiUrl == null || state.plainTextTitle == null) {
+            Log.w(HISTORY_DEBUG_TAG, "logPageVisit: Page not fully loaded or essential data missing. State: $state. Skipping history logging.")
+            return
+        }
+
+        if (currentTab != null && currentTab.backStack.isNotEmpty()) {
+            val lastBackStackUrl = currentTab.backStack.last().pageTitle.uri
+            if (lastBackStackUrl == state.wikiUrl) {
+                Log.d(HISTORY_DEBUG_TAG, "logPageVisit: Page ${state.wikiUrl} is already top of backstack. Updating scrollY if different.")
+                val lastBackStackItem = currentTab.backStack.last()
+                val newScrollY = binding.pageWebView.scrollY
+                if (lastBackStackItem.scrollY != newScrollY) {
+                    lastBackStackItem.scrollY = newScrollY
+                    currentOsrsApp.commitTabState()
+                    Log.d(HISTORY_DEBUG_TAG, "logPageVisit: Updated scrollY for ${state.wikiUrl} to $newScrollY.")
+                }
+                return
+            }
+        }
+
+        Log.d(HISTORY_DEBUG_TAG, "logPageVisit: Logging visit for page: ${state.plainTextTitle}, URL: ${state.wikiUrl}")
+
+        val pageTitleForHistory = CommonPageTitle(
+            uri = state.wikiUrl!!,
+            text = state.plainTextTitle!!,
+            apiTitle = state.plainTextTitle!!,
+            displayText = state.title ?: state.plainTextTitle!!,
+            pageId = state.pageId ?: -1,
+            wiki = WikiSite.OSRS_WIKI,
+            thumbUrl = state.imageUrl
+        )
+
+        val historyEntry = HistoryEntry(
+            pageTitle = pageTitleForHistory,
+            timestamp = Date(),
+            source = source
+        )
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    AppDatabase.instance.historyEntryDao().upsertEntry(historyEntry)
+                    Log.d(HISTORY_DEBUG_TAG, "Global history entry upserted for: ${pageTitleForHistory.apiTitle}")
+                } catch (e: Exception) {
+                    Log.e(HISTORY_DEBUG_TAG, "Error upserting history entry to Room DB", e)
+                }
+            }
+        }
+
+        if (currentTab == null) {
+            Log.e(HISTORY_DEBUG_TAG, "logPageVisit: Current tab is null. Cannot add to tab backstack.")
+            return
+        }
+
+        val pageBackStackItem = PageBackStackItem(
+            pageTitle = pageTitleForHistory,
+            historyEntry = historyEntry,
+            scrollY = binding.pageWebView.scrollY
+        )
+
+        currentTab.backStack.add(pageBackStackItem)
+        Log.d(HISTORY_DEBUG_TAG, "PageBackStackItem added to tab's backstack for: ${pageTitleForHistory.apiTitle}. New backstack size: ${currentTab.backStack.size}")
+        currentOsrsApp.commitTabState()
+    }
+
 
     private fun isDarkMode(): Boolean {
         if (!isAdded) return false
@@ -287,7 +378,7 @@ class PageFragment : Fragment() {
                 binding.pageWebView.evaluateJavascript(justRevealBodyJs) { fallbackResult ->
                     Log.d(WEBVIEW_DEBUG_TAG, "JS for fallback body visibility evaluated. Result: $fallbackResult")
                     if (isAdded && _binding != null) {
-                         if (fallbackResult != null && fallbackResult.contains("\"Body visibility set (fallback).\"")) {
+                        if (fallbackResult != null && fallbackResult.contains("\"Body visibility set (fallback).\"")) {
                             Log.w(WEBVIEW_DEBUG_TAG, "Fallback body reveal succeeded, but CSS was not injected. Page will be unstyled.")
                             onWebViewStyledAndReadyToReveal()
                         } else {
@@ -325,34 +416,6 @@ class PageFragment : Fragment() {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with ID '$idToLoad' data already present. Reverting loading state and ensuring visibility.")
                 pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
                 updateUiFromViewModel()
-                if (_binding != null && pageViewModel.uiState.htmlContent != null) {
-                    // Determine which callback to use based on current offline state for already loaded content
-                    if (pageViewModel.uiState.isCurrentlyOffline) {
-                        Log.d(WEBVIEW_DEBUG_TAG, "initiatePageLoad (ID match, content exists, OFFLINE): Ensuring visibility via onPageCommitVisible logic path.")
-                        // Simulate onPageCommitVisible's role for offline pages
-                        if (binding.pageWebView.visibility != View.VISIBLE) {
-                             applyWebViewStylingAndRevealBody {
-                                if (isAdded && _binding != null) {
-                                    binding.pageWebView.visibility = View.VISIBLE
-                                }
-                            }
-                        } else {
-                             applyWebViewStylingAndRevealBody {} // Just re-apply styles
-                        }
-                    } else {
-                         Log.d(WEBVIEW_DEBUG_TAG, "initiatePageLoad (ID match, content exists, ONLINE): Ensuring visibility via onPageFinished logic path.")
-                         // Simulate onPageFinished's role for online pages
-                        if (binding.pageWebView.visibility != View.VISIBLE) {
-                             applyWebViewStylingAndRevealBody {
-                                if (isAdded && _binding != null) {
-                                    binding.pageWebView.visibility = View.VISIBLE
-                                }
-                            }
-                        } else {
-                            applyWebViewStylingAndRevealBody {} // Just re-apply styles
-                        }
-                    }
-                }
                 return
             } else {
                 Log.i(WEBVIEW_DEBUG_TAG, "Requesting to load page by ID: $idToLoad (Title arg was: '$currentTitleToLoadArg')")
@@ -363,32 +426,6 @@ class PageFragment : Fragment() {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with title '$currentTitleToLoadArg' data already present. Reverting loading state and ensuring visibility.")
                 pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
                 updateUiFromViewModel()
-                if (_binding != null && pageViewModel.uiState.htmlContent != null) {
-                     // Determine which callback to use based on current offline state
-                    if (pageViewModel.uiState.isCurrentlyOffline) {
-                        Log.d(WEBVIEW_DEBUG_TAG, "initiatePageLoad (title match, content exists, OFFLINE): Ensuring visibility via onPageCommitVisible logic path.")
-                        if (binding.pageWebView.visibility != View.VISIBLE) {
-                            applyWebViewStylingAndRevealBody {
-                                if (isAdded && _binding != null) {
-                                    binding.pageWebView.visibility = View.VISIBLE
-                                }
-                            }
-                        } else {
-                             applyWebViewStylingAndRevealBody {}
-                        }
-                    } else {
-                        Log.d(WEBVIEW_DEBUG_TAG, "initiatePageLoad (title match, content exists, ONLINE): Ensuring visibility via onPageFinished logic path.")
-                        if (binding.pageWebView.visibility != View.VISIBLE) {
-                             applyWebViewStylingAndRevealBody {
-                                if (isAdded && _binding != null) {
-                                    binding.pageWebView.visibility = View.VISIBLE
-                                }
-                            }
-                        } else {
-                            applyWebViewStylingAndRevealBody {}
-                        }
-                    }
-                }
                 return
             } else {
                 Log.i(WEBVIEW_DEBUG_TAG, "Requesting to load page by title: '$currentTitleToLoadArg' (ID arg was: '$currentIdToLoadArg')")
@@ -432,11 +469,6 @@ class PageFragment : Fragment() {
             }
         } else {
             state.htmlContent?.let { htmlBodySnippet ->
-                // --- TEMPORARY LOG TO INSPECT HTML HREFS ---
-                // val snippetForLog = htmlBodySnippet.take(1000) // Log first 1000 chars
-                // Log.d("PageFragment_HTML_Href_Check", "Snippet of htmlBodySnippet (potential hrefs here): $snippetForLog")
-                // --- END OF TEMPORARY LOG ---
-
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Preparing to load actual HTML content. Current WebView visibility: ${binding.pageWebView.visibility}, isOffline: ${state.isCurrentlyOffline}")
                 binding.pageWebView.visibility = View.INVISIBLE
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Set WebView WIDGET to INVISIBLE before loadDataWithBaseURL.")
@@ -453,15 +485,11 @@ class PageFragment : Fragment() {
                     </head><body> ${htmlBodySnippet}</body></html>
                 """.trimIndent()
 
-                // --- PERMANENT CHANGE: Always use HTTPS base URL ---
                 val baseUrlToUse: String? = WikiSite.OSRS_WIKI.url()
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Using HTTPS base URL for loadDataWithBaseURL: '$baseUrlToUse' (isOffline: ${state.isCurrentlyOffline})")
-                // --- END OF PERMANENT CHANGE ---
-                
-                Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Using initial background hex: $backgroundColorHex for isDark: $currentIsDarkMode")
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Calling loadDataWithBaseURL with effective baseUrl: '$baseUrlToUse'. WebView visibility: ${binding.pageWebView.visibility}")
                 binding.pageWebView.loadDataWithBaseURL(baseUrlToUse, finalHtml, "text/html", "UTF-8", null)
-                Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: loadDataWithBaseURL called. Waiting for WebViewClient callbacks to make visible and style.")
+                Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: loadDataWithBaseURL called. Waiting for WebViewClient callbacks to make visible, style, and log history.")
             } ?: run {
                 Log.w(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: htmlContent is null, but not loading and no error. Displaying 'content unavailable'.")
                 if (binding.pageWebView.visibility != View.VISIBLE) {
@@ -473,6 +501,7 @@ class PageFragment : Fragment() {
         Log.i(WEBVIEW_DEBUG_TAG, "PageFragment UI updated. ViewModel plainTextTitle: '${state.plainTextTitle}', pageId: ${state.pageId}, isLoading: ${state.isLoading}, isOffline: ${state.isCurrentlyOffline}, error: ${state.error != null}, htmlContent isNull: ${state.htmlContent == null}")
     }
 
+
     private fun observeAndRefreshSaveButtonState() {
         pageStateObserverJob?.cancel()
         val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() } ?: pageTitleArg?.takeIf { it.isNotBlank() }
@@ -480,7 +509,7 @@ class PageFragment : Fragment() {
             Log.e("PFragment_SAVE_TEST", "observeAndRefreshSaveButtonState - No plain text title. Cannot observe.")
             updateSaveIcon(null); return
         }
-        val tempPageTitle = PageTitle(text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI)
+        val tempPageTitle = com.omiyawaki.osrswiki.page.PageTitle(text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI)
         Log.e("PFragment_SAVE_TEST", "observeAndRefreshSaveButtonState - Starting to observe apiTitle '${tempPageTitle.prefixedText}'")
         pageStateObserverJob = viewLifecycleOwner.lifecycleScope.launch {
             val defaultListId = withContext(Dispatchers.IO) { AppDatabase.instance.readingListDao().let { it.getDefaultList() ?: it.createDefaultListIfNotExist() }.id }
@@ -496,17 +525,16 @@ class PageFragment : Fragment() {
         Log.e("PFragment_SAVE_TEST", "updateSaveIcon - Icon updated. IsActuallySavedAndOffline: $isActuallySavedAndOffline for apiTitle: ${entry?.apiTitle ?: pageViewModel.uiState.plainTextTitle ?: pageTitleArg}")
     }
 
-    // refreshSaveButtonState might be redundant if observer works well, keeping for now if legacy calls exist
     private fun refreshSaveButtonState() {
         Log.d("PFragment_SAVE_TEST", "Legacy refreshSaveButtonState called")
-         val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
-             ?: pageTitleArg?.takeIf { it.isNotBlank() }
+        val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
+            ?: pageTitleArg?.takeIf { it.isNotBlank() }
 
         if (plainTextForApi.isNullOrBlank()) {
             updateSaveIcon(null)
             return
         }
-        val tempPageTitle = PageTitle(text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI)
+        val tempPageTitle = com.omiyawaki.osrswiki.page.PageTitle(text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI)
         viewLifecycleOwner.lifecycleScope.launch {
             val defaultListId = withContext(Dispatchers.IO) {
                 val rlDao = AppDatabase.instance.readingListDao()
@@ -581,7 +609,7 @@ class PageFragment : Fragment() {
                 Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi'")
                 debugStep = "currentThumb"; val currentThumb = pageViewModel.uiState.imageUrl
                 Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi'")
-                debugStep = "currentPageTitle"; val currentPageTitle = PageTitle(namespace = null, text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI, thumbUrl = currentThumb, description = null, displayText = htmlTextForDisplay)
+                debugStep = "currentPageTitle"; val currentPageTitle = com.omiyawaki.osrswiki.page.PageTitle(namespace = null, text = plainTextForApi, wikiSite = WikiSite.OSRS_WIKI, thumbUrl = currentThumb, description = null, displayText = htmlTextForDisplay)
                 Log.d("PFragment_SAVE_TEST", "$debugStep created for '$plainTextForApi': ${currentPageTitle.prefixedText}")
                 debugStep = "titleForSnackbar"; val titleForSnackbar = currentPageTitle.prefixedText
                 Log.d("PFragment_SAVE_TEST", "$debugStep determined for '$plainTextForApi': $titleForSnackbar. About to launch coroutine.")
