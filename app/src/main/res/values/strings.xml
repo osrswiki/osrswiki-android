@@ -57,4 +57,5 @@
     <string name="offline_search_active_message">Currently offline. Showing saved pages.</string>
     <string name="offline_indicator_generic">You are currently offline.</string>
 
+    <string name="preference_key_tabs" translatable="false">tabs</string>
 </resources>

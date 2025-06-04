@@ -10,8 +10,8 @@ import com.omiyawaki.osrswiki.OSRSWikiApp // Ensure this import points to your A
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.database.SavedArticleEntry
 import com.omiyawaki.osrswiki.database.OfflineAsset
-import com.omiyawaki.osrswiki.database.OfflinePageFts // <<< ADDED FTS ENTITY IMPORT
-
+import com.omiyawaki.osrswiki.database.OfflinePageFts
+import com.omiyawaki.osrswiki.history.db.HistoryEntry // <<< ADDED HISTORY ENTITY IMPORT
 import com.omiyawaki.osrswiki.readinglist.database.ReadingList
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.offline.db.OfflineObject // Ensure this path is correct based on your project
@@ -20,8 +20,8 @@ import com.omiyawaki.osrswiki.offline.db.OfflineObject // Ensure this path is co
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.SavedArticleEntryDao
 import com.omiyawaki.osrswiki.database.OfflineAssetDao
-import com.omiyawaki.osrswiki.database.OfflinePageFtsDao // <<< ADDED FTS DAO IMPORT
-
+import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
+import com.omiyawaki.osrswiki.history.db.HistoryEntryDao // <<< ADDED HISTORY DAO IMPORT
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao // Ensure this path is correct
 import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao   // Ensure this path is correct
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao     // Ensure this path is correct
@@ -35,12 +35,13 @@ import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao     // Ensure this p
         ReadingList::class,
         ReadingListPage::class,
         OfflineObject::class,
-        OfflinePageFts::class // <<< ADDED FTS ENTITY
+        OfflinePageFts::class,
+        HistoryEntry::class // <<< ADDED HISTORY ENTITY
     ],
-    version = 10, // <<< INCREMENTED VERSION
+    version = 11, // <<< INCREMENTED VERSION
     exportSchema = false // Consider setting to true and managing schemas if preferred
 )
-@TypeConverters(com.omiyawaki.osrswiki.database.TypeConverters::class) // Ensure this TypeConverter class exists
+@TypeConverters(com.omiyawaki.osrswiki.database.TypeConverters::class) // Ensure this handles java.util.Date if not handled by Room by default
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun articleMetaDao(): ArticleMetaDao
@@ -49,26 +50,28 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun readingListDao(): ReadingListDao
     abstract fun readingListPageDao(): ReadingListPageDao
     abstract fun offlineObjectDao(): OfflineObjectDao
-    abstract fun offlinePageFtsDao(): OfflinePageFtsDao // <<< ADDED FTS DAO ACCESSOR
+    abstract fun offlinePageFtsDao(): OfflinePageFtsDao
+    abstract fun historyEntryDao(): HistoryEntryDao // <<< ADDED HISTORY DAO ACCESSOR
 
     companion object {
         private const val DATABASE_NAME = "osrs_wiki_database.db"
 
-        // Reverted to the original 'instance' pattern using lazy delegate
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
-                OSRSWikiApp.instance.applicationContext, // This relies on OSRSWikiApp.instance being correctly set up
+                OSRSWikiApp.instance.applicationContext,
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-                .addMigrations(
-                    DatabaseMigrations.MIGRATION_6_7,
-                    DatabaseMigrations.MIGRATION_7_8,
-                    DatabaseMigrations.MIGRATION_8_9,
-                    DatabaseMigrations.MIGRATION_9_10 // <<< Ensure MIGRATION_9_10 is correctly referenced
-                )
-                // .fallbackToDestructiveMigration() // Consider your strategy
-                .build()
+            // .addMigrations( // <<< TEMPORARILY COMMENTED OUT FOR DEVELOPMENT
+            //     DatabaseMigrations.MIGRATION_6_7,
+            //     DatabaseMigrations.MIGRATION_7_8,
+            //     DatabaseMigrations.MIGRATION_8_9,
+            //     DatabaseMigrations.MIGRATION_9_10
+            // )
+            // For development, especially when adding new tables, fallbackToDestructiveMigration
+            // can simplify things. For production, you'd define a MIGRATION_10_11.
+            .fallbackToDestructiveMigration() // <<< ADDED FOR DEVELOPMENT SIMPLICITY
+            .build()
         }
     }
 }
