@@ -16,7 +16,7 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider 
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -114,7 +114,7 @@ class PageFragment : Fragment() {
                     Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible: OFFLINE page detected. Applying styles and revealing.")
                     if (binding.pageWebView.visibility != View.VISIBLE) {
                         applyWebViewStylingAndRevealBody {
-                            if (isAdded && _binding != null) { 
+                            if (isAdded && _binding != null) {
                                 Log.d(WEBVIEW_DEBUG_TAG, "onPageCommitVisible (offline): Styling complete. Making WebView widget VISIBLE.")
                                 binding.pageWebView.visibility = View.VISIBLE
                             } else {
@@ -141,7 +141,7 @@ class PageFragment : Fragment() {
                     Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished: ONLINE page detected. Applying styles and revealing for URL: $url.")
                     if (binding.pageWebView.visibility != View.VISIBLE) {
                         applyWebViewStylingAndRevealBody {
-                            if (isAdded && _binding != null) { 
+                            if (isAdded && _binding != null) {
                                 Log.d(WEBVIEW_DEBUG_TAG, "onPageFinished (online): Styling complete. Making WebView widget VISIBLE.")
                                 binding.pageWebView.visibility = View.VISIBLE
                             } else {
@@ -200,7 +200,7 @@ class PageFragment : Fragment() {
     private fun applyWebViewStylingAndRevealBody(onWebViewStyledAndReadyToReveal: () -> Unit) {
         if (_binding == null || !isAdded) {
             Log.w(WEBVIEW_DEBUG_TAG, "applyWebViewStylingAndRevealBody: Binding is null or fragment not added. Skipping.")
-            return 
+            return
         }
 
         Log.d(WEBVIEW_DEBUG_TAG, "applyWebViewStylingAndRevealBody ENTERED.")
@@ -270,7 +270,7 @@ class PageFragment : Fragment() {
                         }
                     }
                 }
-            } else { 
+            } else {
                 Log.w(WEBVIEW_DEBUG_TAG, "CSS injection failed. Result: $cssResult. Attempting fallback body reveal only.")
                 val justRevealBodyJs = """
                     (function() {
@@ -289,7 +289,7 @@ class PageFragment : Fragment() {
                     if (isAdded && _binding != null) {
                          if (fallbackResult != null && fallbackResult.contains("\"Body visibility set (fallback).\"")) {
                             Log.w(WEBVIEW_DEBUG_TAG, "Fallback body reveal succeeded, but CSS was not injected. Page will be unstyled.")
-                            onWebViewStyledAndReadyToReveal() 
+                            onWebViewStyledAndReadyToReveal()
                         } else {
                             Log.e(WEBVIEW_DEBUG_TAG, "Fallback JS also failed to make HTML body visible. Result: $fallbackResult. Not calling reveal callback.")
                         }
@@ -318,13 +318,13 @@ class PageFragment : Fragment() {
         val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && pageViewModel.uiState.error == null
 
         pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
-        updateUiFromViewModel() 
+        updateUiFromViewModel()
 
         if (idToLoad != null) {
             if (!forceNetwork && currentViewModelPageId == idToLoad && contentAlreadyLoaded) {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with ID '$idToLoad' data already present. Reverting loading state and ensuring visibility.")
                 pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
-                updateUiFromViewModel() 
+                updateUiFromViewModel()
                 if (_binding != null && pageViewModel.uiState.htmlContent != null) {
                     // Determine which callback to use based on current offline state for already loaded content
                     if (pageViewModel.uiState.isCurrentlyOffline) {
@@ -337,13 +337,13 @@ class PageFragment : Fragment() {
                                 }
                             }
                         } else {
-                            applyWebViewStylingAndRevealBody {} // Just re-apply styles
+                             applyWebViewStylingAndRevealBody {} // Just re-apply styles
                         }
                     } else {
                          Log.d(WEBVIEW_DEBUG_TAG, "initiatePageLoad (ID match, content exists, ONLINE): Ensuring visibility via onPageFinished logic path.")
                          // Simulate onPageFinished's role for online pages
-                         if (binding.pageWebView.visibility != View.VISIBLE) {
-                            applyWebViewStylingAndRevealBody {
+                        if (binding.pageWebView.visibility != View.VISIBLE) {
+                             applyWebViewStylingAndRevealBody {
                                 if (isAdded && _binding != null) {
                                     binding.pageWebView.visibility = View.VISIBLE
                                 }
@@ -362,7 +362,7 @@ class PageFragment : Fragment() {
             if (!forceNetwork && currentViewModelPlainTextTitle == currentTitleToLoadArg && contentAlreadyLoaded) {
                 Log.d(WEBVIEW_DEBUG_TAG, "Page with title '$currentTitleToLoadArg' data already present. Reverting loading state and ensuring visibility.")
                 pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
-                updateUiFromViewModel() 
+                updateUiFromViewModel()
                 if (_binding != null && pageViewModel.uiState.htmlContent != null) {
                      // Determine which callback to use based on current offline state
                     if (pageViewModel.uiState.isCurrentlyOffline) {
@@ -430,8 +430,13 @@ class PageFragment : Fragment() {
                 val blankHtml = """<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html, body { background-color: transparent !important; visibility:hidden !important; }</style></head><body></body></html>"""
                 binding.pageWebView.loadData(blankHtml, "text/html", "UTF-8")
             }
-        } else { 
+        } else {
             state.htmlContent?.let { htmlBodySnippet ->
+                // --- TEMPORARY LOG TO INSPECT HTML HREFS ---
+                // val snippetForLog = htmlBodySnippet.take(1000) // Log first 1000 chars
+                // Log.d("PageFragment_HTML_Href_Check", "Snippet of htmlBodySnippet (potential hrefs here): $snippetForLog")
+                // --- END OF TEMPORARY LOG ---
+
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Preparing to load actual HTML content. Current WebView visibility: ${binding.pageWebView.visibility}, isOffline: ${state.isCurrentlyOffline}")
                 binding.pageWebView.visibility = View.INVISIBLE
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Set WebView WIDGET to INVISIBLE before loadDataWithBaseURL.")
@@ -447,20 +452,17 @@ class PageFragment : Fragment() {
                     <style>html { background-color: $backgroundColorHex !important; } body { visibility: hidden; background-color: $backgroundColorHex !important; }</style>
                     </head><body> ${htmlBodySnippet}</body></html>
                 """.trimIndent()
-                
-                val baseUrlToUse: String? = if (state.isCurrentlyOffline) {
-                    Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Page is OFFLINE, using NULL baseUrl for loadDataWithBaseURL.")
-                    null 
-                } else {
-                    Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Page is ONLINE, using WikiSite baseUrl for loadDataWithBaseURL.")
-                    WikiSite.OSRS_WIKI.url()
-                }
 
+                // --- PERMANENT CHANGE: Always use HTTPS base URL ---
+                val baseUrlToUse: String? = WikiSite.OSRS_WIKI.url()
+                Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Using HTTPS base URL for loadDataWithBaseURL: '$baseUrlToUse' (isOffline: ${state.isCurrentlyOffline})")
+                // --- END OF PERMANENT CHANGE ---
+                
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Using initial background hex: $backgroundColorHex for isDark: $currentIsDarkMode")
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: Calling loadDataWithBaseURL with effective baseUrl: '$baseUrlToUse'. WebView visibility: ${binding.pageWebView.visibility}")
                 binding.pageWebView.loadDataWithBaseURL(baseUrlToUse, finalHtml, "text/html", "UTF-8", null)
                 Log.d(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: loadDataWithBaseURL called. Waiting for WebViewClient callbacks to make visible and style.")
-            } ?: run { 
+            } ?: run {
                 Log.w(WEBVIEW_DEBUG_TAG, "updateUiFromViewModel: htmlContent is null, but not loading and no error. Displaying 'content unavailable'.")
                 if (binding.pageWebView.visibility != View.VISIBLE) {
                     binding.pageWebView.visibility = View.VISIBLE
@@ -498,7 +500,7 @@ class PageFragment : Fragment() {
     private fun refreshSaveButtonState() {
         Log.d("PFragment_SAVE_TEST", "Legacy refreshSaveButtonState called")
          val plainTextForApi = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
-            ?: pageTitleArg?.takeIf { it.isNotBlank() }
+             ?: pageTitleArg?.takeIf { it.isNotBlank() }
 
         if (plainTextForApi.isNullOrBlank()) {
             updateSaveIcon(null)
@@ -549,7 +551,7 @@ class PageFragment : Fragment() {
             val (snackbarBgColorResId, snackbarTextColorResId) = if (isDarkMode()) R.color.snackbar_background_light_appearance to R.color.snackbar_text_color_light_appearance else R.color.snackbar_background_dark_appearance to R.color.snackbar_text_color_dark_appearance
             snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), snackbarBgColorResId)).setTextColor(ContextCompat.getColor(requireContext(), snackbarTextColorResId)).show()
         }
-        
+
         override fun onSaveSelected() {
             Log.e("SaveActionEntryTest", "onSaveSelected method in PageFragment was ENTERED.")
             Log.e("SaveActionDebug", "onSaveSelected CALLED for page: ${pageViewModel.uiState.plainTextTitle ?: pageTitleArg}")

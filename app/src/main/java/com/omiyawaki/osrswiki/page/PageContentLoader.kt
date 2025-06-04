@@ -86,8 +86,12 @@ class PageContentLoader(
                     }
                 } else {
                     L.d("Page '$apiTitle' not eligible for Reading List Offline Cache load (ReadingListPage: $readingListPage).")
+                    // New Log 1: Confirm this block finishes for the 'Varrock' case (readingListPage is null)
+                    L.d("PCL_DEBUG: Varrock Path - Finished 'readingListPage == null' or not eligible block for '$apiTitle'.")
                 }
-            }
+                // New Log 2: Confirm if control flow exits the `if (!forceNetwork)` block
+                L.d("PCL_DEBUG: Varrock Path - Exited 'if (!forceNetwork)' block for '$articleQueryTitle'. Next: PageRepository call.")
+            } // End of if (!forceNetwork) block
 
             L.d("Proceeding to load '$articleQueryTitle' via PageRepository (forceNetwork: $forceNetwork).")
             pageRepository.getArticleByTitle(title = articleQueryTitle, forceNetwork = forceNetwork)
@@ -110,7 +114,7 @@ class PageContentLoader(
                         is Result.Success -> {
                             val pageUiState = result.data
                             pageViewModel.uiState = pageUiState
-                            
+
                             L.i("Successfully loaded article via PageRepository: '${pageUiState.title}'")
 
                             // --- ADDED DETAILED LOGGING FOR CRITICAL PageUiState FIELDS ---
