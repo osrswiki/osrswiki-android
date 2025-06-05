@@ -58,4 +58,18 @@
     <string name="offline_indicator_generic">You are currently offline.</string>
 
     <string name="preference_key_tabs" translatable="false">tabs</string>
-    <string name="overflow_menu_save_page">Save page</string>\n    <string name="overflow_menu_find_in_article">Find in article</string>\n    <string name="overflow_menu_appearance">Appearance</string>\n    <string name="overflow_menu_contents">Contents</string>\n    <string name="page_toolbar_search_hint">Search OSRSWiki</string>\n    <string name="page_toolbar_tabs_content_description">Show tabs</string>\n    <string name="page_toolbar_overflow_content_description">More options</string>\n</resources>
+    <string name="overflow_menu_save_page">Save page</string>
+    <string name="overflow_menu_find_in_article">Find in article</string>
+    <string name="overflow_menu_appearance">Appearance</string>
+    <string name="overflow_menu_contents">Contents</string>
+    <string name="page_toolbar_search_hint">Search OSRSWiki</string>
+    <string name="page_toolbar_tabs_content_description">Show tabs</string>
+    <string name="page_toolbar_overflow_content_description">More options</string>
+
+    <string name="theme_name_osrs_light">OSRS Light (Default)</string>
+    <string name="theme_name_osrs_dark">OSRS Dark (Default)</string>
+    <string name="theme_name_wiki_light">Wikipedia Light</string>
+    <string name="theme_name_wiki_dark">Wikipedia Dark</string>
+    <string name="theme_name_wiki_black">Wikipedia Black</string>
+
+</resources>
