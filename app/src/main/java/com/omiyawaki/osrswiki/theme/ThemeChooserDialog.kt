@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.R // Added this import
 import com.omiyawaki.osrswiki.databinding.DialogOsrsThemeChooserBinding // Import view binding
 
 class ThemeChooserDialog : BottomSheetDialogFragment() {

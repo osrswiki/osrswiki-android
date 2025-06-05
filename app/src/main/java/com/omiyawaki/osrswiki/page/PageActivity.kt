@@ -4,14 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+// import androidx.appcompat.app.AppCompatActivity // Replaced by BaseActivity
 import com.omiyawaki.osrswiki.MainActivity // Required for navigating to MainActivity
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.activity.BaseActivity // Added import
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.util.log.L
 
-class PageActivity : AppCompatActivity() {
+class PageActivity : BaseActivity() { // Changed to BaseActivity
 
     private lateinit var binding: ActivityPageBinding
     private var pageTitleArg: String? = null
@@ -22,7 +23,7 @@ class PageActivity : AppCompatActivity() {
     private var pageFragment: PageFragment? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        super.onCreate(savedInstanceState) // BaseActivity will call setTheme before this
         binding = ActivityPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -75,10 +76,8 @@ class PageActivity : AppCompatActivity() {
         // Search button listener
         binding.pageToolbarSearchButton.setOnClickListener {
             L.d("Search button clicked in PageActivity toolbar.")
-            // TODO: Define ACTION_NAVIGATE_TO_SEARCH in MainActivity's companion object
-            // TODO: Handle this action in MainActivity's onCreate or onNewIntent to navigate to SearchFragment
             val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
-                action = "com.omiyawaki.osrswiki.NAVIGATE_TO_SEARCH" // Placeholder for MainActivity.ACTION_NAVIGATE_TO_SEARCH
+                action = MainActivity.ACTION_NAVIGATE_TO_SEARCH // Use the defined constant
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             startActivity(mainActivityIntent)
