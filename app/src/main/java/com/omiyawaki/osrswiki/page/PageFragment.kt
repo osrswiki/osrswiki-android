@@ -1,5 +1,5 @@
 package com.omiyawaki.osrswiki.page
-import com.omiyawaki.osrswiki.theme.ThemeChooserDialog
+// import com.omiyawaki.osrswiki.theme.ThemeChooserDialog // Already imported by OSRSWikiApp in full path call
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
@@ -14,7 +14,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import androidx.annotation.RequiresApi
-import androidx.appcompat.widget.PopupMenu // Added import
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -48,16 +48,16 @@ class PageFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var pageViewModel: PageViewModel
-    private lateinit var pageRepository: PageRepository
+    private lateinit var pageRepository: PageRepository // Initialized in onCreate from OSRSWikiApp
     private lateinit var pageContentLoader: PageContentLoader
-    private lateinit var readingListPageDao: ReadingListPageDao
+    private lateinit var readingListPageDao: ReadingListPageDao // Initialized in onCreate from AppDatabase
     private lateinit var pageLinkHandler: PageLinkHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
 
-    private val pageActionItemCallback = PageActionItemCallback() // Existing callback for actions
+    private val pageActionItemCallback = PageActionItemCallback()
     private var pageStateObserverJob: Job? = null
 
     private val WEBVIEW_DEBUG_TAG = "PFragment_WebViewDebug"
@@ -70,8 +70,11 @@ class PageFragment : Fragment() {
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
             navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
         }
-        pageViewModel = PageViewModel()
-        pageRepository = (requireActivity().applicationContext as OSRSWikiApp).pageRepository
+        pageViewModel = PageViewModel() // Consider using ViewModelProvider with a factory if dependencies needed
+
+        // Initialize lateinit vars that depend on context/application
+        val appInstance = requireActivity().applicationContext as OSRSWikiApp
+        pageRepository = appInstance.pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
     }
 
@@ -92,7 +95,7 @@ class PageFragment : Fragment() {
             context = requireContext().applicationContext,
             pageRepository = pageRepository,
             pageViewModel = pageViewModel,
-            readingListPageDao = appDb.readingListPageDao(),
+            readingListPageDao = appDb.readingListPageDao(), // Already initialized, can pass directly
             offlineObjectDao = appDb.offlineObjectDao(),
             coroutineScope = viewLifecycleOwner.lifecycleScope
         ) {
@@ -167,16 +170,10 @@ class PageFragment : Fragment() {
         binding.errorTextView.setOnClickListener { initiatePageLoad(forceNetwork = true) }
     }
 
-    // Method to be called from PageActivity to show the overflow menu
     fun showPageOverflowMenu(anchorView: View) {
         if (!isAdded || context == null) return
         val popup = PopupMenu(requireContext(), anchorView)
         popup.menuInflater.inflate(R.menu.menu_page_overflow, popup.menu)
-
-        // TODO: Dynamically update menu item titles/icons if needed (e.g., "Save" vs "Unsave")
-        // For example:
-        // val saveItem = popup.menu.findItem(R.id.menu_page_overflow_save)
-        // saveItem?.title = if (/* some condition for isSaved */ true) "Unsave page" else "Save page"
 
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -207,7 +204,7 @@ class PageFragment : Fragment() {
     private fun logPageVisit() {
         if (!isAdded || _binding == null) { Log.w(HISTORY_DEBUG_TAG, "logPageVisit: Fragment not in a valid state to log history."); return }
         val currentOsrsApp = OSRSWikiApp.instance
-        val currentTab = currentOsrsApp.currentTab
+        val currentTab = currentOsrsApp.currentTab // This still might be null
         val state = pageViewModel.uiState
 
         if (state.isLoading || state.error != null || state.htmlContent == null || state.wikiUrl == null || state.plainTextTitle == null) {
@@ -232,7 +229,7 @@ class PageFragment : Fragment() {
             wikiUrl = state.wikiUrl!!,
             displayText = state.title ?: state.plainTextTitle!!,
             pageId = state.pageId ?: -1,
-            apiPath = state.plainTextTitle!!
+            apiPath = state.plainTextTitle!! // Assuming plainTextTitle is suitable for apiPath
         )
 
         val historyEntry = HistoryEntry(
@@ -254,11 +251,11 @@ class PageFragment : Fragment() {
         if (currentTab == null) { Log.e(HISTORY_DEBUG_TAG, "logPageVisit: Current tab is null. Cannot add to tab backstack."); return }
 
         val pageBackStackItem = PageBackStackItem(
-            pageTitle = commonPageTitleForHistory,
+            pageTitle = commonPageTitleForHistory, // Use the same commonPageTitleForHistory
             historyEntry = historyEntry,
             scrollY = binding.pageWebView.scrollY
         )
-        currentTab.backStack.add(pageBackStackItem)
+        currentTab.backStack.add(pageBackStackItem) // currentTab can't be null here due to above check
         Log.d(HISTORY_DEBUG_TAG, "PageBackStackItem added for: ${commonPageTitleForHistory.apiPath}. Stack size: ${currentTab.backStack.size}")
         currentOsrsApp.commitTabState()
     }
@@ -366,7 +363,8 @@ class PageFragment : Fragment() {
             state.htmlContent?.let { htmlBodySnippet ->
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentIsDarkMode = isDarkMode()
-                val themeSpecificParchmentColorRes = if (currentIsDarkMode) R.color.osrs_parchment_bg_dark_theme_value else R.color.osrs_parchment_bg
+                // UPDATED LINE: Use R.color.osrs_parchment_dark for dark mode
+                val themeSpecificParchmentColorRes = if (currentIsDarkMode) R.color.osrs_parchment_dark else R.color.osrs_parchment_bg
                 val backgroundColorInt = ContextCompat.getColor(requireContext(), themeSpecificParchmentColorRes)
                 val backgroundColorHex = String.format("#%06X", (0xFFFFFF and backgroundColorInt))
                 val finalHtml = """
@@ -452,6 +450,7 @@ class PageFragment : Fragment() {
         private const val ARG_PAGE_ID = "pageId"
         private const val ARG_PAGE_TITLE = "pageTitle"
         private const val ARG_PAGE_SOURCE = "pageSource"
+        private const val FRAGMENT_TAG = "PageFragmentTag" // Ensure this matches PageActivity's tag
         @JvmStatic
         fun newInstance(pageId: String?, pageTitle: String?, source: Int): PageFragment =
             PageFragment().apply { arguments = Bundle().apply {
@@ -461,11 +460,13 @@ class PageFragment : Fragment() {
             }}
     }
 
-    internal inner class PageActionItemCallback : PageActionItem.Callback { // Made internal for access from showPageOverflowMenu if needed, or keep private and call directly
+    internal inner class PageActionItemCallback : PageActionItem.Callback {
         private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
             if (!isAdded || _binding == null) return
             val snackbar = Snackbar.make(binding.root, message, length).setAnchorView(binding.pageActionsTabLayout)
-            val (snackbarBgColorResId, snackbarTextColorResId) = if (isDarkMode()) R.color.snackbar_background_light_appearance to R.color.snackbar_text_color_light_appearance else R.color.snackbar_background_dark_appearance to R.color.snackbar_text_color_dark_appearance
+            // Example: Determine colors based on current app theme (more robust than just isDarkMode())
+            // This requires access to theme attributes or a helper. For now, keeping original logic.
+            val (snackbarBgColorResId, snackbarTextColorResId) = if (isDarkMode()) R.color.osrs_parchment_light to R.color.osrs_text_dark else R.color.osrs_parchment_dark to R.color.osrs_text_light_alt
             snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), snackbarBgColorResId)).setTextColor(ContextCompat.getColor(requireContext(), snackbarTextColorResId)).show()
         }
 
@@ -492,7 +493,7 @@ class PageFragment : Fragment() {
                 var message: String = getString(R.string.error_generic_save_unsave)
                 try {
                     val readingListDao = AppDatabase.instance.readingListDao()
-                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao()
+                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao() // Already have this as a class member
                     val defaultList = withContext(Dispatchers.IO) { readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist() }
 
                     val existingEntry = withContext(Dispatchers.IO) {

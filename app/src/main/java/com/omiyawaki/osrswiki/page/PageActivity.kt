@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 // import androidx.appcompat.app.AppCompatActivity // Replaced by BaseActivity
+import androidx.fragment.app.Fragment // Fully qualify Fragment for the deprecated method
 import com.omiyawaki.osrswiki.MainActivity // Required for navigating to MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity // Added import
@@ -41,10 +42,6 @@ class PageActivity : BaseActivity() { // Changed to BaseActivity
 
         L.d("PageActivity onCreate - Retrieved from Intent: Title: $pageTitleArg, ID: $pageIdArg, Source: $navigationSourceArg")
 
-        // The actual page title will be displayed within PageFragment or managed differently,
-        // not in the global action bar title spot which is now used by search.
-        // If a title is needed on the toolbar itself, it needs a dedicated TextView in the layout.
-
         if (savedInstanceState == null) {
             val fragment = PageFragment.newInstance(
                 pageId = pageIdArg,
@@ -54,17 +51,17 @@ class PageActivity : BaseActivity() { // Changed to BaseActivity
             supportFragmentManager.beginTransaction()
                 .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG) // Added a tag
                 .commit()
-            // Fragment reference will be obtained in onAttachFragment or when needed
             L.d("PageActivity fragment committed. Initial Title: $pageTitleArg, Initial ID: $pageIdArg, Source: $navigationSourceArg")
         } else {
-            // Re-obtain fragment reference on configuration change
             pageFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
         }
 
         setupToolbarListeners()
     }
 
-    override fun onAttachFragment(fragment: androidx.fragment.app.Fragment) {
+    @Deprecated(message = "Override of a deprecated Activity.onAttachFragment(). Consider migrating to FragmentManager.FragmentLifecycleCallbacks.")
+    @Suppress("DEPRECATION") // Suppress the warning for overriding a deprecated method
+    override fun onAttachFragment(fragment: Fragment) { // Ensure androidx.fragment.app.Fragment is used
         super.onAttachFragment(fragment)
         if (fragment.tag == FRAGMENT_TAG && fragment is PageFragment) {
             pageFragment = fragment
@@ -73,40 +70,44 @@ class PageActivity : BaseActivity() { // Changed to BaseActivity
     }
 
     private fun setupToolbarListeners() {
-        // Search button listener
         binding.pageToolbarSearchButton.setOnClickListener {
             L.d("Search button clicked in PageActivity toolbar.")
             val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
-                action = MainActivity.ACTION_NAVIGATE_TO_SEARCH // Use the defined constant
+                action = MainActivity.ACTION_NAVIGATE_TO_SEARCH
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             startActivity(mainActivityIntent)
-            // Consider if PageActivity should finish after navigating to search
-            // finish()
         }
 
-        // Tabs view listener
         binding.pageToolbarTabCountsView.setOnClickListener {
             L.d("Tabs view clicked in PageActivity toolbar.")
-            // TODO: Implement navigation to Tab Switcher UI
             Toast.makeText(this, "Tab switcher not yet implemented.", Toast.LENGTH_SHORT).show()
         }
 
-        // Overflow menu button listener
         binding.pageToolbarOverflowMenuButton.setOnClickListener { anchorView ->
             L.d("Overflow menu button clicked in PageActivity toolbar.")
-            pageFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
-            if (pageFragment != null) {
-                pageFragment?.showPageOverflowMenu(anchorView)
+            // Ensure pageFragment is up-to-date, especially if obtained initially in onAttachFragment
+            // and not guaranteed to be the same instance across activity recreation if not handled.
+            // However, findFragmentByTag is safer if there's a possibility of fragment recreation.
+            val currentFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG)
+            if (currentFragment is PageFragment) {
+                this.pageFragment = currentFragment // Update our reference
+                currentFragment.showPageOverflowMenu(anchorView)
             } else {
-                L.w("PageFragment not found when trying to show overflow menu.")
-                Toast.makeText(this, "Error: Could not show menu.", Toast.LENGTH_SHORT).show()
+                // Attempt to use the potentially stale pageFragment reference if currentFragment is not found or wrong type
+                // This part might need review based on how robust fragment instance retention is.
+                if (pageFragment != null) {
+                    L.w("PageFragment found via instance variable after findFragmentByTag failed or returned wrong type. Using potentially stale reference.")
+                    pageFragment?.showPageOverflowMenu(anchorView)
+                } else {
+                    L.e("PageFragment not found when trying to show overflow menu via findFragmentByTag or instance variable.")
+                    Toast.makeText(this, "Error: Could not show menu. Fragment not available.", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        // Handle the Up button (back arrow) press
         onBackPressedDispatcher.onBackPressed()
         return true
     }
@@ -115,7 +116,7 @@ class PageActivity : BaseActivity() { // Changed to BaseActivity
         const val EXTRA_PAGE_TITLE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_TITLE"
         const val EXTRA_PAGE_ID = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_ID"
         const val EXTRA_PAGE_SOURCE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SOURCE"
-        private const val FRAGMENT_TAG = "PageFragmentTag" // Tag for retrieving fragment
+        private const val FRAGMENT_TAG = "PageFragmentTag"
 
         fun newIntent(context: Context, pageTitle: String?, pageId: String?, source: Int): Intent {
             L.d("PageActivity.newIntent called with Title: $pageTitle, ID: $pageId, Source: $source")

@@ -10,14 +10,14 @@ import com.omiyawaki.osrswiki.theme.ThemeChooserDialog
  * Loads and manages preferences for the OSRSWiki settings screen.
  * Inspired by Wikipedia's SettingsPreferenceLoader.
  */
-internal class OsrsSettingsPreferenceLoader(private val fragment: PreferenceFragmentCompat) {
+internal class SettingsPreferenceLoader(private val fragment: PreferenceFragmentCompat) {
 
     private val context = fragment.requireContext()
     // private val activity = fragment.requireActivity() // activity val not strictly needed if only using fragment for context/childFragmentManager
 
     fun loadPreferences() {
         // Load the preferences from the XML resource
-        fragment.addPreferencesFromResource(R.xml.osrs_preferences)
+        fragment.addPreferencesFromResource(R.xml.preferences)
 
         // Setup the theme preference
         setupThemePreference()
