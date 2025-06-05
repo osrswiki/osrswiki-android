@@ -1,4 +1,5 @@
 package com.omiyawaki.osrswiki.page
+import com.omiyawaki.osrswiki.theme.ThemeChooserDialog
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
@@ -529,7 +530,12 @@ class PageFragment : Fragment() {
         }
 
         override fun onFindInArticleSelected() { if (isAdded && _binding != null) showThemedSnackbar("Find in page: Not yet implemented.", Snackbar.LENGTH_SHORT) }
-        override fun onThemeSelected() { if (isAdded && _binding != null) showThemedSnackbar("Appearance: Not yet implemented.", Snackbar.LENGTH_SHORT) }
+        override fun onThemeSelected() {
+            if (isAdded) {
+                com.omiyawaki.osrswiki.theme.ThemeChooserDialog.newInstance()
+                    .show(childFragmentManager, com.omiyawaki.osrswiki.theme.ThemeChooserDialog.TAG)
+            }
+        }
         override fun onContentsSelected() { if (isAdded && _binding != null) showThemedSnackbar("Contents: Not yet implemented.", Snackbar.LENGTH_SHORT) }
     }
 }

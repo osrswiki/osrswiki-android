@@ -28,4 +28,10 @@
     <color name="snackbar_text_color_dark_appearance">#f4eaea</color>
 
     <color name="search_box_background_on_primary">#33F0E6D2</color>
+
+    <color name="wiki_light_surface_background">#FFFFFF</color>
+    <color name="wiki_light_text_primary">#202122</color>
+    <color name="wiki_dark_surface_background">#202122</color>
+    <color name="wiki_dark_text_primary">#EAECF0</color>
+    <color name="wiki_black_surface_background">#000000</color>
 </resources>

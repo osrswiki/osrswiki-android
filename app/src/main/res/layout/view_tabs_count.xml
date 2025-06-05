@@ -11,10 +11,14 @@
         android:layout_gravity="center"
         android:layout_marginStart="14.5dp"
         android:layout_marginEnd="14.5dp"
-        android:background="#FFFF00FF" android:fontFamily="sans-serif"
+        android:background="@drawable/square_shape_border" 
+        android:backgroundTint="?attr/tabCountBackgroundColor"
+        android:fontFamily="sans-serif"
         android:gravity="center"
         android:textAlignment="center"
-        android:textColor="#FFFF0000" android:textSize="10sp"
+        android:textColor="?attr/tabCountTextColor"
+        android:textSize="10sp"
         android:textStyle="bold"
         android:paddingHorizontal="2dp"
-        tools:text="99" /> </merge>
+        tools:text="99" />
+</merge>
