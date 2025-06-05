@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        app:title="@string/osrs_settings_category_title_appearance">
+
+        <com.omiyawaki.osrswiki.settings.PreferenceMultiLine
+            app:key="@string/osrs_preference_key_theme"
+            app:title="@string/osrs_settings_theme_title"
+            app:summary="@string/osrs_settings_theme_summary_placeholder" />
+
+    </PreferenceCategory>
+
+    </PreferenceScreen>

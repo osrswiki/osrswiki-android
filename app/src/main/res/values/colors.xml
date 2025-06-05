@@ -34,4 +34,5 @@
     <color name="wiki_dark_surface_background">#202122</color>
     <color name="wiki_dark_text_primary">#EAECF0</color>
     <color name="wiki_black_surface_background">#000000</color>
+    <color name="osrs_parchment_surface_dark">#28221d</color>
 </resources>
