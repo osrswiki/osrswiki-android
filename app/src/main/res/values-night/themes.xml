@@ -1,33 +1,35 @@
 <resources>
+
     <style name="Theme.OSRSWiki" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/osrs_dark_brown_primary</item>
-        <item name="colorOnPrimary">@color/osrs_text_on_dark_primary</item>
-        <item name="colorPrimaryContainer">@color/osrs_parchment_surface</item>
-        <item name="colorOnPrimaryContainer">@color/osrs_text_on_parchment</item>
+        <item name="colorPrimary">@color/osrs_brown_deep</item>
+        <item name="colorOnPrimary">@color/osrs_text_light</item>
+        <item name="colorPrimaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnPrimaryContainer">@color/osrs_text_dark</item>
 
-        <item name="colorSecondary">@color/osrs_gold_accent</item>
-        <item name="colorOnSecondary">@color/osrs_text_on_gold</item>
-        <item name="colorSecondaryContainer">@color/osrs_parchment_surface</item>
-        <item name="colorOnSecondaryContainer">@color/osrs_gold_accent</item>
+        <item name="colorSecondary">@color/osrs_gold</item>
+        <item name="colorOnSecondary">@color/osrs_brown_deep</item>
+        <item name="colorSecondaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnSecondaryContainer">@color/osrs_gold</item>
 
-        <item name="colorError">@color/md_theme_error</item>
-        <item name="colorOnError">@color/md_theme_onError</item>
+        <item name="colorError">@color/color_error</item>
+        <item name="colorOnError">@color/white</item>
 
-        <item name="android:colorBackground">@color/osrs_parchment_bg_dark_theme_value</item>
-        <item name="colorOnBackground">@color/osrs_text_on_parchment_dark_theme_value</item>
-        <item name="colorSurface">@color/osrs_parchment_bg_dark_theme_value</item>
-        <item name="colorOnSurface">@color/osrs_text_on_parchment_dark_theme_value</item>
-        <item name="colorSurfaceVariant">@color/osrs_parchment_bg_dark_theme_value</item>
-        <item name="colorOnSurfaceVariant">@color/osrs_text_on_parchment_dark_theme_value</item>
+        <item name="android:colorBackground">@color/osrs_parchment_dark</item>
+        <item name="colorOnBackground">@color/osrs_text_light_alt</item>
+        <item name="colorSurface">@color/osrs_parchment_dark</item>
+        <item name="colorOnSurface">@color/osrs_text_light_alt</item>
+        <item name="colorSurfaceVariant">@color/osrs_parchment_dark</item>
+        <item name="colorOnSurfaceVariant">@color/osrs_text_light_alt</item>
 
-        <item name="android:statusBarColor">@color/osrs_parchment_bg_dark_theme_value</item>
+        <item name="android:statusBarColor">@color/osrs_parchment_dark</item>
         <item name="android:windowLightStatusBar">false</item>
 
-        <item name="placeholder_color">@color/osrs_text_on_parchment_dark_theme_value</item>
+        <item name="placeholder_color">@color/osrs_text_light_alt</item>
 
-        <item name="tabCountBackgroundColor">@color/osrs_gold_accent</item>
-        <item name="tabCountTextColor">@color/osrs_text_on_gold</item>
-        <item name="tabCountBorderColor">@color/osrs_text_on_gold</item>
+        <item name="tabCountBackgroundColor">@color/osrs_gold</item>
+        <item name="tabCountTextColor">@color/osrs_brown_deep</item>
+        <item name="tabCountBorderColor">@color/osrs_brown_deep</item>
 
-        <item name="search_box_background_color">#1AFFFFFF</item> </style>
+        <item name="search_box_background_color">#1AFFFFFF</item>
+    </style>
 </resources>

@@ -28,7 +28,7 @@ class PreferenceMultiLine : Preference {
         // The Wikipedia version also has logic to intercept clicks for preferences with intents
         // and to log breadcrumbs. For this OSRSWiki version, we'll keep it simple
         // and focused on the multi-line title aspect. Specific click listeners will be
-        // set by the OsrsSettingsPreferenceLoader or SettingsFragment.
+        // set by the SettingsPreferenceLoader or SettingsFragment.
     }
 
     // Optional: If analytics/breadcrumb logging similar to Wikipedia's is desired later,

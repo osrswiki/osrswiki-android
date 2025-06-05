@@ -74,7 +74,7 @@ abstract class AppDatabase : RoomDatabase() {
             //     DatabaseMigrations.MIGRATION_8_9,
             //     DatabaseMigrations.MIGRATION_9_10
             // )
-            .fallbackToDestructiveMigration() // <<< ADDED FOR DEVELOPMENT SIMPLICITY
+                .fallbackToDestructiveMigration(true)
             .build()
         }
     }

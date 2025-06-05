@@ -178,6 +178,8 @@ class MainActivity : BaseActivity(), MainScrollableViewProvider, SavedPagesFragm
         return super.onSupportNavigateUp()
         }
 
+    @Deprecated(message = "Override of a deprecated Activity.onBackPressed(). Consider migrating to OnBackPressedDispatcher.")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() { // Changed from override fun onBackPressed() to match typical signature
         L.d("MainActivity: onBackPressed called.")
         if (appRouter.goBack()) {

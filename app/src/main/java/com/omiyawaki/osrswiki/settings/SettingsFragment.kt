@@ -2,11 +2,10 @@ package com.omiyawaki.osrswiki.settings
 
 import android.os.Bundle
 import androidx.preference.PreferenceFragmentCompat
-import com.omiyawaki.osrswiki.R // For R.xml.osrs_preferences if OsrsSettingsPreferenceLoader didn't call addPreferencesFromResource
 
 /**
  * Fragment to display app settings.
- * It uses OsrsSettingsPreferenceLoader to load and manage preferences.
+ * It uses SettingsPreferenceLoader to load and manage preferences.
  */
 class SettingsFragment : PreferenceFragmentCompat() {
 
@@ -17,12 +16,12 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private lateinit var preferenceLoader: OsrsSettingsPreferenceLoader
+    private lateinit var preferenceLoader: SettingsPreferenceLoader
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        // OsrsSettingsPreferenceLoader will call addPreferencesFromResource(R.xml.osrs_preferences)
-        // So, we don't call setPreferencesFromResource(R.xml.osrs_preferences, rootKey) here directly.
-        preferenceLoader = OsrsSettingsPreferenceLoader(this)
+        // SettingsPreferenceLoader will call addPreferencesFromResource(R.xml.preferences)
+        // So, we don't call setPreferencesFromResource(R.xml.preferences, rootKey) here directly.
+        preferenceLoader = SettingsPreferenceLoader(this)
         preferenceLoader.loadPreferences()
     }
 
