@@ -26,4 +26,6 @@
     <color name="snackbar_text_color_light_appearance">#3A2E1C</color>
     <color name="snackbar_background_dark_appearance">#28221d</color>
     <color name="snackbar_text_color_dark_appearance">#f4eaea</color>
+
+    <color name="search_box_background_on_primary">#33F0E6D2</color>
 </resources>

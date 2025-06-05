@@ -25,12 +25,21 @@
 
         <item name="placeholder_color">@color/osrs_dark_brown_primary</item>
 
-        <item name="tabCountBackgroundColor">@color/osrs_gold_accent</item>
-        <item name="tabCountTextColor">@color/osrs_text_on_gold</item>
-        <item name="tabCountBorderColor">@color/osrs_text_on_gold</item>
+        <item name="tabCountBackgroundColor">@android:color/transparent</item>
+        <item name="tabCountTextColor">?attr/colorOnSurface</item>
+        <item name="tabCountBorderColor">@android:color/transparent</item>
+
+        <item name="search_box_background_color">#1A000000</item>
+
+        <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
     </style>
 
-    <style name="Theme.OSRSWiki.AppBarOverlay" parent="ThemeOverlay.Material3.Dark.ActionBar" />
+    <style name="App.Style.PopupMenu" parent="Widget.Material3.PopupMenu.ListPopupWindow">
+        <item name="android:popupBackground">@color/osrs_parchment_bg_dark_theme_value</item>
+        <item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item</item>
+    </style>
 
-    <style name="Theme.OSRSWiki.PopupOverlay" parent="ThemeOverlay.Material3.Light" />
+    <style name="App.TextAppearance.PopupMenu.Item" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
 </resources>
