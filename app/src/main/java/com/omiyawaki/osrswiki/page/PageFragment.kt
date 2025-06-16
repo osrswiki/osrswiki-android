@@ -1,8 +1,8 @@
 package com.omiyawaki.osrswiki.page
-// import com.omiyawaki.osrswiki.theme.ThemeChooserDialog // Already imported by OSRSWikiApp in full path call
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
@@ -36,6 +36,7 @@ import com.omiyawaki.osrswiki.page.tabs.PageBackStackItem
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -546,8 +547,10 @@ class PageFragment : Fragment() {
         override fun onFindInArticleSelected() { if (isAdded && _binding != null) showThemedSnackbar("Find in page: Not yet implemented.", Snackbar.LENGTH_SHORT) }
         override fun onThemeSelected() {
             if (isAdded) {
-                com.omiyawaki.osrswiki.theme.ThemeChooserDialog.newInstance()
-                    .show(childFragmentManager, com.omiyawaki.osrswiki.theme.ThemeChooserDialog.TAG)
+                // The old ThemeChooserDialog is obsolete.
+                // The new behavior is to navigate to the main settings screen.
+                val intent = Intent(requireActivity(), SettingsActivity::class.java)
+                startActivity(intent)
             }
         }
         override fun onContentsSelected() { if (isAdded && _binding != null) showThemedSnackbar("Contents: Not yet implemented.", Snackbar.LENGTH_SHORT) }

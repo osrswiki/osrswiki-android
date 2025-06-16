@@ -2,20 +2,19 @@ package com.omiyawaki.osrswiki
 
 import android.app.Application
 import android.content.Context
-import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
 import android.util.Log
-import androidx.appcompat.app.AppCompatDelegate
 import com.omiyawaki.osrswiki.database.AppDatabase
-import com.omiyawaki.osrswiki.event.ThemeChangeEvent
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.page.tabs.Tab
 import com.omiyawaki.osrswiki.search.SearchRepository
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,19 +22,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 
 class OSRSWikiApp : Application() {
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    private val _eventBus = MutableSharedFlow<Any>()
-    val eventBus = _eventBus.asSharedFlow()
-
-    private lateinit var prefs: SharedPreferences
-    private var currentThemeInternal: Theme = Theme.DEFAULT_LIGHT
 
     lateinit var pageRepository: PageRepository
         private set
@@ -56,8 +46,6 @@ class OSRSWikiApp : Application() {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     companion object {
-        private const val PREFS_NAME = "osrswiki_app_prefs"
-        private const val KEY_CURRENT_THEME_TAG = "current_theme_tag"
         lateinit var instance: OSRSWikiApp
             private set
 
@@ -67,9 +55,9 @@ class OSRSWikiApp : Application() {
          * @param throwable The error/exception to log.
          * @param message An optional additional message.
          */
-        @JvmStatic // Ensures it's a static method from Java's perspective if needed
+        @JvmStatic
         fun logCrashManually(throwable: Throwable, message: String? = null) {
-            // TODO: Replace with actual crash reporting (e.g., FirebaseCrashlytics.getInstance().recordException(throwable))
+            // TODO: Replace with actual crash reporting
             val logMessage = message?.let { "$it: ${throwable.message}" } ?: throwable.message
             Log.e("OSRSWikiApp_CrashLog", "Manual crash log: $logMessage", throwable)
         }
@@ -78,9 +66,6 @@ class OSRSWikiApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-
-        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        loadCurrentTheme()
 
         val appContext = this.applicationContext
         val appDb = AppDatabase.instance
@@ -118,6 +103,38 @@ class OSRSWikiApp : Application() {
         unregisterNetworkCallback()
     }
 
+    /**
+     * Resolves the final theme based on user preferences in Prefs.kt.
+     * This is the single source of truth for the application's current theme.
+     * @return The resolved Theme enum value.
+     */
+    fun getCurrentTheme(): Theme {
+        val themeMode = Prefs.appThemeMode
+
+        val isNightMode = when (themeMode) {
+            "light" -> false
+            "dark" -> true
+            "auto" -> {
+                val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+            }
+            // Fallback to system setting if preference is in an unexpected state.
+            else -> {
+                val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                nightModeFlags == Configuration.UI_MODE_NIGHT_YES
+            }
+        }
+
+        val themeTag = if (isNightMode) {
+            Prefs.darkThemeChoice
+        } else {
+            Prefs.lightThemeChoice
+        }
+
+        // Return the theme matching the chosen tag, or the default light theme if something is wrong.
+        return Theme.ofTag(themeTag) ?: Theme.DEFAULT_LIGHT
+    }
+
     private fun initializeNetworkCallback() {
         connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         _currentNetworkStatus.value = isCurrentlyConnected()
@@ -126,10 +143,12 @@ class OSRSWikiApp : Application() {
                 super.onAvailable(network)
                 _currentNetworkStatus.value = true
             }
+
             override fun onLost(network: Network) {
                 super.onLost(network)
                 _currentNetworkStatus.value = false
             }
+
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities)
                 val isConnected = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
@@ -166,39 +185,5 @@ class OSRSWikiApp : Application() {
 
     fun commitTabState() {
         Log.d("OSRSWikiApp", "commitTabState() called (STUB). Current tab ID: ${currentTab?.id}, Tab count: ${tabList.size}")
-    }
-
-    private fun loadCurrentTheme() {
-        val savedThemeTag = prefs.getString(KEY_CURRENT_THEME_TAG, null)
-        currentThemeInternal = if (savedThemeTag != null) {
-            Theme.ofTag(savedThemeTag) ?: determineDefaultTheme()
-        } else {
-            determineDefaultTheme()
-        }
-    }
-
-    private fun determineDefaultTheme(): Theme {
-        val nightModeFlags = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        return if (nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES) {
-            Theme.DEFAULT_DARK
-        } else {
-            Theme.DEFAULT_LIGHT
-        }
-    }
-
-    fun getCurrentTheme(): Theme {
-        return currentThemeInternal
-    }
-
-    fun setCurrentTheme(theme: Theme, persist: Boolean = true) {
-        if (currentThemeInternal.tag != theme.tag) {
-            currentThemeInternal = theme
-            if (persist) {
-                prefs.edit().putString(KEY_CURRENT_THEME_TAG, theme.tag).apply()
-            }
-            applicationScope.launch {
-                _eventBus.emit(ThemeChangeEvent(theme))
-            }
-        }
     }
 }

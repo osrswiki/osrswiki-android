@@ -1,15 +1,10 @@
 package com.omiyawaki.osrswiki.activity
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.omiyawaki.osrswiki.OSRSWikiApp
-import com.omiyawaki.osrswiki.event.ThemeChangeEvent
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
+import com.omiyawaki.osrswiki.settings.Prefs
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -19,33 +14,26 @@ abstract class BaseActivity : AppCompatActivity() {
         // Apply the selected theme BEFORE super.onCreate() and setContentView().
         applyCurrentTheme()
         super.onCreate(savedInstanceState)
-
-        // Listen for theme change events to recreate the activity if the theme is changed
-        // while this activity is in the foreground.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                (applicationContext as OSRSWikiApp).eventBus.collectLatest { event ->
-                    if (event is ThemeChangeEvent) {
-                        // The event signifies a theme change. Recreate the activity.
-                        ActivityCompat.recreate(this@BaseActivity)
-                    }
-                }
-            }
-        }
     }
 
-    @Suppress("DEPRECATION")
-    override fun recreate() {
-        // Add a fade transition to make the recreation less jarring.
-        super.recreate()
-    }
-    
     override fun onResume() {
         super.onResume()
         // When resuming, check if the global theme has changed since this activity
         // was last created. If so, recreate it to apply the new theme.
         val globalThemeId = (application as OSRSWikiApp).getCurrentTheme().resourceId
         if (currentThemeId != 0 && currentThemeId != globalThemeId) {
+            recreate()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Check if the UI mode has changed (e.g., system light/dark theme switch).
+        // If the app's theme is set to "auto", we need to recreate the activity
+        // to apply the new system-driven theme.
+        if (Prefs.appThemeMode == "auto") {
+            // The theme is resolved in OSRSWikiApp.getCurrentTheme() which reads the system
+            // state, so simply recreating is sufficient.
             recreate()
         }
     }

@@ -1,15 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
-        app:title="@string/osrs_settings_category_title_appearance">
+        app:title="Appearance"
+        app:iconSpaceReserved="false">
 
-        <com.omiyawaki.osrswiki.settings.PreferenceMultiLine
-            app:key="@string/osrs_preference_key_theme"
-            app:title="@string/osrs_settings_theme_title"
-            app:summary="@string/osrs_settings_theme_summary_placeholder" />
+        <ListPreference
+            app:key="app_theme_mode"
+            app:title="App theme"
+            app:summary="%s"
+            app:defaultValue="auto"
+            app:entries="@array/app_theme_mode_entries"
+            app:entryValues="@array/app_theme_mode_values"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="light_theme_choice"
+            app:title="Light theme"
+            app:summary="%s"
+            app:defaultValue="osrs_light"
+            app:entries="@array/light_theme_choice_entries"
+            app:entryValues="@array/light_theme_choice_values"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+
+        <ListPreference
+            app:key="dark_theme_choice"
+            app:title="Dark theme"
+            app:summary="%s"
+            app:defaultValue="osrs_dark"
+            app:entries="@array/dark_theme_choice_entries"
+            app:entryValues="@array/dark_theme_choice_values"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
 
     </PreferenceCategory>
 
-    </PreferenceScreen>
+</PreferenceScreen>
