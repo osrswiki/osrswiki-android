@@ -24,6 +24,8 @@
         <item name="android:statusBarColor">@color/osrs_parchment_dark</item>
         <item name="android:windowLightStatusBar">false</item>
 
+        <item name="paper_color">@color/osrs_parchment_dark</item>
+        <item name="bottom_nav_background_color">?attr/paper_color</item>
         <item name="placeholder_color">@color/osrs_text_light_alt</item>
 
         <item name="tabCountBackgroundColor">@color/osrs_gold</item>

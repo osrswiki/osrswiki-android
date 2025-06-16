@@ -74,7 +74,7 @@
         android:name="com.omiyawaki.osrswiki.page.PageFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FF00FF" app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:background="?attr/paper_color" app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:layout="@layout/fragment_page" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

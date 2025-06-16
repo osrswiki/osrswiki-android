@@ -2,17 +2,20 @@ package com.omiyawaki.osrswiki.page
 // import com.omiyawaki.osrswiki.theme.ThemeChooserDialog // Already imported by OSRSWikiApp in full path call
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import androidx.annotation.AttrRes
 import androidx.annotation.RequiresApi
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
@@ -262,7 +265,9 @@ class PageFragment : Fragment() {
 
     private fun isDarkMode(): Boolean {
         if (!isAdded) return false
-        return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        // Get the current theme directly from the application instance using the public getter.
+        // This is the single source of truth for the app's theme.
+        return (requireActivity().application as OSRSWikiApp).getCurrentTheme().isDark()
     }
 
     private fun setWebViewWidgetBackgroundColor() {
@@ -347,6 +352,12 @@ class PageFragment : Fragment() {
         }
     }
 
+    private fun getThemeColor(@AttrRes attrRes: Int): Int {
+        val typedValue = TypedValue()
+        requireContext().theme.resolveAttribute(attrRes, typedValue, true)
+        return typedValue.data
+    }
+
     private fun updateUiFromViewModel() {
         if (!isAdded || !isVisible || _binding == null) return
         val state = pageViewModel.uiState
@@ -362,10 +373,7 @@ class PageFragment : Fragment() {
         } else {
             state.htmlContent?.let { htmlBodySnippet ->
                 binding.pageWebView.visibility = View.INVISIBLE
-                val currentIsDarkMode = isDarkMode()
-                // UPDATED LINE: Use R.color.osrs_parchment_dark for dark mode
-                val themeSpecificParchmentColorRes = if (currentIsDarkMode) R.color.osrs_parchment_dark else R.color.osrs_parchment_bg
-                val backgroundColorInt = ContextCompat.getColor(requireContext(), themeSpecificParchmentColorRes)
+                val backgroundColorInt = getThemeColor(R.attr.paper_color)
                 val backgroundColorHex = String.format("#%06X", (0xFFFFFF and backgroundColorInt))
                 val finalHtml = """
                     <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -387,16 +395,20 @@ class PageFragment : Fragment() {
         val titleForDaoLookup = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
             ?: pageTitleArg?.takeIf { it.isNotBlank() }
 
-        if (titleForDaoLookup.isNullOrBlank()) { updateSaveIcon(null); return }
-
-        val pagePackageTitle = PagePackagePageTitle(
-            namespace = Namespace.MAIN,
-            text = titleForDaoLookup,
-            wikiSite = WikiSite.OSRS_WIKI
-        )
+        if (titleForDaoLookup.isNullOrBlank()) {
+            updateSaveIcon(null)
+            return
+        }
 
         pageStateObserverJob = viewLifecycleOwner.lifecycleScope.launch {
+            // Define pagePackageTitle inside the coroutine scope to ensure it's resolved.
+            val pagePackageTitle = PagePackagePageTitle(
+                namespace = Namespace.MAIN,
+                text = titleForDaoLookup,
+                wikiSite = WikiSite.OSRS_WIKI
+            )
             val defaultListId = withContext(Dispatchers.IO) { AppDatabase.instance.readingListDao().let { it.getDefaultList() ?: it.createDefaultListIfNotExist() }.id }
+
             readingListPageDao.observePageByListIdAndTitle(
                 pagePackageTitle.wikiSite,
                 pagePackageTitle.wikiSite.languageCode,
@@ -464,10 +476,11 @@ class PageFragment : Fragment() {
         private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
             if (!isAdded || _binding == null) return
             val snackbar = Snackbar.make(binding.root, message, length).setAnchorView(binding.pageActionsTabLayout)
-            // Example: Determine colors based on current app theme (more robust than just isDarkMode())
-            // This requires access to theme attributes or a helper. For now, keeping original logic.
-            val (snackbarBgColorResId, snackbarTextColorResId) = if (isDarkMode()) R.color.osrs_parchment_light to R.color.osrs_text_dark else R.color.osrs_parchment_dark to R.color.osrs_text_light_alt
-            snackbar.setBackgroundTint(ContextCompat.getColor(requireContext(), snackbarBgColorResId)).setTextColor(ContextCompat.getColor(requireContext(), snackbarTextColorResId)).show()
+
+            val surfaceColor = getThemeColor(com.google.android.material.R.attr.colorSurface)
+            val onSurfaceColor = getThemeColor(com.google.android.material.R.attr.colorOnSurface)
+
+            snackbar.setBackgroundTint(surfaceColor).setTextColor(onSurfaceColor).show()
         }
 
         override fun onSaveSelected() {
