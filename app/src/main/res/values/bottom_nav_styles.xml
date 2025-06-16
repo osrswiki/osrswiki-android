@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-
-    <style name="OsrsBottomNavPillThemeOverlay">
-        <item name="colorPrimary">@color/osrs_indicator_pink</item>
-    </style>
-
-</resources>

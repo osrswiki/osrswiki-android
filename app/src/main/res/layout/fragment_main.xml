@@ -26,13 +26,14 @@
 
     <com.omiyawaki.osrswiki.navtab.NavTabLayout
         android:id="@+id/bottom_nav_view"
+        style="@style/Widget.App.NavTabLayout"
         android:layout_width="0dp"
         android:layout_height="@dimen/osrs_bottom_nav_bar_height"
-        android:background="@color/osrs_parchment_bg"
         app:itemIconTint="@color/bottom_nav_icon_selector"
         app:itemTextColor="@color/bottom_nav_text_selector"
         app:itemPaddingTop="8dp"
         app:elevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" /> </androidx.constraintlayout.widget.ConstraintLayout>
+        app:layout_constraintEnd_toEndOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

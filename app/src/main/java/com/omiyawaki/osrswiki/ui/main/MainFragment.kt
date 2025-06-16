@@ -211,7 +211,14 @@ class MainFragment : Fragment(), MenuProvider {
     override fun onResume() {
         super.onResume()
         L.d("MainFragment: onResume. Notifying activity of toolbar state.")
-        view?.post { notifyActivityOfToolbarState() }
+        view?.post {
+            // Add a lifecycle check. During a theme-change-recreation, onResume can be
+            // called, but the posted task may execute after onDestroyView, causing a crash.
+            // Checking that the binding is not null prevents this.
+            if (_binding != null && isAdded) {
+                notifyActivityOfToolbarState()
+            }
+        }
         requireActivity().invalidateOptionsMenu()
     }
 

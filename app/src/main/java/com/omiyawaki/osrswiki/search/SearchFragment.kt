@@ -93,11 +93,15 @@ class SearchFragment : Fragment(),
 
             // Request focus for the SearchView and show keyboard
             binding.searchView.post { // Post to ensure view is ready
-                val focusRequested = binding.searchView.requestFocus()
-                L.d("SearchFragment: onResume: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
-                // Consider explicitly showing the keyboard if requestFocus isn't enough
-                // val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                // imm.showSoftInput(binding.searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
+                // Add a lifecycle check. During a theme-change-recreation, onResume can be
+                // called, but the posted task may execute after onDestroyView, causing a crash.
+                if (_binding != null && isAdded) {
+                    val focusRequested = binding.searchView.requestFocus()
+                    L.d("SearchFragment: onResume: searchView.requestFocus() returned: $focusRequested. searchView.isFocused(): ${binding.searchView.isFocused}")
+                    // Consider explicitly showing the keyboard if requestFocus isn't enough
+                    // val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                    // imm.showSoftInput(binding.searchView.findFocus(), InputMethodManager.SHOW_IMPLICIT)
+                }
             }
 
             L.d("SearchFragment: onResume: searchFragmentToolbar.isVisible = ${binding.searchFragmentToolbar.isVisible}")
@@ -293,7 +297,7 @@ class SearchFragment : Fragment(),
     }
 
     override fun onItemClick(item: CleanedSearchResultItem) {
-        L.d("SearchFragment onItemClick: Item Title='${item.title}', Item ID='${item.id}', IsFTS=${item.isFtsResult}, Source=SOURCE_SEARCH")
+        L.d("SearchFragment onItemClick: Item Title='${item.title}', Item ID='${item.id}', IsFts=${item.isFtsResult}, Source=SOURCE_SEARCH")
         val intent = PageActivity.newIntent(
             context = requireContext(),
             pageTitle = item.title,

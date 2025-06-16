@@ -4,4 +4,6 @@
     <attr name="tabCountBackgroundColor" format="color" />
     <attr name="tabCountTextColor" format="color" />
     <attr name="tabCountBorderColor" format="color" />
+    <attr name="paper_color" format="color" />
+    <attr name="bottom_nav_background_color" format="color" />
 </resources>
