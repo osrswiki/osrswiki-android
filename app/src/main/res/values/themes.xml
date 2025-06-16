@@ -26,7 +26,7 @@
         <item name="placeholder_color">@color/osrs_brown_deep</item>
         <item name="tabCountBackgroundColor">@android:color/transparent</item>
         <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">@android:color/transparent</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
     </style>
@@ -57,7 +57,7 @@
         <item name="placeholder_color">@color/osrs_brown_deep</item>
         <item name="tabCountBackgroundColor">@android:color/transparent</item>
         <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">@android:color/transparent</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
     </style>
@@ -119,7 +119,7 @@
         <item name="placeholder_color">#757575</item>
         <item name="tabCountBackgroundColor">@android:color/transparent</item>
         <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">@android:color/transparent</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1A000000</item>
         <item name="colorControlNormal">@color/wiki_text_near_black</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
@@ -151,7 +151,7 @@
         <item name="placeholder_color">#BDBDBD</item>
         <item name="tabCountBackgroundColor">@android:color/transparent</item>
         <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">@android:color/transparent</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1AFFFFFF</item>
         <item name="colorControlNormal">@color/wiki_text_near_white</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
@@ -183,7 +183,7 @@
         <item name="placeholder_color">#BDBDBD</item>
         <item name="tabCountBackgroundColor">@android:color/transparent</item>
         <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">@android:color/transparent</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1AFFFFFF</item>
         <item name="colorControlNormal">@color/wiki_text_near_white</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>

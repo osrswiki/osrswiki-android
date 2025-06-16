@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <EditText
+        android:id="@+id/toolbar_search_edit_text"
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:background="@drawable/search_text_view_rounded_background"
+        android:drawableStart="@drawable/ic_search_white_24dp"
+        android:drawablePadding="8dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:hint="@string/page_toolbar_search_hint"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:layout_marginEnd="8dp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textColorHint="?android:attr/textColorSecondary"
+        app:drawableTint="?attr/colorControlNormal" />
+
+    <com.omiyawaki.osrswiki.views.TabCountsView
+        android:id="@+id/toolbar_tab_counts_view"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_gravity="center"
+        android:layout_marginEnd="6dp"
+        android:contentDescription="@string/page_toolbar_tabs_content_description" />
+
+    <ImageView
+        android:id="@+id/toolbar_overflow_menu_button"
+        android:layout_width="48dp"
+        android:layout_height="match_parent"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/page_toolbar_overflow_content_description"
+        android:focusable="true"
+        android:padding="12dp"
+        android:src="@drawable/ic_more_vert_white_24dp"
+        app:tint="?attr/colorControlNormal" />
+
+</LinearLayout>

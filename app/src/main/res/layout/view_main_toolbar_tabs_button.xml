@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.omiyawaki.osrswiki.views.TabCountsView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_toolbar_tab_counts_view"
+    android:layout_width="48dp"
+    android:layout_height="24dp"
+    android:layout_gravity="center"
+    android:contentDescription="@string/page_toolbar_tabs_content_description" />

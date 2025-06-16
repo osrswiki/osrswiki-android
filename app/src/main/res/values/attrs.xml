@@ -1,9 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <attr name="search_box_background_color" format="color" />
-    <attr name="placeholder_color" format="color" />
-    <attr name="tabCountBackgroundColor" format="color" />
-    <attr name="tabCountTextColor" format="color" />
-    <attr name="tabCountBorderColor" format="color" />
+    <declare-styleable name="TabCountsView">
+        <attr name="tabCountBackgroundColor" format="color" />
+        <attr name="tabCountTextColor" format="color" />
+        <attr name="tabCountBorderColor" format="color" />
+    </declare-styleable>
+
     <attr name="paper_color" format="color" />
     <attr name="bottom_nav_background_color" format="color" />
+    <attr name="placeholder_color" format="color" />
+    <attr name="search_box_background_color" format="color" />
 </resources>
