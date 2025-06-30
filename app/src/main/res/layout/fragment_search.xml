@@ -50,7 +50,7 @@
         android:id="@+id/recyclerViewSearchResults"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_nav_view_border"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewOfflineIndicator"
@@ -62,10 +62,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/recyclerViewSearchResults"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/search_app_bar_layout"
+        app:layout_constraintTop_toTopOf="@+id/recyclerViewSearchResults"
         tools:visibility="gone" />
 
     <TextView
@@ -79,10 +79,10 @@
         android:visibility="gone"
         android:textAppearance="?attr/textAppearanceBody1"
         android:textColor="?attr/colorError"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/recyclerViewSearchResults"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/search_app_bar_layout"
+        app:layout_constraintTop_toTopOf="@+id/recyclerViewSearchResults"
         tools:text="Error message here" />
 
     <TextView
@@ -96,10 +96,33 @@
         android:text="@string/search_no_results"
         android:visibility="gone"
         android:textAppearance="?attr/textAppearanceBody1"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/recyclerViewSearchResults"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/search_app_bar_layout"
+        app:layout_constraintTop_toTopOf="@+id/recyclerViewSearchResults"
         tools:visibility="visible" />
+
+    <View
+        android:id="@+id/bottom_nav_view_border"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider"
+        app:layout_constraintBottom_toTopOf="@+id/search_bottom_nav_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <com.omiyawaki.osrswiki.navtab.NavTabLayout
+        android:id="@+id/search_bottom_nav_view"
+        style="@style/Widget.App.NavTabLayout"
+        android:layout_width="0dp"
+        android:layout_height="@dimen/nav_bar_height"
+        app:menu="@menu/menu_bottom_navigation"
+        app:itemIconTint="@color/bottom_nav_icon_selector"
+        app:itemTextColor="@color/bottom_nav_text_selector"
+        app:itemPaddingTop="8dp"
+        app:elevation="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -11,29 +11,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/bottom_nav_view_border"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <View
-        android:id="@+id/bottom_nav_view_border"
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="?android:attr/listDivider"
-        app:layout_constraintBottom_toTopOf="@+id/bottom_nav_view"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <com.omiyawaki.osrswiki.navtab.NavTabLayout
-        android:id="@+id/bottom_nav_view"
-        style="@style/Widget.App.NavTabLayout"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/osrs_bottom_nav_bar_height"
-        app:itemIconTint="@color/bottom_nav_icon_selector"
-        app:itemTextColor="@color/bottom_nav_text_selector"
-        app:itemPaddingTop="8dp"
-        app:elevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
