@@ -1,18 +1,13 @@
 package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.widget.PopupMenu
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.common.models.PageTitle as CommonPageTitle
@@ -25,8 +20,6 @@ import com.omiyawaki.osrswiki.page.action.PageActionItem
 import com.omiyawaki.osrswiki.page.tabs.PageBackStackItem
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
-import com.omiyawaki.osrswiki.settings.Prefs
-import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,6 +27,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
+import androidx.core.view.isVisible
 
 class PageFragment : Fragment() {
 
@@ -46,12 +40,12 @@ class PageFragment : Fragment() {
     private lateinit var readingListPageDao: ReadingListPageDao
     private lateinit var pageLinkHandler: PageLinkHandler
     private lateinit var pageWebViewManager: PageWebViewManager
+    private lateinit var pageActionHandler: PageActionHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
 
-    private val pageActionItemCallback = PageActionItemCallback()
     private var pageStateObserverJob: Job? = null
 
     private val HISTORY_DEBUG_TAG = "PFragment_HistoryDebug"
@@ -94,10 +88,14 @@ class PageFragment : Fragment() {
             webView = binding.pageWebView,
             linkHandler = pageLinkHandler,
             onPageReady = {
-                // This callback is triggered by the manager when the page is styled and visible.
-                // We only need to log the visit here.
                 logPageVisit()
             }
+        )
+
+        pageActionHandler = PageActionHandler(
+            fragment = this,
+            viewModel = pageViewModel,
+            binding = binding
         )
 
         val appDb = AppDatabase.instance
@@ -115,7 +113,7 @@ class PageFragment : Fragment() {
             }
         }
 
-        binding.pageActionsTabLayout.callback = pageActionItemCallback
+        binding.pageActionsTabLayout.callback = pageActionHandler.callback
         binding.pageActionsTabLayout.update()
 
         updateUiFromViewModel()
@@ -126,33 +124,8 @@ class PageFragment : Fragment() {
     }
 
     fun showPageOverflowMenu(anchorView: View) {
-        if (!isAdded || context == null) return
-        val popup = PopupMenu(requireContext(), anchorView)
-        popup.menuInflater.inflate(R.menu.menu_page_overflow, popup.menu)
-
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.menu_page_overflow_save -> {
-                    pageActionItemCallback.onSaveSelected()
-                    true
-                }
-                R.id.menu_page_overflow_find_in_article -> {
-                    pageActionItemCallback.onFindInArticleSelected()
-                    true
-                }
-                R.id.menu_page_overflow_appearance -> {
-                    pageActionItemCallback.onThemeSelected()
-                    true
-                }
-                R.id.menu_page_overflow_contents -> {
-                    pageActionItemCallback.onContentsSelected()
-                    true
-                }
-                else -> false
-            }
-        }
-        popup.show()
-        L.d("Page overflow menu shown.")
+        if (!isAdded) return
+        pageActionHandler.showPageOverflowMenu(anchorView)
     }
 
     private fun logPageVisit() {
@@ -334,9 +307,9 @@ class PageFragment : Fragment() {
     }
 
     companion object {
-        private const val ARG_PAGE_ID = "pageId"
-        private const val ARG_PAGE_TITLE = "pageTitle"
-        private const val ARG_PAGE_SOURCE = "pageSource"
+        const val ARG_PAGE_ID = "pageId"
+        const val ARG_PAGE_TITLE = "pageTitle"
+        const val ARG_PAGE_SOURCE = "pageSource"
         private const val FRAGMENT_TAG = "PageFragmentTag"
         @JvmStatic
         fun newInstance(pageId: String?, pageTitle: String?, source: Int): PageFragment =
@@ -347,94 +320,5 @@ class PageFragment : Fragment() {
                     putInt(ARG_PAGE_SOURCE, source)
                 }
             }
-    }
-
-    internal inner class PageActionItemCallback : PageActionItem.Callback {
-        private fun showThemedSnackbar(message: String, length: Int = Snackbar.LENGTH_LONG) {
-            if (!isAdded || _binding == null) return
-            val snackbar = Snackbar.make(binding.root, message, length).setAnchorView(binding.pageActionsTabLayout)
-
-            val typedValue = TypedValue()
-            requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)
-            val surfaceColor = typedValue.data
-            requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
-            val onSurfaceColor = typedValue.data
-
-            snackbar.setBackgroundTint(surfaceColor).setTextColor(onSurfaceColor).show()
-        }
-
-        override fun onSaveSelected() {
-            if (!isAdded || _binding == null) { return }
-            val titleForDaoLookup = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() && pageViewModel.uiState.htmlContent != null }
-                ?: pageTitleArg?.takeIf { it.isNotBlank() }
-
-            if (titleForDaoLookup.isNullOrBlank()) {
-                if (isAdded && _binding != null) showThemedSnackbar(getString(R.string.cannot_save_page_no_title), Snackbar.LENGTH_SHORT)
-                return
-            }
-
-            val pagePackagePageTitle = PagePackagePageTitle(
-                namespace = Namespace.MAIN,
-                text = titleForDaoLookup,
-                wikiSite = WikiSite.OSRS_WIKI,
-                displayText = pageViewModel.uiState.title ?: titleForDaoLookup,
-                thumbUrl = pageViewModel.uiState.imageUrl
-            )
-            val titleForSnackbar = pagePackagePageTitle.displayText
-
-            viewLifecycleOwner.lifecycleScope.launch {
-                var message: String = getString(R.string.error_generic_save_unsave)
-                try {
-                    val readingListDao = AppDatabase.instance.readingListDao()
-                    val localReadingListPageDao = AppDatabase.instance.readingListPageDao()
-                    val defaultList = withContext(Dispatchers.IO) { readingListDao.getDefaultList() ?: readingListDao.createDefaultListIfNotExist() }
-
-                    val existingEntry = withContext(Dispatchers.IO) {
-                        localReadingListPageDao.getPageByListIdAndTitle(
-                            pagePackagePageTitle.wikiSite,
-                            pagePackagePageTitle.wikiSite.languageCode,
-                            pagePackagePageTitle.namespace(),
-                            pagePackagePageTitle.prefixedText,
-                            defaultList.id,
-                            ReadingListPage.STATUS_QUEUE_FOR_DELETE
-                        )
-                    }
-
-                    if (existingEntry != null) {
-                        if (existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_SAVED) {
-                            withContext(Dispatchers.IO) { localReadingListPageDao.markPagesForDeletion(defaultList.id, listOf(existingEntry)) }
-                            message = "'$titleForSnackbar' offline version will be removed."
-                        } else {
-                            val downloadWillBeAttempted = Prefs.isDownloadingReadingListArticlesEnabled
-                            withContext(Dispatchers.IO) { localReadingListPageDao.markPagesForOffline(listOf(existingEntry), offline = true, forcedSave = false) }
-                            message = if (downloadWillBeAttempted) "'$titleForSnackbar' queued for download." else "'$titleForSnackbar' marked for offline availability."
-                        }
-                    } else {
-                        val downloadEnabled = Prefs.isDownloadingReadingListArticlesEnabled
-                        val titlesAdded = withContext(Dispatchers.IO) { localReadingListPageDao.addPagesToList(defaultList, listOf(pagePackagePageTitle), downloadEnabled) }
-                        if (titlesAdded.isNotEmpty()) {
-                            message = if (downloadEnabled) "'$titleForSnackbar' saved and queued for download." else "'$titleForSnackbar' saved to reading list."
-                        } else {
-                            message = "Page '$titleForSnackbar' could not be saved."
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("PFragment_SAVE_TEST", "Error during save/unsave for '$titleForSnackbar'", e)
-                    message = getString(R.string.error_generic_save_unsave)
-                }
-                if(isAdded && _binding != null) showThemedSnackbar(message)
-            }
-        }
-
-        override fun onFindInArticleSelected() { if (isAdded && _binding != null) showThemedSnackbar("Find in page: Not yet implemented.", Snackbar.LENGTH_SHORT) }
-
-        override fun onThemeSelected() {
-            if (isAdded) {
-                val intent = Intent(requireActivity(), SettingsActivity::class.java)
-                startActivity(intent)
-            }
-        }
-
-        override fun onContentsSelected() { if (isAdded && _binding != null) showThemedSnackbar("Contents: Not yet implemented.", Snackbar.LENGTH_SHORT) }
     }
 }
