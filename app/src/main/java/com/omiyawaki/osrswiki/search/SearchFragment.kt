@@ -63,7 +63,6 @@ class SearchFragment : Fragment(),
         setupSearchToolbar()
         observeViewModel()
         setupOnBackPressed()
-        setupBottomNavigation()
     }
 
     override fun onResume() {
@@ -108,28 +107,6 @@ class SearchFragment : Fragment(),
         // Use the standard hint text color for the hint
         requireContext().theme.resolveAttribute(android.R.attr.textColorHint, typedValue, true)
         searchEditText.setHintTextColor(typedValue.data)
-    }
-
-    private fun setupBottomNavigation() {
-        binding.searchBottomNavView.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_saved_bottom -> {
-                    // TODO: Navigate to Saved/Reading Lists
-                    true
-                }
-                R.id.nav_search_bottom -> {
-                    // Current screen, do nothing.
-                    true
-                }
-                R.id.nav_more_bottom -> {
-                    // TODO: Show 'More' options menu/dialog
-                    true
-                }
-                else -> false
-            }
-        }
-        // Set the Search item as selected since this is the Search screen
-        binding.searchBottomNavView.selectedItemId = R.id.nav_search_bottom
     }
 
     private fun setupRecyclerViewAdapters() {
