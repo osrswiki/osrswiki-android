@@ -14,7 +14,9 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/page_actions_tab_layout" /> <ProgressBar
+        app:layout_constraintBottom_toTopOf="@+id/page_actions_tab_layout" />
+
+    <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
@@ -47,9 +49,9 @@
     <com.omiyawaki.osrswiki.page.PageActionTabLayout
         android:id="@+id/page_actions_tab_layout"
         android:layout_width="0dp"
-        android:layout_height="@dimen/page_actions_bar_height"
-        android:background="?attr/colorSurface" 
-        android:elevation="4dp" 
+        android:layout_height="@dimen/nav_bar_height"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

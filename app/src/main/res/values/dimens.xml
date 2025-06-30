@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="page_action_label_text_size">10sp</dimen>
+    <dimen name="bottom_nav_label_text_size">11sp</dimen>
     <dimen name="osrs_bottom_nav_bar_height">56dp</dimen>
     <dimen name="leadImageWidth">300dp</dimen>
     <item name="articleHeaderViewScreenHeightRatio" type="dimen">0.33</item>
 
-    <dimen name="page_actions_bar_height">56dp</dimen>
+    <dimen name="nav_bar_height">72dp</dimen>
 </resources>

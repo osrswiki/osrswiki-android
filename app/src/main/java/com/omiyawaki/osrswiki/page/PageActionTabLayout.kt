@@ -81,7 +81,7 @@ class PageActionTabLayout @JvmOverloads constructor(
                 setTextColor(tintColor)
                 textAlignment = TEXT_ALIGNMENT_CENTER
                 setTypeface(typeface, Typeface.NORMAL)
-                setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimensionPixelSize(R.dimen.page_action_label_text_size).toFloat())
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimensionPixelSize(R.dimen.bottom_nav_label_text_size).toFloat())
                 maxLines = 2
                 ellipsize = TextUtils.TruncateAt.END
                 isFocusable = true
