@@ -63,6 +63,7 @@ class SearchFragment : Fragment(),
         setupSearchToolbar()
         observeViewModel()
         setupOnBackPressed()
+        setupBottomNavigation()
     }
 
     override fun onResume() {
@@ -99,14 +100,36 @@ class SearchFragment : Fragment(),
         // Style the internal EditText of the SearchView to use theme attributes for color
         val searchEditText = searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
         val typedValue = TypedValue()
-        
+
         // Use colorOnSurface for the main text color for good contrast
         requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
         searchEditText.setTextColor(typedValue.data)
-        
+
         // Use the standard hint text color for the hint
         requireContext().theme.resolveAttribute(android.R.attr.textColorHint, typedValue, true)
         searchEditText.setHintTextColor(typedValue.data)
+    }
+
+    private fun setupBottomNavigation() {
+        binding.searchBottomNavView.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_saved_bottom -> {
+                    // TODO: Navigate to Saved/Reading Lists
+                    true
+                }
+                R.id.nav_search_bottom -> {
+                    // Current screen, do nothing.
+                    true
+                }
+                R.id.nav_more_bottom -> {
+                    // TODO: Show 'More' options menu/dialog
+                    true
+                }
+                else -> false
+            }
+        }
+        // Set the Search item as selected since this is the Search screen
+        binding.searchBottomNavView.selectedItemId = R.id.nav_search_bottom
     }
 
     private fun setupRecyclerViewAdapters() {

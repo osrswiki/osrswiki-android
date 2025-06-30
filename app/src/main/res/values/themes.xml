@@ -252,6 +252,7 @@
     </style>
 
     <style name="Widget.App.NavTabLayout" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:layout_height">72dp</item>
         <item name="android:background">?attr/bottom_nav_background_color</item>
     </style>
 
