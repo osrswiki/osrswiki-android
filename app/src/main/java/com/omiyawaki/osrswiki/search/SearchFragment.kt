@@ -2,18 +2,14 @@ package com.omiyawaki.osrswiki.search
 
 import android.content.Context
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.LayoutInflater
-import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.ImageView
-import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -27,9 +23,6 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
-import com.omiyawaki.osrswiki.settings.SettingsActivity
-import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.views.TabCountsView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -47,7 +40,7 @@ class SearchFragment : Fragment(),
 
     private lateinit var onlineSearchAdapter: SearchAdapter
     private lateinit var offlineSearchAdapter: OfflineSearchAdapter
-    private lateinit var searchEditText: EditText
+    private lateinit var searchView: SearchView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -59,9 +52,10 @@ class SearchFragment : Fragment(),
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        searchEditText = view.findViewById(R.id.toolbar_search_edit_text)
+        searchView = view.findViewById(R.id.search_view)
 
         binding.searchFragmentToolbar.setNavigationOnClickListener {
+            hideSoftKeyboard()
             activity?.onBackPressedDispatcher?.onBackPressed()
         }
 
@@ -74,43 +68,45 @@ class SearchFragment : Fragment(),
     override fun onResume() {
         super.onResume()
         if (_binding != null) {
-            searchEditText.post {
+            searchView.post {
                 if (isAdded) {
-                    searchEditText.requestFocus()
+                    searchView.requestFocus()
                     val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                    imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT)
+                    imm.showSoftInput(searchView.findViewById(androidx.appcompat.R.id.search_src_text), InputMethodManager.SHOW_IMPLICIT)
                 }
             }
         }
     }
 
+    private fun hideSoftKeyboard() {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view?.windowToken, 0)
+    }
+
     private fun setupSearchToolbar() {
-        searchEditText.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                viewModel.performSearch(s.toString())
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                hideSoftKeyboard()
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                viewModel.performSearch(newText.orEmpty())
+                return true
             }
         })
 
-        view?.findViewById<TabCountsView>(R.id.toolbar_tab_counts_view)?.setOnClickListener {
-            Toast.makeText(requireContext(), "Tab switcher clicked!", Toast.LENGTH_SHORT).show()
-        }
+        // Style the internal EditText of the SearchView to use theme attributes for color
+        val searchEditText = searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
+        val typedValue = TypedValue()
         
-        view?.findViewById<ImageView>(R.id.toolbar_overflow_menu_button)?.setOnClickListener { anchorView ->
-            val popup = PopupMenu(requireContext(), anchorView)
-            popup.menu.add(Menu.NONE, R.id.action_main_settings, Menu.NONE, getString(R.string.menu_title_settings))
-            popup.setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    R.id.action_main_settings -> {
-                        startActivity(SettingsActivity.newIntent(requireContext()))
-                        true
-                    }
-                    else -> false
-                }
-            }
-            popup.show()
-        }
+        // Use colorOnSurface for the main text color for good contrast
+        requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+        searchEditText.setTextColor(typedValue.data)
+        
+        // Use the standard hint text color for the hint
+        requireContext().theme.resolveAttribute(android.R.attr.textColorHint, typedValue, true)
+        searchEditText.setHintTextColor(typedValue.data)
     }
 
     private fun setupRecyclerViewAdapters() {
@@ -235,8 +231,8 @@ class SearchFragment : Fragment(),
     private fun setupOnBackPressed() {
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (searchEditText.text.isNotEmpty()) {
-                    searchEditText.setText("")
+                if (searchView.query.isNotEmpty()) {
+                    searchView.setQuery("", false)
                 } else {
                     isEnabled = false
                     try {
@@ -251,6 +247,7 @@ class SearchFragment : Fragment(),
     }
 
     override fun onItemClick(item: CleanedSearchResultItem) {
+        hideSoftKeyboard()
         val intent = PageActivity.newIntent(
             context = requireContext(),
             pageTitle = item.title,
@@ -262,6 +259,7 @@ class SearchFragment : Fragment(),
 
     override fun onDestroyView() {
         super.onDestroyView()
+        searchView.setOnQueryTextListener(null)
         _binding = null
     }
 

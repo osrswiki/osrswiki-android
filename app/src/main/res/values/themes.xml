@@ -15,7 +15,7 @@
         <item name="colorOnBackground">@color/osrs_text_dark</item>
         <item name="colorSurface">@color/osrs_parchment_light</item>
         <item name="colorOnSurface">@color/osrs_text_dark</item>
-        <item name="colorSurfaceVariant">@color/osrs_parchment_light</item>
+        <item name="colorSurfaceVariant">#d8ccb4</item>
         <item name="colorOnSurfaceVariant">@color/osrs_text_dark</item>
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/osrs_parchment_light</item>
@@ -46,7 +46,7 @@
         <item name="colorOnBackground">@color/osrs_text_dark</item>
         <item name="colorSurface">@color/osrs_parchment_light</item>
         <item name="colorOnSurface">@color/osrs_text_dark</item>
-        <item name="colorSurfaceVariant">@color/osrs_parchment_light</item>
+        <item name="colorSurfaceVariant">#d8ccb4</item>
         <item name="colorOnSurfaceVariant">@color/osrs_text_dark</item>
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/osrs_parchment_light</item>
@@ -77,7 +77,7 @@
         <item name="colorOnBackground">@color/osrs_text_light_alt</item>
         <item name="colorSurface">@color/osrs_parchment_dark</item>
         <item name="colorOnSurface">@color/osrs_text_light_alt</item>
-        <item name="colorSurfaceVariant">@color/osrs_parchment_dark</item>
+        <item name="colorSurfaceVariant">#312a25</item>
         <item name="colorOnSurfaceVariant">@color/osrs_text_light_alt</item>
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/osrs_parchment_dark</item>
