@@ -277,53 +277,33 @@ class PageFragment : Fragment() {
     }
 
     private fun applyWebViewStylingAndRevealBody(onWebViewStyledAndReadyToReveal: () -> Unit) {
-        if (_binding == null || !isAdded) { Log.w(WEBVIEW_DEBUG_TAG, "applyWebViewStylingAndRevealBody: Binding is null or fragment not added. Skipping."); return }
-        val cssString: String
-        try { cssString = requireContext().assets.open("styles/wiki_content.css").bufferedReader().use { it.readText() }
-        } catch (e: IOException) { Log.e(WEBVIEW_DEBUG_TAG, "Error reading wiki_content.css from assets", e); return }
-        val escapedCssString = cssString.replace("\\", "\\\\").replace("`", "\\`").replace("'", "\\'").replace("\n", "\\n")
-        val injectCssJs = """
+        if (_binding == null || !isAdded) {
+            Log.w(WEBVIEW_DEBUG_TAG, "applyWebViewStylingAndRevealBody: Binding is null or fragment not added. Skipping.")
+            return
+        }
+
+        // With the CSS now embedded in the initial HTML, this function's only job is to
+        // apply the correct theme and make the already-styled body visible.
+        val themeClass = if (isDarkMode()) "theme-dark" else "theme-light"
+        val applyThemeAndRevealBodyJs = """
             (function() {
-                var style = document.getElementById('osrsWikiInjectedStyle');
-                if (!style) {
-                    style = document.createElement('style');
-                    style.id = 'osrsWikiInjectedStyle';
-                    style.type = 'text/css';
-                    var head = document.head || document.getElementsByTagName('head')[0];
-                    if (head) { head.appendChild(style); } else { return 'Error: No head element found.';}
-                }
-                style.innerHTML = '${escapedCssString}';
-                return 'CSS Injected';
+                if (!document.body) return 'Error: No body element found.';
+                document.body.classList.remove('theme-light', 'theme-dark');
+                document.body.classList.add('$themeClass');
+                document.body.style.visibility = 'visible';
+                return 'Theme and visibility applied.';
             })();
         """.trimIndent()
-        binding.pageWebView.evaluateJavascript(injectCssJs) { cssResult ->
-            if (!isAdded || _binding == null) return@evaluateJavascript
-            if (cssResult != null && cssResult.contains("CSS Injected")) {
-                val themeClass = if (isDarkMode()) "theme-dark" else "theme-light"
-                val applyThemeAndRevealBodyJs = """
-                    (function() {
-                        if (!document.body) return 'Error: No body element found.';
-                        document.body.classList.remove('theme-light', 'theme-dark');
-                        document.body.classList.add('$themeClass');
-                        document.body.style.visibility = 'visible';
-                        return 'Theme and visibility applied.';
-                    })();
-                """.trimIndent()
-                binding.pageWebView.evaluateJavascript(applyThemeAndRevealBodyJs) { themeAndRevealResult ->
-                    if (isAdded && _binding != null && themeAndRevealResult != null && themeAndRevealResult.contains("Theme and visibility applied.")) {
-                        onWebViewStyledAndReadyToReveal()
-                    } else { Log.e(WEBVIEW_DEBUG_TAG, "Failed to apply theme/reveal. Result: $themeAndRevealResult") }
-                }
+
+        binding.pageWebView.evaluateJavascript(applyThemeAndRevealBodyJs) { result ->
+            if (isAdded && _binding != null && result != null && result.contains("Theme and visibility applied.")) {
+                onWebViewStyledAndReadyToReveal()
             } else {
-                Log.w(WEBVIEW_DEBUG_TAG, "CSS injection failed. Result: $cssResult")
-                val fallbackJs = "(function(){if(document.body){document.body.style.visibility='visible';return 'Fallback Visible';}return 'Fallback Fail';})()"
-                binding.pageWebView.evaluateJavascript(fallbackJs){ fbResult ->
-                    if(isAdded && _binding != null && fbResult != null && fbResult.contains("Fallback Visible")) {
-                        onWebViewStyledAndReadyToReveal()
-                    } else {
-                        Log.e(WEBVIEW_DEBUG_TAG, "Fallback JS also failed: $fbResult")
-                    }
-                }
+                Log.e(WEBVIEW_DEBUG_TAG, "Failed to apply theme/reveal. Result: $result")
+                // As a fallback, still try to reveal the content.
+                val fallbackJs = "(function(){if(document.body){document.body.style.visibility='visible';}})()"
+                binding.pageWebView.evaluateJavascript(fallbackJs, null)
+                onWebViewStyledAndReadyToReveal()
             }
         }
     }
@@ -376,11 +356,35 @@ class PageFragment : Fragment() {
                 binding.pageWebView.visibility = View.INVISIBLE
                 val backgroundColorInt = getThemeColor(R.attr.paper_color)
                 val backgroundColorHex = String.format("#%06X", (0xFFFFFF and backgroundColorInt))
+                
+                // Read CSS content from assets to embed directly.
+                val cssString = try {
+                    requireContext().assets.open("styles/wiki_content.css").bufferedReader().use { it.readText() }
+                } catch (e: IOException) {
+                    Log.e(WEBVIEW_DEBUG_TAG, "Error reading wiki_content.css from assets", e)
+                    "" // Use empty string as fallback
+                }
+
                 val finalHtml = """
-                    <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>${state.title ?: pageTitleArg ?: "OSRS Wiki"}</title>
-                    <style>html{background-color:$backgroundColorHex !important;}body{visibility:hidden;background-color:$backgroundColorHex !important;}</style>
-                    </head><body> $htmlBodySnippet</body></html>
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>${state.title ?: pageTitleArg ?: "OSRS Wiki"}</title>
+                        <style>
+                            /* Critical CSS to prevent FOUC */
+                            html { background-color:$backgroundColorHex !important; }
+                            body { visibility:hidden; background-color:$backgroundColorHex !important; }
+                        </style>
+                        <style id="osrsWikiInjectedStyle">
+                            $cssString
+                        </style>
+                    </head>
+                    <body>
+                        $htmlBodySnippet
+                    </body>
+                    </html>
                 """.trimIndent()
                 val baseUrl = state.wikiUrl ?: WikiSite.OSRS_WIKI.url()
                 binding.pageWebView.loadDataWithBaseURL(baseUrl, finalHtml, "text/html", "UTF-8", null)
