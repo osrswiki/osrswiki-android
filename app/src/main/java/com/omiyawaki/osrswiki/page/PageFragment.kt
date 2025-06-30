@@ -1,13 +1,18 @@
 package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.snackbar.Snackbar
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.common.models.PageTitle as CommonPageTitle
@@ -20,6 +25,8 @@ import com.omiyawaki.osrswiki.page.action.PageActionItem
 import com.omiyawaki.osrswiki.page.tabs.PageBackStackItem
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,7 +34,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
-import androidx.core.view.isVisible
 
 class PageFragment : Fragment() {
 
@@ -88,7 +94,10 @@ class PageFragment : Fragment() {
             webView = binding.pageWebView,
             linkHandler = pageLinkHandler,
             onPageReady = {
-                logPageVisit()
+                if (isAdded && _binding != null) {
+                    binding.pageWebView.visibility = View.VISIBLE
+                    logPageVisit()
+                }
             }
         )
 
@@ -270,12 +279,14 @@ class PageFragment : Fragment() {
             return
         }
 
+        // Define pagePackageTitle outside the coroutine to ensure its scope is clear to the compiler.
+        val pagePackageTitle = PagePackagePageTitle(
+            namespace = Namespace.MAIN,
+            text = titleForDaoLookup,
+            wikiSite = WikiSite.OSRS_WIKI
+        )
+
         pageStateObserverJob = viewLifecycleOwner.lifecycleScope.launch {
-            val pagePackageTitle = PagePackagePageTitle(
-                namespace = Namespace.MAIN,
-                text = titleForDaoLookup,
-                wikiSite = WikiSite.OSRS_WIKI
-            )
             val defaultListId = withContext(Dispatchers.IO) { AppDatabase.instance.readingListDao().let { it.getDefaultList() ?: it.createDefaultListIfNotExist() }.id }
 
             readingListPageDao.observePageByListIdAndTitle(
