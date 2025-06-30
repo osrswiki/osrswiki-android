@@ -37,6 +37,7 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.SettingsActivity
+import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -264,13 +265,6 @@ class PageFragment : Fragment() {
         currentOsrsApp.commitTabState()
     }
 
-    private fun isDarkMode(): Boolean {
-        if (!isAdded) return false
-        // Get the current theme directly from the application instance using the public getter.
-        // This is the single source of truth for the app's theme.
-        return (requireActivity().application as OSRSWikiApp).getCurrentTheme().isDark()
-    }
-
     private fun setWebViewWidgetBackgroundColor() {
         if (_binding == null || !isAdded) return
         binding.pageWebView.setBackgroundColor(Color.TRANSPARENT)
@@ -282,14 +276,29 @@ class PageFragment : Fragment() {
             return
         }
 
-        // With the CSS now embedded in the initial HTML, this function's only job is to
-        // apply the correct theme and make the already-styled body visible.
-        val themeClass = if (isDarkMode()) "theme-dark" else "theme-light"
+        val currentTheme = (requireActivity().application as OSRSWikiApp).getCurrentTheme()
+        val themeClass = when (currentTheme) {
+            Theme.OSRS_DARK -> "theme-osrs-dark"
+            Theme.WIKI_LIGHT -> "theme-wikipedia-light"
+            Theme.WIKI_DARK -> "theme-wikipedia-dark"
+            Theme.WIKI_BLACK -> "theme-wikipedia-black"
+            else -> "" // OSRS_LIGHT uses the :root default, so no class is needed.
+        }
+
         val applyThemeAndRevealBodyJs = """
             (function() {
                 if (!document.body) return 'Error: No body element found.';
-                document.body.classList.remove('theme-light', 'theme-dark');
-                document.body.classList.add('$themeClass');
+                // Remove all possible theme classes to ensure a clean slate.
+                document.body.classList.remove(
+                    'theme-wikipedia-light',
+                    'theme-osrs-dark',
+                    'theme-wikipedia-dark',
+                    'theme-wikipedia-black'
+                );
+                // Add the new, specific theme class if it's not the default.
+                if ('$themeClass') {
+                    document.body.classList.add('$themeClass');
+                }
                 document.body.style.visibility = 'visible';
                 return 'Theme and visibility applied.';
             })();
