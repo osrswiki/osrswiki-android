@@ -6,6 +6,7 @@ import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
 import com.omiyawaki.osrswiki.navigation.AppRouterImpl
 import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
+import com.omiyawaki.osrswiki.search.SearchFragment
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -49,14 +50,12 @@ class MainActivity : BaseActivity(), SavedPagesFragment.NavigationProvider {
     private fun handleIntentExtras(intent: Intent) {
         if (intent.action == ACTION_NAVIGATE_TO_SEARCH) {
             L.d("MainActivity: Received ACTION_NAVIGATE_TO_SEARCH")
-            binding.root.post {
-                val mainFragment = supportFragmentManager.findFragmentByTag(MainFragment::class.java.simpleName) as? MainFragment
-                if (mainFragment != null && mainFragment.isAdded) {
-                    mainFragment.navigateToSearchTab()
-                } else {
-                    L.e("MainActivity: MainFragment not found or not added. Cannot navigate to search tab programmatically.")
-                }
-            }
+            // The MainFragment no longer has tabs. We now launch the SearchFragment directly.
+            // This mimics the behavior of tapping the search card in the new MainFragment feed.
+            supportFragmentManager.beginTransaction()
+                .add(android.R.id.content, SearchFragment.newInstance())
+                .addToBackStack(null)
+                .commit()
         }
     }
 
