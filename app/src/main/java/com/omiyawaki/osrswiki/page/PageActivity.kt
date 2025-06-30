@@ -5,12 +5,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.views.TabCountsView
 
 class PageActivity : BaseActivity() {
 
@@ -63,12 +65,9 @@ class PageActivity : BaseActivity() {
     }
 
     private fun setupToolbarListeners() {
-        // Since this is the PageActivity, the EditText should not be focusable.
-        // Clicking it should navigate to the search screen.
-        val searchEditText = findViewById<android.widget.EditText>(R.id.toolbar_search_edit_text)
-        searchEditText.isFocusable = false
-        searchEditText.isFocusableInTouchMode = false
-        searchEditText.setOnClickListener {
+        // Handle clicks on the search container, which now acts as a button to navigate to search.
+        val searchContainer = findViewById<MaterialTextView>(R.id.toolbar_search_container)
+        searchContainer.setOnClickListener {
             L.d("Search 'button' clicked in PageActivity toolbar.")
             val mainActivityIntent = Intent(this, MainActivity::class.java).apply {
                 action = MainActivity.ACTION_NAVIGATE_TO_SEARCH
@@ -77,7 +76,7 @@ class PageActivity : BaseActivity() {
             startActivity(mainActivityIntent)
         }
 
-        findViewById<com.omiyawaki.osrswiki.views.TabCountsView>(R.id.toolbar_tab_counts_view).setOnClickListener {
+        findViewById<TabCountsView>(R.id.toolbar_tab_counts_view).setOnClickListener {
             L.d("Tabs view clicked in PageActivity toolbar.")
             Toast.makeText(this, "Tab switcher not yet implemented.", Toast.LENGTH_SHORT).show()
         }

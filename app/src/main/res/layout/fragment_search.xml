@@ -23,7 +23,7 @@
             app:navigationIcon="@drawable/ic_arrow_back"
             app:navigationIconTint="?attr/colorOnSurface">
 
-            <include layout="@layout/view_unified_toolbar" />
+            <include layout="@layout/view_search_toolbar" />
 
         </com.google.android.material.appbar.MaterialToolbar>
     </com.google.android.material.appbar.AppBarLayout>
