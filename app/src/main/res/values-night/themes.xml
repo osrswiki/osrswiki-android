@@ -53,6 +53,7 @@
         <item name="placeholder_color">@color/osrs_text_light_alt</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiDark" parent="Theme.Material3.Dark.NoActionBar">
