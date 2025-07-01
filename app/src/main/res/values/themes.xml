@@ -20,7 +20,6 @@
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/osrs_parchment_light</item>
         <item name="android:windowLightStatusBar">true</item>
-
         <item name="paper_color">@color/osrs_parchment_light</item>
         <item name="bottom_nav_background_color">?attr/paper_color</item>
         <item name="placeholder_color">@color/osrs_brown_deep</item>
@@ -51,7 +50,6 @@
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/osrs_parchment_light</item>
         <item name="android:windowLightStatusBar">true</item>
-
         <item name="paper_color">@color/osrs_parchment_light</item>
         <item name="bottom_nav_background_color">?attr/paper_color</item>
         <item name="placeholder_color">@color/osrs_brown_deep</item>
@@ -60,37 +58,7 @@
         <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
-    </style>
-
-    <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/osrs_brown_deep</item>
-        <item name="colorOnPrimary">@color/osrs_text_light</item>
-        <item name="colorPrimaryContainer">@color/osrs_parchment_dark</item>
-        <item name="colorOnPrimaryContainer">@color/osrs_text_light_alt</item>
-        <item name="colorSecondary">@color/osrs_text_light_alt</item>
-        <item name="colorOnSecondary">@color/osrs_brown_deep</item>
-        <item name="colorSecondaryContainer">@color/osrs_parchment_dark</item>
-        <item name="colorOnSecondaryContainer">@color/osrs_gold</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/osrs_parchment_dark</item>
-        <item name="colorOnBackground">@color/osrs_text_light_alt</item>
-        <item name="colorSurface">@color/osrs_parchment_dark</item>
-        <item name="colorOnSurface">@color/osrs_text_light_alt</item>
-        <item name="colorSurfaceVariant">#312a25</item>
-        <item name="colorOnSurfaceVariant">@color/osrs_text_light_alt</item>
-        <item name="android:windowBackground">?attr/paper_color</item>
-        <item name="android:statusBarColor">@color/osrs_parchment_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
-
-        <item name="paper_color">@color/osrs_parchment_dark</item>
-        <item name="bottom_nav_background_color">?attr/paper_color</item>
-        <item name="placeholder_color">@color/osrs_text_light_alt</item>
-        <item name="tabCountBackgroundColor">@color/osrs_gold</item>
-        <item name="tabCountTextColor">@color/osrs_brown_deep</item>
-        <item name="tabCountBorderColor">@color/osrs_brown_deep</item>
-        <item name="search_box_background_color">#1AFFFFFF</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
+        <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.Material3.Light.NoActionBar">
@@ -113,7 +81,6 @@
         <item name="android:windowBackground">?attr/paper_color</item>
         <item name="android:statusBarColor">@color/white</item>
         <item name="android:windowLightStatusBar">true</item>
-
         <item name="paper_color">@color/white</item>
         <item name="bottom_nav_background_color">?attr/paper_color</item>
         <item name="placeholder_color">#757575</item>
@@ -123,132 +90,12 @@
         <item name="search_box_background_color">#1A000000</item>
         <item name="colorControlNormal">@color/wiki_text_near_black</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
+        <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
     </style>
 
-    <style name="Theme.OSRSWiki.WikiDark" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/wiki_text_near_white</item>
-        <item name="colorOnPrimary">@color/wiki_surface_dark</item>
-        <item name="colorPrimaryContainer">@color/wiki_surface_dark</item>
-        <item name="colorOnPrimaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorSecondary">@color/wiki_text_near_white</item>
-        <item name="colorOnSecondary">@color/wiki_surface_dark</item>
-        <item name="colorSecondaryContainer">@color/wiki_surface_dark</item>
-        <item name="colorOnSecondaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/wiki_surface_dark</item>
-        <item name="colorOnBackground">@color/wiki_text_near_white</item>
-        <item name="colorSurface">@color/wiki_surface_dark</item>
-        <item name="colorOnSurface">@color/wiki_text_near_white</item>
-        <item name="colorSurfaceVariant">#2A2A2A</item>
-        <item name="colorOnSurfaceVariant">@color/wiki_text_near_white</item>
-        <item name="android:windowBackground">?attr/paper_color</item>
-        <item name="android:statusBarColor">@color/wiki_surface_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
-
-        <item name="paper_color">@color/wiki_surface_dark</item>
-        <item name="bottom_nav_background_color">?attr/paper_color</item>
-        <item name="placeholder_color">#BDBDBD</item>
-        <item name="tabCountBackgroundColor">@android:color/transparent</item>
-        <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
-        <item name="search_box_background_color">#1AFFFFFF</item>
-        <item name="colorControlNormal">@color/wiki_text_near_white</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
-    </style>
-
-    <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="colorPrimary">@color/wiki_text_near_white</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <item name="colorPrimaryContainer">@color/black</item>
-        <item name="colorOnPrimaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorSecondary">@color/wiki_text_near_white</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="colorSecondaryContainer">@color/black</item>
-        <item name="colorOnSecondaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/black</item>
-        <item name="colorOnBackground">@color/wiki_text_near_white</item>
-        <item name="colorSurface">@color/black</item>
-        <item name="colorOnSurface">@color/wiki_text_near_white</item>
-        <item name="colorSurfaceVariant">#121212</item>
-        <item name="colorOnSurfaceVariant">@color/wiki_text_near_white</item>
-        <item name="android:windowBackground">?attr/paper_color</item>
-        <item name="android:statusBarColor">@color/black</item>
-        <item name="android:windowLightStatusBar">false</item>
-
-        <item name="paper_color">@color/black</item>
-        <item name="bottom_nav_background_color">?attr/paper_color</item>
-        <item name="placeholder_color">#BDBDBD</item>
-        <item name="tabCountBackgroundColor">@android:color/transparent</item>
-        <item name="tabCountTextColor">?attr/colorOnSurface</item>
-        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
-        <item name="search_box_background_color">#1AFFFFFF</item>
-        <item name="colorControlNormal">@color/wiki_text_near_white</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
-    </style>
-
-    <style name="App.Style.PopupMenu.OSRSLight" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">@color/osrs_parchment_light</item>
-        <item name="textAppearanceListItemSmall">
-            @style/App.TextAppearance.PopupMenu.Item.OSRSLight
-        </item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item.OSRSLight" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/osrs_text_dark</item>
-    </style>
-
-    <style name="App.Style.PopupMenu.OSRSDark" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">@color/osrs_parchment_dark</item>
-        <item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.OSRSDark
-        </item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item.OSRSDark" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/osrs_text_light_alt</item>
-    </style>
-
-    <style name="App.Style.PopupMenu.WikiLight" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">@color/white</item>
-        <item name="textAppearanceListItemSmall">
-            @style/App.TextAppearance.PopupMenu.Item.WikiLight
-        </item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item.WikiLight" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/wiki_text_near_black</item>
-    </style>
-
-    <style name="App.Style.PopupMenu.WikiDark" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">@color/wiki_surface_dark</item>
-        <item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiDark
-        </item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item.WikiDark" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/wiki_text_near_white</item>
-    </style>
-
-    <style name="App.Style.PopupMenu.WikiBlack" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">@color/black</item>
-        <item name="textAppearanceListItemSmall">
-            @style/App.TextAppearance.PopupMenu.Item.WikiBlack
-        </item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item.WikiBlack" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">@color/wiki_text_near_white</item>
-    </style>
-
-    <style name="App.Style.PopupMenu" parent="Widget.Material3.PopupMenu.ListPopupWindow">
-        <item name="android:popupBackground">?attr/colorSurface</item>
-        <item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item</item>
-    </style>
-
-    <style name="App.TextAppearance.PopupMenu.Item" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:textColor">?attr/colorOnSurface</item>
+    <style name="Widget.OSRSWiki.CardView" parent="Base.Widget.Material3.CardView">
+        <item name="cardBackgroundColor">?attr/colorSurfaceVariant</item>
+        <item name="cardElevation">0dp</item>
     </style>
 
     <style name="Widget.App.NavTabLayout" parent="Widget.Material3.BottomNavigationView">
@@ -257,5 +104,18 @@
         <item name="android:layout_height">72dp</item>
         <item name="android:background">?attr/bottom_nav_background_color</item>
     </style>
+
+    <style name="App.Style.PopupMenu.OSRSLight" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/osrs_parchment_light</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.OSRSLight</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item.OSRSLight" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/osrs_text_dark</item></style>
+    <style name="App.Style.PopupMenu.OSRSDark" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/osrs_parchment_dark</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.OSRSDark</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item.OSRSDark" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/osrs_text_light_alt</item></style>
+    <style name="App.Style.PopupMenu.WikiLight" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/white</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiLight</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item.WikiLight" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_black</item></style>
+    <style name="App.Style.PopupMenu.WikiDark" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/wiki_surface_dark</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiDark</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item.WikiDark" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_white</item></style>
+    <style name="App.Style.PopupMenu.WikiBlack" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/black</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiBlack</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item.WikiBlack" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_white</item></style>
+    <style name="App.Style.PopupMenu" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">?attr/colorSurface</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item</item></style>
+    <style name="App.TextAppearance.PopupMenu.Item" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">?attr/colorOnSurface</item></style>
 
 </resources>
