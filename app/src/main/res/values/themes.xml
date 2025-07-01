@@ -28,6 +28,7 @@
         <item name="tabCountBorderColor">?attr/colorControlNormal</item>
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.Material3.Light.NoActionBar">
@@ -59,6 +60,7 @@
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.Material3.Light.NoActionBar">
@@ -91,6 +93,7 @@
         <item name="colorControlNormal">@color/wiki_text_near_black</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Widget.OSRSWiki.CardView" parent="Base.Widget.Material3.CardView">
@@ -103,7 +106,12 @@
         <item name="itemIconTint">@color/bottom_nav_item_color</item>
         <item name="itemTextColor">@color/bottom_nav_item_color</item>
         <item name="android:layout_height">72dp</item>
-        <item name="android:background">?attr/bottom_nav_background_color</item>
+        <item name="android:background">?attr/colorSurface</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.App.NavTabLayout.Indicator</item>
+    </style>
+
+    <style name="Widget.App.NavTabLayout.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="App.Style.PopupMenu.OSRSLight" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/osrs_parchment_light</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.OSRSLight</item></style>
