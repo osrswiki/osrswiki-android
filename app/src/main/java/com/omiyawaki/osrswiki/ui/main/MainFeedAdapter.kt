@@ -1,16 +1,17 @@
 package com.omiyawaki.osrswiki.ui.main
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.databinding.ViewMainFeedSearchBinding
 
 class MainFeedAdapter(private val callback: Callback) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
+    // The fragment that hosts this adapter must implement this interface.
     interface Callback {
         fun onSearchRequested()
+        fun onVoiceSearchRequested() // New callback for the mic icon
     }
 
     private val items = mutableListOf<Int>()
@@ -30,26 +31,20 @@ class MainFeedAdapter(private val callback: Callback) :
     override fun getItemViewType(position: Int): Int = items[position]
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            VIEW_TYPE_SEARCH -> SearchCardViewHolder(
-                inflater.inflate(R.layout.view_main_search_bar, parent, false)
-            )
+            VIEW_TYPE_SEARCH -> {
+                val binding = ViewMainFeedSearchBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                SearchCardViewHolder(binding, callback)
+            }
             else -> throw IllegalStateException("Unknown viewType: $viewType")
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is SearchCardViewHolder) {
-            holder.setCallback(callback)
-        }
-    }
-
-    class SearchCardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        fun setCallback(callback: Callback) {
-            itemView.setOnClickListener {
-                callback.onSearchRequested()
-            }
+            holder.bind()
         }
     }
 }
