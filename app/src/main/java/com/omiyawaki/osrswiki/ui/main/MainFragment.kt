@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMainBinding
@@ -29,19 +30,40 @@ class MainFragment : Fragment(), MainFeedAdapter.Callback {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
+        setupBottomNav()
     }
 
     private fun setupRecyclerView() {
         binding.mainFeedRecycler.adapter = MainFeedAdapter(this)
     }
 
+    private fun setupBottomNav() {
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            val message = when (item.itemId) {
+                R.id.nav_news -> "News clicked"
+                R.id.nav_map -> "Map clicked"
+                R.id.nav_saved -> "Saved clicked"
+                R.id.nav_search -> "Search clicked"
+                R.id.nav_more -> "More clicked"
+                else -> "Unknown item clicked"
+            }
+            // Placeholder action. In the future, this will navigate to different fragments.
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            true // Return true to display the item as the selected item
+        }
+    }
+
     override fun onSearchRequested() {
         // Replace the current MainFragment with the SearchFragment.
-        // This is the correct navigation pattern for this action.
         parentFragmentManager.beginTransaction()
             .replace(R.id.main_fragment_container, SearchFragment.newInstance())
             .addToBackStack(null)
             .commit()
+    }
+
+    override fun onVoiceSearchRequested() {
+        // Placeholder action to confirm the voice search button is wired up correctly.
+        Toast.makeText(requireContext(), "Voice search clicked (not implemented)", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroyView() {

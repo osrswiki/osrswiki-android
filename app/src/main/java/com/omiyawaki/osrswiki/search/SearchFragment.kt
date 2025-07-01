@@ -63,18 +63,18 @@ class SearchFragment : Fragment(),
         setupSearchToolbar()
         observeViewModel()
         setupOnBackPressed()
+        showKeyboardAndFocusSearch() // Correctly activate search on creation
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (_binding != null) {
-            searchView.post {
-                if (isAdded) {
-                    searchView.requestFocus()
-                    val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                    imm.showSoftInput(searchView.findViewById(androidx.appcompat.R.id.search_src_text), InputMethodManager.SHOW_IMPLICIT)
-                }
-            }
+    private fun showKeyboardAndFocusSearch() {
+        // Expand the search view and request focus
+        searchView.isIconified = false
+        searchView.requestFocus()
+
+        // Post the keyboard show action to the message queue to ensure the view is ready
+        searchView.post {
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(searchView.findViewById(androidx.appcompat.R.id.search_src_text), 0)
         }
     }
 
