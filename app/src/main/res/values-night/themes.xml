@@ -26,6 +26,7 @@
         <item name="tabCountTextColor">@color/osrs_brown_deep</item>
         <item name="tabCountBorderColor">@color/osrs_brown_deep</item>
         <item name="search_box_background_color">#1AFFFFFF</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.Material3.Dark.NoActionBar">
@@ -54,6 +55,7 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
         <item name="elevationOverlayEnabled">false</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiDark" parent="Theme.Material3.Dark.NoActionBar">
@@ -82,6 +84,7 @@
         <item name="colorControlNormal">@color/wiki_text_near_white</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.Material3.Dark.NoActionBar">
@@ -110,5 +113,6 @@
         <item name="colorControlNormal">@color/wiki_text_near_white</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
     </style>
 </resources>
