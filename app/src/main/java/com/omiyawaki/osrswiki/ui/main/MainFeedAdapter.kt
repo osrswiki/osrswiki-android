@@ -1,28 +1,27 @@
 package com.omiyawaki.osrswiki.ui.main
 
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ViewMainFeedSearchBinding
 
 class MainFeedAdapter(private val callback: Callback) :
-    RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    RecyclerView.Adapter<MainFeedAdapter.SearchCardViewHolder>() {
 
-    // The fragment that hosts this adapter must implement this interface.
     interface Callback {
         fun onSearchRequested()
-        fun onVoiceSearchRequested() // New callback for the mic icon
+        fun onVoiceSearchRequested()
     }
 
     private val items = mutableListOf<Int>()
 
     companion object {
         private const val VIEW_TYPE_SEARCH = 0
-        // Add other view types for News, Saved Pages, etc. here later
     }
 
     init {
-        // For now, the feed only contains the search card.
         items.add(VIEW_TYPE_SEARCH)
     }
 
@@ -30,21 +29,38 @@ class MainFeedAdapter(private val callback: Callback) :
 
     override fun getItemViewType(position: Int): Int = items[position]
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return when (viewType) {
-            VIEW_TYPE_SEARCH -> {
-                val binding = ViewMainFeedSearchBinding.inflate(
-                    LayoutInflater.from(parent.context), parent, false
-                )
-                SearchCardViewHolder(binding, callback)
-            }
-            else -> throw IllegalStateException("Unknown viewType: $viewType")
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchCardViewHolder {
+        val binding = ViewMainFeedSearchBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return SearchCardViewHolder(binding, callback)
     }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        if (holder is SearchCardViewHolder) {
-            holder.bind()
+    override fun onBindViewHolder(holder: SearchCardViewHolder, position: Int) {
+        holder.bind()
+    }
+
+    class SearchCardViewHolder(
+        private val binding: ViewMainFeedSearchBinding,
+        private val callback: Callback
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind() {
+            binding.searchContainer.setOnClickListener { callback.onSearchRequested() }
+            binding.voiceSearchButton.setOnClickListener { callback.onVoiceSearchRequested() }
+
+            // Set the background color programmatically to override theme issues.
+            val colorAttr = com.google.android.material.R.attr.colorSurfaceVariant
+            val typedValue = TypedValue()
+            val theme = itemView.context.theme
+
+            if (theme.resolveAttribute(colorAttr, typedValue, true)) {
+                val colorInt = if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+                    typedValue.data
+                } else {
+                    ContextCompat.getColor(itemView.context, typedValue.resourceId)
+                }
+                binding.searchContainer.setCardBackgroundColor(colorInt)
+            }
         }
     }
 }
