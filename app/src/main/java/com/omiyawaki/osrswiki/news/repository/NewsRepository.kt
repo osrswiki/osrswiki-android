@@ -40,15 +40,21 @@ object NewsRepository {
     private fun parseRecentUpdates(doc: Element): List<UpdateItem> {
         val updatesContainer = doc.selectFirst("div.mainpage-recent-updates") ?: return emptyList()
         return updatesContainer.select("div.tile-halves").mapNotNull { tile ->
-            val linkElement = tile.selectFirst("a") ?: return@mapNotNull null
-            val imageElement = linkElement.selectFirst("img")
-            val snippetElement = linkElement.select("p").last()
+            // Correctly select the link from the bottom part of the card for text content.
+            val textLinkElement = tile.selectFirst("div.tile-bottom a") ?: return@mapNotNull null
+            val imageElement = tile.selectFirst("div.tile-top img")
+
+            // The title is in an <h2> tag within the text link.
+            val title = textLinkElement.selectFirst("h2")?.text() ?: "No title"
+
+            // The snippet is the LAST <p> tag within the text link.
+            val snippet = textLinkElement.select("p").last()?.text() ?: ""
 
             UpdateItem(
-                title = linkElement.attr("title").removePrefix("Update:").trim().ifBlank { "No title" },
-                snippet = snippetElement?.text() ?: "",
+                title = title,
+                snippet = snippet,
                 imageUrl = imageElement?.attr("src")?.let { "$BASE_URL$it" } ?: "",
-                articleUrl = linkElement.attr("href").let { "$BASE_URL$it" }
+                articleUrl = textLinkElement.attr("href").let { "$BASE_URL$it" }
             )
         }
     }
