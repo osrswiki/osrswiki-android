@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.news.ui
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,21 +35,8 @@ class UpdatesAdapter(private val items: List<UpdateItem>) :
 
         fun bind(item: UpdateItem) {
             titleView.text = item.title
-            snippetView.text = item.snippet
-
-            // Add granular logging for each line's position.
-            itemView.post {
-                val tag = "UpdatesAdapter"
-                Log.d(tag, "--- Line Diagnostics for '${item.title}' ---")
-                Log.d(tag, " Snippet Height: ${snippetView.height}px")
-                val layout = snippetView.layout
-                if (layout != null) {
-                    for (i in 0 until layout.lineCount) {
-                        Log.d(tag, "   Line $i Top: ${layout.getLineTop(i)}px | Baseline: ${layout.getLineBaseline(i)}px")
-                    }
-                }
-                Log.d(tag, "=======================================================")
-            }
+            // Replace smart quotes with standard apostrophes to fix rendering inconsistency.
+            snippetView.text = item.snippet.replace('’', '\'')
 
             Glide.with(itemView.context)
                 .load(item.imageUrl)
