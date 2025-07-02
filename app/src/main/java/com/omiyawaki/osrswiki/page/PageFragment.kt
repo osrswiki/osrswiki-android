@@ -265,11 +265,11 @@ class PageFragment : Fragment() {
                     // Using single quotes for the font names is valid in a CSS style attribute.
                     val fontFamily = "'PT Serif', 'Palatino', 'Georgia', serif"
                     val style = """
+                        margin-top: 0;
                         color: var(--heading-color);
                         font-family: $fontFamily;
                         border-bottom: 1px solid var(--sidebar-color);
                         padding-bottom: 0.2em;
-                        margin-top: 1.2em;
                         margin-bottom: 0.6em;
                         line-height: 1.3;
                         font-size: 1.8em;
