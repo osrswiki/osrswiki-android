@@ -124,9 +124,9 @@ body.theme-wikipedia-dark {
     --body-background-image: none;
     --body-background-color: #121212; /* Dark grey page background */
     --body-main: #1e1e1e;             /* Main content area background */
-    --body-light: #2c2c2c;            /* Lighter shade for infobox body */
+    --body-light: #2c2c2c;             /* Lighter shade for infobox body */
     --body-mid: #252525;
-    --body-dark-shade: #333333;        /* Darker shade for infobox headers */
+    --body-dark-shade: #333333;       /* Darker shade for infobox headers */
     --body-border: #444444;
     --text-color: #e8eaed;             /* Light grey for text */
     --link-color: #8ab4f8;             /* A light blue for links */
@@ -187,11 +187,13 @@ a:visited {
     color: var(--link-visited-color);
 }
 a.external {
+    /*
     background-image: var(--external-icon);
     background-repeat: no-repeat;
     background-position: center right;
     padding-right: 15px;
     background-size: 12px 12px;
+    */
 }
 
 h1, h2, h3, h4, h5, h6 {
