@@ -41,7 +41,10 @@
             android:paddingEnd="12dp"
             android:paddingBottom="12dp"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:maxLines="3"
+            android:lineHeight="20sp"
+            android:lineSpacingExtra="0dp"
+            android:lineSpacingMultiplier="1"
+            android:maxLines="2"
             android:ellipsize="end"
             tools:text="This week brings Summer Sweep Up combat changes!" />
 
