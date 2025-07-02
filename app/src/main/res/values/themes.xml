@@ -61,6 +61,7 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.Material3.Light.NoActionBar">
@@ -94,6 +95,7 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
     <style name="Widget.OSRSWiki.CardView" parent="Base.Widget.Material3.CardView">
@@ -108,6 +110,7 @@
         <item name="android:layout_height">72dp</item>
         <item name="android:background">?attr/colorSurface</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.App.NavTabLayout.Indicator</item>
+        <item name="android:elevation">0dp</item>
     </style>
 
     <style name="Widget.App.NavTabLayout.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">

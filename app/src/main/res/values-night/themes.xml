@@ -85,6 +85,7 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.Material3.Dark.NoActionBar">
@@ -114,5 +115,20 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
         <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
+
+    <style name="Widget.App.NavTabLayout" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemIconTint">@color/bottom_nav_item_color</item>
+        <item name="itemTextColor">@color/bottom_nav_item_color</item>
+        <item name="android:layout_height">72dp</item>
+        <item name="android:background">?attr/colorSurface</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.App.NavTabLayout.Indicator</item>
+        <item name="android:elevation">0dp</item>
+    </style>
+
+    <style name="Widget.App.NavTabLayout.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">?attr/colorSurfaceVariant</item>
+    </style>
+
 </resources>
