@@ -2,15 +2,14 @@ package com.omiyawaki.osrswiki.search
 
 import android.content.Context
 import android.os.Bundle
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -18,6 +17,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.textfield.TextInputEditText
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
@@ -41,9 +41,7 @@ class SearchFragment : Fragment(),
     private lateinit var onlineSearchAdapter: SearchAdapter
     private lateinit var offlineSearchAdapter: OfflineSearchAdapter
 
-    // The SearchView from the included layout is accessed via the binding object.
-    // The <include> tag's ID is search_view_container.
-    private val searchView: SearchView get() = binding.searchViewContainer.searchView
+    private lateinit var searchEditText: TextInputEditText
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,25 +54,20 @@ class SearchFragment : Fragment(),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Get the search EditText from the hosting activity
+        searchEditText = (requireActivity() as SearchActivity).binding.searchEditText
+
         setupRecyclerViewAdapters()
-        setupSearchToolbar()
+        setupSearchInput()
         observeViewModel()
         setupOnBackPressed()
-        showKeyboardAndFocusSearch()
+        showKeyboard()
     }
 
-    private fun showKeyboardAndFocusSearch() {
-        searchView.isIconified = false
-        searchView.requestFocus()
-
-        searchView.post {
-            val imm =
-                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(
-                searchView.findViewById(androidx.appcompat.R.id.search_src_text),
-                0
-            )
-        }
+    private fun showKeyboard() {
+        val imm =
+            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT)
     }
 
     private fun hideSoftKeyboard() {
@@ -83,36 +76,18 @@ class SearchFragment : Fragment(),
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
-    private fun setupSearchToolbar() {
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
+    private fun setupSearchInput() {
+        searchEditText.doOnTextChanged { text, _, _, _ ->
+            viewModel.performSearch(text?.toString().orEmpty())
+        }
+
+        searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 hideSoftKeyboard()
-                return true
+                return@setOnEditorActionListener true
             }
-
-            override fun onQueryTextChange(newText: String?): Boolean {
-                viewModel.performSearch(newText.orEmpty())
-                return true
-            }
-        })
-
-        val searchEditText =
-            searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
-        val typedValue = TypedValue()
-
-        requireContext().theme.resolveAttribute(
-            com.google.android.material.R.attr.colorOnSurface,
-            typedValue,
-            true
-        )
-        searchEditText.setTextColor(typedValue.data)
-
-        requireContext().theme.resolveAttribute(
-            android.R.attr.textColorHint,
-            typedValue,
-            true
-        )
-        searchEditText.setHintTextColor(typedValue.data)
+            false
+        }
     }
 
     private fun setupRecyclerViewAdapters() {
@@ -229,7 +204,7 @@ class SearchFragment : Fragment(),
                                             currentQuery
                                         )
                                     binding.textViewNoResults.isVisible = true
-                                 } else {
+                                } else {
                                     updateUiForBlankQuery()
                                 }
                             }
@@ -251,8 +226,8 @@ class SearchFragment : Fragment(),
     private fun setupOnBackPressed() {
         val callback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (searchView.query.isNotEmpty()) {
-                    searchView.setQuery("", false)
+                if (!searchEditText.text.isNullOrEmpty()) {
+                    searchEditText.setText("")
                 } else {
                     isEnabled = false
                     try {
@@ -281,7 +256,6 @@ class SearchFragment : Fragment(),
 
     override fun onDestroyView() {
         super.onDestroyView()
-        searchView.setOnQueryTextListener(null)
         _binding = null
     }
 
