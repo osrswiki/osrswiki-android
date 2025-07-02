@@ -13,8 +13,10 @@ import com.omiyawaki.osrswiki.news.model.UpdateItem
 /**
  * A nested adapter to display the horizontal list of "Recent Update" cards.
  */
-class UpdatesAdapter(private val items: List<UpdateItem>) :
-    RecyclerView.Adapter<UpdatesAdapter.ViewHolder>() {
+class UpdatesAdapter(
+    private val items: List<UpdateItem>,
+    private val onItemClicked: (UpdateItem) -> Unit
+) : RecyclerView.Adapter<UpdatesAdapter.ViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -23,7 +25,7 @@ class UpdatesAdapter(private val items: List<UpdateItem>) :
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position])
+        holder.bind(items[position], onItemClicked)
     }
 
     override fun getItemCount(): Int = items.size
@@ -33,7 +35,7 @@ class UpdatesAdapter(private val items: List<UpdateItem>) :
         private val titleView: TextView = itemView.findViewById(R.id.news_item_title)
         private val snippetView: TextView = itemView.findViewById(R.id.news_item_snippet)
 
-        fun bind(item: UpdateItem) {
+        fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {
             titleView.text = item.title
             // Replace smart quotes with standard apostrophes to fix rendering inconsistency.
             snippetView.text = item.snippet.replace('’', '\'')
@@ -43,6 +45,10 @@ class UpdatesAdapter(private val items: List<UpdateItem>) :
                 .placeholder(R.drawable.ic_placeholder_image)
                 .error(R.drawable.ic_error_image)
                 .into(imageView)
+
+            itemView.setOnClickListener {
+                onItemClicked(item)
+            }
         }
     }
 }

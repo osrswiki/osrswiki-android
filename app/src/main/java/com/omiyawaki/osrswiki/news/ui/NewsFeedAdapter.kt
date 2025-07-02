@@ -15,8 +15,6 @@ import com.omiyawaki.osrswiki.news.model.UpdateItem
 
 /**
  * A sealed class representing all possible items that can be displayed in the news feed.
- * This allows the RecyclerView.Adapter to handle different types of content and layouts
- * in a type-safe way.
  */
 sealed class FeedItem {
     data class Updates(val items: List<UpdateItem>) : FeedItem()
@@ -27,10 +25,10 @@ sealed class FeedItem {
 
 /**
  * RecyclerView.Adapter for the main news feed in NewsFragment.
- * It is responsible for displaying different types of cards (updates, announcements, etc.)
- * by using multiple view types.
  */
-class NewsFeedAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+class NewsFeedAdapter(
+    private val onUpdateItemClicked: (UpdateItem) -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val items = mutableListOf<FeedItem>()
 
@@ -78,7 +76,7 @@ class NewsFeedAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is FeedItem.Updates -> (holder as UpdatesViewHolder).bind(item.items)
+            is FeedItem.Updates -> (holder as UpdatesViewHolder).bind(item.items, onUpdateItemClicked)
             is FeedItem.Announcement -> (holder as AnnouncementViewHolder).bind(item.item)
             is FeedItem.OnThisDay -> (holder as OnThisDayViewHolder).bind(item.item)
             is FeedItem.Popular -> (holder as PopularViewHolder).bind(item.items)
@@ -89,8 +87,8 @@ class NewsFeedAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     class UpdatesViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.updates_recycler_view)
-        fun bind(items: List<UpdateItem>) {
-            nestedRecyclerView.adapter = UpdatesAdapter(items)
+        fun bind(items: List<UpdateItem>, listener: (UpdateItem) -> Unit) {
+            nestedRecyclerView.adapter = UpdatesAdapter(items, listener)
         }
     }
 
