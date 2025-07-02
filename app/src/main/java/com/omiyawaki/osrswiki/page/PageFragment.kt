@@ -238,8 +238,10 @@ class PageFragment : Fragment() {
     }
 
     private fun updateUiFromViewModel() {
-        if (!isAdded || !isVisible || _binding == null) return
         val state = pageViewModel.uiState
+        if (!isAdded || !isVisible || _binding == null) {
+            return
+        }
         binding.progressBar.isVisible = state.isLoading
         state.error?.let {
             binding.errorTextView.text = it; binding.errorTextView.isVisible = true; binding.pageWebView.visibility = View.INVISIBLE
@@ -250,14 +252,41 @@ class PageFragment : Fragment() {
                 binding.pageWebView.visibility = View.INVISIBLE
             }
             if (state.isLoading && state.htmlContent == null && (binding.pageWebView.url == null || binding.pageWebView.url == "about:blank")) {
-                binding.pageWebView.loadData("<html></html>", "text/html", "UTF-8")
+                binding.pageWebView.loadData("<html><body></body></html>", "text/html", "UTF-8")
             }
         } else {
             state.htmlContent?.let { htmlBodySnippet ->
+                // Get the title and format it for display.
+                val titleToDisplay = (pageViewModel.uiState.plainTextTitle ?: pageTitleArg)?.replace("_", " ")
+
+                // Create the HTML for the title header.
+                val titleHtml = if (!titleToDisplay.isNullOrEmpty()) {
+                    // This style is copied from the h1/h2 style in wiki_content.css to ensure consistency.
+                    // Using single quotes for the font names is valid in a CSS style attribute.
+                    val fontFamily = "'PT Serif', 'Palatino', 'Georgia', serif"
+                    val style = """
+                        color: var(--heading-color);
+                        font-family: $fontFamily;
+                        border-bottom: 1px solid var(--sidebar-color);
+                        padding-bottom: 0.2em;
+                        margin-top: 1.2em;
+                        margin-bottom: 0.6em;
+                        line-height: 1.3;
+                        font-size: 1.8em;
+                    """.trimIndent().replace(Regex("\\s+"), " ")
+
+                    "<h1 style=\"$style\">$titleToDisplay</h1>"
+                } else {
+                    ""
+                }
+
+                // Prepend the title's HTML to the main content snippet.
+                val finalHtmlSnippet = titleHtml + htmlBodySnippet
+
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentTheme = (requireActivity().application as OSRSWikiApp).getCurrentTheme()
                 pageWebViewManager.render(
-                    htmlSnippet = htmlBodySnippet,
+                    htmlSnippet = finalHtmlSnippet, // Pass the modified HTML
                     baseUrl = state.wikiUrl,
                     pageTitle = state.title ?: pageTitleArg,
                     theme = currentTheme
@@ -305,7 +334,6 @@ class PageFragment : Fragment() {
         }
         val isSaved = entry != null && entry.offline && entry.status == ReadingListPage.STATUS_SAVED
         binding.pageActionsTabLayout.updateActionItemIcon(PageActionItem.SAVE, PageActionItem.getSaveIcon(isSaved))
-        Log.d("PFragment_SAVE_TEST", "Save icon updated. IsSaved: $isSaved for apiTitle: ${entry?.apiTitle}")
     }
 
     override fun onDestroyView() {
