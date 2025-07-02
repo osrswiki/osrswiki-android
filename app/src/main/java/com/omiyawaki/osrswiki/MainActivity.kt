@@ -13,16 +13,13 @@ import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.util.log.L
 
 class MainActivity : BaseActivity(),
-    SavedPagesFragment.NavigationProvider,
-    NewsFragment.OnNewsCardClickListener {
+    SavedPagesFragment.NavigationProvider {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var appRouter: AppRouterImpl
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
-        // Define a source constant for analytics or tracking
-        private const val NAVIGATION_SOURCE_NEWS_UPDATE = 1
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,19 +64,6 @@ class MainActivity : BaseActivity(),
 
     override fun displayPageFragment(pageApiTitle: String?, pageNumericId: String?, source: Int) {
         appRouter.navigateToPage(pageId = pageNumericId, pageTitle = pageApiTitle, source = source)
-    }
-
-    override fun onUpdateCardClicked(item: UpdateItem) {
-        // The API requires the canonical page title, not the display title from the card.
-        // We extract the correct title from the end of the URL provided in the UpdateItem.
-        // For example, from ".../w/Update:Summer_Sweep_Up:_Combat" we extract "Update:Summer_Sweep_Up:_Combat".
-        val canonicalTitle = item.articleUrl.substringAfterLast('/')
-
-        appRouter.navigateToPage(
-            pageId = null, // We don't have a numeric ID for news items
-            pageTitle = canonicalTitle,
-            source = NAVIGATION_SOURCE_NEWS_UPDATE
-        )
     }
 
     override fun onSupportNavigateUp(): Boolean {

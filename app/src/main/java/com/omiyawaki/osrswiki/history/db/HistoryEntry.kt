@@ -9,7 +9,7 @@ import com.omiyawaki.osrswiki.common.serialization.DateAsLongSerializer // Impor
 import kotlinx.serialization.Serializable
 import java.util.Date
 
-@Serializable 
+@Serializable
 @Entity(tableName = "history_entries")
 data class HistoryEntry(
     @PrimaryKey(autoGenerate = true)
@@ -17,7 +17,7 @@ data class HistoryEntry(
     var id: Long = 0,
 
     @Embedded(prefix = "page_")
-    var pageTitle: PageTitle, 
+    var pageTitle: PageTitle,
 
     @ColumnInfo(name = "timestamp")
     @Serializable(with = DateAsLongSerializer::class) // Apply the custom serializer
@@ -43,5 +43,6 @@ data class HistoryEntry(
         const val SOURCE_SAVED_PAGE = 5
         const val SOURCE_MAIN_PAGE = 6
         const val SOURCE_RANDOM = 7
+        const val SOURCE_NEWS = 8 // The new, correct constant
     }
 }
