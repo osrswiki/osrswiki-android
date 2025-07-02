@@ -11,7 +11,7 @@ class MainFeedAdapter(private val callback: Callback) :
     RecyclerView.Adapter<MainFeedAdapter.SearchCardViewHolder>() {
 
     interface Callback {
-        fun onSearchRequested()
+        fun onSearchRequested(view: android.view.View)
         fun onVoiceSearchRequested()
     }
 
@@ -45,7 +45,7 @@ class MainFeedAdapter(private val callback: Callback) :
         private val callback: Callback
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind() {
-            binding.searchContainer.setOnClickListener { callback.onSearchRequested() }
+            binding.searchContainer.setOnClickListener { callback.onSearchRequested(binding.searchContainer) }
             binding.voiceSearchButton.setOnClickListener { callback.onVoiceSearchRequested() }
 
             // Set the background color programmatically to override theme issues.

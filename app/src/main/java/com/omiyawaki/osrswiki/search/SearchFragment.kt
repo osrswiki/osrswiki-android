@@ -40,7 +40,10 @@ class SearchFragment : Fragment(),
 
     private lateinit var onlineSearchAdapter: SearchAdapter
     private lateinit var offlineSearchAdapter: OfflineSearchAdapter
-    private lateinit var searchView: SearchView
+
+    // The SearchView from the included layout is accessed via the binding object.
+    // The <include> tag's ID is search_view_container.
+    private val searchView: SearchView get() = binding.searchViewContainer.searchView
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,34 +55,31 @@ class SearchFragment : Fragment(),
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        searchView = view.findViewById(R.id.search_view)
-
-        binding.searchFragmentToolbar.setNavigationOnClickListener {
-            hideSoftKeyboard()
-            activity?.onBackPressedDispatcher?.onBackPressed()
-        }
 
         setupRecyclerViewAdapters()
         setupSearchToolbar()
         observeViewModel()
         setupOnBackPressed()
-        showKeyboardAndFocusSearch() // Correctly activate search on creation
+        showKeyboardAndFocusSearch()
     }
 
     private fun showKeyboardAndFocusSearch() {
-        // Expand the search view and request focus
         searchView.isIconified = false
         searchView.requestFocus()
 
-        // Post the keyboard show action to the message queue to ensure the view is ready
         searchView.post {
-            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(searchView.findViewById(androidx.appcompat.R.id.search_src_text), 0)
+            val imm =
+                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(
+                searchView.findViewById(androidx.appcompat.R.id.search_src_text),
+                0
+            )
         }
     }
 
     private fun hideSoftKeyboard() {
-        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm =
+            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
@@ -96,16 +96,22 @@ class SearchFragment : Fragment(),
             }
         })
 
-        // Style the internal EditText of the SearchView to use theme attributes for color
-        val searchEditText = searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
+        val searchEditText =
+            searchView.findViewById<EditText>(androidx.appcompat.R.id.search_src_text)
         val typedValue = TypedValue()
 
-        // Use colorOnSurface for the main text color for good contrast
-        requireContext().theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+        requireContext().theme.resolveAttribute(
+            com.google.android.material.R.attr.colorOnSurface,
+            typedValue,
+            true
+        )
         searchEditText.setTextColor(typedValue.data)
 
-        // Use the standard hint text color for the hint
-        requireContext().theme.resolveAttribute(android.R.attr.textColorHint, typedValue, true)
+        requireContext().theme.resolveAttribute(
+            android.R.attr.textColorHint,
+            typedValue,
+            true
+        )
         searchEditText.setHintTextColor(typedValue.data)
     }
 
@@ -123,10 +129,12 @@ class SearchFragment : Fragment(),
                         Pair(isOnline, query?.trim())
                     }.collectLatest { (isOnline, trimmedQuery) ->
                         if (!isOnline && !trimmedQuery.isNullOrBlank()) {
-                            binding.textViewOfflineIndicator.text = getString(R.string.offline_search_active_message)
+                            binding.textViewOfflineIndicator.text =
+                                getString(R.string.offline_search_active_message)
                             binding.textViewOfflineIndicator.isVisible = true
                         } else if (!isOnline && trimmedQuery.isNullOrBlank()) {
-                            binding.textViewOfflineIndicator.text = getString(R.string.offline_indicator_generic)
+                            binding.textViewOfflineIndicator.text =
+                                getString(R.string.offline_indicator_generic)
                             binding.textViewOfflineIndicator.isVisible = true
                         } else {
                             binding.textViewOfflineIndicator.isVisible = false
@@ -166,10 +174,16 @@ class SearchFragment : Fragment(),
                             offlineSearchAdapter.submitList(combinedOfflineList)
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             if (!currentQuery.isNullOrBlank()) {
-                                binding.recyclerViewSearchResults.isVisible = combinedOfflineList.isNotEmpty()
-                                binding.textViewNoResults.isVisible = combinedOfflineList.isEmpty()
+                                binding.recyclerViewSearchResults.isVisible =
+                                    combinedOfflineList.isNotEmpty()
+                                binding.textViewNoResults.isVisible =
+                                    combinedOfflineList.isEmpty()
                                 if (combinedOfflineList.isEmpty()) {
-                                    binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
+                                    binding.textViewNoResults.text =
+                                        getString(
+                                            R.string.search_no_results_for_query,
+                                            currentQuery
+                                        )
                                 }
                             } else { // Blank query, offline
                                 updateUiForBlankQuery()
@@ -186,7 +200,8 @@ class SearchFragment : Fragment(),
 
                         val isLoading = loadStates.refresh is LoadState.Loading
                         val isError = loadStates.refresh is LoadState.Error
-                        val error = if (isError) (loadStates.refresh as LoadState.Error).error else null
+                        val error =
+                            if (isError) (loadStates.refresh as LoadState.Error).error else null
                         val currentQuery = viewModel.currentQuery.value?.trim()
 
                         binding.progressBarSearch.isVisible = isLoading
@@ -198,7 +213,8 @@ class SearchFragment : Fragment(),
                         } else if (isError) {
                             val errorMessage = when (error) {
                                 is IOException -> getString(R.string.search_error_network)
-                                else -> error?.localizedMessage ?: getString(R.string.search_error_generic)
+                                else -> error?.localizedMessage
+                                    ?: getString(R.string.search_error_generic)
                             }
                             binding.textViewSearchError.text = errorMessage
                             binding.textViewSearchError.isVisible = true
@@ -207,9 +223,13 @@ class SearchFragment : Fragment(),
                                 binding.recyclerViewSearchResults.isVisible = true
                             } else {
                                 if (!currentQuery.isNullOrBlank()) {
-                                    binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
+                                    binding.textViewNoResults.text =
+                                        getString(
+                                            R.string.search_no_results_for_query,
+                                            currentQuery
+                                        )
                                     binding.textViewNoResults.isVisible = true
-                                } else {
+                                 } else {
                                     updateUiForBlankQuery()
                                 }
                             }
@@ -238,7 +258,9 @@ class SearchFragment : Fragment(),
                     try {
                         requireActivity().onBackPressedDispatcher.onBackPressed()
                     } finally {
-                        if (isAdded) { isEnabled = true }
+                        if (isAdded) {
+                            isEnabled = true
+                        }
                     }
                 }
             }
