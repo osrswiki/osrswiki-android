@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".news.ui.NewsFragment">
+
+    <!-- This RecyclerView will display the list of news cards,
+         similar to the Wikipedia app's "Explore" feed. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/news_feed_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical" />
+
+</FrameLayout>
