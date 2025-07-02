@@ -105,7 +105,6 @@ class PageLinkHandler(
     }
 
     override fun onExternalLinkClicked(uri: Uri) {
-        Log.d(TAG, "Handling external link: $uri")
         try {
             val intent = Intent(Intent.ACTION_VIEW, uri)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -134,7 +133,7 @@ class PageLinkHandler(
                 @Suppress("DEPRECATION")
                 val networkInfo = connectivityManager.activeNetworkInfo
                 @Suppress("DEPRECATION")
-                return networkInfo != null && networkInfo.isConnected
+                return networkInfo?.isConnected == true
             }
         }
         return false
