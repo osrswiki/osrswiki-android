@@ -42,11 +42,10 @@ object NewsRepository {
         return updatesContainer.select("div.tile-halves").mapNotNull { tile ->
             val linkElement = tile.selectFirst("a") ?: return@mapNotNull null
             val imageElement = linkElement.selectFirst("img")
-            val titleElement = linkElement.selectFirst("h2")
             val snippetElement = linkElement.select("p").last()
 
             UpdateItem(
-                title = titleElement?.text() ?: "No title",
+                title = linkElement.attr("title").removePrefix("Update:").trim().ifBlank { "No title" },
                 snippet = snippetElement?.text() ?: "",
                 imageUrl = imageElement?.attr("src")?.let { "$BASE_URL$it" } ?: "",
                 articleUrl = linkElement.attr("href").let { "$BASE_URL$it" }

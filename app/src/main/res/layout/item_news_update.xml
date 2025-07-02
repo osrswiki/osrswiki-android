@@ -28,6 +28,7 @@
             android:paddingTop="8dp"
             android:paddingEnd="12dp"
             android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textStyle="bold"
             android:maxLines="2"
             android:ellipsize="end"
             tools:text="Summer Sweep Up: Combat" />
