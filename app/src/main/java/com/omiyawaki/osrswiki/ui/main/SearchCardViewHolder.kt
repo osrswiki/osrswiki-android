@@ -20,7 +20,7 @@ class SearchCardViewHolder(
         )
 
         itemView.setOnClickListener {
-            callback.onSearchRequested()
+            callback.onSearchRequested(it)
         }
 
         binding.voiceSearchButton.setOnClickListener {

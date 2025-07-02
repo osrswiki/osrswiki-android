@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMainBinding
-import com.omiyawaki.osrswiki.search.SearchFragment
+import com.omiyawaki.osrswiki.search.SearchActivity
 
 class MainFragment : Fragment(), MainFeedAdapter.Callback {
 
@@ -53,12 +53,10 @@ class MainFragment : Fragment(), MainFeedAdapter.Callback {
         }
     }
 
-    override fun onSearchRequested() {
-        // Replace the current MainFragment with the SearchFragment.
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.main_fragment_container, SearchFragment.newInstance())
-            .addToBackStack(null)
-            .commit()
+    override fun onSearchRequested(view: View) {
+        val intent = SearchActivity.newIntent(requireActivity())
+        val options = android.app.ActivityOptions.makeSceneTransitionAnimation(requireActivity(), view, getString(R.string.transition_search_bar))
+        startActivity(intent, options.toBundle())
     }
 
     override fun onVoiceSearchRequested() {
