@@ -97,6 +97,24 @@ class PageActivity : BaseActivity() {
     }
 
     companion object {
+/**
+         * Creates an Intent to start PageActivity from an UpdateItem.
+         * This method correctly parses the canonical page title from the item's URL.
+         */
+        fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
+            val canonicalTitle = getPageTitleFromUrl(updateItem.articleUrl)
+            // Call the existing newIntent with the correctly parsed title.
+            return newIntent(context, canonicalTitle, null, source)
+        }
+
+        private fun getPageTitleFromUrl(url: String): String {
+            // Get the last part of the URL path (e.g., "Update:BTS_Prep_%26_Small_fixes")
+            val pathSegment = url.substringAfterLast('/')
+            // Replace underscores with spaces
+            val withSpaces = pathSegment.replace('_', ' ')
+            // Decode any percent-encoded characters (like %26 -> &)
+            return java.net.URLDecoder.decode(withSpaces, "UTF-8")
+        }
         const val EXTRA_PAGE_TITLE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_TITLE"
         const val EXTRA_PAGE_ID = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_ID"
         const val EXTRA_PAGE_SOURCE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SOURCE"

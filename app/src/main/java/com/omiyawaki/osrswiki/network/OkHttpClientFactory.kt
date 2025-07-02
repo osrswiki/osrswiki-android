@@ -52,11 +52,11 @@ object OkHttpClientFactory {
 
         // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging
         // Assuming your BuildConfig is accessible, e.g., com.omiyawaki.osrswiki.BuildConfig
-        // if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { 
+        if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { 
         val loggingInterceptor = HttpLoggingInterceptor()
         loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
         builder.addInterceptor(loggingInterceptor)
-        // }
+        }
     
         return builder.build()
     }
