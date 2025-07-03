@@ -1,6 +1,8 @@
 package com.omiyawaki.osrswiki.network
 
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
+// MODIFIED: Import for the new ImageInfoResponse data class
+import com.omiyawaki.osrswiki.page.ImageInfoResponse
 
 // SearchApiResponse, ParseApiResponse, and PageImagesApiResponse are expected
 // to be in the same 'com.omiyawaki.osrswiki.network' package,
@@ -20,7 +22,7 @@ interface WikiApiService {
     suspend fun searchArticles(
         @Query("srsearch") query: String,    // The search term
         @Query("srlimit") limit: Int,        // Max number of results to return
-        @Query("sroffset") offset: Int       // Offset for pagination
+        @Query("sroffset") offset: Int        // Offset for pagination
     ): SearchApiResponse // Defined in SearchApiResponse.kt
 
     /**
@@ -33,13 +35,24 @@ interface WikiApiService {
      */
 
     // For fetching article text content by title
-    @GET("api.php?action=parse&prop=text|revid&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
+    @GET("api.php?action=parse&prop=text|revid|displaytitle&formatversion=2&format=json&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleTextContentByTitle(@Query("page") title: String): ArticleParseApiResponse
 
     // New method to fetch parse data by Page ID
     // Includes title, pageid, revid, and HTML text content.
     @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleParseDataByPageId(@Query("pageid") pageId: Int): ArticleParseApiResponse
+
+
+    // MODIFIED: New function to get image metadata for File: pages
+    /**
+     * Fetches image metadata, including the direct file URL.
+     * Uses MediaWiki API action=query, prop=imageinfo.
+     * This is used for File: pages to get the actual image URL.
+     * Example: https://oldschool.runescape.wiki/api.php?action=query&titles=File:Abyssal_whip.png&prop=imageinfo&iiprop=url&format=json&formatversion=2
+     */
+    @GET("api.php?action=query&prop=imageinfo&iiprop=url&format=json&formatversion=2")
+    suspend fun getImageInfo(@Query("titles") titles: String): ImageInfoResponse
 
 
     @Suppress("unused")

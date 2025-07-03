@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidxPagingRuntimeKtx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
+    // MODIFIED: Added Gson dependency via version catalog for @SerializedName
+    implementation(libs.gson)
     implementation(libs.kotlinx.serializationJson)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp.core)

@@ -23,6 +23,8 @@ retrofit = "2.9.0"
 okhttp = "4.12.0"
 retrofitKotlinxSerializationConverter = "1.0.0"
 apacheCommonsLang3 = "3.14.0"
+# MODIFIED: Added Gson version
+gson = "2.10.1"
 
 # Kotlinx Serialization
 kotlinxSerializationJson = "1.7.3"
@@ -71,6 +73,8 @@ retrofit-converterKotlinxSerialization = { group = "com.jakewharton.retrofit", n
 okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-loggingInterceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 apacheCommonsLang3 = { module = "org.apache.commons:commons-lang3", version.ref = "apacheCommonsLang3" }
+# MODIFIED: Added Gson library
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 # Kotlinx Serialization
 kotlinx-serializationJson = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }

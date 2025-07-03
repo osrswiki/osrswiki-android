@@ -13,6 +13,36 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
+// MODIFIED: Replaced Gson imports with kotlinx.serialization imports
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+// MODIFIED: Added @Serializable and switched to @SerialName
+@Serializable
+data class ImageInfoResponse(
+    val query: QueryContainer? = null
+)
+
+@Serializable
+data class QueryContainer(
+    val pages: List<PageInfo>? = null
+)
+
+@Serializable
+data class PageInfo(
+    val pageid: Int,
+    val ns: Int,
+    val title: String,
+    @SerialName("imageinfo")
+    val imageInfo: List<ImageInfo>? = null
+)
+
+@Serializable
+data class ImageInfo(
+    val url: String? = null,
+    val descriptionurl: String? = null
+)
+
 
 class PageRepository (
     private val mediaWikiApiService: WikiApiService,
@@ -25,6 +55,7 @@ companion object {
         private const val ARTICLES_DIR_NAME = "osrs_wiki_articles"
         private const val HTML_EXTENSION = ".html"
         private const val TAG = "PageRepository"
+        private const val FILE_NAMESPACE_PREFIX = "File:"
     }
 
     fun getArticle(pageId: Int, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
@@ -157,38 +188,85 @@ companion object {
 
         Log.d(TAG, "Attempting to fetch \"$title\" (assumed canonical) from network.")
         try {
-            val articleParseApiResponseByTitle = mediaWikiApiService.getArticleTextContentByTitle(title = title)
-            val parseResultByTitle = articleParseApiResponseByTitle.parse
+            if (title.startsWith(FILE_NAMESPACE_PREFIX, ignoreCase = true)) {
+                // Handle File page: requires two API calls
+                Log.d(TAG, "Handling as File page: $title")
 
-            if (parseResultByTitle == null || parseResultByTitle.text.isNullOrEmpty() || parseResultByTitle.pageid == null || parseResultByTitle.title.isNullOrEmpty()) {
-                val errorMsg = "Failed to fetch article details from network for title: '$title' (parse result or essential fields missing). API Response: $articleParseApiResponseByTitle"
-                Log.e(TAG, errorMsg)
-                emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg))
-                return@flow
+                // 1. Get image info (URL)
+                val imageInfoResponse = mediaWikiApiService.getImageInfo(title)
+                val imageUrl = imageInfoResponse.query?.pages?.firstOrNull()?.imageInfo?.firstOrNull()?.url
+                Log.d(TAG, "Fetched image URL: $imageUrl")
+
+                // 2. Get file description page content (the metadata box)
+                val parseResponse = mediaWikiApiService.getArticleTextContentByTitle(title)
+                val parseResult = parseResponse.parse
+                val descriptionHtml = parseResult?.text ?: ""
+
+                if (imageUrl == null || parseResult == null) {
+                    throw IOException("Failed to retrieve complete File page data. Image URL or parse data missing.")
+                }
+
+                // 3. Combine into a single HTML document
+                val finalHtml = "<img src=\"$imageUrl\" style=\"width:100%; height:auto; background-color: #333;\"/><br/>$descriptionHtml"
+
+                // 4. Build and emit the final PageUiState
+                val canonicalTitle = parseResult.title ?: title
+                val displayTitle = parseResult.displaytitle ?: canonicalTitle
+                val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle
+                val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}"
+
+                val uiState = PageUiState(
+                    isLoading = false, error = null,
+                    pageId = parseResult.pageid ?: 0,
+                    title = displayTitle,
+                    plainTextTitle = plainTextDisplayTitle,
+                    htmlContent = finalHtml, // Use the combined HTML
+                    wikiUrl = finalWikiUrl,
+                    revisionId = parseResult.revid,
+                    lastFetchedTimestamp = System.currentTimeMillis(),
+                    localFilePath = null,
+                    isCurrentlyOffline = false,
+                    imageUrl = imageUrl // Store the raw image URL as well
+                )
+                Log.i(TAG, "Successfully processed File page: '$title'")
+                emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
+
+            } else {
+                // Handle regular articles (existing logic)
+                Log.d(TAG, "Handling as regular article: $title")
+                val articleParseApiResponseByTitle = mediaWikiApiService.getArticleTextContentByTitle(title = title)
+                val parseResultByTitle = articleParseApiResponseByTitle.parse
+
+                if (parseResultByTitle == null || parseResultByTitle.text.isNullOrEmpty() || parseResultByTitle.pageid == null || parseResultByTitle.title.isNullOrEmpty()) {
+                    val errorMsg = "Failed to fetch article details from network for title: '$title' (parse result or essential fields missing). API Response: $articleParseApiResponseByTitle"
+                    Log.e(TAG, errorMsg)
+                    emit(com.omiyawaki.osrswiki.util.Result.Error(errorMsg))
+                    return@flow
+                }
+
+                val htmlContentFromTitleParse = parseResultByTitle.text
+                val pageIdFromTitleParse = parseResultByTitle.pageid
+                val canonicalTitleFromTitleParse = parseResultByTitle.title
+                val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse
+                val revIdFromTitleParse = parseResultByTitle.revid
+                val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitleFromTitleParse.replace(" ", "_")}"
+                val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(displayTitleFromTitleParse) ?: canonicalTitleFromTitleParse
+
+                val uiState = PageUiState(
+                    isLoading = false, error = null, imageUrl = null,
+                    pageId = pageIdFromTitleParse,
+                    title = displayTitleFromTitleParse,
+                    plainTextTitle = plainTextDisplayTitle,
+                    htmlContent = htmlContentFromTitleParse,
+                    wikiUrl = finalWikiUrl,
+                    revisionId = revIdFromTitleParse,
+                    lastFetchedTimestamp = System.currentTimeMillis(),
+                    localFilePath = null,
+                    isCurrentlyOffline = false
+                )
+                Log.i(TAG, "Successfully fetched title: '$title' (resolved to plain title: '${uiState.plainTextTitle}', pageId: ${uiState.pageId}) from network for online viewing (no save).")
+                emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
             }
-
-            val htmlContentFromTitleParse = parseResultByTitle.text
-            val pageIdFromTitleParse = parseResultByTitle.pageid
-            val canonicalTitleFromTitleParse = parseResultByTitle.title
-            val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse
-            val revIdFromTitleParse = parseResultByTitle.revid
-            val finalWikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitleFromTitleParse.replace(" ", "_")}"
-            val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(displayTitleFromTitleParse) ?: canonicalTitleFromTitleParse
-
-            val uiState = PageUiState(
-                isLoading = false, error = null, imageUrl = null,
-                pageId = pageIdFromTitleParse,
-                title = displayTitleFromTitleParse,
-                plainTextTitle = plainTextDisplayTitle,
-                htmlContent = htmlContentFromTitleParse,
-                wikiUrl = finalWikiUrl,
-                revisionId = revIdFromTitleParse,
-                lastFetchedTimestamp = System.currentTimeMillis(),
-                localFilePath = null,
-                isCurrentlyOffline = false
-            )
-            Log.i(TAG, "Successfully fetched title: '$title' (resolved to plain title: '${uiState.plainTextTitle}', pageId: ${uiState.pageId}) from network for online viewing (no save).")
-            emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
         } catch (e: HttpException) {
             val errorBody = try { e.response()?.errorBody()?.string() } catch (_: Exception) { "Error body unreadable" } ?: "Unknown API error"
             val errorMsg = "API request failed for title '$title': ${e.code()} - $errorBody"; Log.e(TAG, errorMsg, e)
@@ -244,9 +322,10 @@ companion object {
         }
     }
 
+
     suspend fun saveArticleOffline(pageId: Int, displayTitleFromUi: String?): com.omiyawaki.osrswiki.util.Result<Unit> {
         Log.d(TAG, "Attempting to save article offline. PageId: $pageId, DisplayTitleFromUI: \"$displayTitleFromUi\"")
-        
+
         return withContext(Dispatchers.IO) {
             try {
                 val apiResponse = mediaWikiApiService.getArticleParseDataByPageId(pageId = pageId)
@@ -258,7 +337,7 @@ companion object {
                     return@withContext com.omiyawaki.osrswiki.util.Result.Error(errorMsg)
                 }
 
-                val canonicalTitle = parseResult.title 
+                val canonicalTitle = parseResult.title
                 val htmlContent = parseResult.text
                 val revisionId = parseResult.revid
                 val fetchedPageId = parseResult.pageid
@@ -290,12 +369,12 @@ companion object {
 
                 if (existingMeta != null) {
                     val updatedMeta = existingMeta.copy(
-                        title = canonicalTitle, 
+                        title = canonicalTitle,
                         wikiUrl = articleUrl,
                         localFilePath = articleFile.absolutePath,
                         lastFetchedTimestamp = currentTime,
                         revisionId = revisionId,
-                        categories = existingMeta.categories 
+                        categories = existingMeta.categories
                     )
                     articleMetaDao.update(updatedMeta)
                     Log.i(TAG, "Successfully updated metadata for '$canonicalTitle' (PageID: $fetchedPageId) in database.")
