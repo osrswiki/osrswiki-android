@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.page
 
+import android.util.Log
 import android.view.View
 import androidx.core.view.isVisible
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -38,6 +39,7 @@ class PageUiUpdater(
         } else {
             if (state.htmlContent != null) {
                 val finalHtml = pageHtmlFactory.createPageHtml(state, fragment.getPageTitleArg())
+                Log.d("PageUiUpdater", "Final HTML to render: $finalHtml")
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
                 pageWebViewManager.render(
