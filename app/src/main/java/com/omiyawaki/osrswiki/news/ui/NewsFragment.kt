@@ -1,10 +1,12 @@
 package com.omiyawaki.osrswiki.news.ui
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,6 +16,8 @@ import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.util.log.L
+import java.net.URLDecoder
 
 /**
  * A fragment to display a feed of recent news and updates from the OSRS Wiki.
@@ -24,6 +28,7 @@ class NewsFragment : Fragment() {
 
     private val viewModel: NewsViewModel by viewModels()
     private lateinit var newsFeedAdapter: NewsFeedAdapter
+    private val wikiBaseUrl = "https://oldschool.runescape.wiki"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -54,18 +59,57 @@ class NewsFragment : Fragment() {
         }
     }
 
-    private fun setupRecyclerView(view: View) {
-        // The adapter is instantiated here with the correct click handler.
-        newsFeedAdapter = NewsFeedAdapter { updateItem ->
-            // This is the new, correct way to start the PageActivity,
-            // using the newIntent overload that correctly parses the title from the URL.
-            startActivity(
-                PageActivity.newIntent(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
-            )
+    private fun handleLinkClick(url: String) {
+        L.d("Link clicked. Original URL: $url")
+
+        // Defensively handle relative URLs by prepending the base URL if needed.
+        val absoluteUrl = if (url.startsWith("/")) {
+            "$wikiBaseUrl$url"
+        } else {
+            url
         }
 
-        // Find the RecyclerView in the fragment's layout and set it up.
-        // The ID is now correctly set to 'recyclerViewNews'.
+        if (absoluteUrl.startsWith(wikiBaseUrl)) {
+            // Internal link, open in PageActivity
+            try {
+                val title = getPageTitleFromUrl(absoluteUrl)
+                startActivity(
+                    PageActivity.newIntent(requireContext(), title, null, HistoryEntry.SOURCE_NEWS)
+                )
+            } catch (e: Exception) {
+                L.e("Could not parse page title from internal URL: $absoluteUrl", e)
+                Toast.makeText(requireContext(), "Error opening internal link.", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            // External link, open in browser
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(absoluteUrl))
+                startActivity(intent)
+            } catch (e: Exception) {
+                L.e("Failed to open external link: $absoluteUrl", e)
+                Toast.makeText(requireContext(), "Could not open external link.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun getPageTitleFromUrl(url: String): String {
+        val pathSegment = url.substringAfterLast('/')
+        val withSpaces = pathSegment.replace('_', ' ')
+        return URLDecoder.decode(withSpaces, "UTF-8")
+    }
+
+    private fun setupRecyclerView(view: View) {
+        newsFeedAdapter = NewsFeedAdapter(
+            onUpdateItemClicked = { updateItem ->
+                startActivity(
+                    PageActivity.newIntent(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
+                )
+            },
+            onLinkClicked = { url ->
+                handleLinkClick(url)
+            }
+        )
+
         view.findViewById<RecyclerView>(R.id.recyclerViewNews).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = newsFeedAdapter
