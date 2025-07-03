@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 class PageRepository(
     private val localDataSource: PageLocalDataSource,
@@ -16,6 +18,7 @@ class PageRepository(
 ) {
     companion object {
         private const val TAG = "PageRepository"
+        private const val FILE_NAMESPACE_PREFIX = "File:"
     }
 
     fun getArticle(pageId: Int, forceNetwork: Boolean): Flow<Result<PageUiState>> = flow {
@@ -40,10 +43,67 @@ class PageRepository(
                 return@flow
             }
         }
-        val networkResult = remoteDataSource.getArticleParseResult(title)
-        emit(transformParseResult(networkResult))
+
+        if (title.startsWith(FILE_NAMESPACE_PREFIX, ignoreCase = true)) {
+            emit(fetchAndBuildFilePage(title))
+        } else {
+            val networkResult = remoteDataSource.getArticleParseResult(title)
+            emit(transformParseResult(networkResult))
+        }
     }.flowOn(Dispatchers.IO)
-    
+
+    private suspend fun fetchAndBuildFilePage(title: String): Result<PageUiState> = coroutineScope {
+        // Fetch image info and page description concurrently.
+        val imageInfoDeferred = async { remoteDataSource.getImageInfo(title) }
+        val parseResultDeferred = async { remoteDataSource.getArticleParseResult(title) }
+
+        val imageInfoResult = imageInfoDeferred.await()
+        val parseResultResult = parseResultDeferred.await()
+
+        // Handle potential errors from either network call.
+        if (imageInfoResult is Result.Error) {
+            return@coroutineScope Result.Error(imageInfoResult.message, imageInfoResult.throwable)
+        }
+        if (parseResultResult is Result.Error) {
+            return@coroutineScope Result.Error(parseResultResult.message, parseResultResult.throwable)
+        }
+
+        // Extract data from successful results.
+        val imageUrl = (imageInfoResult as Result.Success).data.query?.pages?.firstOrNull()?.imageInfo?.firstOrNull()?.url
+        val parseResult = (parseResultResult as Result.Success).data
+
+        if (imageUrl == null) {
+            return@coroutineScope Result.Error("Failed to extract image URL for File page: $title")
+        }
+
+        // Reconstruct the HTML with the image tag, removing width and height styles to use natural size.
+        val descriptionHtml = parseResult.text ?: ""
+        val imageTag = "<img src=\"$imageUrl\" style=\"background-color: #333;\"/>"
+        val combinedContent = "$imageTag<br/>$descriptionHtml"
+
+        // Build the final, full HTML document.
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(combinedContent)
+
+        // Build and return the final UI state.
+        val canonicalTitle = parseResult.title!!
+        val displayTitle = parseResult.displaytitle ?: canonicalTitle
+        val uiState = PageUiState(
+            isLoading = false,
+            error = null,
+            imageUrl = imageUrl,
+            pageId = parseResult.pageid!!,
+            title = displayTitle,
+            plainTextTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle,
+            htmlContent = finalHtml,
+            wikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}",
+            revisionId = parseResult.revid,
+            lastFetchedTimestamp = System.currentTimeMillis(),
+            localFilePath = null,
+            isCurrentlyOffline = false
+        )
+        Result.Success(uiState)
+    }
+
     private fun transformParseResult(networkResult: Result<ParseResult>): Result<PageUiState> {
         return when (networkResult) {
             is Result.Success -> {
