@@ -11,6 +11,9 @@ import android.os.Build
 import android.util.Log
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.network.RetrofitClient
+import com.omiyawaki.osrswiki.page.PageHtmlBuilder
+import com.omiyawaki.osrswiki.page.PageLocalDataSource
+import com.omiyawaki.osrswiki.page.PageRemoteDataSource
 import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.page.tabs.Tab
 import com.omiyawaki.osrswiki.search.SearchRepository
@@ -49,15 +52,8 @@ class OSRSWikiApp : Application() {
         lateinit var instance: OSRSWikiApp
             private set
 
-        /**
-         * Logs a throwable for crash reporting or detailed local logging.
-         * This is a STUB implementation.
-         * @param throwable The error/exception to log.
-         * @param message An optional additional message.
-         */
         @JvmStatic
         fun logCrashManually(throwable: Throwable, message: String? = null) {
-            // TODO: Replace with actual crash reporting
             val logMessage = message?.let { "$it: ${throwable.message}" } ?: throwable.message
             Log.e("OSRSWikiApp_CrashLog", "Manual crash log: $logMessage", throwable)
         }
@@ -67,16 +63,26 @@ class OSRSWikiApp : Application() {
         super.onCreate()
         instance = this
 
+        // Common dependencies
         val appContext = this.applicationContext
         val appDb = AppDatabase.instance
         val mediaWikiApiService = RetrofitClient.apiService
 
-        val articleMetaDaoForPageRepo = appDb.articleMetaDao()
-        pageRepository = PageRepository(
-            mediaWikiApiService = mediaWikiApiService,
-            articleMetaDao = articleMetaDaoForPageRepo,
+        // --- Refactored PageRepository Dependencies ---
+        val pageHtmlBuilder = PageHtmlBuilder()
+        val pageLocalDataSource = PageLocalDataSource(
+            articleMetaDao = appDb.articleMetaDao(),
             applicationContext = appContext
         )
+        val pageRemoteDataSource = PageRemoteDataSource(
+            mediaWikiApiService = mediaWikiApiService
+        )
+        pageRepository = PageRepository(
+            localDataSource = pageLocalDataSource,
+            remoteDataSource = pageRemoteDataSource,
+            htmlBuilder = pageHtmlBuilder
+        )
+        // --- End of PageRepository Dependencies ---
 
         val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
         val offlinePageFtsDao = appDb.offlinePageFtsDao()
@@ -103,11 +109,6 @@ class OSRSWikiApp : Application() {
         unregisterNetworkCallback()
     }
 
-    /**
-     * Resolves the final theme based on user preferences in Prefs.kt.
-     * This is the single source of truth for the application's current theme.
-     * @return The resolved Theme enum value.
-     */
     fun getCurrentTheme(): Theme {
         val themeMode = Prefs.appThemeMode
 
@@ -118,7 +119,6 @@ class OSRSWikiApp : Application() {
                 val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
                 nightModeFlags == Configuration.UI_MODE_NIGHT_YES
             }
-            // Fallback to system setting if preference is in an unexpected state.
             else -> {
                 val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
                 nightModeFlags == Configuration.UI_MODE_NIGHT_YES
@@ -130,8 +130,6 @@ class OSRSWikiApp : Application() {
         } else {
             Prefs.lightThemeChoice
         }
-
-        // Return the theme matching the chosen tag, or the default light theme if something is wrong.
         return Theme.ofTag(themeTag) ?: Theme.DEFAULT_LIGHT
     }
 
