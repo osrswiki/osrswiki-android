@@ -13,6 +13,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.search.SearchActivity
 
 /**
  * A fragment to display a feed of recent news and updates from the OSRS Wiki.
@@ -35,12 +36,21 @@ class NewsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupSearch(view)
         setupRecyclerView(view)
         observeViewModel()
 
         // Initial data fetch
         if (savedInstanceState == null) {
             viewModel.fetchNews()
+        }
+    }
+
+    private fun setupSearch(view: View) {
+        // Set a click listener on the search bar view to launch the search activity.
+        view.findViewById<View>(R.id.news_search_view).setOnClickListener {
+            val intent = Intent(requireContext(), SearchActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -55,8 +65,8 @@ class NewsFragment : Fragment() {
         }
 
         // Find the RecyclerView in the fragment's layout and set it up.
-        // NOTE: Assumes the RecyclerView in fragment_news.xml has the id "news_feed_recycler_view".
-        view.findViewById<RecyclerView>(R.id.news_feed_recycler_view).apply {
+        // The ID is now correctly set to 'recyclerViewNews'.
+        view.findViewById<RecyclerView>(R.id.recyclerViewNews).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = newsFeedAdapter
         }

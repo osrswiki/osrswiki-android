@@ -39,7 +39,8 @@
     <string name="menu_title_settings">Settings</string>
     <string name="menu_title_donate">Donate</string>
     <string name="menu_title_tabs">Tabs</string>
-    <string name="menu_search_title">Search</string> <string name="page_action_save">Save</string>
+    <string name="menu_search_title">Search</string>
+    <string name="page_action_save">Save</string>
     <string name="page_action_find_in_article">Find in page</string>
     <string name="page_action_theme">Appearance</string>
     <string name="page_action_contents">Contents</string>
@@ -85,4 +86,6 @@
     <string name="nav_search">Search</string>
     <string name="nav_more">More</string>
     <string name="transition_search_bar" translatable="false">transition_search_bar</string>
+
+    <string name="news_fetch_error">Failed to fetch news.</string>
 </resources>
