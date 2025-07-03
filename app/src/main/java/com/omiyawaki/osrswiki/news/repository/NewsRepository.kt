@@ -64,14 +64,14 @@ object NewsRepository {
         val dates = announcementsContainer.select("dt")
         val contents = announcementsContainer.select("dd")
         return dates.zip(contents).map { (date, content) ->
-            AnnouncementItem(date = date.text(), content = content.text())
+            AnnouncementItem(date = date.text(), content = content.html())
         }
     }
 
     private fun parseOnThisDay(doc: Element): OnThisDayItem? {
         val onThisDayContainer = doc.selectFirst("div.mainpage-onthisday") ?: return null
         val title = onThisDayContainer.selectFirst("h2")?.text() ?: "On this day..."
-        val events = onThisDayContainer.select("ul li").map { it.text() }
+        val events = onThisDayContainer.select("ul li").map { it.html() }
         return OnThisDayItem(title = title, events = events)
     }
 

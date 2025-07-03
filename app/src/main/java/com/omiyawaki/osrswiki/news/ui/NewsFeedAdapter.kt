@@ -1,17 +1,42 @@
 package com.omiyawaki.osrswiki.news.ui
 
-import android.text.Html
+import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.text.style.URLSpan
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
 import com.omiyawaki.osrswiki.news.model.PopularPageItem
 import com.omiyawaki.osrswiki.news.model.UpdateItem
+
+// Helper function moved to top-level to be accessible by all classes in this file.
+private fun TextView.setTextWithClickableLinks(html: String, onLinkClick: (url: String) -> Unit) {
+    val sequence = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY)
+    val strBuilder = SpannableStringBuilder(sequence)
+    val urls = strBuilder.getSpans(0, sequence.length, URLSpan::class.java)
+    for (span in urls) {
+        val start = strBuilder.getSpanStart(span)
+        val end = strBuilder.getSpanEnd(span)
+        val flags = strBuilder.getSpanFlags(span)
+        val clickable = object : ClickableSpan() {
+            override fun onClick(view: View) {
+                onLinkClick(span.url)
+            }
+        }
+        strBuilder.setSpan(clickable, start, end, flags)
+        strBuilder.removeSpan(span)
+    }
+    text = strBuilder
+    movementMethod = LinkMovementMethod.getInstance()
+}
 
 /**
  * A sealed class representing all possible items that can be displayed in the news feed.
@@ -27,7 +52,8 @@ sealed class FeedItem {
  * RecyclerView.Adapter for the main news feed in NewsFragment.
  */
 class NewsFeedAdapter(
-    private val onUpdateItemClicked: (UpdateItem) -> Unit
+    private val onUpdateItemClicked: (UpdateItem) -> Unit,
+    private val onLinkClicked: (url: String) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val items = mutableListOf<FeedItem>()
@@ -37,12 +63,12 @@ class NewsFeedAdapter(
         private const val VIEW_TYPE_ANNOUNCEMENT = 1
         private const val VIEW_TYPE_ON_THIS_DAY = 2
         private const val VIEW_TYPE_POPULAR = 3
+        private const val TAG = "NewsFeedAdapter"
     }
 
     fun setItems(newItems: List<FeedItem>) {
         items.clear()
         items.addAll(newItems)
-        // In a real implementation, use DiffUtil for better performance
         notifyDataSetChanged()
     }
 
@@ -77,9 +103,9 @@ class NewsFeedAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
             is FeedItem.Updates -> (holder as UpdatesViewHolder).bind(item.items, onUpdateItemClicked)
-            is FeedItem.Announcement -> (holder as AnnouncementViewHolder).bind(item.item)
-            is FeedItem.OnThisDay -> (holder as OnThisDayViewHolder).bind(item.item)
-            is FeedItem.Popular -> (holder as PopularViewHolder).bind(item.items)
+            is FeedItem.Announcement -> (holder as AnnouncementViewHolder).bind(item.item, onLinkClicked)
+            is FeedItem.OnThisDay -> (holder as OnThisDayViewHolder).bind(item.item, onLinkClicked)
+            is FeedItem.Popular -> (holder as PopularViewHolder).bind(item.items, onLinkClicked)
         }
     }
 
@@ -94,28 +120,31 @@ class NewsFeedAdapter(
 
     class AnnouncementViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val content: TextView = itemView.findViewById(R.id.announcement_content)
-        fun bind(item: AnnouncementItem) {
-            content.text = "${item.date}: ${item.content}"
+        fun bind(item: AnnouncementItem, onLinkClick: (url: String) -> Unit) {
+            val fullContent = "${item.date}: ${item.content}"
+            Log.d(TAG, "Announcement content to parse: $fullContent")
+            content.setTextWithClickableLinks(fullContent, onLinkClick)
         }
     }
 
     class OnThisDayViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val title: TextView = itemView.findViewById(R.id.on_this_day_card_title)
         private val content: TextView = itemView.findViewById(R.id.on_this_day_content)
-        fun bind(item: OnThisDayItem) {
+        fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
             title.text = item.title
-            content.text = item.events.joinToString("\n") { "• $it" }
+            val htmlContent = item.events.joinToString("<br>") { "• $it" }
+            Log.d(TAG, "OnThisDay content to parse: $htmlContent")
+            content.setTextWithClickableLinks(htmlContent, onLinkClick)
         }
     }
 
     class PopularViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val content: TextView = itemView.findViewById(R.id.popular_content)
-        fun bind(items: List<PopularPageItem>) {
+        fun bind(items: List<PopularPageItem>, onLinkClick: (url: String) -> Unit) {
             val htmlLinks = items.joinToString("<br>") {
                 "<a href=\"${it.pageUrl}\">${it.title}</a>"
             }
-            content.text = Html.fromHtml(htmlLinks, Html.FROM_HTML_MODE_COMPACT)
-            content.movementMethod = LinkMovementMethod.getInstance()
+            content.setTextWithClickableLinks(htmlLinks, onLinkClick)
         }
     }
 }
