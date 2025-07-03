@@ -28,6 +28,62 @@ companion object {
         private const val FILE_NAMESPACE_PREFIX = "File:"
     }
 
+    /**
+     * Wraps the raw HTML fragment from the API in a full HTML document.
+     * This method injects CSS to handle wide table scrolling and a viewport meta tag
+     * for proper mobile scaling.
+     *
+     * @param content The HTML fragment from the MediaWiki API.
+     * @return A full, well-formed HTML document as a string.
+     */
+    private fun buildFullHtmlDocument(content: String): String {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 8px;
+                        overflow-x: hidden; /* Prevents the body itself from scrolling horizontally */
+                    }
+                    .scrollable-table-wrapper {
+                        width: 100%;
+                        overflow-x: auto;
+                        -webkit-overflow-scrolling: touch; /* Enables momentum scrolling on iOS */
+                        border: 1px solid #555; /* Optional: adds a border to indicate scrollable area */
+                    }
+                    /* Style the scrollbar to be less obtrusive */
+                    .scrollable-table-wrapper::-webkit-scrollbar {
+                        height: 8px;
+                    }
+                    .scrollable-table-wrapper::-webkit-scrollbar-thumb {
+                        background: #888;
+                        border-radius: 4px;
+                    }
+                </style>
+            </head>
+            <body>
+                $content
+                <script>
+                    // This script runs after the DOM is parsed.
+                    var tables = document.querySelectorAll('table.wikitable, table.align-right-2');
+                    tables.forEach(function(table) {
+                        // Check if the table is not already inside our wrapper
+                        if (table.parentElement.className !== 'scrollable-table-wrapper') {
+                            var wrapper = document.createElement('div');
+                            wrapper.className = 'scrollable-table-wrapper';
+                            table.parentNode.insertBefore(wrapper, table);
+                            wrapper.appendChild(table);
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        """.trimIndent()
+    }
+
     fun getArticle(pageId: Int, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
         Log.d(TAG, "getArticle called for pageId: $pageId, forceNetwork: $forceNetwork")
@@ -38,7 +94,6 @@ companion object {
                 val localMeta = articleMetaDao.getMetaByPageId(pageId)
                 Log.d(TAG, "getArticle (by ID): DAO query for pageId $pageId returned: $localMeta")
                 if (localMeta != null && localMeta.localFilePath.isNotEmpty()) {
-                    Log.d(TAG, "getArticle (by ID): localMeta for $pageId found with path ${localMeta.localFilePath}")
                     val localFile = File(localMeta.localFilePath)
                     if (localFile.exists()) {
                         Log.i(TAG, "getArticle (by ID): Found pageId: $pageId ('${localMeta.title}') in local cache at ${localFile.absolutePath}")
@@ -48,7 +103,7 @@ companion object {
                             pageId = localMeta.pageId,
                             title = localMeta.title,
                             plainTextTitle = localMeta.title,
-                            htmlContent = htmlContent,
+                            htmlContent = htmlContent, // Saved content is already a full document
                             wikiUrl = localMeta.wikiUrl,
                             revisionId = localMeta.revisionId,
                             lastFetchedTimestamp = localMeta.lastFetchedTimestamp,
@@ -84,7 +139,7 @@ companion object {
             val fetchedDisplayTitle = parseResult.displaytitle ?: fetchedCanonicalTitle
             Log.i(TAG, "Network fetch for pageId $pageId yielded canonical title: '$fetchedCanonicalTitle', display title: '$fetchedDisplayTitle'")
             val articleUrl = "https://oldschool.runescape.wiki/w/${fetchedCanonicalTitle.replace(" ", "_")}"
-            val htmlContentFromParse = parseResult.text
+            val htmlContentFromParse = buildFullHtmlDocument(parseResult.text)
             val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(fetchedDisplayTitle) ?: fetchedCanonicalTitle
 
             val uiState = PageUiState(
@@ -116,17 +171,14 @@ companion object {
 
     fun getArticleByTitle(title: String, forceNetwork: Boolean = false): kotlinx.coroutines.flow.Flow<com.omiyawaki.osrswiki.util.Result<PageUiState>> = kotlinx.coroutines.flow.flow {
         emit(com.omiyawaki.osrswiki.util.Result.Loading)
-        // --- ADDED MEGA_DEBUG_TRACE LOG ---
-        Log.e("MEGA_DEBUG_TRACE", "PageRepository.getArticleByTitle ENTERED - Title: '$title', ForceNetwork: $forceNetwork")
         Log.d(TAG, "getArticleByTitle called for: \"$title\", forceNetwork: $forceNetwork")
 
         if (!forceNetwork) {
             Log.d(TAG, "getArticleByTitle: Attempting to load \"$title\" (assumed canonical) from local cache.")
             try {
-                val localMeta = articleMetaDao.getMetaByExactTitle(title) // Query is now case-insensitive
+                val localMeta = articleMetaDao.getMetaByExactTitle(title)
                 Log.d(TAG, "getArticleByTitle: DAO query for title '$title' returned: $localMeta")
                 if (localMeta != null && localMeta.localFilePath.isNotEmpty()) {
-                    Log.d(TAG, "getArticleByTitle: localMeta for '$title' found with path ${localMeta.localFilePath}")
                     val localFile = File(localMeta.localFilePath)
                     if (localFile.exists()) {
                         Log.i(TAG, "Found \"$title\" in local cache at ${localFile.absolutePath}")
@@ -162,12 +214,10 @@ companion object {
                 // Handle File page: requires two API calls
                 Log.d(TAG, "Handling as File page: $title")
 
-                // 1. Get image info (URL)
                 val imageInfoResponse = mediaWikiApiService.getImageInfo(title)
                 val imageUrl = imageInfoResponse.query?.pages?.firstOrNull()?.imageInfo?.firstOrNull()?.url
                 Log.d(TAG, "Fetched image URL: $imageUrl")
 
-                // 2. Get file description page content (the metadata box)
                 val parseResponse = mediaWikiApiService.getArticleTextContentByTitle(title)
                 val parseResult = parseResponse.parse
                 val descriptionHtml = parseResult?.text ?: ""
@@ -176,10 +226,9 @@ companion object {
                     throw IOException("Failed to retrieve complete File page data. Image URL or parse data missing.")
                 }
 
-                // MODIFIED: Removed width and height styles to render image at its natural size.
-                val finalHtml = "<img src=\"$imageUrl\" style=\"background-color: #333;\"/><br/>$descriptionHtml"
+                val imageTag = "<img src=\"$imageUrl\" style=\"background-color: #333; width: 100%; height: auto;\"/>"
+                val finalHtml = buildFullHtmlDocument("$imageTag<br/>$descriptionHtml")
 
-                // 4. Build and emit the final PageUiState
                 val canonicalTitle = parseResult.title ?: title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
                 val plainTextDisplayTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle
@@ -190,19 +239,19 @@ companion object {
                     pageId = parseResult.pageid ?: 0,
                     title = displayTitle,
                     plainTextTitle = plainTextDisplayTitle,
-                    htmlContent = finalHtml, // Use the combined HTML
+                    htmlContent = finalHtml,
                     wikiUrl = finalWikiUrl,
                     revisionId = parseResult.revid,
                     lastFetchedTimestamp = System.currentTimeMillis(),
                     localFilePath = null,
                     isCurrentlyOffline = false,
-                    imageUrl = imageUrl // Store the raw image URL as well
+                    imageUrl = imageUrl
                 )
                 Log.i(TAG, "Successfully processed File page: '$title'")
                 emit(com.omiyawaki.osrswiki.util.Result.Success(uiState))
 
             } else {
-                // Handle regular articles (existing logic)
+                // Handle regular articles
                 Log.d(TAG, "Handling as regular article: $title")
                 val articleParseApiResponseByTitle = mediaWikiApiService.getArticleTextContentByTitle(title = title)
                 val parseResultByTitle = articleParseApiResponseByTitle.parse
@@ -214,7 +263,7 @@ companion object {
                     return@flow
                 }
 
-                val htmlContentFromTitleParse = parseResultByTitle.text
+                val htmlContentFromTitleParse = buildFullHtmlDocument(parseResultByTitle.text)
                 val pageIdFromTitleParse = parseResultByTitle.pageid
                 val canonicalTitleFromTitleParse = parseResultByTitle.title
                 val displayTitleFromTitleParse = parseResultByTitle.displaytitle ?: canonicalTitleFromTitleParse
@@ -308,11 +357,10 @@ companion object {
                 }
 
                 val canonicalTitle = parseResult.title
-                val htmlContent = parseResult.text
+                val htmlContent = buildFullHtmlDocument(parseResult.text)
                 val revisionId = parseResult.revid
                 val fetchedPageId = parseResult.pageid
 
-                // ADDED LOG to see the exact title being stored
                 Log.i(TAG, "saveArticleOffline: For pageId $fetchedPageId, canonicalTitle from API to be stored is: \"$canonicalTitle\"")
 
                 val articleUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}"
