@@ -13,11 +13,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
-// MODIFIED: Replaced Gson imports with kotlinx.serialization imports
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// MODIFIED: Added @Serializable and switched to @SerialName
 @Serializable
 data class ImageInfoResponse(
     val query: QueryContainer? = null
@@ -206,8 +204,8 @@ companion object {
                     throw IOException("Failed to retrieve complete File page data. Image URL or parse data missing.")
                 }
 
-                // 3. Combine into a single HTML document
-                val finalHtml = "<img src=\"$imageUrl\" style=\"width:100%; height:auto; background-color: #333;\"/><br/>$descriptionHtml"
+                // MODIFIED: Removed width and height styles to render image at its natural size.
+                val finalHtml = "<img src=\"$imageUrl\" style=\"background-color: #333;\"/><br/>$descriptionHtml"
 
                 // 4. Build and emit the final PageUiState
                 val canonicalTitle = parseResult.title ?: title
