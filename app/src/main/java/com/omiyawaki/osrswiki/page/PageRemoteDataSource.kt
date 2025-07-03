@@ -48,6 +48,17 @@ class PageRemoteDataSource(
         }
     }
 
+    suspend fun getImageInfo(title: String): Result<ImageInfoResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = mediaWikiApiService.getImageInfo(title)
+                Result.Success(response)
+            } catch (e: Exception) {
+                handleException(e, "image info for title '$title'")
+            }
+        }
+    }
+
     private fun <T> handleException(e: Exception, context: String): Result<T> {
         val errorMsg = when (e) {
             is HttpException -> "API request failed for $context: ${e.code()}"
