@@ -2,12 +2,11 @@ package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.text.Html
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -17,6 +16,7 @@ import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 
 class PageFragment : Fragment() {
+    private val fragmentTag = "PageFragment"
 
     private var _binding: FragmentPageBinding? = null
     private val binding get() = _binding!!
@@ -25,7 +25,7 @@ class PageFragment : Fragment() {
     private lateinit var pageRepository: PageRepository
     private lateinit var readingListPageDao: ReadingListPageDao
 
-    // Helper Classes
+    // Refactored Helper Classes
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var pageLinkHandler: PageLinkHandler
     private lateinit var pageWebViewManager: PageWebViewManager
@@ -84,10 +84,22 @@ class PageFragment : Fragment() {
                 }
             },
             onTitleReceived = { newTitle ->
+                // DIAGNOSTIC: Log title handling logic
                 if (isAdded) {
-                    // Strip HTML tags from the title before setting it.
-                    val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
-                    (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
+                    val activity = activity as? AppCompatActivity
+                    Log.d(fragmentTag, "DIAGNOSTIC: Title callback received: '$newTitle'")
+                    if (activity == null) {
+                        Log.w(fragmentTag, "DIAGNOSTIC: Activity is null, cannot set title.")
+                        return@PageWebViewManager
+                    }
+                    if (activity.supportActionBar == null) {
+                        Log.w(fragmentTag, "DIAGNOSTIC: supportActionBar is null, cannot set title.")
+                        return@PageWebViewManager
+                    }
+                    activity.supportActionBar?.title = newTitle
+                    Log.d(fragmentTag, "DIAGNOSTIC: ActionBar title set to '$newTitle'")
+                } else {
+                    Log.w(fragmentTag, "DIAGNOSTIC: Title callback received but fragment is not attached.")
                 }
             }
         )

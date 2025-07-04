@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.page
 
-import android.util.Log
 import android.view.View
 import androidx.core.view.isVisible
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -11,7 +10,6 @@ class PageUiUpdater(
     private val binding: FragmentPageBinding,
     private val pageViewModel: PageViewModel,
     private val pageWebViewManager: PageWebViewManager,
-    private val pageHtmlFactory: PageHtmlFactory,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
     fun updateUi() {
@@ -33,22 +31,18 @@ class PageUiUpdater(
             if (binding.pageWebView.visibility == View.VISIBLE || (state.isLoading && state.htmlContent == null)) {
                 binding.pageWebView.visibility = View.INVISIBLE
             }
-            if (state.isLoading && state.htmlContent == null && (binding.pageWebView.url == null || binding.pageWebView.url == "about:blank")) {
-                binding.pageWebView.loadData("<html><body></body></html>", "text/html", "UTF-8")
-            }
         } else {
+            // Use the htmlContent prepared by the repository, which includes scripts.
             if (state.htmlContent != null) {
-                val finalHtml = pageHtmlFactory.createPageHtml(state, fragment.getPageTitleArg())
-                Log.d("PageUiUpdater", "Final HTML to render: $finalHtml")
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
                 pageWebViewManager.render(
-                    htmlSnippet = finalHtml,
+                    fullHtml = state.htmlContent,
                     baseUrl = state.wikiUrl,
-                    pageTitle = state.title ?: fragment.getPageTitleArg(),
                     theme = currentTheme
                 )
             } else {
+                // Fallback for unexpected null content.
                 if (binding.pageWebView.visibility != View.VISIBLE) binding.pageWebView.visibility = View.VISIBLE
                 binding.pageWebView.loadDataWithBaseURL(null, fragment.getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
             }

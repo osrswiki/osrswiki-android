@@ -2,12 +2,9 @@ package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -25,7 +22,7 @@ class PageFragment : Fragment() {
     private lateinit var pageRepository: PageRepository
     private lateinit var readingListPageDao: ReadingListPageDao
 
-    // Helper Classes
+    // Refactored Helper Classes
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var pageLinkHandler: PageLinkHandler
     private lateinit var pageWebViewManager: PageWebViewManager
@@ -81,13 +78,6 @@ class PageFragment : Fragment() {
                 if (isAdded && _binding != null) {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
-                }
-            },
-            onTitleReceived = { newTitle ->
-                if (isAdded) {
-                    // Strip HTML tags from the title before setting it.
-                    val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
-                    (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
                 }
             }
         )

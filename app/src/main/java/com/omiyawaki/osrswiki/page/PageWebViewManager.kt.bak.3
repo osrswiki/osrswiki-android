@@ -11,15 +11,14 @@ import com.omiyawaki.osrswiki.theme.Theme
 
 /**
  * Manages the configuration and rendering of content within the WebView.
+ * It now loads a pre-constructed HTML document and applies dynamic theming.
  */
 class PageWebViewManager(
     private val webView: WebView,
     private val linkHandler: PageLinkHandler,
-    private val onPageReady: () -> Unit,
-    private val onTitleReceived: (String) -> Unit
+    private val onPageReady: () -> Unit
 ) {
-    private val managerTag = "PageWebViewManager"
-    private val consoleTag = "WebViewConsole"
+    private val webViewDebugTag = "WebViewConsole"
     private var currentTheme: Theme = Theme.DEFAULT_LIGHT
 
     init {
@@ -31,70 +30,76 @@ class PageWebViewManager(
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+                // When the initial HTML has been loaded, apply our dynamic theme and reveal the body.
                 applyStylingAndRevealBody()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
-            override fun onReceivedTitle(view: WebView?, title: String?) {
-                super.onReceivedTitle(view, title)
-                // DIAGNOSTIC: Log the received title
-                Log.d(managerTag, "DIAGNOSTIC: onReceivedTitle fired. Title: '$title'")
-                title?.let { onTitleReceived(it) }
-            }
-
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 consoleMessage?.let {
                     val message = "[${it.sourceId()}:${it.lineNumber()}] ${it.message()}"
                     when (it.messageLevel()) {
-                        ConsoleMessage.MessageLevel.ERROR -> Log.e(consoleTag, message)
-                        ConsoleMessage.MessageLevel.WARNING -> Log.w(consoleTag, message)
-                        else -> Log.i(consoleTag, message)
+                        ConsoleMessage.MessageLevel.ERROR -> Log.e(webViewDebugTag, message)
+                        ConsoleMessage.MessageLevel.WARNING -> Log.w(webViewDebugTag, message)
+                        else -> Log.i(webViewDebugTag, message)
                     }
                 }
                 return true
             }
         }
         webView.settings.javaScriptEnabled = true
+        // Set a transparent background to prevent a white flash before the page loads.
+        // The actual background color will be set by the loaded HTML/CSS.
         webView.setBackgroundColor(Color.TRANSPARENT)
     }
 
+    /**
+     * Renders a fully pre-constructed HTML document in the WebView.
+     *
+     * @param fullHtml The complete HTML document string (including scripts and styles).
+     * @param baseUrl The base URL for resolving relative paths.
+     * @param theme The theme to apply to the content.
+     */
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // DIAGNOSTIC: Log the full HTML being rendered. Chunked to avoid logcat limits.
-        Log.d(managerTag, "DIAGNOSTIC: --- BEGIN Full HTML for WebView ---")
-        fullHtml.chunked(4000).forEach { chunk ->
-            Log.d(managerTag, chunk)
-        }
-        Log.d(managerTag, "DIAGNOSTIC: --- END Full HTML for WebView ---")
-
         this.currentTheme = theme
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
         webView.loadDataWithBaseURL(finalBaseUrl, fullHtml, "text/html", "UTF-8", null)
     }
 
+    /**
+     * Applies the specific theme class to the body and makes it visible.
+     * This is called from onPageFinished to prevent a Flash of Unstyled Content (FOUC).
+     */
     private fun applyStylingAndRevealBody() {
         val themeClass = when (currentTheme) {
             Theme.OSRS_DARK -> "theme-osrs-dark"
             Theme.WIKI_LIGHT -> "theme-wikipedia-light"
             Theme.WIKI_DARK -> "theme-wikipedia-dark"
             Theme.WIKI_BLACK -> "theme-wikipedia-black"
-            else -> ""
+            else -> "" // OSRS_LIGHT uses the :root default, no class needed.
         }
 
         val applyThemeAndRevealBodyJs = """
             (function() {
                 if (!document.body) return;
+                // Remove all possible theme classes to ensure a clean slate.
                 document.body.classList.remove(
-                    'theme-wikipedia-light', 'theme-osrs-dark',
-                    'theme-wikipedia-dark', 'theme-wikipedia-black'
+                    'theme-wikipedia-light',
+                    'theme-osrs-dark',
+                    'theme-wikipedia-dark',
+                    'theme-wikipedia-black'
                 );
+                // Add the new, specific theme class if it's not the default.
                 if ('$themeClass') {
                     document.body.classList.add('$themeClass');
                 }
+                // Finally, make the body visible.
                 document.body.style.visibility = 'visible';
             })();
         """.trimIndent()
 
         webView.evaluateJavascript(applyThemeAndRevealBodyJs) {
+            // After revealing the body, we signal that the page is ready.
             onPageReady()
         }
     }
