@@ -59,18 +59,27 @@ class PageHtmlBuilder(private val context: Context) {
                         height: 0;
                     }
 
-                    /* 3. Unsorted State (stacked, faint up/down arrows) */
+                    /*
+                     * 3. Unsorted State (stacked, faint up/down arrows).
+                     * Uses calc() to precisely control the gap between the triangles.
+                     */
                     table.sortable th:not([aria-sort])::before {
-                        /* Faint up arrow */
-                        top: 0.6em;
+                        /* Faint up arrow. */
+                        /* Calculation to center the combined icon (2 arrows + gap):
+                           - Arrow height = 5px, Gap = 2px, Total Icon Height = 12px.
+                           - Top position = 50% (vertical center) - 6px (half of total icon height). */
+                        top: calc(50% - 6px);
                         border-left: 5px solid transparent;
                         border-right: 5px solid transparent;
                         border-bottom: 5px solid var(--link-color);
                         opacity: 0.3;
                     }
                     table.sortable th:not([aria-sort])::after {
-                        /* Faint down arrow */
-                        bottom: 0.6em;
+                        /* Faint down arrow. */
+                        /* Positioned relative to the up arrow, leaving a 2px gap.
+                           - Top position = (Top of up arrow) + 5px (up arrow height) + 2px (gap).
+                           - calc(50% - 6px + 5px + 2px) = calc(50% + 1px). */
+                        top: calc(50% + 1px);
                         border-left: 5px solid transparent;
                         border-right: 5px solid transparent;
                         border-top: 5px solid var(--link-color);
@@ -173,7 +182,7 @@ class PageHtmlBuilder(private val context: Context) {
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
                     });
-                </script>
+                </t>
             </body>
             </html>
         """.trimIndent()
