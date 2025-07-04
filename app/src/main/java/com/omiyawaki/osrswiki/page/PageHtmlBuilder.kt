@@ -66,7 +66,6 @@ class PageHtmlBuilder(private val context: Context) {
                 </script>
                 <script>
                     // Extend Tablesort.js with a custom parser for comma-separated numbers.
-                    // The library checks the first row of data to determine a column's type.
                     Tablesort.extend('numeric-comma', function(item) {
                         // Test if the cell content is a number with commas.
                         return /^-?[\d,]+(?:\.\d+)?$/.test(item);
@@ -81,6 +80,28 @@ class PageHtmlBuilder(private val context: Context) {
                         numB = isNaN(numB) ? 0 : numB;
 
                         return numA - numB;
+                    });
+
+                    // Extend Tablesort.js with a custom parser for intensity values.
+                    Tablesort.extend('intensity', function(item) {
+                        // Test if the cell content is one of the intensity values (case-insensitive).
+                        return /^(low|medium|moderate|high)$/i.test(item);
+                    }, function(a, b) {
+                        // Map intensity strings to numerical values for sorting.
+                        var intensityMap = {
+                            'low': 0,
+                            'medium': 1,
+                            'moderate': 1,
+                            'high': 2
+                        };
+
+                        var valueA = intensityMap[a.toLowerCase()];
+                        var valueB = intensityMap[b.toLowerCase()];
+
+                        valueA = (valueA === undefined) ? -1 : valueA;
+                        valueB = (valueB === undefined) ? -1 : valueB;
+
+                        return valueA - valueB;
                     });
                 </script>
                 <script>
@@ -105,7 +126,7 @@ class PageHtmlBuilder(private val context: Context) {
                                 }
                                 table.insertBefore(thead, table.firstChild);
                             }
-                            // The custom 'numeric-comma' parser will be applied automatically.
+                            // The custom parsers will be applied automatically by Tablesort.
                             new Tablesort(table);
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
