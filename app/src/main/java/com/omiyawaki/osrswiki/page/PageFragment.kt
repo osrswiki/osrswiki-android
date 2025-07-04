@@ -7,14 +7,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.theme.Theme
 
 class PageFragment : Fragment() {
 
@@ -65,11 +68,24 @@ class PageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val app = requireActivity().application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+
+        // Set the native view background color to match the current theme.
+        val backgroundColorRes = when (currentTheme) {
+            Theme.OSRS_DARK -> R.color.osrs_parchment_dark
+            Theme.WIKI_LIGHT -> R.color.white
+            Theme.WIKI_DARK -> R.color.page_bg_wiki_dark
+            Theme.WIKI_BLACK -> R.color.black
+            else -> R.color.osrs_parchment_light
+        }
+        view.setBackgroundColor(ContextCompat.getColor(requireContext(), backgroundColorRes))
+
         pageLinkHandler = PageLinkHandler(
             requireContext(),
             viewLifecycleOwner.lifecycleScope,
             pageRepository,
-            pageViewModel
+            currentTheme
         )
 
         pageHistoryManager = PageHistoryManager(pageViewModel, viewLifecycleOwner.lifecycleScope) { this }
@@ -85,7 +101,6 @@ class PageFragment : Fragment() {
             },
             onTitleReceived = { newTitle ->
                 if (isAdded) {
-                    // Strip HTML tags from the title before setting it.
                     val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
                     (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
                 }
@@ -119,10 +134,10 @@ class PageFragment : Fragment() {
         binding.pageActionsTabLayout.update()
 
         pageUiUpdater.updateUi()
-        pageLoadCoordinator.initiatePageLoad(forceNetwork = false)
+        pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
         pageReadingListManager.observeAndRefreshSaveButtonState()
 
-        binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(forceNetwork = true) }
+        binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
     }
 
     fun showPageOverflowMenu(anchorView: View) {
@@ -141,7 +156,6 @@ class PageFragment : Fragment() {
         _binding = null
     }
 
-    // Accessor methods for helper classes that need fragment context
     fun getPageIdArg(): String? = pageIdArg
     fun getPageTitleArg(): String? = pageTitleArg
     fun getNavigationSource(): Int = navigationSource

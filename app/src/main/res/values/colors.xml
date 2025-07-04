@@ -19,4 +19,6 @@
     <color name="wiki_text_near_black">#202122</color>
     <color name="wiki_surface_dark">#202122</color>
     <color name="wiki_text_near_white">#EAECF0</color>
+
+    <color name="page_bg_wiki_dark">#1e1e1e</color>
 </resources>
