@@ -26,7 +26,15 @@
                 caption.style.display = 'none';
             }
             
-            titleWrapper.innerHTML = '<strong>' + captionText + ':</strong> Tap to expand';
+            // Create separate elements for the main title and subtitle for easier manipulation.
+            var strongTitle = document.createElement('strong');
+            strongTitle.textContent = captionText + ':';
+
+            var subtitleSpan = document.createElement('span');
+            subtitleSpan.textContent = ' Tap to expand'; // Initial text
+
+            titleWrapper.appendChild(strongTitle);
+            titleWrapper.appendChild(subtitleSpan);
 
             var icon = document.createElement('span');
             icon.className = 'icon';
@@ -39,8 +47,15 @@
             container.appendChild(table);
             table.classList.add('collapsible-content');
 
+            // Add click listener to the header
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
+                // Check the state AFTER toggling and update the text.
+                if (container.classList.contains('collapsed')) {
+                    subtitleSpan.textContent = ' Tap to expand';
+                } else {
+                    subtitleSpan.textContent = ' Tap to collapse';
+                }
             });
         });
     }
