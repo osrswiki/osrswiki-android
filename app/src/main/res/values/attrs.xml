@@ -9,4 +9,5 @@
     <attr name="tabCountTextColor" format="color" />
     <attr name="tabCountBorderColor" format="color" />
     <attr name="search_box_background_color" format="color" />
+    <attr name="linkColor" format="color" />
 </resources>

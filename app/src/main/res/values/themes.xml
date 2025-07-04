@@ -76,6 +76,7 @@
         <item name="paper_color">@color/osrs_parchment_light</item>
         <item name="placeholder_color">@color/osrs_brown_deep</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
+        <item name="linkColor">@color/link_color_osrs_light</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.OSRSWiki.Base.Light">
@@ -101,6 +102,7 @@
         <item name="paper_color">@color/white</item>
         <item name="placeholder_color">#757575</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
+        <item name="linkColor">@color/link_color_wiki_light</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -125,6 +127,7 @@
         <item name="paper_color">@color/osrs_parchment_dark</item>
         <item name="placeholder_color">@color/osrs_text_light_alt</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
+        <item name="linkColor">@color/link_color_osrs_dark</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -150,6 +153,7 @@
         <item name="paper_color">@color/wiki_surface_dark</item>
         <item name="placeholder_color">#BDBDBD</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
+        <item name="linkColor">@color/link_color_wiki_dark</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.OSRSWiki.Base.Dark">
@@ -175,6 +179,7 @@
         <item name="paper_color">@color/black</item>
         <item name="placeholder_color">#BDBDBD</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
+        <item name="linkColor">@color/link_color_wiki_dark</item>
     </style>
 
 </resources>
