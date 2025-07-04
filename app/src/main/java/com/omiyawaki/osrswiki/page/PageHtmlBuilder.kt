@@ -47,8 +47,19 @@ class PageHtmlBuilder(private val context: Context) {
                         height: 0;
                         margin-left: 8px;
                     }
+                    /* Add a default, faint up/down arrow for unsorted columns */
+                    table.sortable th:not([aria-sort])::after {
+                        content: '▲\A▼'; /* CSS newline character \A stacks the triangles */
+                        white-space: pre;
+                        line-height: 0.8em;
+                        color: var(--link-color);
+                        opacity: 0.3;
+                        margin-left: 8px;
+                        display: inline-block;
+                        vertical-align: middle;
+                    }
                     /*
-                     * The CSS rules are intentionally inverted.
+                     * The CSS rules for sorted states are intentionally inverted.
                      * Tablesort.js has a bug where it reports the inverse sort state
                      * in the 'aria-sort' attribute. These rules correct for that.
                      */
