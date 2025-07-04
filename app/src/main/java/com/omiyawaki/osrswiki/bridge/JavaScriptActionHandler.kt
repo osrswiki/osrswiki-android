@@ -1,110 +1,96 @@
 package com.omiyawaki.osrswiki.bridge
 
+import android.content.Context
 import android.util.Log
-import com.omiyawaki.osrswiki.settings.Prefs
+import android.util.TypedValue
+import androidx.core.content.ContextCompat
+import com.omiyawaki.osrswiki.R
+import java.io.IOException
 
 /**
- * Creates JavaScript snippets to be injected into the WebView.
+ * Creates JavaScript snippets and CSS content to be injected into the WebView.
  */
 object JavaScriptActionHandler {
     private const val TAG = "JActionHandler"
+    private const val CSS_PATH = "www/css/collapsible_tables.css"
+    private const val JS_PATH = "www/js/collapsible_tables.js"
 
-    private const val JS_TOGGLE_TABLES_SCRIPT = """
-    document.addEventListener('DOMContentLoaded', function() {
-        (function() {
-            'use strict';
-            if (window.osrsWikiTablesCollapsed) {
-                console.log("JActionHandler: Script already ran. Exiting.");
-                return;
+    /**
+     * Reads the base collapsible_tables.css file and prepends a dynamic <style> block
+     * containing the theme-aware CSS variables.
+     * @param context The context used to resolve theme attributes.
+     * @return A string containing the full CSS to be injected.
+     */
+    fun getCollapsibleTablesCss(context: Context): String {
+        // 1. Fetch the actual color values from your app's theme.
+        val containerBgColor = getThemeColor(context, R.attr.paper_color, "#ffffff")
+        val containerBorderColor = getThemeColor(context, R.attr.border_color, "#a2a9b1")
+        val headerBgColor = getThemeColor(context, R.attr.section_header_color, "#eaecf0")
+        val primaryTextColor = getThemeColor(context, R.attr.primary_text_color, "#202122")
+        val iconColor = getThemeColor(context, R.attr.primary_text_color, "#202122")
+
+        // 2. Define the SVG icons using the theme color.
+        val expandIconSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="$iconColor" d="M7 10l5 5 5-5z"/></svg>"""
+        val collapseIconSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="$iconColor" d="M7 14l5-5 5 5z"/></svg>"""
+
+        // 3. Construct the CSS block that defines the variables.
+        val cssVariables = """
+            :root {
+                --container-bg-color: $containerBgColor;
+                --container-border-color: $containerBorderColor;
+                --header-bg-color: $headerBgColor;
+                --primary-text-color: $primaryTextColor;
+                --icon-expand: ${getCssUrlForSvg(expandIconSvg)};
+                --icon-collapse: ${getCssUrlForSvg(collapseIconSvg)};
             }
-            window.osrsWikiTablesCollapsed = true;
-            console.log("JActionHandler: Running table collapse script.");
+        """.trimIndent()
 
-            function findAncestor(el, sel) {
-                while ((el = el.parentElement) && !el.matches(sel));
-                return el;
-            }
+        val baseCss = getFileFromAssets(context, CSS_PATH)
 
-            function toggleTable(event) {
-                event.preventDefault();
-                // Corrected selector
-                const table = findAncestor(event.target, 'table.wikitable');
-                if (!table) { return; }
+        // 4. Combine the dynamic variables and the base CSS into a single style block.
+        return "<style>$cssVariables\n$baseCss</style>"
+    }
 
-                const isCollapsed = table.classList.toggle('is-collapsed');
-                const toggleElement = table.querySelector('caption .collapsible-toggle');
-                if (toggleElement) {
-                    toggleElement.innerText = isCollapsed ? '[show]' : '[hide]';
-                }
+    /**
+     * Reads the collapsible_tables.js file from assets.
+     * @param context The context used to access assets.
+     * @return A string containing the JavaScript to be injected.
+     */
+    fun getCollapsibleTablesJs(context: Context): String {
+        return getFileFromAssets(context, JS_PATH)
+    }
 
-                for (const body of table.tBodies) {
-                    // We start at index 1 to skip the first row in the table body,
-                    // which often contains a sub-header or other important info.
-                    for (let i = 0; i < body.rows.length; i++) {
-                         // A better approach is to not hide the header row, instead of a specific index
-                        if (body.rows[i].getElementsByTagName('th').length > 0) {
-                            continue;
-                        }
-                        body.rows[i].style.display = isCollapsed ? 'none' : '';
-                    }
-                }
-            }
-
-            // Corrected selector
-            const tables = document.querySelectorAll('table.wikitable');
-            console.log("JActionHandler: Found " + tables.length + " wikitable tables.");
-
-            tables.forEach(function(table) {
-                // To be collapsible, a table must have a caption
-                const caption = table.querySelector('caption');
-                if (caption && !caption.querySelector('.collapsible-toggle-wrapper')) {
-                    const originalText = document.createElement('span');
-                    originalText.innerText = caption.innerText;
-
-                    const toggleWrapper = document.createElement('span');
-                    toggleWrapper.className = 'collapsible-toggle-wrapper';
-                    toggleWrapper.style.display = 'flex';
-                    toggleWrapper.style.justifyContent = 'space-between';
-                    toggleWrapper.style.width = '100%';
-
-                    const toggle = document.createElement('span');
-                    toggle.className = 'collapsible-toggle';
-                    toggle.innerText = '[show]';
-                    toggle.style.cursor = 'pointer';
-                    toggle.style.color = 'var(--link-color, #0645ad)';
-                    toggle.style.userSelect = 'none';
-
-                    caption.innerText = '';
-                    toggleWrapper.appendChild(originalText);
-                    toggleWrapper.appendChild(toggle);
-                    caption.appendChild(toggleWrapper);
-
-                    table.classList.add('is-collapsed');
-                    for (const body of table.tBodies) {
-                         for (let i = 0; i < body.rows.length; i++) {
-                            if (body.rows[i].getElementsByTagName('th').length > 0) {
-                                continue;
-                            }
-                            body.rows[i].style.display = 'none';
-                        }
-                    }
-                    caption.addEventListener('click', toggleTable);
-                }
-            });
-            console.log("JActionHandler: Finished processing tables.");
-        })();
-    });
-    """
-
-    fun getToggleTablesScript(): String {
-        val isEnabled = Prefs.isCollapseTablesEnabled
-        Log.d(TAG, "isCollapseTablesEnabled preference is: $isEnabled")
-        return if (isEnabled) {
-            Log.d(TAG, "Returning table collapse script.")
-            JS_TOGGLE_TABLES_SCRIPT
-        } else {
-            Log.d(TAG, "Returning empty script because preference is disabled.")
+    private fun getFileFromAssets(context: Context, path: String): String {
+        return try {
+            context.assets.open(path).bufferedReader().use { it.readText() }
+        } catch (e: IOException) {
+            // Log the error and return an empty string if the file cannot be read.
+            Log.e(TAG, "Error reading asset: $path", e)
             ""
         }
+    }
+
+    private fun getThemeColor(context: Context, attrId: Int, fallback: String): String {
+        val typedValue = TypedValue()
+        if (!context.theme.resolveAttribute(attrId, typedValue, true)) {
+            Log.e(TAG, "Failed to resolve theme attribute ID #$attrId")
+            return fallback
+        }
+
+        val color = if (typedValue.resourceId != 0) {
+            // The attribute pointed to a resource (e.g., @color/some_color)
+            ContextCompat.getColor(context, typedValue.resourceId)
+        } else {
+            // The attribute pointed to a direct value (e.g., #FFFFFF)
+            typedValue.data
+        }
+
+        // Format as a hex string for CSS, ignoring the alpha channel.
+        return String.format("#%06X", (0xFFFFFF and color))
+    }
+
+    private fun getCssUrlForSvg(svg: String): String {
+        // URL-encode the SVG to be safely used in a data URI.
+        return "url(\"data:image/svg+xml,${java.net.URLEncoder.encode(svg, "UTF-8")}\")"
     }
 }
