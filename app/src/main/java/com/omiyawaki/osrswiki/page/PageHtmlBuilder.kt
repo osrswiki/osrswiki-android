@@ -65,6 +65,25 @@ class PageHtmlBuilder(private val context: Context) {
                     ${tablesortJs}
                 </script>
                 <script>
+                    // Extend Tablesort.js with a custom parser for comma-separated numbers.
+                    // The library checks the first row of data to determine a column's type.
+                    Tablesort.extend('numeric-comma', function(item) {
+                        // Test if the cell content is a number with commas.
+                        return /^-?[\d,]+(?:\.\d+)?$/.test(item);
+                    }, function(a, b) {
+                        // Clean the strings and compare them as numbers.
+                        var cleanA = a.replace(/,/g, '');
+                        var cleanB = b.replace(/,/g, '');
+                        var numA = parseFloat(cleanA);
+                        var numB = parseFloat(cleanB);
+
+                        numA = isNaN(numA) ? 0 : numA;
+                        numB = isNaN(numB) ? 0 : numB;
+
+                        return numA - numB;
+                    });
+                </script>
+                <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         var tables = document.querySelectorAll('table.wikitable');
 
@@ -86,6 +105,7 @@ class PageHtmlBuilder(private val context: Context) {
                                 }
                                 table.insertBefore(thead, table.firstChild);
                             }
+                            // The custom 'numeric-comma' parser will be applied automatically.
                             new Tablesort(table);
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
