@@ -1,0 +1,25 @@
+/* --- Custom Fixes & Overrides --- */
+
+/*
+ * Set a consistent size for all images within a wikitable.
+ * This is the general rule for skill icons and other simple images.
+ */
+.wikitable img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0;
+}
+
+/*
+ * Specifically target the <figure> element that wraps certain icons
+ * (like the Members star) and force its size. This overrides the
+ * problematic upstream styles that were collapsing its width.
+ */
+.wikitable figure.mw-default-size {
+    width: 22px;
+    height: 22px;
+    margin: 0 auto; /* Center the container in the table cell */
+}
