@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -40,7 +39,6 @@ class PageFragment : Fragment() {
     private lateinit var pageHistoryManager: PageHistoryManager
     private lateinit var pageReadingListManager: PageReadingListManager
     private lateinit var pageUiUpdater: PageUiUpdater
-    private lateinit var contentsHandler: ContentsHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
@@ -71,6 +69,8 @@ class PageFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        (requireActivity() as PageActivity).getContentsHandler().initViews()
 
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
@@ -131,12 +131,7 @@ class PageFragment : Fragment() {
         }
 
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
-
         pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope) { this }
-
-        val pageActivity = requireActivity() as PageActivity
-        val drawerLayout = pageActivity.findViewById<DrawerLayout>(R.id.page_drawer_layout)
-        contentsHandler = ContentsHandler(this, drawerLayout)
 
         binding.pageActionsTabLayout.callback = pageActionHandler.callback
         binding.pageActionsTabLayout.update()
@@ -177,7 +172,7 @@ class PageFragment : Fragment() {
                     val title = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
                     val leadSection = Section(0, 1, "", title)
                     val fullToc = mutableListOf(leadSection).apply { addAll(sections) }
-                    contentsHandler.setup(fullToc)
+                    (requireActivity() as PageActivity).setupContents(fullToc)
                 } catch (e: Exception) {
                     L.e("Failed to parse TOC JSON", e)
                 }
@@ -186,9 +181,7 @@ class PageFragment : Fragment() {
     }
 
     fun showContents() {
-        if (::contentsHandler.isInitialized) {
-            contentsHandler.show()
-        }
+        (requireActivity() as PageActivity).showContents()
     }
 
     fun showPageOverflowMenu(anchorView: View) {

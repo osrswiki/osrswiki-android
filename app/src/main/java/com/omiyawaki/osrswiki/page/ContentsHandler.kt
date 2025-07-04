@@ -8,9 +8,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
+import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
 import androidx.drawerlayout.widget.DrawerLayout
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
@@ -23,52 +24,70 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class ContentsHandler(
-    private val fragment: PageFragment,
+    private val activity: PageActivity,
     private val drawerLayout: DrawerLayout
-) : PageScrollerView.Callback,
-    ObservableWebView.OnScrollChangeListener,
+) : ObservableWebView.OnScrollChangeListener,
     ObservableWebView.OnContentHeightChangedListener {
 
-    private val webView: ObservableWebView = fragment.requireView().findViewById(R.id.page_web_view)
-    private val scrollerView: PageScrollerView = fragment.requireView().findViewById(R.id.page_scroller_view)
-    private val tocListView: ListView = drawerLayout.findViewById(R.id.toc_list_view)
+    private lateinit var webView: ObservableWebView
+    private lateinit var scrollerView: PageScrollerView
+    private lateinit var tocListView: ListView
+    private lateinit var sidePanelContainer: View
 
-    private val tocAdapter = TocAdapter(fragment.requireContext())
+    private val tocAdapter = TocAdapter(activity)
     private val sectionYOffsets = SparseIntArray()
+    private var currentHighlightedPosition = 0
+    private var isInitialized = false
 
-    init {
-        scrollerView.callback = this
-        scrollerView.visibility = View.GONE
-        tocListView.adapter = tocAdapter
-        tocListView.setOnItemClickListener { _, _, position, _ ->
-            val section = tocAdapter.getItem(position) as Section
-            scrollToSection(section)
-            hide()
-        }
+    fun initViews() {
+        sidePanelContainer = drawerLayout.findViewById(R.id.side_panel_container)
+        tocListView = drawerLayout.findViewById(R.id.toc_list_view)
+        scrollerView = drawerLayout.findViewById(R.id.page_scroller_view)
 
-        webView.addOnScrollChangeListener(this)
-        webView.addOnContentHeightChangedListener(this)
+        val fragment = activity.supportFragmentManager.findFragmentByTag(PageActivity.FRAGMENT_TAG) as? PageFragment
+        fragment?.view?.let { fragmentView ->
+            webView = fragmentView.findViewById(R.id.page_web_view)
+            webView.addOnScrollChangeListener(this)
+            webView.addOnContentHeightChangedListener(this)
+
+            scrollerView.callback = ScrollerCallback()
+
+            tocListView.adapter = tocAdapter
+            tocListView.divider = null
+            tocListView.dividerHeight = 0
+            tocListView.setOnItemClickListener { _, _, position, _ ->
+                val section = tocAdapter.getItem(position) as Section
+                scrollToSection(section)
+                hide()
+            }
+            isInitialized = true
+        } ?: L.e("Could not initialize ContentsHandler views because PageFragment was not found.")
     }
 
     fun setup(sections: List<Section>) {
+        if (!isInitialized) return
         tocAdapter.setSections(sections)
         scrollerView.visibility = if (sections.size > 1) View.VISIBLE else View.GONE
         webView.postDelayed({ fetchSectionOffsets() }, 500)
     }
 
     fun show() {
-        drawerLayout.openDrawer(tocListView)
+        if (!isInitialized) return
+        drawerLayout.openDrawer(sidePanelContainer)
     }
 
     fun hide() {
-        drawerLayout.closeDrawer(tocListView)
+        if (!isInitialized) return
+        drawerLayout.closeDrawer(sidePanelContainer)
     }
 
     fun isVisible(): Boolean {
-        return drawerLayout.isDrawerOpen(tocListView)
+        if (!isInitialized) return false
+        return drawerLayout.isDrawerOpen(sidePanelContainer)
     }
 
     private fun scrollToSection(section: Section) {
+        if (!isInitialized) return
         if (section.isLead) {
             webView.scrollTo(0, 0)
         } else {
@@ -78,6 +97,7 @@ class ContentsHandler(
     }
 
     private fun fetchSectionOffsets() {
+        if (!isInitialized) return
         val script = """
             (function() {
                 var offsets = {};
@@ -85,8 +105,8 @@ class ContentsHandler(
                 for (var i = 0; i < headerSpans.length; i++) {
                     var span = headerSpans[i];
                      if (span.id && (span.parentElement.tagName === 'H2' || span.parentElement.tagName === 'H3')) {
-                        offsets[span.id] = span.parentElement.offsetTop;
-                    }
+                         offsets[span.id] = span.parentElement.offsetTop;
+                     }
                 }
                 return JSON.stringify(offsets);
             })();
@@ -107,65 +127,69 @@ class ContentsHandler(
         }
     }
 
-    private fun setScrollerPosition(scrollY: Int) {
+    private fun setScrollerPosition() {
+        if (!isInitialized) return
         val contentHeight = webView.contentHeight * DimenUtil.densityScalar
         if (contentHeight == 0f) return
 
-        val scrollProportion = scrollY / contentHeight
+        val scrollProportion = webView.scrollY / contentHeight
         val availableHeight = webView.height - scrollerView.height
         val newTopMargin = (scrollProportion * availableHeight).toInt()
 
-        val params = scrollerView.layoutParams as? ViewGroup.MarginLayoutParams
-        params?.let {
-            it.topMargin = newTopMargin
-            scrollerView.layoutParams = it
+        scrollerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = newTopMargin.coerceIn(0, availableHeight)
         }
     }
 
     private fun updateTocHighlight(scrollY: Int) {
+        if (!isInitialized) return
         val scrollWithOffset = scrollY + (webView.height / 4)
-        var currentSectionIndex = 0
+        var newHighlightedPosition = 0
         (0 until tocAdapter.count).forEach { i ->
             val section = tocAdapter.getItem(i) as Section
             if (section.isLead) return@forEach
 
             val sectionY = sectionYOffsets.get(section.anchor.hashCode(), 0) * DimenUtil.densityScalar
-            if (scrollWithOffset > sectionY) {
-                currentSectionIndex = i
+            if (scrollWithOffset >= sectionY) {
+                newHighlightedPosition = i
             } else {
                 return@forEach
             }
         }
-        tocAdapter.setHighlightedItem(currentSectionIndex)
-    }
 
-    override fun onScrollStart() {
-        show()
-    }
-
-    override fun onScrollStop() {
-        hide()
-    }
-
-    override fun onVerticalScroll(dy: Float) {
-        val contentHeight = webView.contentHeight * DimenUtil.densityScalar
-        val scrollRange = contentHeight - webView.height
-        if (scrollRange <= 0) return
-
-        val scrollProportion = dy / webView.height
-        val scrollBy = (scrollProportion * scrollRange).toInt()
-        webView.scrollBy(0, scrollBy)
+        if (currentHighlightedPosition != newHighlightedPosition) {
+            currentHighlightedPosition = newHighlightedPosition
+            tocAdapter.setHighlightedItem(currentHighlightedPosition)
+            tocListView.smoothScrollToPosition(currentHighlightedPosition)
+        }
     }
 
     override fun onScrollChanged(oldScrollY: Int, scrollY: Int, isHumanScroll: Boolean) {
-        if (!fragment.isAdded) return
-        setScrollerPosition(scrollY)
-        updateTocHighlight(scrollY)
+        if (!activity.isDestroyed && isInitialized) {
+            setScrollerPosition()
+            updateTocHighlight(scrollY)
+        }
     }
 
     override fun onContentHeightChanged(contentHeight: Int) {
-        if (!fragment.isAdded) return
-        fetchSectionOffsets()
+        if (!activity.isDestroyed && isInitialized) {
+            fetchSectionOffsets()
+        }
+    }
+
+    private inner class ScrollerCallback : PageScrollerView.Callback {
+        override fun onVerticalScroll(dy: Float) {
+            if (!isInitialized) return
+            val contentHeight = webView.contentHeight * DimenUtil.densityScalar
+            val scrollRange = contentHeight - webView.height
+            if (scrollRange <= 0) return
+
+            val scrollProportion = dy / webView.height
+            val scrollBy = (scrollProportion * scrollRange).toInt()
+            webView.scrollBy(0, scrollBy)
+        }
+        override fun onScrollStart() {}
+        override fun onScrollStop() {}
     }
 
     private inner class TocAdapter(private val context: Context) : BaseAdapter() {
@@ -182,7 +206,6 @@ class ContentsHandler(
             if (highlightedPosition != position) {
                 highlightedPosition = position
                 notifyDataSetChanged()
-                tocListView.smoothScrollToPosition(position)
             }
         }
 
@@ -193,21 +216,42 @@ class ContentsHandler(
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
             val view = convertView ?: inflater.inflate(R.layout.toc_item, parent, false)
             val section = getItem(position) as Section
-            val textView = view.findViewById<TextView>(R.id.toc_item_text)
 
-            val indentation = (section.level - 1) * 16
-            textView.setPadding(DimenUtil.roundedDpToPx(indentation.toFloat()), textView.paddingTop, textView.paddingRight, textView.paddingBottom)
+            val textView = view.findViewById<TextView>(R.id.toc_item_text)
+            val bullet = view.findViewById<ImageView>(R.id.toc_item_bullet)
+
             textView.text = section.title
+
+            val bodyTypeface = Typeface.SERIF
+
+            val textSize: Float
+            when {
+                section.isLead -> {
+                    textSize = 24f
+                    textView.typeface = bodyTypeface
+                }
+                section.level == 2 -> {
+                    textSize = 18f
+                    textView.typeface = bodyTypeface
+                }
+                else -> {
+                    textSize = 14f
+                    textView.typeface = bodyTypeface
+                }
+            }
+            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize)
 
             val typedValue = TypedValue()
             if (position == highlightedPosition) {
-                textView.typeface = Typeface.DEFAULT_BOLD
+                textView.typeface = Typeface.create(textView.typeface, Typeface.BOLD_ITALIC)
                 context.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
                 textView.setTextColor(typedValue.data)
+                bullet.setColorFilter(typedValue.data)
             } else {
-                textView.typeface = Typeface.DEFAULT
                 context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
                 textView.setTextColor(typedValue.data)
+                context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)
+                bullet.setColorFilter(typedValue.data)
             }
             return view
         }

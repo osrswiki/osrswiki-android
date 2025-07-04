@@ -11,6 +11,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.TabCountsView
 
@@ -22,6 +23,7 @@ class PageActivity : BaseActivity() {
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
 
     private var pageFragment: PageFragment? = null
+    private lateinit var contentsHandler: ContentsHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +33,8 @@ class PageActivity : BaseActivity() {
         setSupportActionBar(binding.pageToolbar)
         supportActionBar?.title = "Loading..."
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        contentsHandler = ContentsHandler(this, binding.pageDrawerLayout)
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -61,6 +65,22 @@ class PageActivity : BaseActivity() {
             pageFragment = fragment
             L.d("PageFragment attached to PageActivity.")
         }
+    }
+
+    fun setupContents(sections: List<Section>) {
+        if (::contentsHandler.isInitialized) {
+            contentsHandler.setup(sections)
+        }
+    }
+
+    fun showContents() {
+        if (::contentsHandler.isInitialized) {
+            contentsHandler.show()
+        }
+    }
+    
+    fun getContentsHandler(): ContentsHandler {
+        return contentsHandler
     }
 
     private fun setupToolbarListeners() {
@@ -96,28 +116,20 @@ class PageActivity : BaseActivity() {
     }
 
     companion object {
-/**
-         * Creates an Intent to start PageActivity from an UpdateItem.
-         * This method correctly parses the canonical page title from the item's URL.
-         */
         fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
             val canonicalTitle = getPageTitleFromUrl(updateItem.articleUrl)
-            // Call the existing newIntent with the correctly parsed title.
             return newIntent(context, canonicalTitle, null, source)
         }
 
         private fun getPageTitleFromUrl(url: String): String {
-            // Get the last part of the URL path (e.g., "Update:BTS_Prep_%26_Small_fixes")
             val pathSegment = url.substringAfterLast('/')
-            // Replace underscores with spaces
             val withSpaces = pathSegment.replace('_', ' ')
-            // Decode any percent-encoded characters (like %26 -> &)
             return java.net.URLDecoder.decode(withSpaces, "UTF-8")
         }
         const val EXTRA_PAGE_TITLE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_TITLE"
         const val EXTRA_PAGE_ID = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_ID"
         const val EXTRA_PAGE_SOURCE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SOURCE"
-        private const val FRAGMENT_TAG = "PageFragmentTag"
+        const val FRAGMENT_TAG = "PageFragmentTag"
 
         fun newIntent(context: Context, pageTitle: String?, pageId: String?, source: Int): Intent {
             return Intent(context, PageActivity::class.java).apply {
