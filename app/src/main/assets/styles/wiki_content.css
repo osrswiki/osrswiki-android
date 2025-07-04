@@ -13,6 +13,7 @@ html {
     width: 100%;
     margin: 0;
     padding: 0;
+    overflow-x: hidden; /* Prevent horizontal page scrolling */
 }
 
 body {
@@ -24,6 +25,7 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden; /* Prevent horizontal page scrolling */
 }
 
 /* --- Variable Definitions --- */
@@ -123,13 +125,13 @@ body.theme-wikipedia-dark {
     color-scheme: dark;
     --body-background-image: none;
     --body-background-color: #121212; /* Dark grey page background */
-    --body-main: #1e1e1e;             /* Main content area background */
-    --body-light: #2c2c2c;             /* Lighter shade for infobox body */
+    --body-main: #1e1e1e;           /* Main content area background */
+    --body-light: #2c2c2c;           /* Lighter shade for infobox body */
     --body-mid: #252525;
-    --body-dark-shade: #333333;       /* Darker shade for infobox headers */
+    --body-dark-shade: #333333;      /* Darker shade for infobox headers */
     --body-border: #444444;
-    --text-color: #e8eaed;             /* Light grey for text */
-    --link-color: #8ab4f8;             /* A light blue for links */
+    --text-color: #e8eaed;           /* Light grey for text */
+    --link-color: #8ab4f8;           /* A light blue for links */
     --link-visited-color: #c58af9;
     --redlink-color: #f28b82;
     --heading-color: var(--text-color);
@@ -250,11 +252,11 @@ code {
 
 .scrollable-table-wrapper {
     overflow-x: auto;
-    width: 100%;
     margin-bottom: 1em;
 }
 .scrollable-table-wrapper > table.wikitable {
-    min-width: 100%;
+    width: auto; /* Allow table to expand to its natural content width */
+    min-width: 100%; /* Ensure it's at least as wide as the screen */
 }
 
 table.wikitable {
