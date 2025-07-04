@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".page.PageFragment">
 
-    <WebView
+    <com.omiyawaki.osrswiki.views.ObservableWebView
         android:id="@+id/page_web_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -14,7 +14,8 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/page_actions_tab_layout" />
+        app:layout_constraintBottom_toTopOf="@+id/page_actions_tab_layout"
+        tools:visibility="visible"/>
 
     <ProgressBar
         android:id="@+id/progressBar"
@@ -43,7 +44,23 @@
         app:layout_constraintBottom_toBottomOf="@+id/page_web_view"
         app:layout_constraintEnd_toEndOf="@+id/page_web_view"
         app:layout_constraintStart_toStartOf="@+id/page_web_view"
-        app:layout_constraintTop_toTopOf="@+id/page_web_view"
+        app:layout_constraintTop_toTopOf="@+id/page_web_view" />
+
+    <com.omiyawaki.osrswiki.view.PageScrollerView
+        android:id="@+id/page_scroller_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/shape_circle"
+        android:elevation="5dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_baseline_drag_handle_24"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorPrimary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="?attr/colorOnPrimary"
         tools:visibility="visible" />
 
     <com.omiyawaki.osrswiki.page.PageActionTabLayout

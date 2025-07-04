@@ -33,8 +33,8 @@ class PageWebViewManager(
                 // feature is enabled.
                 if (Prefs.isCollapseTablesEnabled) {
                     // If so, call the function defined in our injected JS file.
-//                     Log.d(managerTag, "Calling makeTablesCollapsible().")
-//                     view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
+//                    Log.d(managerTag, "Calling makeTablesCollapsible().")
+//                    view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
                 }
 
                 revealBody()

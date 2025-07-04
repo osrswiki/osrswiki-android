@@ -2,13 +2,13 @@ package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -16,8 +16,11 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
+import com.omiyawaki.osrswiki.util.log.L
+import kotlinx.serialization.json.Json
 
 class PageFragment : Fragment() {
 
@@ -37,6 +40,7 @@ class PageFragment : Fragment() {
     private lateinit var pageHistoryManager: PageHistoryManager
     private lateinit var pageReadingListManager: PageReadingListManager
     private lateinit var pageUiUpdater: PageUiUpdater
+    private lateinit var contentsHandler: ContentsHandler
 
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
@@ -71,7 +75,6 @@ class PageFragment : Fragment() {
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
 
-        // Set the native view background color to match the current theme.
         val backgroundColorRes = when (currentTheme) {
             Theme.OSRS_DARK -> R.color.osrs_parchment_dark
             Theme.WIKI_LIGHT -> R.color.white
@@ -97,6 +100,7 @@ class PageFragment : Fragment() {
                 if (isAdded && _binding != null) {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
+                    fetchTableOfContents()
                 }
             },
             onTitleReceived = { newTitle ->
@@ -130,6 +134,10 @@ class PageFragment : Fragment() {
 
         pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope) { this }
 
+        val pageActivity = requireActivity() as PageActivity
+        val drawerLayout = pageActivity.findViewById<DrawerLayout>(R.id.page_drawer_layout)
+        contentsHandler = ContentsHandler(this, drawerLayout)
+
         binding.pageActionsTabLayout.callback = pageActionHandler.callback
         binding.pageActionsTabLayout.update()
 
@@ -138,6 +146,49 @@ class PageFragment : Fragment() {
         pageReadingListManager.observeAndRefreshSaveButtonState()
 
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
+    }
+
+    private fun fetchTableOfContents() {
+        val script = """
+            (function() {
+                var sections = [];
+                var headerSpans = document.querySelectorAll('.mw-headline');
+                for (var i = 0; i < headerSpans.length; i++) {
+                    var span = headerSpans[i];
+                    var header = span.parentElement;
+                    if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
+                        var level = parseInt(header.tagName.substring(1));
+                        sections.push({
+                            id: i + 1,
+                            level: level,
+                            anchor: span.id,
+                            title: span.textContent.trim()
+                        });
+                    }
+                }
+                return JSON.stringify(sections);
+            })();
+        """
+        binding.pageWebView.evaluateJavascript(script) { jsonString ->
+            if (jsonString != null && jsonString != "null") {
+                try {
+                    val cleanedJson = jsonString.removeSurrounding("\"").replace("\\\"", "\"")
+                    val sections = Json.decodeFromString<List<Section>>(cleanedJson)
+                    val title = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
+                    val leadSection = Section(0, 1, "", title)
+                    val fullToc = mutableListOf(leadSection).apply { addAll(sections) }
+                    contentsHandler.setup(fullToc)
+                } catch (e: Exception) {
+                    L.e("Failed to parse TOC JSON", e)
+                }
+            }
+        }
+    }
+
+    fun showContents() {
+        if (::contentsHandler.isInitialized) {
+            contentsHandler.show()
+        }
     }
 
     fun showPageOverflowMenu(anchorView: View) {
