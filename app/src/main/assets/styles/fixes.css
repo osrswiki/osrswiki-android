@@ -23,3 +23,12 @@
     height: 22px;
     margin: 0 auto; /* Center the container in the table cell */
 }
+
+/*
+ * Fix for images inside list items (<li>) that were being
+ * rendered as block elements, causing text to wrap to the next line.
+ */
+li img.mw-file-element {
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
