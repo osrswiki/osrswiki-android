@@ -7,6 +7,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import com.omiyawaki.osrswiki.dataclient.WikiSite
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 
 class PageWebViewManager(
@@ -27,6 +28,15 @@ class PageWebViewManager(
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
+
+                // After the page finishes loading, check if the collapsible tables
+                // feature is enabled.
+                if (Prefs.isCollapseTablesEnabled) {
+                    // If so, call the function defined in our injected JS file.
+                    Log.d(managerTag, "Calling makeTablesCollapsible().")
+                    view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
+                }
+
                 revealBody()
             }
         }

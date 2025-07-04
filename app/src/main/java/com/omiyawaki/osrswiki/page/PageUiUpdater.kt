@@ -7,6 +7,7 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
+import com.omiyawaki.osrswiki.settings.Prefs
 
 class PageUiUpdater(
     private val binding: FragmentPageBinding,
@@ -41,14 +42,19 @@ class PageUiUpdater(
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
 
                 var finalHtml = state.htmlContent
-                val tableScript = JavaScriptActionHandler.getToggleTablesScript()
 
-                if (tableScript.isNotEmpty()) {
-                    Log.d(TAG, "Injecting table collapse script into HTML.")
-                    val scriptTag = "<script>$tableScript</script>"
-                    finalHtml = finalHtml.replace("</head>", "$scriptTag</head>", ignoreCase = true)
+                // Check the preference for enabling collapsible tables.
+                if (Prefs.isCollapseTablesEnabled) {
+                    Log.d(TAG, "Collapsible tables enabled. Injecting CSS and JS.")
+                    // Get the theme-aware CSS and the feature JavaScript.
+                    val css = JavaScriptActionHandler.getCollapsibleTablesCss(fragment.requireContext())
+                    val js = JavaScriptActionHandler.getCollapsibleTablesJs(fragment.requireContext())
+                    val scriptTag = "<script>${js}</script>"
+
+                    // Inject both the CSS <style> block and the JS <script> block into the head.
+                    finalHtml = finalHtml.replace("</head>", "$css$scriptTag</head>", ignoreCase = true)
                 } else {
-                    Log.d(TAG, "Table collapse script is empty, not injecting.")
+                    Log.d(TAG, "Collapsible tables disabled, not injecting.")
                 }
 
                 pageWebViewManager.render(

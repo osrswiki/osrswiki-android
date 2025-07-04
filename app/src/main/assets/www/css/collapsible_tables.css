@@ -1,0 +1,59 @@
+/*
+ The main wrapper for a collapsible table.
+ Uses CSS variables that will be injected by the native app code
+ to ensure styling matches the current app theme.
+*/
+.collapsible-container {
+    border: 1px solid var(--container-border-color);
+    background-color: var(--container-bg-color);
+    border-radius: 2px;
+    margin-bottom: 1em;
+    overflow: hidden;
+}
+
+/* The clickable header bar */
+.collapsible-container .section-header {
+    background-color: var(--header-bg-color);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* The text within the header, e.g., "More information (High Level Alchemy)" */
+.collapsible-container .section-header .section-header-title {
+    color: var(--primary-text-color);
+    font-size: 0.9em;
+    flex-grow: 1;
+}
+
+/* The chevron icon element */
+.collapsible-container .section-header .section-header-icon {
+    width: 24px;
+    height: 24px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: transform 0.1s linear;
+}
+
+/* Icon state when the section is collapsed (pointing down) */
+.section-header-icon.icon-expand {
+    background-image: var(--icon-expand);
+}
+
+/* Icon state when the section is expanded (pointing up) */
+.section-header-icon.icon-collapse {
+    background-image: var(--icon-collapse);
+}
+
+/* The content area that holds the original table */
+.collapsible-container .collapsible-content {
+    padding: 0 12px 12px;
+    background-color: var(--container-bg-color);
+}
+
+/* When the container is collapsed, hide the content */
+.collapsible-container.collapsed .collapsible-content {
+    display: none;
+}
