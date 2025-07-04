@@ -149,7 +149,7 @@ class PageActionHandler(
         }
 
         override fun onContentsSelected() {
-            showThemedSnackbar("Contents: Not yet implemented.", Snackbar.LENGTH_SHORT)
+            (fragment as? PageFragment)?.showContents()
         }
     }
 }

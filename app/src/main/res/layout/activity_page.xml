@@ -1,38 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/page_drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".page.PageActivity">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/app_bar_layout"
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        android:stateListAnimator="@null"
-        android:outlineProvider="bounds">
+        android:layout_height="match_parent">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/page_toolbar"
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/app_bar_layout"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:contentInsetStartWithNavigation="0dp">
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurface"
+            android:elevation="4dp"
+            android:stateListAnimator="@null"
+            android:outlineProvider="bounds">
 
-            <include layout="@layout/view_unified_toolbar" />
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/page_toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:contentInsetStartWithNavigation="0dp">
 
-        </com.google.android.material.appbar.MaterialToolbar>
-    </com.google.android.material.appbar.AppBarLayout>
+                <include layout="@layout/view_unified_toolbar" />
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/page_fragment_container"
-        android:name="com.omiyawaki.osrswiki.page.PageFragment"
-        android:layout_width="match_parent"
+            </com.google.android.material.appbar.MaterialToolbar>
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/page_fragment_container"
+            android:name="com.omiyawaki.osrswiki.page.PageFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?attr/paper_color"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            tools:layout="@layout/fragment_page" />
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <ListView
+        android:id="@+id/toc_list_view"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
-        android:background="?attr/paper_color"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
-        tools:layout="@layout/fragment_page" />
+        android:layout_gravity="end"
+        android:background="?android:attr/colorBackground"
+        android:choiceMode="singleChoice" />
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.drawerlayout.widget.DrawerLayout>
