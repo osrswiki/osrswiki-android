@@ -1,56 +1,48 @@
 package com.omiyawaki.osrswiki.settings
 
-import android.content.SharedPreferences
-import androidx.preference.PreferenceManager
-import com.omiyawaki.osrswiki.OSRSWikiApp
-
+/**
+ * Provides easy access to app-wide shared preferences.
+ */
 object Prefs {
-    private fun getPrefs(): SharedPreferences {
-        return PreferenceManager.getDefaultSharedPreferences(OSRSWikiApp.instance)
-    }
-
-    // --- Existing Preferences (Restored and Refactored) ---
-    private const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "isDownloadingReadingListArticlesEnabled"
-    private const val DEFAULT_DOWNLOAD_READING_LIST_ARTICLES = true
-
-    /**
-     * Manages the setting for whether to automatically download articles added to reading lists.
-     */
-    var isDownloadingReadingListArticlesEnabled: Boolean
-        get() = getPrefs().getBoolean(KEY_DOWNLOAD_READING_LIST_ARTICLES, DEFAULT_DOWNLOAD_READING_LIST_ARTICLES)
-        set(value) = getPrefs().edit().putBoolean(KEY_DOWNLOAD_READING_LIST_ARTICLES, value).apply()
-
-
-    // --- New Theme Preferences ---
-    const val KEY_APP_THEME_MODE = "app_theme_mode"
-    const val KEY_LIGHT_THEME_CHOICE = "light_theme_choice"
-    const val KEY_DARK_THEME_CHOICE = "dark_theme_choice"
-
-    private const val DEFAULT_APP_THEME_MODE = "auto"
-    private const val DEFAULT_LIGHT_THEME_CHOICE = "osrs_light"
-    private const val DEFAULT_DARK_THEME_CHOICE = "osrs_dark"
+    // String constants for preference keys, to be used by fragments and the data layer.
+    const val KEY_APP_THEME_MODE = "appThemeMode"
+    const val KEY_LIGHT_THEME_CHOICE = "lightThemeChoice"
+    const val KEY_DARK_THEME_CHOICE = "darkThemeChoice"
+    const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "downloadReadingListArticles"
+    const val KEY_COLLAPSE_TABLES = "collapseTables"
 
     /**
-     * Manages the selected application theme mode.
-     * Values: "light", "dark", "auto"
+     * Gets whether tables in WebViews should be collapsed by default.
+     * Defaults to true.
      */
-    var appThemeMode: String
-        get() = getPrefs().getString(KEY_APP_THEME_MODE, DEFAULT_APP_THEME_MODE) ?: DEFAULT_APP_THEME_MODE
-        set(value) = getPrefs().edit().putString(KEY_APP_THEME_MODE, value).apply()
+    val isCollapseTablesEnabled
+        get() = PrefsIoUtil.getBoolean(KEY_COLLAPSE_TABLES, true)
 
     /**
-     * Manages the selected light theme variant.
-     * Values: "osrs_light", "wiki_light"
+     * Gets whether reading list articles should be downloaded for offline use.
+     * Defaults to true.
      */
-    var lightThemeChoice: String
-        get() = getPrefs().getString(KEY_LIGHT_THEME_CHOICE, DEFAULT_LIGHT_THEME_CHOICE) ?: DEFAULT_LIGHT_THEME_CHOICE
-        set(value) = getPrefs().edit().putString(KEY_LIGHT_THEME_CHOICE, value).apply()
+    val isDownloadingReadingListArticlesEnabled
+        get() = PrefsIoUtil.getBoolean(KEY_DOWNLOAD_READING_LIST_ARTICLES, true)
 
     /**
-     * Manages the selected dark theme variant.
-     * Values: "osrs_dark", "wiki_dark", "wiki_black"
+     * Gets the current theme mode (e.g., default, light, dark).
+     * Defaults to "default".
      */
-    var darkThemeChoice: String
-        get() = getPrefs().getString(KEY_DARK_THEME_CHOICE, DEFAULT_DARK_THEME_CHOICE) ?: DEFAULT_DARK_THEME_CHOICE
-        set(value) = getPrefs().edit().putString(KEY_DARK_THEME_CHOICE, value).apply()
+    val appThemeMode
+        get() = PrefsIoUtil.getString(KEY_APP_THEME_MODE, "default") ?: "default"
+
+    /**
+     * Gets the specific choice for the light theme.
+     * Defaults to "light".
+     */
+    val lightThemeChoice
+        get() = PrefsIoUtil.getString(KEY_LIGHT_THEME_CHOICE, "light") ?: "light"
+
+    /**
+     * Gets the specific choice for the dark theme.
+     * Defaults to "dark".
+     */
+    val darkThemeChoice
+        get() = PrefsIoUtil.getString(KEY_DARK_THEME_CHOICE, "dark") ?: "dark"
 }
