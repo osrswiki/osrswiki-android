@@ -1,59 +1,47 @@
-/*
- The main wrapper for a collapsible table.
- Uses CSS variables that will be injected by the native app code
- to ensure styling matches the current app theme.
-*/
 .collapsible-container {
-    border: 1px solid var(--container-border-color);
-    background-color: var(--container-bg-color);
     border-radius: 2px;
+    clear: both;
+    margin-top: 1em;
     margin-bottom: 1em;
-    overflow: hidden;
+    width: 100%;
+    background-color: var(--container-bg-color);
+    color: var(--primary-text-color);
 }
 
-/* The clickable header bar */
-.collapsible-container .section-header {
-    background-color: var(--header-bg-color);
-    padding: 12px;
+.collapsible-header {
     display: flex;
     align-items: center;
+    padding: 12px;
     cursor: pointer;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
-/* The text within the header, e.g., "More information (High Level Alchemy)" */
-.collapsible-container .section-header .section-header-title {
-    color: var(--primary-text-color);
-    font-size: 0.9em;
+.collapsible-header .title-wrapper {
     flex-grow: 1;
+    font-family: sans-serif;
 }
 
-/* The chevron icon element */
-.collapsible-container .section-header .section-header-icon {
-    width: 24px;
-    height: 24px;
-    background-size: contain;
+.collapsible-header .icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
     background-repeat: no-repeat;
     background-position: center;
-    transition: transform 0.1s linear;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M17.5 4.75l-7.5 7.5-7.5-7.5L1 6.25l9 9 9-9z' fill='currentColor'/%3E%3C/svg%3E");
+    transition: transform 0.2s ease-in-out;
 }
 
-/* Icon state when the section is collapsed (pointing down) */
-.section-header-icon.icon-expand {
-    background-image: var(--icon-expand);
+.collapsible-container:not(.collapsed) .icon {
+    transform: rotate(180deg);
 }
 
-/* Icon state when the section is expanded (pointing up) */
-.section-header-icon.icon-collapse {
-    background-image: var(--icon-collapse);
+.collapsible-content {
+    overflow-x: auto;
+    padding: 0 12px 12px 12px;
 }
 
-/* The content area that holds the original table */
-.collapsible-container .collapsible-content {
-    padding: 0 12px 12px;
-    background-color: var(--container-bg-color);
-}
-
-/* When the container is collapsed, hide the content */
 .collapsible-container.collapsed .collapsible-content {
     display: none;
 }

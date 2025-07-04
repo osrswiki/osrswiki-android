@@ -1,63 +1,53 @@
 (function() {
     'use strict';
 
-    /**
-     * Finds all tables with the 'wikitable' class and wraps them in a
-     * collapsible container structure, applying the necessary event listeners.
-     */
-    function makeTablesCollapsible() {
-        document.querySelectorAll('table.wikitable').forEach(function(table) {
-            // Ensure we don't re-wrap a table that has already been processed.
-            if (table.closest('.collapsible-container')) {
+    function transformTables() {
+        document.querySelectorAll('.wikitable').forEach(function(table) {
+            if (table.parentNode.classList.contains('collapsible-container')) {
                 return;
             }
 
-            const captionText = table.querySelector('caption')?.textContent.trim() || 'Table';
+            var container = document.createElement('div');
+            container.className = 'collapsible-container collapsed';
 
-            // 1. Create the main container
-            const container = document.createElement('div');
-            container.className = 'collapsible-container collapsed'; // Start as collapsed
+            var header = document.createElement('div');
+            header.className = 'collapsible-header';
 
-            // 2. Create the header element
-            const header = document.createElement('div');
-            header.className = 'section-header';
+            var titleWrapper = document.createElement('div');
+            titleWrapper.className = 'title-wrapper';
 
-            // 3. Create the title element inside the header
-            const title = document.createElement('span');
-            title.className = 'section-header-title';
-            title.textContent = `More information (${captionText})`;
+            var captionText = 'Table';
+            var caption = table.querySelector('caption');
+            if (caption && caption.innerText && caption.innerText.trim() !== '') {
+                captionText = caption.innerText.trim();
+            }
+            
+            if (caption) {
+                caption.style.display = 'none';
+            }
+            
+            titleWrapper.innerHTML = '<strong>' + captionText + ':</strong> Tap to expand';
 
-            // 4. Create the icon element inside the header
-            const icon = document.createElement('span');
-            icon.className = 'section-header-icon icon-expand';
+            var icon = document.createElement('span');
+            icon.className = 'icon';
 
-            // 5. Assemble the header
-            header.appendChild(title);
+            header.appendChild(titleWrapper);
             header.appendChild(icon);
 
-            // 6. Create the content wrapper for the table
-            const content = document.createElement('div');
-            content.className = 'collapsible-content';
-
-            // 7. Assemble the full container
-            container.appendChild(header);
-            container.appendChild(content);
-
-            // 8. Move the original table into the new structure
             table.parentNode.insertBefore(container, table);
-            content.appendChild(table);
+            container.appendChild(header);
+            container.appendChild(table);
+            table.classList.add('collapsible-content');
 
-            // 9. Add the click listener to the header
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
-                const isCollapsed = container.classList.contains('collapsed');
-                icon.className = 'section-header-icon ' + (isCollapsed ? 'icon-expand' : 'icon-collapse');
             });
         });
     }
 
-    // Expose a function to the global window object so it can be called from native code.
-    window.osrswiki = window.osrswiki || {};
-    window.osrswiki.makeTablesCollapsible = makeTablesCollapsible;
-
-}());
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', transformTables);
+    } else {
+        transformTables();
+    }
+})();

@@ -30,7 +30,6 @@
         <item name="search_box_background_color">#1A000000</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
-        <item name="section_header_color">@color/osrs_parchment_medium</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
@@ -79,7 +78,6 @@
         <item name="placeholder_color">@color/osrs_brown_deep</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
         <item name="linkColor">@color/link_color_osrs_light</item>
-        <item name="section_header_color">@color/osrs_parchment_medium</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
@@ -107,7 +105,6 @@
         <item name="placeholder_color">#757575</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
         <item name="linkColor">@color/link_color_wiki_light</item>
-        <item name="section_header_color">@color/section_header_wiki_light</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
@@ -134,7 +131,6 @@
         <item name="placeholder_color">@color/osrs_text_light_alt</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
         <item name="linkColor">@color/link_color_osrs_dark</item>
-        <item name="section_header_color">@color/osrs_brown_deep</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
@@ -162,7 +158,6 @@
         <item name="placeholder_color">#BDBDBD</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
         <item name="linkColor">@color/link_color_wiki_dark</item>
-        <item name="section_header_color">@color/section_header_wiki_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
@@ -190,7 +185,6 @@
         <item name="placeholder_color">#BDBDBD</item>
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
         <item name="linkColor">@color/link_color_wiki_dark</item>
-        <item name="section_header_color">@color/section_header_wiki_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 
