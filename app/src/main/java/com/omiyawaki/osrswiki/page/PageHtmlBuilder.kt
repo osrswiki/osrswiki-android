@@ -35,42 +35,64 @@ class PageHtmlBuilder(private val context: Context) {
                         line-height: 1.3;
                         color: var(--heading-color);
                     }
-                    /* Robust, border-based sort indicators */
-                    th[aria-sort] {
+
+                    /*
+                     * Icon Styling Refactor
+                     * To ensure all icons (sorted and unsorted) are perfectly aligned and
+                     * have identical dimensions, the following rules use absolute positioning.
+                     */
+
+                    /* 1. Create a positioning context and space on all sortable headers. */
+                    table.sortable th {
+                        position: relative;
+                        padding-right: 1.5em; /* Make space for the icon at the end */
                         cursor: pointer;
                     }
-                    th[aria-sort]::after {
+
+                    /* 2. Common styles for ALL icon pseudo-elements. */
+                    table.sortable th::before,
+                    table.sortable th::after {
                         content: '';
-                        display: inline-block;
-                        vertical-align: middle;
+                        position: absolute;
+                        right: 0.5em; /* Position from the right edge of the header */
                         width: 0;
                         height: 0;
-                        margin-left: 8px;
                     }
-                    /* Add a default, faint up/down arrow for unsorted columns */
-                    table.sortable th:not([aria-sort])::after {
-                        content: '▲\A▼'; /* CSS newline character \A stacks the triangles */
-                        white-space: pre;
-                        line-height: 0.8em;
-                        color: var(--link-color);
+
+                    /* 3. Unsorted State (stacked, faint up/down arrows) */
+                    table.sortable th:not([aria-sort])::before {
+                        /* Faint up arrow */
+                        top: 0.6em;
+                        border-left: 5px solid transparent;
+                        border-right: 5px solid transparent;
+                        border-bottom: 5px solid var(--link-color);
                         opacity: 0.3;
-                        margin-left: 8px;
-                        display: inline-block;
-                        vertical-align: middle;
                     }
+                    table.sortable th:not([aria-sort])::after {
+                        /* Faint down arrow */
+                        bottom: 0.6em;
+                        border-left: 5px solid transparent;
+                        border-right: 5px solid transparent;
+                        border-top: 5px solid var(--link-color);
+                        opacity: 0.3;
+                    }
+
                     /*
-                     * The CSS rules for sorted states are intentionally inverted.
-                     * Tablesort.js has a bug where it reports the inverse sort state
-                     * in the 'aria-sort' attribute. These rules correct for that.
+                     * 4. Sorted States (single, solid arrow, vertically centered).
+                     * The CSS rules remain inverted to counteract the Tablesort.js bug.
                      */
                     th[aria-sort="ascending"]::after {
-                        /* Down arrow for ascending state (which is actually descending data) */
+                        /* Solid down arrow, vertically centered */
+                        top: 50%;
+                        transform: translateY(-50%);
                         border-left: 5px solid transparent;
                         border-right: 5px solid transparent;
                         border-top: 5px solid var(--link-color);
                     }
                     th[aria-sort="descending"]::after {
-                        /* Up arrow for descending state (which is actually ascending data) */
+                        /* Solid up arrow, vertically centered */
+                        top: 50%;
+                        transform: translateY(-50%);
                         border-left: 5px solid transparent;
                         border-right: 5px solid transparent;
                         border-bottom: 5px solid var(--link-color);
