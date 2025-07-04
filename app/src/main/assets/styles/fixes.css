@@ -27,8 +27,10 @@
 /*
  * Fix for images inside list items (<li>) that were being
  * rendered as block elements, causing text to wrap to the next line.
+ * Also removes excessive vertical margin that creates unwanted line spacing.
  */
 li img.mw-file-element {
     display: inline-block !important;
     vertical-align: middle !important;
+    margin: 0 !important;
 }
