@@ -67,12 +67,14 @@ class PageHtmlBuilder(private val context: Context) {
                 <script>
                     // Extend Tablesort.js with a custom parser for comma-separated numbers.
                     Tablesort.extend('numeric-comma', function(item) {
-                        // Test if the cell content is a number with commas.
-                        return /^-?[\d,]+(?:\.\d+)?$/.test(item);
+                        // Test for numbers with commas, allowing for hyphen or Unicode minus sign.
+                        // Also trim whitespace which can interfere with the regex.
+                        return /^[−-]?[\d,]+(?:\.\d+)?$/.test(item.trim());
                     }, function(a, b) {
-                        // Clean the strings and compare them as numbers.
-                        var cleanA = a.replace(/,/g, '');
-                        var cleanB = b.replace(/,/g, '');
+                        // Clean the strings, standardize the minus sign, and compare as numbers.
+                        var cleanA = a.trim().replace(/,/g, '').replace('−', '-');
+                        var cleanB = b.trim().replace(/,/g, '').replace('−', '-');
+
                         var numA = parseFloat(cleanA);
                         var numB = parseFloat(cleanB);
 
@@ -85,7 +87,7 @@ class PageHtmlBuilder(private val context: Context) {
                     // Extend Tablesort.js with a custom parser for intensity values.
                     Tablesort.extend('intensity', function(item) {
                         // Test if the cell content is one of the intensity values (case-insensitive).
-                        return /^(low|medium|moderate|high)$/i.test(item);
+                        return /^(low|medium|moderate|high)$/i.test(item.trim());
                     }, function(a, b) {
                         // Map intensity strings to numerical values for sorting.
                         var intensityMap = {
@@ -95,8 +97,8 @@ class PageHtmlBuilder(private val context: Context) {
                             'high': 2
                         };
 
-                        var valueA = intensityMap[a.toLowerCase()];
-                        var valueB = intensityMap[b.toLowerCase()];
+                        var valueA = intensityMap[a.toLowerCase().trim()];
+                        var valueB = intensityMap[b.toLowerCase().trim()];
 
                         valueA = (valueA === undefined) ? -1 : valueA;
                         valueB = (valueB === undefined) ? -1 : valueB;
