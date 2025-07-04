@@ -1,9 +1,11 @@
 package com.omiyawaki.osrswiki.page
 
+import android.util.Log
 import android.view.View
 import androidx.core.view.isVisible
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 
 class PageUiUpdater(
@@ -12,6 +14,8 @@ class PageUiUpdater(
     private val pageWebViewManager: PageWebViewManager,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
+    private val TAG = "PageUiUpdater"
+
     fun updateUi() {
         val fragment = fragmentContextProvider() ?: return
         val state = pageViewModel.uiState
@@ -32,17 +36,27 @@ class PageUiUpdater(
                 binding.pageWebView.visibility = View.INVISIBLE
             }
         } else {
-            // Use the htmlContent prepared by the repository, which includes scripts.
             if (state.htmlContent != null) {
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
+
+                var finalHtml = state.htmlContent
+                val tableScript = JavaScriptActionHandler.getToggleTablesScript()
+
+                if (tableScript.isNotEmpty()) {
+                    Log.d(TAG, "Injecting table collapse script into HTML.")
+                    val scriptTag = "<script>$tableScript</script>"
+                    finalHtml = finalHtml.replace("</head>", "$scriptTag</head>", ignoreCase = true)
+                } else {
+                    Log.d(TAG, "Table collapse script is empty, not injecting.")
+                }
+
                 pageWebViewManager.render(
-                    fullHtml = state.htmlContent,
+                    fullHtml = finalHtml,
                     baseUrl = state.wikiUrl,
                     theme = currentTheme
                 )
             } else {
-                // Fallback for unexpected null content.
                 if (binding.pageWebView.visibility != View.VISIBLE) binding.pageWebView.visibility = View.VISIBLE
                 binding.pageWebView.loadDataWithBaseURL(null, fragment.getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
             }
