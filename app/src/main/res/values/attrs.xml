@@ -11,6 +11,5 @@
     <attr name="search_box_background_color" format="color" />
     <attr name="linkColor" format="color" />
 
-    <attr name="section_header_color" format="color" />
     <attr name="primary_text_color" format="color" />
 </resources>

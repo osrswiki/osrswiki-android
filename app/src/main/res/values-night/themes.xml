@@ -27,7 +27,6 @@
         <item name="tabCountBorderColor">@color/osrs_brown_deep</item>
         <item name="search_box_background_color">#1AFFFFFF</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
-        <item name="section_header_color">@color/osrs_brown_deep</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
     </style>
 

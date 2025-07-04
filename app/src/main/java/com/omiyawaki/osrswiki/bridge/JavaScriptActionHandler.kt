@@ -1,10 +1,10 @@
 package com.omiyawaki.osrswiki.bridge
 
 import android.content.Context
+import android.content.res.Resources
 import android.util.Log
 import android.util.TypedValue
 import androidx.core.content.ContextCompat
-import com.omiyawaki.osrswiki.R
 import java.io.IOException
 
 /**
@@ -15,47 +15,23 @@ object JavaScriptActionHandler {
     private const val CSS_PATH = "www/css/collapsible_tables.css"
     private const val JS_PATH = "www/js/collapsible_tables.js"
 
-    /**
-     * Reads the base collapsible_tables.css file and prepends a dynamic <style> block
-     * containing the theme-aware CSS variables.
-     * @param context The context used to resolve theme attributes.
-     * @return A string containing the full CSS to be injected.
-     */
     fun getCollapsibleTablesCss(context: Context): String {
-        // 1. Fetch the actual color values from your app's theme.
-        val containerBgColor = getThemeColor(context, R.attr.paper_color, "#ffffff")
-        val containerBorderColor = getThemeColor(context, R.attr.border_color, "#a2a9b1")
-        val headerBgColor = getThemeColor(context, R.attr.section_header_color, "#eaecf0")
-        val primaryTextColor = getThemeColor(context, R.attr.primary_text_color, "#202122")
-        val iconColor = getThemeColor(context, R.attr.primary_text_color, "#202122")
+        val containerBgColor = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f8f9fa")
+        val textColor = getThemeColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, "#202122")
+        val borderColor = getThemeColor(context, com.google.android.material.R.attr.colorOutline, "#c8ccd1")
 
-        // 2. Define the SVG icons using the theme color.
-        val expandIconSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="$iconColor" d="M7 10l5 5 5-5z"/></svg>"""
-        val collapseIconSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="$iconColor" d="M7 14l5-5 5 5z"/></svg>"""
-
-        // 3. Construct the CSS block that defines the variables.
         val cssVariables = """
             :root {
                 --container-bg-color: $containerBgColor;
-                --container-border-color: $containerBorderColor;
-                --header-bg-color: $headerBgColor;
-                --primary-text-color: $primaryTextColor;
-                --icon-expand: ${getCssUrlForSvg(expandIconSvg)};
-                --icon-collapse: ${getCssUrlForSvg(collapseIconSvg)};
+                --primary-text-color: $textColor;
+                --border-color: $borderColor;
             }
         """.trimIndent()
 
         val baseCss = getFileFromAssets(context, CSS_PATH)
-
-        // 4. Combine the dynamic variables and the base CSS into a single style block.
         return "<style>$cssVariables\n$baseCss</style>"
     }
 
-    /**
-     * Reads the collapsible_tables.js file from assets.
-     * @param context The context used to access assets.
-     * @return A string containing the JavaScript to be injected.
-     */
     fun getCollapsibleTablesJs(context: Context): String {
         return getFileFromAssets(context, JS_PATH)
     }
@@ -64,7 +40,6 @@ object JavaScriptActionHandler {
         return try {
             context.assets.open(path).bufferedReader().use { it.readText() }
         } catch (e: IOException) {
-            // Log the error and return an empty string if the file cannot be read.
             Log.e(TAG, "Error reading asset: $path", e)
             ""
         }
@@ -77,20 +52,20 @@ object JavaScriptActionHandler {
             return fallback
         }
 
-        val color = if (typedValue.resourceId != 0) {
-            // The attribute pointed to a resource (e.g., @color/some_color)
-            ContextCompat.getColor(context, typedValue.resourceId)
-        } else {
-            // The attribute pointed to a direct value (e.g., #FFFFFF)
-            typedValue.data
+        val color: Int
+        try {
+            color = if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+                // The attribute is a direct color value (e.g., #FFFFFF).
+                typedValue.data
+            } else {
+                // The attribute is a reference to a resource (e.g., @color/my_color).
+                ContextCompat.getColor(context, typedValue.resourceId)
+            }
+        } catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Color resource not found for attribute ID #$attrId", e)
+            return fallback
         }
 
-        // Format as a hex string for CSS, ignoring the alpha channel.
         return String.format("#%06X", (0xFFFFFF and color))
-    }
-
-    private fun getCssUrlForSvg(svg: String): String {
-        // URL-encode the SVG to be safely used in a data URI.
-        return "url(\"data:image/svg+xml,${java.net.URLEncoder.encode(svg, "UTF-8")}\")"
     }
 }
