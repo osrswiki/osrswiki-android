@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import android.content.Context
+import com.omiyawaki.osrswiki.theme.Theme
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.IOException
@@ -22,10 +23,17 @@ class PageHtmlBuilder(private val context: Context) {
     }
     private val tablesortJs: String by lazy { readAsset("js/tablesort.min.js") }
 
-    fun buildFullHtmlDocument(title: String, bodyContent: String): String {
+    fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         val documentTitle = if (title.isBlank()) "OSRS Wiki" else title
         val titleHeaderHtml = "<h1 class=\"page-header\">${documentTitle}</h1>"
         val finalBodyContent = titleHeaderHtml + bodyContent
+        val themeClass = when (theme) {
+            Theme.OSRS_DARK -> "theme-osrs-dark"
+            Theme.WIKI_LIGHT -> "theme-wikipedia-light"
+            Theme.WIKI_DARK -> "theme-wikipedia-dark"
+            Theme.WIKI_BLACK -> "theme-wikipedia-black"
+            else -> "" // OSRS Light is the default theme in CSS, no class needed.
+        }
 
         return """
             <!DOCTYPE html>
@@ -37,7 +45,7 @@ class PageHtmlBuilder(private val context: Context) {
                     ${wikiContentCss}
                 </style>
             </head>
-            <body style="visibility: hidden;">
+            <body class="$themeClass" style="visibility: hidden;">
                 ${finalBodyContent}
                 <script>
                     ${tablesortJs}
@@ -45,49 +53,34 @@ class PageHtmlBuilder(private val context: Context) {
                 <script>
                     // Extend Tablesort.js with a custom parser for comma-separated numbers.
                     Tablesort.extend('numeric-comma', function(item) {
-                        // Test for numbers with commas, allowing for hyphen or Unicode minus sign.
-                        // Also trim whitespace which can interfere with the regex.
                         return /^[−-]?[\d,]+(?:\.\d+)?$/.test(item.trim());
                     }, function(a, b) {
-                        // Clean the strings, standardize the minus sign, and compare as numbers.
                         var cleanA = a.trim().replace(/,/g, '').replace('−', '-');
                         var cleanB = b.trim().replace(/,/g, '').replace('−', '-');
-
                         var numA = parseFloat(cleanA);
                         var numB = parseFloat(cleanB);
-
                         numA = isNaN(numA) ? 0 : numA;
                         numB = isNaN(numB) ? 0 : numB;
-
                         return numA - numB;
                     });
 
                     // Extend Tablesort.js with a custom parser for intensity values.
                     Tablesort.extend('intensity', function(item) {
-                        // Test if the cell content is one of the intensity values (case-insensitive).
                         return /^(low|medium|moderate|high)$/i.test(item.trim());
                     }, function(a, b) {
-                        // Map intensity strings to numerical values for sorting.
                         var intensityMap = {
-                            'low': 0,
-                            'medium': 1,
-                            'moderate': 1,
-                            'high': 2
+                            'low': 0, 'medium': 1, 'moderate': 1, 'high': 2
                         };
-
                         var valueA = intensityMap[a.toLowerCase().trim()];
                         var valueB = intensityMap[b.toLowerCase().trim()];
-
                         valueA = (valueA === undefined) ? -1 : valueA;
                         valueB = (valueB === undefined) ? -1 : valueB;
-
                         return valueA - valueB;
                     });
                 </script>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         var tables = document.querySelectorAll('table.wikitable');
-
                         tables.forEach(function(table) {
                             if (table.parentElement.className !== 'scrollable-table-wrapper') {
                                 var wrapper = document.createElement('div');
@@ -106,13 +99,9 @@ class PageHtmlBuilder(private val context: Context) {
                                 }
                                 table.insertBefore(thead, table.firstChild);
                             }
-                            // The custom parsers will be applied automatically by Tablesort.
                             new Tablesort(table);
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
-
-                        // Make the body visible now that all content is styled, preventing FOUC.
-                        document.body.style.visibility = 'visible';
                     });
                 </script>
             </body>

@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.theme.Theme
 
 class PageLoadCoordinator(
     private val pageViewModel: PageViewModel,
@@ -8,7 +9,7 @@ class PageLoadCoordinator(
     private val uiUpdater: PageUiUpdater,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
-    fun initiatePageLoad(forceNetwork: Boolean = false) {
+    fun initiatePageLoad(theme: Theme, forceNetwork: Boolean = false) {
         val fragment = fragmentContextProvider() ?: return
         val pageIdArg = fragment.getPageIdArg()
         val pageTitleArg = fragment.getPageTitleArg()
@@ -36,7 +37,7 @@ class PageLoadCoordinator(
                 uiUpdater.updateUi()
                 return
             } else {
-                pageContentLoader.loadPageById(idToLoad, currentTitleToLoadArg, forceNetwork)
+                pageContentLoader.loadPageById(idToLoad, currentTitleToLoadArg, theme, forceNetwork)
             }
         } else if (!currentTitleToLoadArg.isNullOrBlank()) {
             if (!forceNetwork && currentViewModelPlainTextTitle == currentTitleToLoadArg && contentAlreadyLoaded) {
@@ -44,7 +45,7 @@ class PageLoadCoordinator(
                 uiUpdater.updateUi()
                 return
             } else {
-                pageContentLoader.loadPageByTitle(currentTitleToLoadArg, forceNetwork)
+                pageContentLoader.loadPageByTitle(currentTitleToLoadArg, theme, forceNetwork)
             }
         } else {
             val errorMsg = fragment.getString(R.string.error_no_article_identifier)

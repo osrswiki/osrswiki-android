@@ -9,9 +9,6 @@ import android.webkit.WebView
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.theme.Theme
 
-/**
- * Manages the configuration and rendering of content within the WebView.
- */
 class PageWebViewManager(
     private val webView: WebView,
     private val linkHandler: PageLinkHandler,
@@ -20,7 +17,6 @@ class PageWebViewManager(
 ) {
     private val managerTag = "PageWebViewManager"
     private val consoleTag = "WebViewConsole"
-    private var currentTheme: Theme = Theme.DEFAULT_LIGHT
 
     init {
         setupWebView()
@@ -31,14 +27,12 @@ class PageWebViewManager(
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                applyStylingAndRevealBody()
+                revealBody()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
             override fun onReceivedTitle(view: WebView?, title: String?) {
                 super.onReceivedTitle(view, title)
-                // DIAGNOSTIC: Log the received title
-                Log.d(managerTag, "DIAGNOSTIC: onReceivedTitle fired. Title: '$title'")
                 title?.let { onTitleReceived(it) }
             }
 
@@ -59,42 +53,16 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // DIAGNOSTIC: Log the full HTML being rendered. Chunked to avoid logcat limits.
-        Log.d(managerTag, "DIAGNOSTIC: --- BEGIN Full HTML for WebView ---")
-        fullHtml.chunked(4000).forEach { chunk ->
-            Log.d(managerTag, chunk)
-        }
-        Log.d(managerTag, "DIAGNOSTIC: --- END Full HTML for WebView ---")
-
-        this.currentTheme = theme
+        // The theme is now passed to the PageHtmlBuilder, so it's not needed here directly.
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
         webView.loadDataWithBaseURL(finalBaseUrl, fullHtml, "text/html", "UTF-8", null)
     }
 
-    private fun applyStylingAndRevealBody() {
-        val themeClass = when (currentTheme) {
-            Theme.OSRS_DARK -> "theme-osrs-dark"
-            Theme.WIKI_LIGHT -> "theme-wikipedia-light"
-            Theme.WIKI_DARK -> "theme-wikipedia-dark"
-            Theme.WIKI_BLACK -> "theme-wikipedia-black"
-            else -> ""
-        }
-
-        val applyThemeAndRevealBodyJs = """
-            (function() {
-                if (!document.body) return;
-                document.body.classList.remove(
-                    'theme-wikipedia-light', 'theme-osrs-dark',
-                    'theme-wikipedia-dark', 'theme-wikipedia-black'
-                );
-                if ('$themeClass') {
-                    document.body.classList.add('$themeClass');
-                }
-                document.body.style.visibility = 'visible';
-            })();
-        """.trimIndent()
-
-        webView.evaluateJavascript(applyThemeAndRevealBodyJs) {
+    private fun revealBody() {
+        // The theme is now set in the HTML body tag. This JS is only needed
+        // to make the body visible after the page has loaded, preventing FOUC.
+        val revealBodyJs = "document.body.style.visibility = 'visible';"
+        webView.evaluateJavascript(revealBodyJs) {
             onPageReady()
         }
     }

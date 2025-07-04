@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.page
 import android.util.Log
 import com.omiyawaki.osrswiki.network.model.ParseResult
 import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
+import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.Result
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -21,7 +22,7 @@ class PageRepository(
         private const val FILE_NAMESPACE_PREFIX = "File:"
     }
 
-    fun getArticle(pageId: Int, forceNetwork: Boolean): Flow<Result<PageUiState>> = flow {
+    fun getArticle(pageId: Int, theme: Theme, forceNetwork: Boolean): Flow<Result<PageUiState>> = flow {
         emit(Result.Loading)
         if (!forceNetwork) {
             val cachedArticle = localDataSource.getArticleFromCache(pageId)
@@ -31,10 +32,10 @@ class PageRepository(
             }
         }
         val networkResult = remoteDataSource.getArticleParseResult(pageId)
-        emit(transformParseResult(networkResult))
+        emit(transformParseResult(networkResult, theme))
     }.flowOn(Dispatchers.IO)
 
-    fun getArticleByTitle(title: String, forceNetwork: Boolean): Flow<Result<PageUiState>> = flow {
+    fun getArticleByTitle(title: String, theme: Theme, forceNetwork: Boolean): Flow<Result<PageUiState>> = flow {
         emit(Result.Loading)
         if (!forceNetwork) {
             val cachedArticle = localDataSource.getArticleFromCache(title)
@@ -45,22 +46,20 @@ class PageRepository(
         }
 
         if (title.startsWith(FILE_NAMESPACE_PREFIX, ignoreCase = true)) {
-            emit(fetchAndBuildFilePage(title))
+            emit(fetchAndBuildFilePage(title, theme))
         } else {
             val networkResult = remoteDataSource.getArticleParseResult(title)
-            emit(transformParseResult(networkResult))
+            emit(transformParseResult(networkResult, theme))
         }
     }.flowOn(Dispatchers.IO)
 
-    private suspend fun fetchAndBuildFilePage(title: String): Result<PageUiState> = coroutineScope {
-        // Fetch image info and page description concurrently.
+    private suspend fun fetchAndBuildFilePage(title: String, theme: Theme): Result<PageUiState> = coroutineScope {
         val imageInfoDeferred = async { remoteDataSource.getImageInfo(title) }
         val parseResultDeferred = async { remoteDataSource.getArticleParseResult(title) }
 
         val imageInfoResult = imageInfoDeferred.await()
         val parseResultResult = parseResultDeferred.await()
 
-        // Handle potential errors from either network call.
         if (imageInfoResult is Result.Error) {
             return@coroutineScope Result.Error(imageInfoResult.message, imageInfoResult.throwable)
         }
@@ -68,7 +67,6 @@ class PageRepository(
             return@coroutineScope Result.Error(parseResultResult.message, parseResultResult.throwable)
         }
 
-        // Extract data from successful results.
         val imageUrl = (imageInfoResult as Result.Success).data.query?.pages?.firstOrNull()?.imageInfo?.firstOrNull()?.url
         val parseResult = (parseResultResult as Result.Success).data
 
@@ -76,17 +74,14 @@ class PageRepository(
             return@coroutineScope Result.Error("Failed to extract image URL for File page: $title")
         }
 
-        // Reconstruct the HTML with the image tag, removing width and height styles to use natural size.
         val descriptionHtml = parseResult.text ?: ""
         val imageTag = "<img src=\"$imageUrl\" style=\"background-color: #333;\"/>"
         val combinedContent = "$imageTag<br/>$descriptionHtml"
 
-        // Build the final, full HTML document.
         val canonicalTitle = parseResult.title!!
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
-        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent)
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme)
 
-        // Build and return the final UI state.
         val uiState = PageUiState(
             isLoading = false,
             error = null,
@@ -104,13 +99,13 @@ class PageRepository(
         Result.Success(uiState)
     }
 
-    private fun transformParseResult(networkResult: Result<ParseResult>): Result<PageUiState> {
+    private fun transformParseResult(networkResult: Result<ParseResult>, theme: Theme): Result<PageUiState> {
         return when (networkResult) {
             is Result.Success -> {
                 val parseResult = networkResult.data
                 val canonicalTitle = parseResult.title!!
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!)
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme)
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
                     pageId = parseResult.pageid!!,
@@ -138,7 +133,8 @@ class PageRepository(
                 val parseResult = networkResult.data
                 val canonicalTitle = parseResult.title!!
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!)
+                // Saving offline uses the default light theme, as it has no user context.
+                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, Theme.DEFAULT_LIGHT)
                 localDataSource.saveArticle(
                     pageId = parseResult.pageid!!,
                     canonicalTitle = canonicalTitle,
