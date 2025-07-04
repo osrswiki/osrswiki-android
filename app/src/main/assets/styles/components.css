@@ -1,0 +1,146 @@
+/* --- Table Styles --- */
+
+.scrollable-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1em;
+}
+.scrollable-table-wrapper > table.wikitable {
+    width: auto; /* Allow table to expand to its natural content width */
+    min-width: 100%; /* Ensure it's at least as wide as the screen */
+}
+
+table.wikitable {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+    background: var(--wikitable-bg);
+    color: var(--wikitable-color);
+    border: 1px solid var(--wikitable-border);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+.wikitable > tr > th, .wikitable > tr > td,
+.wikitable > * > tr > th, .wikitable > * > tr > td {
+    border: 1px solid var(--wikitable-border);
+    padding: 8px;
+    text-align: left;
+}
+.wikitable > tr > th, .wikitable > * > tr > th {
+    background-color: var(--wikitable-header-bg);
+    font-weight: bold;
+}
+.wikitable tr:nth-child(even) > td {
+    background-color: var(--wikitable-alternating-bg);
+}
+
+/* --- Table Sorting Icon Styles --- */
+
+/* 1. Create a positioning context and space on all sortable headers. */
+table.sortable th {
+    position: relative;
+    padding-right: 1.5em; /* Make space for the icon at the end */
+    cursor: pointer;
+}
+
+/* 2. Common styles for ALL icon pseudo-elements. */
+table.sortable th::before,
+table.sortable th::after {
+    content: '';
+    position: absolute;
+    right: 0.5em; /* Position from the right edge of the header */
+    width: 0;
+    height: 0;
+}
+
+/*
+ * 3. Unsorted State (stacked, faint up/down arrows).
+ * Uses calc() to precisely control the gap between the triangles.
+ */
+table.sortable th:not([aria-sort])::before {
+    /* Faint up arrow. */
+    /* Calculation to center the combined icon (2 arrows + gap):
+     * - Arrow height = 5px, Gap = 2px, Total Icon Height = 12px.
+     * - Top position = 50% (vertical center) - 6px (half of total icon height). */
+    top: calc(50% - 6px);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid var(--link-color);
+    opacity: 0.3;
+}
+table.sortable th:not([aria-sort])::after {
+    /* Faint down arrow. */
+    /* Positioned relative to the up arrow, leaving a 2px gap.
+     * - Top position = (Top of up arrow) + 5px (up arrow height) + 2px (gap).
+     * - calc(50% - 6px + 5px + 2px) = calc(50% + 1px). */
+    top: calc(50% + 1px);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--link-color);
+    opacity: 0.3;
+}
+
+/*
+ * 4. Sorted States (single, solid arrow, vertically centered).
+ * The CSS rules remain inverted to counteract the Tablesort.js bug.
+ */
+th[aria-sort="ascending"]::after {
+    /* Solid down arrow, vertically centered */
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--link-color);
+}
+th[aria-sort="descending"]::after {
+    /* Solid up arrow, vertically centered */
+    top: 50%;
+    transform: translateY(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid var(--link-color);
+}
+
+/* --- Infobox Styles --- */
+.infobox {
+    background: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    font-size: 0.85em;
+    width: auto;
+    max-width: 450px;
+    margin: 1em auto;
+    float: none;
+    clear: both;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+.infobox th, .infobox td {
+    padding: 0.3em 0.5em;
+    text-align: left;
+}
+.infobox .infobox-header {
+    background: var(--body-dark-shade);
+    font-size: 1.15em;
+    text-align: center;
+    font-weight: bold;
+    padding: 0.4em 0.5em;
+}
+.infobox caption {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.15em;
+    padding: 0.4em 0.5em;
+    background-color: var(--body-dark-shade);
+}
+
+/* --- Other Component Styles --- */
+blockquote {
+    margin: 1em 20px;
+    padding: 0.5em 10px;
+    border-left: 5px solid var(--body-border);
+    background-color: var(--body-light);
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: var(--sidebar-color);
+    margin: 1em 0;
+}
