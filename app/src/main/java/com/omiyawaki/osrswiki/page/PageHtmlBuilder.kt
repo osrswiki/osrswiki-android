@@ -110,6 +110,9 @@ class PageHtmlBuilder(private val context: Context) {
                             new Tablesort(table);
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
+
+                        // Make the body visible now that all content is styled, preventing FOUC.
+                        document.body.style.visibility = 'visible';
                     });
                 </script>
             </body>
