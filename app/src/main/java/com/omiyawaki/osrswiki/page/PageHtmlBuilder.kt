@@ -182,7 +182,7 @@ class PageHtmlBuilder(private val context: Context) {
                         });
                         console.log("Tablesort.js initialized on " + sortableTables.length + " table(s).");
                     });
-                </t>
+                </script>
             </body>
             </html>
         """.trimIndent()
