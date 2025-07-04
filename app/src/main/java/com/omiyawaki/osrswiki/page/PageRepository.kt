@@ -82,11 +82,11 @@ class PageRepository(
         val combinedContent = "$imageTag<br/>$descriptionHtml"
 
         // Build the final, full HTML document.
-        val finalHtml = htmlBuilder.buildFullHtmlDocument(combinedContent)
-
-        // Build and return the final UI state.
         val canonicalTitle = parseResult.title!!
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent)
+
+        // Build and return the final UI state.
         val uiState = PageUiState(
             isLoading = false,
             error = null,
@@ -110,7 +110,7 @@ class PageRepository(
                 val parseResult = networkResult.data
                 val canonicalTitle = parseResult.title!!
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                val htmlContent = htmlBuilder.buildFullHtmlDocument(parseResult.text!!)
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!)
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
                     pageId = parseResult.pageid!!,
@@ -136,10 +136,12 @@ class PageRepository(
         return when (networkResult) {
             is Result.Success -> {
                 val parseResult = networkResult.data
-                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(parseResult.text!!)
+                val canonicalTitle = parseResult.title!!
+                val displayTitle = parseResult.displaytitle ?: canonicalTitle
+                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!)
                 localDataSource.saveArticle(
                     pageId = parseResult.pageid!!,
-                    canonicalTitle = parseResult.title!!,
+                    canonicalTitle = canonicalTitle,
                     revisionId = parseResult.revid,
                     fullHtmlContent = fullHtmlToSave
                 )

@@ -18,8 +18,7 @@ class PageWebViewManager(
     private val onPageReady: () -> Unit,
     private val onTitleReceived: (String) -> Unit
 ) {
-    private val managerTag = "PageWebViewManager"
-    private val consoleTag = "WebViewConsole"
+    private val webViewDebugTag = "WebViewConsole"
     private var currentTheme: Theme = Theme.DEFAULT_LIGHT
 
     init {
@@ -37,8 +36,6 @@ class PageWebViewManager(
         webView.webChromeClient = object : WebChromeClient() {
             override fun onReceivedTitle(view: WebView?, title: String?) {
                 super.onReceivedTitle(view, title)
-                // DIAGNOSTIC: Log the received title
-                Log.d(managerTag, "DIAGNOSTIC: onReceivedTitle fired. Title: '$title'")
                 title?.let { onTitleReceived(it) }
             }
 
@@ -46,9 +43,9 @@ class PageWebViewManager(
                 consoleMessage?.let {
                     val message = "[${it.sourceId()}:${it.lineNumber()}] ${it.message()}"
                     when (it.messageLevel()) {
-                        ConsoleMessage.MessageLevel.ERROR -> Log.e(consoleTag, message)
-                        ConsoleMessage.MessageLevel.WARNING -> Log.w(consoleTag, message)
-                        else -> Log.i(consoleTag, message)
+                        ConsoleMessage.MessageLevel.ERROR -> Log.e(webViewDebugTag, message)
+                        ConsoleMessage.MessageLevel.WARNING -> Log.w(webViewDebugTag, message)
+                        else -> Log.i(webViewDebugTag, message)
                     }
                 }
                 return true
@@ -59,13 +56,6 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // DIAGNOSTIC: Log the full HTML being rendered. Chunked to avoid logcat limits.
-        Log.d(managerTag, "DIAGNOSTIC: --- BEGIN Full HTML for WebView ---")
-        fullHtml.chunked(4000).forEach { chunk ->
-            Log.d(managerTag, chunk)
-        }
-        Log.d(managerTag, "DIAGNOSTIC: --- END Full HTML for WebView ---")
-
         this.currentTheme = theme
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
         webView.loadDataWithBaseURL(finalBaseUrl, fullHtml, "text/html", "UTF-8", null)

@@ -29,8 +29,7 @@ class PageActivity : BaseActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.pageToolbar)
-        supportActionBar?.title = ""
-        supportActionBar?.setDisplayShowTitleEnabled(false)
+        supportActionBar?.title = "Loading..."
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)

@@ -1,0 +1,101 @@
+package com.omiyawaki.osrswiki.page
+
+import android.content.Context
+import java.io.BufferedReader
+import java.io.InputStreamReader
+
+/**
+ * Builds a full HTML document from a content fragment, injecting necessary CSS and JavaScript.
+ * This class uses a string-injection architecture to avoid issues with WebView's same-origin policy.
+ * The calling class is responsible for providing the asset content as strings.
+ */
+class PageHtmlBuilder(private val context: Context) {
+
+    private val cssContent: String by lazy { readAsset("styles/wiki_content.css") }
+    private val jqueryContent: String by lazy { readAsset("js/jquery.js") }
+    private val tablesorterContent: String by lazy { readAsset("js/jquery.tablesorter.js") }
+
+    /**
+     * Wraps the raw HTML fragment from the API in a full HTML document.
+     * This method injects CSS for mobile styling and the JavaScript for table sorting.
+     *
+     * @param title The title of the page, to be placed in the <title> tag.
+     * @param bodyContent The HTML fragment from the MediaWiki API.
+     * @return A full, well-formed HTML document as a string.
+     */
+    fun buildFullHtmlDocument(title: String, bodyContent: String): String {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${title}</title>
+                <style>
+                    ${cssContent}
+                </style>
+            </head>
+            <body class="theme-osrs-dark">
+                $bodyContent
+                <script>
+                    ${jqueryContent}
+                </script>
+                <script>
+                    ${tablesorterContent}
+                </script>
+                <script>
+                    // This script runs after the DOM is fully loaded.
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Fix for horizontal scrolling on wide tables.
+                        // The original wiki JS wraps tables in a div, which we replicate here.
+                        var tables = document.querySelectorAll('table.wikitable, table.align-right-2');
+                        tables.forEach(function(table) {
+                            if (table.parentElement.className !== 'scrollable-table-wrapper') {
+                                var wrapper = document.createElement('div');
+                                wrapper.className = 'scrollable-table-wrapper';
+                                table.parentNode.insertBefore(wrapper, table);
+                                wrapper.appendChild(table);
+                            }
+                        });
+
+                        // Initialize the tablesorter on any wikitable that is sortable.
+                        try {
+                            var sortableTables = document.querySelectorAll('table.wikitable.sortable');
+                            if (sortableTables.length > 0) {
+                                console.log("Found " + sortableTables.length + " sortable tables. Initializing tablesorter.");
+                                // The tablesorter is a jQuery plugin.
+                                $(sortableTables).tablesorter();
+                                console.log("Tablesorter initialized successfully.");
+                            } else {
+                                console.log("No sortable tables found on this page.");
+                            }
+                        } catch (e) {
+                            console.error("Error initializing tablesorter: " + e.message, e);
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        """.trimIndent()
+    }
+
+    /**
+     * Reads a specified asset file into a string.
+     *
+     * @param assetPath The path to the file in the assets directory (e.g., "js/jquery.js").
+     * @return The content of the file as a String.
+     */
+    private fun readAsset(assetPath: String): String {
+        return try {
+            context.assets.open(assetPath).use { inputStream ->
+                BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                    reader.readText()
+                }
+            }
+        } catch (e: Exception) {
+            // In case of an error (e.g., file not found), log it and return an empty string.
+            // Returning an empty string will cause a JS error, but prevents an app crash.
+            android.util.Log.e("PageHtmlBuilder", "Failed to read asset: $assetPath", e)
+            ""
+        }
+    }
+}

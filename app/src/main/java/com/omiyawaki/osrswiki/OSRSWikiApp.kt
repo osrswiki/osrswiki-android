@@ -69,7 +69,7 @@ class OSRSWikiApp : Application() {
         val mediaWikiApiService = RetrofitClient.apiService
 
         // --- Refactored PageRepository Dependencies ---
-        val pageHtmlBuilder = PageHtmlBuilder()
+        val pageHtmlBuilder = PageHtmlBuilder(this)
         val pageLocalDataSource = PageLocalDataSource(
             articleMetaDao = appDb.articleMetaDao(),
             applicationContext = appContext
