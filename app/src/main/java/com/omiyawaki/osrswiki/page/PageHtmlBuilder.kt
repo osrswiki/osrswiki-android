@@ -47,15 +47,22 @@ class PageHtmlBuilder(private val context: Context) {
                         height: 0;
                         margin-left: 8px;
                     }
+                    /*
+                     * The CSS rules are intentionally inverted.
+                     * Tablesort.js has a bug where it reports the inverse sort state
+                     * in the 'aria-sort' attribute. These rules correct for that.
+                     */
                     th[aria-sort="ascending"]::after {
-                        border-left: 5px solid transparent;
-                        border-right: 5px solid transparent;
-                        border-bottom: 5px solid var(--link-color);
-                    }
-                    th[aria-sort="descending"]::after {
+                        /* Down arrow for ascending state (which is actually descending data) */
                         border-left: 5px solid transparent;
                         border-right: 5px solid transparent;
                         border-top: 5px solid var(--link-color);
+                    }
+                    th[aria-sort="descending"]::after {
+                        /* Up arrow for descending state (which is actually ascending data) */
+                        border-left: 5px solid transparent;
+                        border-right: 5px solid transparent;
+                        border-bottom: 5px solid var(--link-color);
                     }
                 </style>
             </head>
