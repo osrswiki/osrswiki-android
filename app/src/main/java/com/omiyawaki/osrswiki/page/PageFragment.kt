@@ -15,7 +15,9 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.page.model.LeadSectionDetails
 import com.omiyawaki.osrswiki.page.model.Section
+import com.omiyawaki.osrswiki.page.model.TocData
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
@@ -150,33 +152,60 @@ class PageFragment : Fragment() {
     private fun fetchTableOfContents() {
         val script = """
             (function() {
-                var sections = [];
+                var tocData = {
+                    leadSectionDetails: null,
+                    sections: []
+                };
+
+                // Get H2, H3, etc.
                 var headerSpans = document.querySelectorAll('.mw-headline');
                 for (var i = 0; i < headerSpans.length; i++) {
                     var span = headerSpans[i];
                     var header = span.parentElement;
                     if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
                         var level = parseInt(header.tagName.substring(1));
-                        sections.push({
+                        var computedStyle = window.getComputedStyle(span);
+                        tocData.sections.push({
                             id: i + 1,
                             level: level,
                             anchor: span.id,
-                            title: span.textContent.trim()
+                            title: span.textContent.trim(),
+                            isItalic: computedStyle.fontStyle === 'italic',
+                            isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
                         });
                     }
                 }
-                return JSON.stringify(sections);
+
+                // Get H1 (main page title) using the correct class selector
+                var leadHeader = document.querySelector('h1.page-header');
+                if (leadHeader) {
+                    var leadStyle = window.getComputedStyle(leadHeader);
+                    tocData.leadSectionDetails = {
+                        title: leadHeader.textContent.trim(),
+                        isItalic: leadStyle.fontStyle === 'italic',
+                        isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
+                    };
+                }
+
+                return JSON.stringify(tocData);
             })();
         """
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
             if (jsonString != null && jsonString != "null") {
                 try {
                     val cleanedJson = jsonString.removeSurrounding("\"").replace("\\\"", "\"")
-                    val sections = Json.decodeFromString<List<Section>>(cleanedJson)
-                    val title = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
-                    val leadSection = Section(0, 1, "", title)
-                    val fullToc = mutableListOf(leadSection).apply { addAll(sections) }
-                    // The fragment now directly tells its own handler to set up the contents.
+                    val tocData = Json.decodeFromString<TocData>(cleanedJson)
+                    
+                    val leadSection = tocData.leadSectionDetails?.let {
+                        // Use details from JS if available
+                        Section(0, 1, "", it.title, it.isItalic, it.isBold)
+                    } ?: run {
+                        // Otherwise, create a default fallback using the ActionBar title
+                        val fallbackTitle = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
+                        Section(0, 1, "", fallbackTitle, isItalic = false, isBold = true)
+                    }
+                    
+                    val fullToc = mutableListOf(leadSection).apply { addAll(tocData.sections) }
                     contentsHandler.setup(fullToc)
                 } catch (e: Exception) {
                     L.e("Failed to parse TOC JSON", e)
@@ -186,7 +215,6 @@ class PageFragment : Fragment() {
     }
 
     fun showContents() {
-        // The fragment tells its own handler to show.
         contentsHandler.show()
     }
 
