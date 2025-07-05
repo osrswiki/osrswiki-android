@@ -45,6 +45,7 @@
         <item name="search_box_background_color">#1A000000</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="actionModeStyle">@style/Widget.App.ActionMode</item>
+        <item name="windowActionModeOverlay">true</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -55,6 +56,7 @@
         <item name="bottom_nav_background_color">?attr/paper_color</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="actionModeStyle">@style/Widget.App.ActionMode</item>
+        <item name="windowActionModeOverlay">true</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
