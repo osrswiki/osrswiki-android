@@ -18,7 +18,6 @@ import com.google.android.material.color.MaterialColors
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.DimenUtil
-import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.view.PageScrollerView
 import com.omiyawaki.osrswiki.views.ObservableWebView
 

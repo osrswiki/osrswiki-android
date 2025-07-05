@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
 import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
@@ -19,7 +18,6 @@ import com.omiyawaki.osrswiki.views.TabCountsView
 
 class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
 
-    // The binding is now public to be accessible by the fragment's handler.
     lateinit var binding: ActivityPageBinding
     private var pageTitleArg: String? = null
     private var pageIdArg: String? = null
@@ -36,10 +34,6 @@ class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
 
         // Set this activity as the callback for swipe gestures.
         binding.navMenuTriggerLayout.callback = this
-
-        // The drawer must be unlocked to be opened programmatically by the swipe gesture.
-        binding.pageDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
-
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -60,22 +54,19 @@ class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
         setupToolbarListeners()
     }
 
-    // This is the callback from our NavMenuTriggerLayout.
     override fun onNavMenuSwipeRequest(gravity: Int) {
-        // We only have a right-side (END) drawer in this activity.
+        // We only care about opening the right-side (END) drawer.
         if (gravity == Gravity.END) {
             binding.pageDrawerLayout.openDrawer(GravityCompat.END)
         }
     }
 
-    // This method is now much simpler. It just finds the fragment and tells it to show its contents.
     fun showContents() {
         val fragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
         fragment?.showContents()
     }
 
     private fun setupToolbarListeners() {
-        // Handle clicks on the search container, which now acts as a button to navigate to search.
         val searchContainer = findViewById<MaterialTextView>(R.id.toolbar_search_container)
         searchContainer.setOnClickListener {
             L.d("Search 'button' clicked in PageActivity toolbar.")

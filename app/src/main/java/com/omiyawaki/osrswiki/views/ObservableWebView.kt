@@ -11,7 +11,6 @@ import android.webkit.WebView
 import com.omiyawaki.osrswiki.concurrency.FlowEventBus
 import com.omiyawaki.osrswiki.events.WebViewInvalidateEvent
 import com.omiyawaki.osrswiki.util.DimenUtil.densityScalar
-import com.omiyawaki.osrswiki.views.FrameLayoutNavMenuTriggerer.Companion.setChildViewScrolled
 import java.util.*
 import kotlin.math.abs
 
@@ -113,6 +112,8 @@ class ObservableWebView : WebView {
 
     override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
         super.onScrollChanged(left, top, oldLeft, oldTop)
+        // This is the one change needed for our gesture refinement.
+        NavMenuTriggerLayout.setChildViewScrolled()
         val isHumanScroll = abs(top - oldTop) < MAX_HUMAN_SCROLL
         if (scrollEventsEnabled) {
             onScrollChangeListeners.forEach {
@@ -124,7 +125,7 @@ class ObservableWebView : WebView {
         }
         totalAmountScrolled += top - oldTop
         if (abs(totalAmountScrolled) > FAST_SCROLL_THRESHOLD &&
-                onFastScrollListener != null) {
+            onFastScrollListener != null) {
             onFastScrollListener!!.onFastScroll()
             totalAmountScrolled = 0
         }
@@ -134,7 +135,7 @@ class ObservableWebView : WebView {
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.buttonState == MotionEvent.BUTTON_SECONDARY &&
-                event.actionMasked == MotionEvent.ACTION_DOWN) {
+            event.actionMasked == MotionEvent.ACTION_DOWN) {
             handleMouseRightClick(event.x, event.y)
             return true
         }
@@ -154,10 +155,7 @@ class ObservableWebView : WebView {
             }
             MotionEvent.ACTION_UP -> {
                 if (abs(event.x - touchStartX) <= touchSlop &&
-                        abs(event.y - touchStartY) <= touchSlop) {
-                    // Fire a click event, but only if the hit test doesn't land on a hyperlink
-                    // (i.e. only if the user clicks on whitespace or plain text in the WebView),
-                    // since link clicks will already be passed to the LinkHandler separately.
+                    abs(event.y - touchStartY) <= touchSlop) {
                     if (hitTestResult.type == HitTestResult.UNKNOWN_TYPE) {
                         if (onClickListeners.any { it.onClick(event.x, event.y) }) {
                             return true
@@ -185,8 +183,8 @@ class ObservableWebView : WebView {
         val eventTimeTravelMillis = 1000
         post {
             dispatchTouchEvent(MotionEvent.obtain(SystemClock.uptimeMillis(),
-                    SystemClock.uptimeMillis() + eventTimeTravelMillis,
-                    MotionEvent.ACTION_DOWN, x, y, 0))
+                SystemClock.uptimeMillis() + eventTimeTravelMillis,
+                MotionEvent.ACTION_DOWN, x, y, 0))
         }
     }
 
@@ -197,7 +195,9 @@ class ObservableWebView : WebView {
         }
         drawEventsWhileSwiping++
         if (drawEventsWhileSwiping > SWIPE_DRAW_TOLERANCE) {
-            setChildViewScrolled()
+            // This is a secondary, less direct way of signaling. The onScrollChanged
+            // method is more reliable, but we keep this for parity with the reference.
+            NavMenuTriggerLayout.setChildViewScrolled()
         }
         if (currentContentHeight != contentHeight) {
             currentContentHeight = contentHeight
