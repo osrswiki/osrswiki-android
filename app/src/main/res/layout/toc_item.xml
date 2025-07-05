@@ -29,6 +29,7 @@
         android:layout_centerVertical="true"
         android:layout_toStartOf="@id/toc_item_bullet"
         android:layout_marginEnd="16dp"
+        android:gravity="end"
         tools:text="Sample Section Title" />
 
 </RelativeLayout>
