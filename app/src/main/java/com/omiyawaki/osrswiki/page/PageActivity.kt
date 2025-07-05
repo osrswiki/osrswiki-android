@@ -3,7 +3,10 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.Gravity
 import android.widget.Toast
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
@@ -11,9 +14,10 @@ import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.views.NavMenuTriggerLayout
 import com.omiyawaki.osrswiki.views.TabCountsView
 
-class PageActivity : BaseActivity() {
+class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
 
     // The binding is now public to be accessible by the fragment's handler.
     lateinit var binding: ActivityPageBinding
@@ -29,6 +33,13 @@ class PageActivity : BaseActivity() {
         setSupportActionBar(binding.pageToolbar)
         supportActionBar?.title = "Loading..."
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // Set this activity as the callback for swipe gestures.
+        binding.navMenuTriggerLayout.callback = this
+
+        // The drawer must be unlocked to be opened programmatically by the swipe gesture.
+        binding.pageDrawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -47,6 +58,14 @@ class PageActivity : BaseActivity() {
                 .commit()
         }
         setupToolbarListeners()
+    }
+
+    // This is the callback from our NavMenuTriggerLayout.
+    override fun onNavMenuSwipeRequest(gravity: Int) {
+        // We only have a right-side (END) drawer in this activity.
+        if (gravity == Gravity.END) {
+            binding.pageDrawerLayout.openDrawer(GravityCompat.END)
+        }
     }
 
     // This method is now much simpler. It just finds the fragment and tells it to show its contents.
