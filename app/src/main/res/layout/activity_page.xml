@@ -22,8 +22,8 @@
                 android:layout_height="wrap_content"
                 android:background="?attr/colorSurface"
                 android:elevation="4dp"
-                android:stateListAnimator="@null"
-                android:outlineProvider="bounds">
+                android:outlineProvider="bounds"
+                android:stateListAnimator="@null">
 
                 <com.google.android.material.appbar.MaterialToolbar
                     android:id="@+id/page_toolbar"
@@ -46,17 +46,16 @@
                 tools:layout="@layout/fragment_page" />
 
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
     </com.omiyawaki.osrswiki.views.NavMenuTriggerLayout>
-
 
     <FrameLayout
         android:id="@+id/side_panel_container"
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:clipChildren="false"
-        android:background="?attr/colorSurface">
+        android:background="?attr/colorSurface"
+        android:clickable="true"
+        android:focusable="true">
 
         <com.omiyawaki.osrswiki.views.DottedLineView
             android:id="@+id/toc_track"
@@ -69,14 +68,14 @@
             android:id="@+id/toc_list_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:choiceMode="singleChoice"
+            android:clipToPadding="false"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:listSelector="@android:color/transparent"
             android:paddingTop="64dp"
             android:paddingBottom="64dp"
-            android:clipToPadding="false"
-            android:scrollbars="none"
-            android:listSelector="@android:color/transparent"
-            android:choiceMode="singleChoice"
-            android:divider="@null"
-            android:dividerHeight="0dp" />
+            android:scrollbars="none" />
 
         <com.omiyawaki.osrswiki.view.PageScrollerView
             android:id="@+id/page_scroller_view"
@@ -84,10 +83,10 @@
             android:layout_height="48dp"
             android:layout_gravity="end"
             android:layout_marginEnd="16dp"
-            android:elevation="8dp"
             android:background="@drawable/shape_circle"
-            app:backgroundTint="?attr/colorSurfaceVariant"
+            android:elevation="8dp"
             android:scaleType="center"
+            app:backgroundTint="?attr/colorSurfaceVariant"
             app:srcCompat="@drawable/ic_unfold_more"
             app:tint="?attr/colorOnSurfaceVariant" />
 
