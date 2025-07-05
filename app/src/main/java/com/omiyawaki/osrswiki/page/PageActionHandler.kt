@@ -140,7 +140,8 @@ class PageActionHandler(
         }
 
         override fun onFindInArticleSelected() {
-            showThemedSnackbar("Find in page: Not yet implemented.", Snackbar.LENGTH_SHORT)
+            // Delegate the action to the PageFragment to handle.
+            (fragment as? PageFragment)?.showFindInPage()
         }
 
         override fun onThemeSelected() {

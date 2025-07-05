@@ -3,7 +3,9 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.ActionMode
 import android.view.Gravity
+import android.view.View
 import android.widget.Toast
 import androidx.core.view.GravityCompat
 import com.google.android.material.textview.MaterialTextView
@@ -16,12 +18,13 @@ import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.NavMenuTriggerLayout
 import com.omiyawaki.osrswiki.views.TabCountsView
 
-class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
+class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback, PageFragment.Callback {
 
     lateinit var binding: ActivityPageBinding
     private var pageTitleArg: String? = null
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
+    private var currentActionMode: ActionMode? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,8 +99,32 @@ class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
     }
 
     override fun onSupportNavigateUp(): Boolean {
+        // Let the action mode handle the back press if it's active.
+        if (currentActionMode != null) {
+            currentActionMode?.finish()
+            return true
+        }
         onBackPressedDispatcher.onBackPressed()
         return true
+    }
+
+    override fun onPageStartActionMode(callback: ActionMode.Callback) {
+        if (currentActionMode != null) {
+            return
+        }
+        // Hide the main toolbar and start the action mode.
+        binding.pageToolbar.visibility = View.GONE
+        currentActionMode = startActionMode(callback)
+    }
+
+    override fun onPageStopActionMode() {
+        // Show the main toolbar again.
+        binding.pageToolbar.visibility = View.VISIBLE
+        currentActionMode = null
+    }
+
+    override fun onPageFinishActionMode() {
+        currentActionMode?.finish()
     }
 
     companion object {
