@@ -24,11 +24,14 @@ import kotlinx.serialization.json.Json
 class PageFragment : Fragment() {
 
     private var _binding: FragmentPageBinding? = null
-    private val binding get() = _binding!!
+    val binding get() = _binding!!
 
     private lateinit var pageViewModel: PageViewModel
     private lateinit var pageRepository: PageRepository
     private lateinit var readingListPageDao: ReadingListPageDao
+
+    // The PageFragment now owns the ContentsHandler.
+    private lateinit var contentsHandler: ContentsHandler
 
     // Helper Classes
     private lateinit var pageContentLoader: PageContentLoader
@@ -70,7 +73,8 @@ class PageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        (requireActivity() as PageActivity).getContentsHandler().initViews()
+        // Instantiate the ContentsHandler here. Its init block will handle wiring listeners.
+        contentsHandler = ContentsHandler(this)
 
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
@@ -172,7 +176,8 @@ class PageFragment : Fragment() {
                     val title = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
                     val leadSection = Section(0, 1, "", title)
                     val fullToc = mutableListOf(leadSection).apply { addAll(sections) }
-                    (requireActivity() as PageActivity).setupContents(fullToc)
+                    // The fragment now directly tells its own handler to set up the contents.
+                    contentsHandler.setup(fullToc)
                 } catch (e: Exception) {
                     L.e("Failed to parse TOC JSON", e)
                 }
@@ -181,7 +186,8 @@ class PageFragment : Fragment() {
     }
 
     fun showContents() {
-        (requireActivity() as PageActivity).showContents()
+        // The fragment tells its own handler to show.
+        contentsHandler.show()
     }
 
     fun showPageOverflowMenu(anchorView: View) {

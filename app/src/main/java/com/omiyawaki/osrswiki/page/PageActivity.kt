@@ -4,26 +4,22 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.fragment.app.Fragment
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.MainActivity
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
-import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.TabCountsView
 
 class PageActivity : BaseActivity() {
 
-    private lateinit var binding: ActivityPageBinding
+    // The binding is now public to be accessible by the fragment's handler.
+    lateinit var binding: ActivityPageBinding
     private var pageTitleArg: String? = null
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
-
-    private var pageFragment: PageFragment? = null
-    private lateinit var contentsHandler: ContentsHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,8 +29,6 @@ class PageActivity : BaseActivity() {
         setSupportActionBar(binding.pageToolbar)
         supportActionBar?.title = "Loading..."
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        contentsHandler = ContentsHandler(this, binding.pageDrawerLayout)
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -51,36 +45,14 @@ class PageActivity : BaseActivity() {
             supportFragmentManager.beginTransaction()
                 .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG)
                 .commit()
-        } else {
-            pageFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
         }
         setupToolbarListeners()
     }
 
-    @Deprecated(message = "Override of a deprecated Activity.onAttachFragment(). Consider migrating to FragmentManager.FragmentLifecycleCallbacks.")
-    @Suppress("DEPRECATION")
-    override fun onAttachFragment(fragment: Fragment) {
-        super.onAttachFragment(fragment)
-        if (fragment.tag == FRAGMENT_TAG && fragment is PageFragment) {
-            pageFragment = fragment
-            L.d("PageFragment attached to PageActivity.")
-        }
-    }
-
-    fun setupContents(sections: List<Section>) {
-        if (::contentsHandler.isInitialized) {
-            contentsHandler.setup(sections)
-        }
-    }
-
+    // This method is now much simpler. It just finds the fragment and tells it to show its contents.
     fun showContents() {
-        if (::contentsHandler.isInitialized) {
-            contentsHandler.show()
-        }
-    }
-    
-    fun getContentsHandler(): ContentsHandler {
-        return contentsHandler
+        val fragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
+        fragment?.showContents()
     }
 
     private fun setupToolbarListeners() {
