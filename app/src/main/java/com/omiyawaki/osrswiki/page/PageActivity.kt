@@ -55,9 +55,12 @@ class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback {
     }
 
     override fun onNavMenuSwipeRequest(gravity: Int) {
-        // We only care about opening the right-side (END) drawer.
         if (gravity == Gravity.END) {
+            // A swipe from right-to-left opens the ToC drawer.
             binding.pageDrawerLayout.openDrawer(GravityCompat.END)
+        } else if (gravity == Gravity.START) {
+            // A swipe from left-to-right triggers the back action.
+            onBackPressedDispatcher.onBackPressed()
         }
     }
 
