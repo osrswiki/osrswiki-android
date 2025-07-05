@@ -1,6 +1,8 @@
 package com.omiyawaki.osrswiki.page
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -12,6 +14,7 @@ import android.widget.ListView
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.color.MaterialColors
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.DimenUtil
@@ -139,6 +142,8 @@ class ContentsHandler(private val fragment: PageFragment) :
             notifyDataSetChanged()
         }
 
+
+
         fun setHighlightedItem(position: Int) {
             if (highlightedPosition != position) {
                 highlightedPosition = position
@@ -156,35 +161,36 @@ class ContentsHandler(private val fragment: PageFragment) :
             val textView = view.findViewById<TextView>(R.id.toc_item_text)
             val bullet = view.findViewById<ImageView>(R.id.toc_item_bullet)
             textView.text = section.title
+
             val bodyTypeface = Typeface.SERIF
-            val textSize: Float
-            when {
-                section.isLead -> {
-                    textSize = 24f
-                    textView.typeface = bodyTypeface
-                }
-                section.level == 2 -> {
-                    textSize = 18f
-                    textView.typeface = bodyTypeface
-                }
-                else -> {
-                    textSize = 14f
-                    textView.typeface = bodyTypeface
-                }
+            val textSize = when {
+                section.isLead -> 24f
+                section.level == 2 -> 18f
+                else -> 14f
             }
             textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize)
-            val typedValue = TypedValue()
-            if (position == highlightedPosition) {
-                textView.typeface = Typeface.create(textView.typeface, Typeface.BOLD_ITALIC)
-                context.theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)
-                textView.setTextColor(typedValue.data)
-                bullet.setColorFilter(typedValue.data)
+
+            val isHighlighted = position == highlightedPosition
+
+            // Set typeface style based on selection.
+            textView.typeface = if (isHighlighted) {
+                Typeface.create(bodyTypeface, Typeface.BOLD_ITALIC)
             } else {
-                context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
-                textView.setTextColor(typedValue.data)
-                context.theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)
-                bullet.setColorFilter(typedValue.data)
+                bodyTypeface
             }
+
+            // Determine the correct color attribute based on selection.
+            val colorAttr = if (isHighlighted) {
+                com.google.android.material.R.attr.colorOnSurface
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+
+            // Resolve the color from the theme and apply it to both text and bullet.
+            val resolvedColor = MaterialColors.getColor(context, colorAttr, Color.BLACK)
+            textView.setTextColor(resolvedColor)
+            bullet.imageTintList = ColorStateList.valueOf(resolvedColor)
+
             return view
         }
     }
