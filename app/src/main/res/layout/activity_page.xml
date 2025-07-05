@@ -50,6 +50,13 @@
         android:clipChildren="false"
         android:background="?attr/colorSurface">
 
+        <com.omiyawaki.osrswiki.views.DottedLineView
+            android:id="@+id/toc_track"
+            android:layout_width="2dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="end"
+            android:layout_marginEnd="39dp" />
+
         <ListView
             android:id="@+id/toc_list_view"
             android:layout_width="match_parent"
@@ -62,13 +69,6 @@
             android:choiceMode="singleChoice"
             android:divider="@null"
             android:dividerHeight="0dp" />
-
-        <com.omiyawaki.osrswiki.views.DottedLineView
-            android:id="@+id/toc_track"
-            android:layout_width="2dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="end"
-            android:layout_marginEnd="39dp" />
 
         <com.omiyawaki.osrswiki.view.PageScrollerView
             android:id="@+id/page_scroller_view"
