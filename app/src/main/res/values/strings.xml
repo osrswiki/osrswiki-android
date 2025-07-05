@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">OSRS Wiki</string>
 
     <string name="title_search">Search Wiki</string>
@@ -66,6 +66,12 @@
     <string name="page_toolbar_search_hint">Search OSRSWiki</string>
     <string name="page_toolbar_tabs_content_description">Show tabs</string>
     <string name="page_toolbar_overflow_content_description">More options</string>
+
+    <string name="find_in_page_hint">Search in page</string>
+    <string name="find_in_page_previous">Previous</string>
+    <string name="find_in_page_next">Next</string>
+    <string name="find_in_page_close">Close</string>
+    <string name="find_in_page_result" tools:ignore="PluralsCandidate">%d/%d</string>
 
     <string name="theme_name_osrs_light">OSRS Light (Default)</string>
     <string name="theme_name_osrs_dark">OSRS Dark (Default)</string>

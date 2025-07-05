@@ -1,7 +1,9 @@
 package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
+import android.view.ActionMode
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +27,12 @@ import kotlinx.serialization.json.Json
 
 class PageFragment : Fragment() {
 
+    interface Callback {
+        fun onPageStartActionMode(callback: ActionMode.Callback)
+        fun onPageStopActionMode()
+        fun onPageFinishActionMode()
+    }
+
     private var _binding: FragmentPageBinding? = null
     val binding get() = _binding!!
 
@@ -45,9 +53,21 @@ class PageFragment : Fragment() {
     private lateinit var pageReadingListManager: PageReadingListManager
     private lateinit var pageUiUpdater: PageUiUpdater
 
+    private var callback: Callback? = null
+    private var isFindInPageActive = false
+
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is Callback) {
+            callback = context
+        } else {
+            throw RuntimeException("$context must implement PageFragment.Callback")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +95,6 @@ class PageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Instantiate the ContentsHandler here. Its init block will handle wiring listeners.
         contentsHandler = ContentsHandler(this)
 
         val app = requireActivity().application as OSRSWikiApp
@@ -118,9 +137,7 @@ class PageFragment : Fragment() {
         )
 
         pageActionHandler = PageActionHandler(this, pageViewModel, binding)
-
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
-
         val appDb = AppDatabase.instance
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
@@ -138,26 +155,18 @@ class PageFragment : Fragment() {
 
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
         pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope) { this }
-
         binding.pageActionsTabLayout.callback = pageActionHandler.callback
         binding.pageActionsTabLayout.update()
-
         pageUiUpdater.updateUi()
         pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
         pageReadingListManager.observeAndRefreshSaveButtonState()
-
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
     }
 
     private fun fetchTableOfContents() {
         val script = """
             (function() {
-                var tocData = {
-                    leadSectionDetails: null,
-                    sections: []
-                };
-
-                // Get H2, H3, etc.
+                var tocData = { leadSectionDetails: null, sections: [] };
                 var headerSpans = document.querySelectorAll('.mw-headline');
                 for (var i = 0; i < headerSpans.length; i++) {
                     var span = headerSpans[i];
@@ -166,17 +175,12 @@ class PageFragment : Fragment() {
                         var level = parseInt(header.tagName.substring(1));
                         var computedStyle = window.getComputedStyle(span);
                         tocData.sections.push({
-                            id: i + 1,
-                            level: level,
-                            anchor: span.id,
-                            title: span.textContent.trim(),
+                            id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
                             isItalic: computedStyle.fontStyle === 'italic',
                             isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
                         });
                     }
                 }
-
-                // Get H1 (main page title) using the correct class selector
                 var leadHeader = document.querySelector('h1.page-header');
                 if (leadHeader) {
                     var leadStyle = window.getComputedStyle(leadHeader);
@@ -186,7 +190,6 @@ class PageFragment : Fragment() {
                         isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
                     };
                 }
-
                 return JSON.stringify(tocData);
             })();
         """
@@ -195,16 +198,12 @@ class PageFragment : Fragment() {
                 try {
                     val cleanedJson = jsonString.removeSurrounding("\"").replace("\\\"", "\"")
                     val tocData = Json.decodeFromString<TocData>(cleanedJson)
-                    
                     val leadSection = tocData.leadSectionDetails?.let {
-                        // Use details from JS if available
                         Section(0, 1, "", it.title, it.isItalic, it.isBold)
                     } ?: run {
-                        // Otherwise, create a default fallback using the ActionBar title
                         val fallbackTitle = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
                         Section(0, 1, "", fallbackTitle, isItalic = false, isBold = true)
                     }
-                    
                     val fullToc = mutableListOf(leadSection).apply { addAll(tocData.sections) }
                     contentsHandler.setup(fullToc)
                 } catch (e: Exception) {
@@ -212,6 +211,21 @@ class PageFragment : Fragment() {
                 }
             }
         }
+    }
+
+    fun showFindInPage() {
+        if (isFindInPageActive) {
+            return
+        }
+        val script = "document.querySelectorAll('.collapsible-closed').forEach(function(e) { e.classList.remove('collapsible-closed'); });"
+        binding.pageWebView.evaluateJavascript(script, null)
+
+        val manager = FindInPageManager(requireContext(), binding.pageWebView) {
+            isFindInPageActive = false
+            callback?.onPageStopActionMode()
+        }
+        isFindInPageActive = true
+        callback?.onPageStartActionMode(manager)
     }
 
     fun showContents() {
@@ -225,6 +239,7 @@ class PageFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        callback?.onPageFinishActionMode()
         pageReadingListManager.cancelObserving()
         _binding?.pageWebView?.let { webView ->
             webView.stopLoading()
@@ -232,6 +247,11 @@ class PageFragment : Fragment() {
             webView.destroy()
         }
         _binding = null
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callback = null
     }
 
     fun getPageIdArg(): String? = pageIdArg
