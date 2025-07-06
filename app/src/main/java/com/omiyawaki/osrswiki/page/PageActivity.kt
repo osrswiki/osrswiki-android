@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.ActionMode
 import android.view.View
 import android.widget.Toast
-import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
@@ -15,8 +14,9 @@ import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.TabCountsView
-import kotlin.math.abs
+import com.omiyawaki.osrswiki.views.ViewHideHandler
 
+// Implement the new PageFragment.Callback interface
 class PageActivity : BaseActivity(), PageFragment.Callback {
 
     internal lateinit var binding: ActivityPageBinding
@@ -24,7 +24,9 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
     private var currentActionMode: ActionMode? = null
-    private var isAppBarExpanded = true
+    
+    // The new handler for managing toolbar visibility
+    private lateinit var toolbarHideHandler: ViewHideHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,8 +41,9 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         binding.pageAppbarLayout.stateListAnimator = null
         val elevationInDp = 9.75f
         binding.pageAppbarLayout.elevation = elevationInDp * resources.displayMetrics.density
-
-        setupStateTracking()
+        
+        // Initialize the ViewHideHandler, targeting the AppBarLayout
+        toolbarHideHandler = ViewHideHandler(binding.pageAppbarLayout)
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -54,37 +57,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
         setupToolbarListeners()
     }
-
-    private fun setupStateTracking() {
-        binding.pageAppbarLayout.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { _, verticalOffset ->
-            // The AppBarLayout is fully expanded when the vertical offset is 0.
-            isAppBarExpanded = verticalOffset == 0
-        })
-    }
-
+    
+    // This method is called by the PageFragment when its WebView is ready.
     override fun onWebViewReady(webView: ObservableWebView) {
-        // Use the custom scroll listener to manually control the AppBarLayout's state.
-        webView.addOnScrollChangeListener(object : ObservableWebView.OnScrollChangeListener {
-            private var lastScrollY = 0
-            private val scrollThreshold = 10 // Pixels
-
-            override fun onScrollChanged(oldScrollY: Int, scrollY: Int, isHumanScroll: Boolean) {
-                if (currentActionMode != null || !isHumanScroll) {
-                    return
-                }
-                val dy = scrollY - lastScrollY
-                if (abs(dy) > scrollThreshold) {
-                    if (dy > 0 && isAppBarExpanded) {
-                        // Scrolling down: hide the app bar.
-                        binding.pageAppbarLayout.setExpanded(false, true)
-                    } else if (dy < 0 && !isAppBarExpanded) {
-                        // Scrolling up: show the app bar.
-                        binding.pageAppbarLayout.setExpanded(true, true)
-                    }
-                }
-                lastScrollY = scrollY
-            }
-        })
+        // Connect the hide handler to the WebView instance.
+        toolbarHideHandler.setScrollView(webView)
     }
 
     fun showContents() {
@@ -93,10 +70,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
 
     private fun setupToolbarListeners() {
-        // Find views within the toolbar to ensure they are found correctly.
         val searchContainer = binding.pageToolbar.findViewById<MaterialTextView>(R.id.toolbar_search_container)
         searchContainer.setOnClickListener {
-            // Launch SearchActivity, which is what SearchFragment expects as its host.
             val searchActivityIntent = Intent(this, SearchActivity::class.java)
             startActivity(searchActivityIntent)
         }
@@ -124,6 +99,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onPageStartActionMode(callback: ActionMode.Callback) {
         if (currentActionMode != null) { return }
+        // When starting an action mode, always show the toolbar.
         binding.pageAppbarLayout.setExpanded(true, true)
         currentActionMode = startActionMode(callback)
     }
