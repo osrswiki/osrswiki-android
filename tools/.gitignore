@@ -1,0 +1,9 @@
+# Ignore Gradle build artifacts
+map-dumper/build/
+map-dumper/.gradle/
+
+# Ignore downloaded and generated assets which should not be in git
+map-dumper/jagexcache/
+map-dumper/xtea.json
+map-dumper/output/
+pois.json
