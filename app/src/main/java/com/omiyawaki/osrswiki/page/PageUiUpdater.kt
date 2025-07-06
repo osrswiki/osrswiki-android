@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import androidx.core.view.isVisible
 import com.omiyawaki.osrswiki.OSRSWikiApp
@@ -8,6 +9,8 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.settings.Prefs
+// NOTE: We are not using the custom L wrapper for the HTML log
+// import com.omiyawaki.osrswiki.util.log.L
 
 class PageUiUpdater(
     private val binding: FragmentPageBinding,
@@ -16,6 +19,7 @@ class PageUiUpdater(
     private val fragmentContextProvider: () -> PageFragment?
 ) {
     private val TAG = "PageUiUpdater"
+    private val HTML_LOG_TAG = "PageUiUpdater-HTML"
 
     fun updateUi() {
         val fragment = fragmentContextProvider() ?: return
@@ -42,20 +46,25 @@ class PageUiUpdater(
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
 
                 var finalHtml = state.htmlContent
+                var injectedContent = ""
 
-                // Check the preference for enabling collapsible tables.
+                // The dynamic style for top padding is no longer needed.
+                // val dynamicStyle = "<style>body { padding-top: ${toolbarHeightPx}px !important; }</style>"
+                // injectedContent += dynamicStyle
+
                 if (Prefs.isCollapseTablesEnabled) {
-                    Log.d(TAG, "Collapsible tables enabled. Injecting CSS and JS.")
-                    // Get the theme-aware CSS and the feature JavaScript.
                     val css = JavaScriptActionHandler.getCollapsibleTablesCss(fragment.requireContext())
                     val js = JavaScriptActionHandler.getCollapsibleTablesJs(fragment.requireContext())
                     val scriptTag = "<script>${js}</script>"
-
-                    // Inject both the CSS <style> block and the JS <script> block into the head.
-                    finalHtml = finalHtml.replace("</head>", "$css$scriptTag</head>", ignoreCase = true)
-                } else {
-                    Log.d(TAG, "Collapsible tables disabled, not injecting.")
+                    injectedContent += "$css$scriptTag"
                 }
+
+                if (injectedContent.isNotEmpty()) {
+                    finalHtml = finalHtml.replace("</head>", "$injectedContent</head>", ignoreCase = true)
+                }
+
+                // Use the standard Android Log class to specify a custom tag
+                Log.d(HTML_LOG_TAG, finalHtml)
 
                 pageWebViewManager.render(
                     fullHtml = finalHtml,
