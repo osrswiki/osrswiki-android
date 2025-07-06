@@ -112,14 +112,16 @@ class PageActivity : BaseActivity(), NavMenuTriggerLayout.Callback, PageFragment
         if (currentActionMode != null) {
             return
         }
-        // Hide the main toolbar and start the action mode.
-        binding.pageToolbar.visibility = View.GONE
+        // Instead of hiding the toolbar, set the AppBarLayout's elevation to 0 to allow
+        // the ActionMode to overlay it with its own shadow. This prevents the page
+        // content from moving and allows the shadow to be drawn correctly.
+        binding.appBarLayout.elevation = 0f
         currentActionMode = startActionMode(callback)
     }
 
     override fun onPageStopActionMode() {
-        // Show the main toolbar again.
-        binding.pageToolbar.visibility = View.VISIBLE
+        // Restore the AppBarLayout's elevation. 4dp converted to pixels.
+        binding.appBarLayout.elevation = 4f * resources.displayMetrics.density
         currentActionMode = null
     }
 
