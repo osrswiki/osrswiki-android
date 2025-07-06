@@ -8,7 +8,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.dataclient.WikiSite
-import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 
 class PageWebViewManager(
@@ -30,10 +29,10 @@ class PageWebViewManager(
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
 
-                // Inject the single, unified JavaScript for all collapsible content.
-                // We can add a pref check here later if needed.
-                val collapsibleJs = JavaScriptActionHandler.getCollapsibleContentJs(webView.context)
-                view?.evaluateJavascript(collapsibleJs, null)
+                // Inject necessary scripts
+                view?.evaluateJavascript(JavaScriptActionHandler.getLeafletJs(webView.context), null)
+                view?.evaluateJavascript(JavaScriptActionHandler.getMapInitializerJs(webView.context), null)
+                view?.evaluateJavascript(JavaScriptActionHandler.getCollapsibleContentJs(webView.context), null)
 
                 revealBody()
             }
@@ -61,9 +60,10 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // Inject all necessary CSS for collapsible content.
+        // Inject all necessary CSS.
+        val leafletCss = JavaScriptActionHandler.getLeafletCss(webView.context)
         val collapsibleCss = JavaScriptActionHandler.getCollapsibleContentCss(webView.context)
-        val finalHtml = fullHtml.replaceFirst("<head>", "<head>\n$collapsibleCss")
+        val finalHtml = fullHtml.replaceFirst("<head>", "<head>\n$leafletCss\n$collapsibleCss")
 
         Log.d(managerTag, "Loading HTML content with injected assets.")
         
