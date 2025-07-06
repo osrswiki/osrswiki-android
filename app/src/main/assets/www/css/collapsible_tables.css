@@ -1,47 +1,20 @@
-.collapsible-container {
-    border-radius: 2px;
-    clear: both;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    width: 100%;
-    background-color: var(--container-bg-color);
-    color: var(--primary-text-color);
-}
+/*
+ * Styles for MediaWiki collapsible elements.
+ */
 
-.collapsible-header {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    cursor: pointer;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-}
-
-.collapsible-header .title-wrapper {
-    flex-grow: 1;
-    font-family: sans-serif;
-}
-
-.collapsible-header .icon {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M17.5 4.75l-7.5 7.5-7.5-7.5L1 6.25l9 9 9-9z' fill='currentColor'/%3E%3C/svg%3E");
-    transition: transform 0.2s ease-in-out;
-}
-
-.collapsible-container:not(.collapsed) .icon {
-    transform: rotate(180deg);
-}
-
-.collapsible-content {
-    overflow-x: auto;
-    padding: 0 12px 12px 12px;
-}
-
-.collapsible-container.collapsed .collapsible-content {
+/* Hides content for modern, class-based containers. */
+.mw-collapsible.mw-collapsed .mw-collapsible-content {
     display: none;
+}
+
+/* Hides content for older, section-based containers. */
+.collapsible-block.mw-collapsed {
+    display: none;
+}
+
+/* Styles the toggle link area for modern containers. */
+.mw-collapsible-toggle {
+    text-align: right;
+    font-size: 0.9em;
+    cursor: pointer;
 }
