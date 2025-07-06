@@ -45,23 +45,7 @@ class PageUiUpdater(
                 binding.pageWebView.visibility = View.INVISIBLE
                 val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
 
-                var finalHtml = state.htmlContent
-                var injectedContent = ""
-
-                // The dynamic style for top padding is no longer needed.
-                // val dynamicStyle = "<style>body { padding-top: ${toolbarHeightPx}px !important; }</style>"
-                // injectedContent += dynamicStyle
-
-                if (Prefs.isCollapseTablesEnabled) {
-                    val css = JavaScriptActionHandler.getCollapsibleTablesCss(fragment.requireContext())
-                    val js = JavaScriptActionHandler.getCollapsibleTablesJs(fragment.requireContext())
-                    val scriptTag = "<script>${js}</script>"
-                    injectedContent += "$css$scriptTag"
-                }
-
-                if (injectedContent.isNotEmpty()) {
-                    finalHtml = finalHtml.replace("</head>", "$injectedContent</head>", ignoreCase = true)
-                }
+                val finalHtml = state.htmlContent
 
                 // Use the standard Android Log class to specify a custom tag
                 Log.d(HTML_LOG_TAG, finalHtml)

@@ -6,6 +6,7 @@ import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebView
+import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
@@ -28,11 +29,12 @@ class PageWebViewManager(
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (Prefs.isCollapseTablesEnabled) {
-                    // This call is likely not needed if the JS runs on its own,
-                    // but we leave it here, commented out, for reference.
-                    // view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
-                }
+
+                // Inject the single, unified JavaScript for all collapsible content.
+                // We can add a pref check here later if needed.
+                val collapsibleJs = JavaScriptActionHandler.getCollapsibleContentJs(webView.context)
+                view?.evaluateJavascript(collapsibleJs, null)
+
                 revealBody()
             }
         }
@@ -59,11 +61,14 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // --- DIAGNOSTIC LOGGING ---
-        Log.d("PageWebViewManager", "Loading HTML content: $fullHtml")
-        // --- END LOGGING ---
+        // Inject all necessary CSS for collapsible content.
+        val collapsibleCss = JavaScriptActionHandler.getCollapsibleContentCss(webView.context)
+        val finalHtml = fullHtml.replaceFirst("<head>", "<head>\n$collapsibleCss")
+
+        Log.d(managerTag, "Loading HTML content with injected assets.")
+        
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
-        webView.loadDataWithBaseURL(finalBaseUrl, fullHtml, "text/html", "UTF-8", null)
+        webView.loadDataWithBaseURL(finalBaseUrl, finalHtml, "text/html", "UTF-8", null)
     }
 
     private fun revealBody() {
