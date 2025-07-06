@@ -38,6 +38,7 @@
             android:name="com.omiyawaki.osrswiki.page.PageFragment"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingBottom="@dimen/nav_bar_height"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             tools:layout="@layout/fragment_page" />
 
