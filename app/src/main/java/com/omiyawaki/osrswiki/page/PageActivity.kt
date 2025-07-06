@@ -4,8 +4,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.ActionMode
+import android.view.Gravity
 import android.view.View
 import android.widget.Toast
+import androidx.core.view.GravityCompat
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
@@ -16,7 +18,6 @@ import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.TabCountsView
 import com.omiyawaki.osrswiki.views.ViewHideHandler
 
-// Implement the new PageFragment.Callback interface
 class PageActivity : BaseActivity(), PageFragment.Callback {
 
     internal lateinit var binding: ActivityPageBinding
@@ -24,8 +25,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
     private var currentActionMode: ActionMode? = null
-    
-    // The new handler for managing toolbar visibility
+
     private lateinit var toolbarHideHandler: ViewHideHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +41,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         binding.pageAppbarLayout.stateListAnimator = null
         val elevationInDp = 9.75f
         binding.pageAppbarLayout.elevation = elevationInDp * resources.displayMetrics.density
-        
+
         // Initialize the ViewHideHandler, targeting the AppBarLayout
         toolbarHideHandler = ViewHideHandler(binding.pageAppbarLayout)
 
@@ -57,11 +57,19 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
         setupToolbarListeners()
     }
-    
-    // This method is called by the PageFragment when its WebView is ready.
+
     override fun onWebViewReady(webView: ObservableWebView) {
-        // Connect the hide handler to the WebView instance.
         toolbarHideHandler.setScrollView(webView)
+    }
+
+    override fun onPageSwipe(gravity: Int) {
+        if (gravity == Gravity.END) {
+            // A swipe from right-to-left opens the ToC drawer.
+            binding.pageDrawerLayout.openDrawer(GravityCompat.END)
+        } else if (gravity == Gravity.START) {
+            // A swipe from left-to-right triggers the back action.
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
 
     fun showContents() {
@@ -99,7 +107,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onPageStartActionMode(callback: ActionMode.Callback) {
         if (currentActionMode != null) { return }
-        // When starting an action mode, always show the toolbar.
         binding.pageAppbarLayout.setExpanded(true, true)
         currentActionMode = startActionMode(callback)
     }
