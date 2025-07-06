@@ -5,7 +5,10 @@ import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.ActionMode
+import android.view.GestureDetector
+import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +29,7 @@ import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import kotlinx.serialization.json.Json
+import kotlin.math.abs
 
 class PageFragment : Fragment() {
 
@@ -36,6 +40,7 @@ class PageFragment : Fragment() {
         fun onWebViewReady(webView: ObservableWebView)
         fun getPageActionTabLayout(): PageActionTabLayout
         fun getPageToolbarContainer(): View
+        fun onPageSwipe(gravity: Int)
     }
 
     private var _binding: FragmentPageBinding? = null
@@ -53,6 +58,7 @@ class PageFragment : Fragment() {
     private lateinit var pageHistoryManager: PageHistoryManager
     private lateinit var pageReadingListManager: PageReadingListManager
     private lateinit var pageUiUpdater: PageUiUpdater
+    private lateinit var gestureDetector: GestureDetector
 
     private var callback: Callback? = null
     private var isFindInPageActive = false
@@ -91,6 +97,7 @@ class PageFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         callback?.onWebViewReady(binding.pageWebView)
+        setupGestureDetector()
         contentsHandler = ContentsHandler(this)
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
@@ -114,7 +121,6 @@ class PageFragment : Fragment() {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
                     fetchTableOfContents()
-                    // logViewPositions() // Logging is no longer needed.
                 }
             },
             onTitleReceived = { newTitle ->
@@ -152,40 +158,83 @@ class PageFragment : Fragment() {
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
     }
 
-    private fun logViewPositions() {
-        // This diagnostic function is no longer needed.
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestureDetector() {
+        val gestureListener = object : GestureDetector.SimpleOnGestureListener() {
+            private val swipeThreshold = 100
+            private val swipeVelocityThreshold = 100
+
+            override fun onDown(e: MotionEvent): Boolean {
+                return true
+            }
+
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                if (e1 == null) {
+                    return false
+                }
+                val dx = e2.x - e1.x
+                val dy = e2.y - e1.y
+                var result = false
+                try {
+                    if (abs(dx) > abs(dy) &&
+                        abs(dx) > swipeThreshold &&
+                        abs(velocityX) > swipeVelocityThreshold) {
+
+                        if (dx > 0) {
+                            callback?.onPageSwipe(Gravity.START)
+                        } else {
+                            callback?.onPageSwipe(Gravity.END)
+                        }
+                        result = true
+                    }
+                } catch (exception: Exception) {
+                    L.e("Error during swipe detection.", exception)
+                }
+                return result
+            }
+        }
+        gestureDetector = GestureDetector(requireContext(), gestureListener)
+        binding.pageWebView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            false
+        }
     }
 
     private fun fetchTableOfContents() {
         val script = """
-            (function() {
-                var tocData = { leadSectionDetails: null, sections: [] };
-                var headerSpans = document.querySelectorAll('.mw-headline');
-                for (var i = 0; i < headerSpans.length; i++) {
-                    var span = headerSpans[i];
-                    var header = span.parentElement;
-                    if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
-                        var level = parseInt(header.tagName.substring(1));
-                        var computedStyle = window.getComputedStyle(span);
-                        tocData.sections.push({
-                            id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
-                            isItalic: computedStyle.fontStyle === 'italic',
-                            isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
-                        });
-                    }
-                }
-                var leadHeader = document.querySelector('h1.page-header');
-                if (leadHeader) {
-                    var leadStyle = window.getComputedStyle(leadHeader);
-                    tocData.leadSectionDetails = {
-                        title: leadHeader.textContent.trim(),
-                        isItalic: leadStyle.fontStyle === 'italic',
-                        isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
-                    };
-                }
-                return JSON.stringify(tocData);
-            })();
-        """
+                 (function() {
+                     var tocData = { leadSectionDetails: null, sections: [] };
+                     var headerSpans = document.querySelectorAll('.mw-headline');
+                     for (var i = 0; i < headerSpans.length; i++) {
+                         var span = headerSpans[i];
+                         var header = span.parentElement;
+                         if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
+                             var level = parseInt(header.tagName.substring(1));
+                             var computedStyle = window.getComputedStyle(span);
+                             tocData.sections.push({
+                                 id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
+                                 isItalic: computedStyle.fontStyle === 'italic',
+                                 isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
+                             });
+                         }
+                     }
+                     var leadHeader = document.querySelector('h1.page-header');
+                     if (leadHeader) {
+                         var leadStyle = window.getComputedStyle(leadHeader);
+                         tocData.leadSectionDetails = {
+                             title: leadHeader.textContent.trim(),
+                             isItalic: leadStyle.fontStyle === 'italic',
+                             isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
+                         };
+                     }
+                     return JSON.stringify(tocData);
+                 })();
+             """
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
             if (jsonString != null && jsonString != "null") {
                 try {
