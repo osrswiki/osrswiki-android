@@ -94,4 +94,6 @@
     <string name="transition_search_bar" translatable="false">transition_search_bar</string>
 
     <string name="news_fetch_error">Failed to fetch news.</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>

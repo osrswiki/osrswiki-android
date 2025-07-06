@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.page
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.ActionMode
 import android.view.LayoutInflater
 import android.view.View
@@ -23,6 +24,7 @@ import com.omiyawaki.osrswiki.page.model.TocData
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.views.ObservableWebView
 import kotlinx.serialization.json.Json
 
 class PageFragment : Fragment() {
@@ -31,6 +33,9 @@ class PageFragment : Fragment() {
         fun onPageStartActionMode(callback: ActionMode.Callback)
         fun onPageStopActionMode()
         fun onPageFinishActionMode()
+        fun onWebViewReady(webView: ObservableWebView)
+        fun getPageActionTabLayout(): PageActionTabLayout
+        fun getPageToolbarContainer(): View
     }
 
     private var _binding: FragmentPageBinding? = null
@@ -39,11 +44,7 @@ class PageFragment : Fragment() {
     private lateinit var pageViewModel: PageViewModel
     private lateinit var pageRepository: PageRepository
     private lateinit var readingListPageDao: ReadingListPageDao
-
-    // The PageFragment now owns the ContentsHandler.
     private lateinit var contentsHandler: ContentsHandler
-
-    // Helper Classes
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var pageLinkHandler: PageLinkHandler
     private lateinit var pageWebViewManager: PageWebViewManager
@@ -62,11 +63,7 @@ class PageFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if (context is Callback) {
-            callback = context
-        } else {
-            throw RuntimeException("$context must implement PageFragment.Callback")
-        }
+        callback = context as? Callback ?: throw RuntimeException("$context must implement PageFragment.Callback")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,7 +74,6 @@ class PageFragment : Fragment() {
             navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
         }
         pageViewModel = PageViewModel()
-
         val appInstance = requireActivity().applicationContext as OSRSWikiApp
         pageRepository = appInstance.pageRepository
         readingListPageDao = AppDatabase.instance.readingListPageDao()
@@ -94,12 +90,10 @@ class PageFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        callback?.onWebViewReady(binding.pageWebView)
         contentsHandler = ContentsHandler(this)
-
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
-
         val backgroundColorRes = when (currentTheme) {
             Theme.OSRS_DARK -> R.color.osrs_parchment_dark
             Theme.WIKI_LIGHT -> R.color.white
@@ -109,13 +103,7 @@ class PageFragment : Fragment() {
         }
         view.setBackgroundColor(ContextCompat.getColor(requireContext(), backgroundColorRes))
 
-        pageLinkHandler = PageLinkHandler(
-            requireContext(),
-            viewLifecycleOwner.lifecycleScope,
-            pageRepository,
-            currentTheme
-        )
-
+        pageLinkHandler = PageLinkHandler(requireContext(), viewLifecycleOwner.lifecycleScope, pageRepository, currentTheme)
         pageHistoryManager = PageHistoryManager(pageViewModel, viewLifecycleOwner.lifecycleScope) { this }
 
         pageWebViewManager = PageWebViewManager(
@@ -126,6 +114,7 @@ class PageFragment : Fragment() {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
                     fetchTableOfContents()
+                    // logViewPositions() // Logging is no longer needed.
                 }
             },
             onTitleReceived = { newTitle ->
@@ -136,15 +125,19 @@ class PageFragment : Fragment() {
             }
         )
 
-        pageActionHandler = PageActionHandler(this, pageViewModel, binding)
+        val pageActionTabLayout = callback?.getPageActionTabLayout()
+        if (pageActionTabLayout != null) {
+            pageActionHandler = PageActionHandler(this, pageViewModel, pageActionTabLayout)
+            pageActionTabLayout.callback = pageActionHandler.callback
+        }
+
+        pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope, pageActionTabLayout, ::getPageTitleArg)
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
         val appDb = AppDatabase.instance
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
-            pageRepository = pageRepository,
-            pageViewModel = pageViewModel,
-            readingListPageDao = appDb.readingListPageDao(),
-            offlineObjectDao = appDb.offlineObjectDao(),
+            pageRepository = pageRepository, pageViewModel = pageViewModel,
+            readingListPageDao = appDb.readingListPageDao(), offlineObjectDao = appDb.offlineObjectDao(),
             coroutineScope = viewLifecycleOwner.lifecycleScope
         ) {
             if (isAdded && _binding != null) {
@@ -154,13 +147,13 @@ class PageFragment : Fragment() {
         }
 
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
-        pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope) { this }
-        binding.pageActionsTabLayout.callback = pageActionHandler.callback
-        binding.pageActionsTabLayout.update()
         pageUiUpdater.updateUi()
         pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
-        pageReadingListManager.observeAndRefreshSaveButtonState()
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
+    }
+
+    private fun logViewPositions() {
+        // This diagnostic function is no longer needed.
     }
 
     private fun fetchTableOfContents() {
@@ -214,12 +207,9 @@ class PageFragment : Fragment() {
     }
 
     fun showFindInPage() {
-        if (isFindInPageActive) {
-            return
-        }
+        if (isFindInPageActive) return
         val script = "document.querySelectorAll('.collapsible-closed').forEach(function(e) { e.classList.remove('collapsible-closed'); });"
         binding.pageWebView.evaluateJavascript(script, null)
-
         val manager = FindInPageManager(requireContext(), binding.pageWebView) {
             isFindInPageActive = false
             callback?.onPageStopActionMode()
@@ -233,19 +223,14 @@ class PageFragment : Fragment() {
     }
 
     fun showPageOverflowMenu(anchorView: View) {
-        if (!isAdded) return
-        pageActionHandler.showPageOverflowMenu(anchorView)
+        if (isAdded) pageActionHandler.showPageOverflowMenu(anchorView)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         callback?.onPageFinishActionMode()
         pageReadingListManager.cancelObserving()
-        _binding?.pageWebView?.let { webView ->
-            webView.stopLoading()
-            (webView.parent as? ViewGroup)?.removeView(webView)
-            webView.destroy()
-        }
+        _binding?.pageWebView?.destroy()
         _binding = null
     }
 
@@ -263,7 +248,6 @@ class PageFragment : Fragment() {
         const val ARG_PAGE_ID = "pageId"
         const val ARG_PAGE_TITLE = "pageTitle"
         const val ARG_PAGE_SOURCE = "pageSource"
-
         @JvmStatic
         fun newInstance(pageId: String?, pageTitle: String?, source: Int): PageFragment =
             PageFragment().apply {

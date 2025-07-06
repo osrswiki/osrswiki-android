@@ -11,10 +11,13 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="invisible"
+        android:clipToPadding="false"
+        android:paddingTop="?attr/actionBarSize"
+        android:paddingBottom="@dimen/nav_bar_height"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/page_actions_tab_layout"
+        app:layout_constraintBottom_toBottomOf="parent"
         tools:visibility="visible"/>
 
     <ProgressBar
@@ -62,15 +65,5 @@
         app:layout_constraintTop_toTopOf="parent"
         app:tint="?attr/colorOnPrimary"
         tools:visibility="visible" />
-
-    <com.omiyawaki.osrswiki.page.PageActionTabLayout
-        android:id="@+id/page_actions_tab_layout"
-        android:layout_width="0dp"
-        android:layout_height="@dimen/nav_bar_height"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
