@@ -12,28 +12,36 @@ import java.io.IOException
  */
 object JavaScriptActionHandler {
     private const val TAG = "JActionHandler"
-    private const val CSS_PATH = "www/css/collapsible_tables.css"
-    private const val JS_PATH = "www/js/collapsible_tables.js"
 
-    fun getCollapsibleTablesCss(context: Context): String {
-        val containerBgColor = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f8f9fa")
-        val textColor = getThemeColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, "#202122")
-        val borderColor = getThemeColor(context, com.google.android.material.R.attr.colorOutline, "#c8ccd1")
+    // Define paths for all collapsible content assets.
+    private const val CSS_TABLES_PATH = "web/collapsible_tables.css"
+    private const val UNIFIED_JS_PATH = "web/collapsible_content.js"
+
+    /**
+     * Gets all necessary CSS for collapsible content.
+     * Currently, only tables require special, theme-aware CSS.
+     */
+    fun getCollapsibleContentCss(context: Context): String {
+        val containerBgColor = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f0f0f0")
+        val onSurfaceVariantColor = getThemeColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, "#444746")
 
         val cssVariables = """
             :root {
                 --container-bg-color: $containerBgColor;
-                --primary-text-color: $textColor;
-                --border-color: $borderColor;
+                --onsurfacevariant-color: $onSurfaceVariantColor;
             }
         """.trimIndent()
 
-        val baseCss = getFileFromAssets(context, CSS_PATH)
+        // The styles for the container are now used by both tables and sections.
+        val baseCss = getFileFromAssets(context, CSS_TABLES_PATH)
         return "<style>$cssVariables\n$baseCss</style>"
     }
 
-    fun getCollapsibleTablesJs(context: Context): String {
-        return getFileFromAssets(context, JS_PATH)
+    /**
+     * Gets the unified JavaScript for all collapsible content.
+     */
+    fun getCollapsibleContentJs(context: Context): String {
+        return getFileFromAssets(context, UNIFIED_JS_PATH)
     }
 
     private fun getFileFromAssets(context: Context, path: String): String {
@@ -55,10 +63,8 @@ object JavaScriptActionHandler {
         val color: Int
         try {
             color = if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-                // The attribute is a direct color value (e.g., #FFFFFF).
                 typedValue.data
             } else {
-                // The attribute is a reference to a resource (e.g., @color/my_color).
                 ContextCompat.getColor(context, typedValue.resourceId)
             }
         } catch (e: Resources.NotFoundException) {
