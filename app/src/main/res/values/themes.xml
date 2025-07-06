@@ -198,10 +198,8 @@
 
     <style name="Widget.App.ActionMode" parent="Widget.Material3.ActionMode">
         <item name="background">?attr/colorSurface</item>
-        <item name="elevation">4dp</item>
-        <item name="backgroundSplit">?attr/colorSurface</item>
-        <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
-        <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="backgroundSplit">@drawable/action_mode_border</item>
+        <item name="elevation">0dp</item>
     </style>
 
 </resources>
