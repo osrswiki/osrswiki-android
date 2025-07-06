@@ -28,15 +28,11 @@ class PageWebViewManager(
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-
-                // After the page finishes loading, check if the collapsible tables
-                // feature is enabled.
                 if (Prefs.isCollapseTablesEnabled) {
-                    // If so, call the function defined in our injected JS file.
-//                    Log.d(managerTag, "Calling makeTablesCollapsible().")
-//                    view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
+                    // This call is likely not needed if the JS runs on its own,
+                    // but we leave it here, commented out, for reference.
+                    // view?.evaluateJavascript("window.osrswiki.makeTablesCollapsible();", null)
                 }
-
                 revealBody()
             }
         }
@@ -63,14 +59,14 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // The theme is now passed to the PageHtmlBuilder, so it's not needed here directly.
+        // --- DIAGNOSTIC LOGGING ---
+        Log.d("PageWebViewManager", "Loading HTML content: $fullHtml")
+        // --- END LOGGING ---
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
         webView.loadDataWithBaseURL(finalBaseUrl, fullHtml, "text/html", "UTF-8", null)
     }
 
     private fun revealBody() {
-        // The theme is now set in the HTML body tag. This JS is only needed
-        // to make the body visible after the page has loaded, preventing FOUC.
         val revealBodyJs = "document.body.style.visibility = 'visible';"
         webView.evaluateJavascript(revealBodyJs) {
             onPageReady()

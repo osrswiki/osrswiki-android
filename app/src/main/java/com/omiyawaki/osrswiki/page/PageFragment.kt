@@ -207,39 +207,44 @@ class PageFragment : Fragment() {
 
     private fun fetchTableOfContents() {
         val script = """
-                 (function() {
-                     var tocData = { leadSectionDetails: null, sections: [] };
-                     var headerSpans = document.querySelectorAll('.mw-headline');
-                     for (var i = 0; i < headerSpans.length; i++) {
-                         var span = headerSpans[i];
-                         var header = span.parentElement;
-                         if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
-                             var level = parseInt(header.tagName.substring(1));
-                             var computedStyle = window.getComputedStyle(span);
-                             tocData.sections.push({
-                                 id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
-                                 isItalic: computedStyle.fontStyle === 'italic',
-                                 isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
-                             });
-                         }
-                     }
-                     var leadHeader = document.querySelector('h1.page-header');
-                     if (leadHeader) {
-                         var leadStyle = window.getComputedStyle(leadHeader);
-                         tocData.leadSectionDetails = {
-                             title: leadHeader.textContent.trim(),
-                             isItalic: leadStyle.fontStyle === 'italic',
-                             isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
-                         };
-                     }
-                     return JSON.stringify(tocData);
-                 })();
-             """
+                    (function() {
+                        var tocData = { leadSectionDetails: null, sections: [] };
+                        var headerSpans = document.querySelectorAll('.mw-headline');
+                        for (var i = 0; i < headerSpans.length; i++) {
+                            var span = headerSpans[i];
+                            var header = span.parentElement;
+                            if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
+                                var level = parseInt(header.tagName.substring(1));
+                                var computedStyle = window.getComputedStyle(span);
+                                tocData.sections.push({
+                                    id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
+                                    isItalic: computedStyle.fontStyle === 'italic',
+                                    isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
+                                });
+                            }
+                        }
+                        var leadHeader = document.querySelector('h1.page-header');
+                        if (leadHeader) {
+                            var leadStyle = window.getComputedStyle(leadHeader);
+                            tocData.leadSectionDetails = {
+                                title: leadHeader.textContent.trim(),
+                                isItalic: leadStyle.fontStyle === 'italic',
+                                isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
+                            };
+                        }
+                        return JSON.stringify(tocData);
+                    })();
+                """
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
-            if (jsonString != null && jsonString != "null") {
+            if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
                 try {
-                    val cleanedJson = jsonString.removeSurrounding("\"").replace("\\\"", "\"")
-                    val tocData = Json.decodeFromString<TocData>(cleanedJson)
+                    // The string from the WebView is a doubly-encoded JSON string (a string containing JSON).
+                    // The correct way to parse this is in two steps:
+                    // 1. Decode the outer string, which properly un-escapes all content.
+                    val unescapedJson = Json.decodeFromString<String>(jsonString)
+                    // 2. Decode the now-clean inner string into the TocData object.
+                    val tocData = Json.decodeFromString<TocData>(unescapedJson)
+
                     val leadSection = tocData.leadSectionDetails?.let {
                         Section(0, 1, "", it.title, it.isItalic, it.isBold)
                     } ?: run {
