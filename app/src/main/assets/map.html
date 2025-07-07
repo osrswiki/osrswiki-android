@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>OSRS World Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        #map { width: 100%; height: 100%; background-color: #0b0b0b; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    var map;
+
+    function initializeMap(tileBaseUrl) {
+        console.log("Initializing map with base URL: " + tileBaseUrl);
+
+        // A custom CRS with a simple, top-down, non-inverting coordinate system.
+        // Y-coordinates increase downwards, matching our tile structure.
+        const TopDownCRS = L.Util.extend({}, L.CRS.Simple, {
+            transformation: new L.Transformation(1, 0, 1, 0)
+        });
+
+        map = L.map('map', {
+            crs: TopDownCRS, // Use our custom, consistent CRS.
+            minZoom: 0,
+            maxZoom: 8
+        });
+
+        // The factor to convert game coordinates (0-65536) to map coordinates (0-256).
+        const conversionFactor = 256.0;
+
+        const tileUrl = tileBaseUrl + '{z}/{x}/{y}.png';
+        console.log("Using tile URL template: " + tileUrl);
+
+        L.tileLayer(tileUrl, {
+            attribution: 'OSRS Wiki',
+            // tms is now false because our custom CRS defines the top-down system.
+            tms: false,
+            noWrap: true,
+            // Define the world in the coordinate system of zoom level 0 (a 256x256 square).
+            bounds: [[0, 0], [256, 256]]
+        }).addTo(map);
+
+        // Center the view on the middle of our 256x256 coordinate system.
+        map.setView([128, 128], 1);
+    }
+
+    function loadPois(jsonData) {
+        if (!map) {
+            console.error("Map is not initialized. Cannot load POIs.");
+            return;
+        }
+        try {
+            const conversionFactor = 256.0;
+            const pois = JSON.parse(jsonData);
+            const markers = L.markerClusterGroup();
+
+            pois.forEach(poi => {
+                if (poi.plane === 0) {
+                    // Scale the game coordinates down to our normalized 256x256 map system.
+                    const y = poi.y / conversionFactor;
+                    const x = poi.x / conversionFactor;
+                    const marker = L.marker([y, x]);
+                    marker.bindPopup(`<b>${poi.name}</b><br>${poi.type}`);
+                    markers.addLayer(marker);
+                }
+            });
+            map.addLayer(markers);
+            console.log("Marker cluster layer added to map. POI coordinates were scaled.");
+        } catch (e) {
+            console.error("ERROR in loadPois(): ", e);
+        }
+    }
+</script>
+</body>
+</html>
