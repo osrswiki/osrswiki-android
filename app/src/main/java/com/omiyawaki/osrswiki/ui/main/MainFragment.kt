@@ -9,6 +9,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMainBinding
 import com.omiyawaki.osrswiki.news.ui.NewsFragment
 import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
+import com.omiyawaki.osrswiki.ui.map.MapFragment
 
 /**
  * The main fragment that hosts the BottomNavigationView and acts as a container
@@ -46,7 +47,8 @@ class MainFragment : Fragment() {
             val fragment = when (item.itemId) {
                 R.id.nav_news -> NewsFragment()
                 R.id.nav_saved -> SavedPagesFragment()
-                // TODO: Add cases for Map, Search, and More
+                R.id.nav_map -> MapFragment()
+                // TODO: Add cases for Search and More
                 else -> null // Or a default fragment
             }
             if (fragment != null) {

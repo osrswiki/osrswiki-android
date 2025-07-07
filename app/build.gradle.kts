@@ -46,6 +46,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.webkit) // Added for WebViewAssetLoader
     implementation(libs.androidxPagingRuntimeKtx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)

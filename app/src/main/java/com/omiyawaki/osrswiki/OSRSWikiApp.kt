@@ -9,6 +9,7 @@ import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
 import android.util.Log
+import android.webkit.WebView
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.PageHtmlBuilder
@@ -62,6 +63,10 @@ class OSRSWikiApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
 
         // Common dependencies
         val appContext = this.applicationContext
