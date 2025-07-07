@@ -243,6 +243,12 @@ public class MapImageDumper
 
 		int dimX = maxX - minX;
 		int dimY = maxY - minY;
+        System.out.println("--- MAP BOUNDARY CALCULATION ---");
+        System.out.println("Min X (West): " + minX);
+        System.out.println("Max X (East): " + maxX);
+        System.out.println("Min Y (South): " + minY);
+        System.out.println("Max Y (North): " + maxY);
+        System.out.println("--------------------------------");
 
 		int pixelsX = dimX * MAP_SCALE;
 		int pixelsY = dimY * MAP_SCALE;
