@@ -14,6 +14,7 @@ androidxPaging = "3.3.6"
 androidxLifecycle = "2.9.0"
 androidxWork = "2.9.0"
 jsoup = "1.20.1"
+webkit = "1.10.0"
 
 # Navigation Components
 navigation = "2.9.0"
@@ -51,6 +52,7 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "androidxPreferenceKtx" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidxWork" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 
 # Lifecycle (ViewModel)
 androidxLifecycleViewmodelKtx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "androidxLifecycle" }
