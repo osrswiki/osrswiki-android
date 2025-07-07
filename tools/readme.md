@@ -57,7 +57,50 @@ The `extract_pois.py` script is a Python utility that parses the RuneLite source
 
 ---
 
-## Version Control
+## 3. POI Coordinate Transformation
+
+Aligning the POIs from `pois.json` onto the custom map tiles requires a precise multi-step transformation. The process involves converting coordinates across three different systems: Game World Coordinates, Map Image Pixel Coordinates, and Leaflet CRS Coordinates. The formula was derived by analyzing the `MapImageDumper.java` tool and the RuneLite client's rendering code.
+
+### Transformation Variables
+
+The following variables are used in the transformation equations. Their values are specific to the game cache version used to generate the map assets.
+
+| Variable | Value | Description |
+|---|---|---|
+| `world_x`, `world_y` | (from POI) | The original game tile coordinate from `pois.json`. |
+| `MIN_X_OFFSET` | 1024 | The base X-coordinate of the westernmost map region. |
+| `MAX_Y_OFFSET` | 12608 | The base Y-coordinate of the northernmost map region. |
+| `REGION_SIZE` | 64 | The dimension (width/height) of a game region in tiles. |
+| `PIXELS_PER_TILE`| 4 | The scaling factor; each game tile is a 4x4 square on the map image. |
+| `LEAFLET_TILE_SIZE`| 256.0 | The dimension of the tiles used by our Leaflet implementation. |
+
+### Transformation Steps
+
+The full transformation is implemented in the `loadPois` function of the `app/src/main/assets/map.html` file.
+
+#### Step 1: Game World to Image Pixel
+
+This step converts the `WorldPoint` coordinate to a pixel coordinate on the final `img-0.png`. It involves an offset, a Y-axis inversion, scaling, and a final calibration based on visual analysis.
+
+First, a final Y-offset is calculated to account for the Y-inversion happening relative to the top of a region, not just the world origin:
+$$ FINAL\_Y\_OFFSET = MAX\_Y\_OFFSET + REGION\_SIZE - 1 $$
+
+Then, the pixel coordinates are calculated. A final calibration of `+4` pixels on the X-axis and `-4` pixels on the Y-axis was required to achieve perfect alignment.
+
+$$ pixel_x = (world_x - MIN\_X\_OFFSET) \times PIXELS\_PER\_TILE + 4 $$
+$$ pixel_y = (FINAL\_Y\_OFFSET - world_y) \times PIXELS\_PER\_TILE - 4 $$
+
+#### Step 2: Image Pixel to Leaflet Coordinate
+
+This step normalizes the final pixel coordinate into the `[0..256]` coordinate reference system (CRS) used by our Leaflet map.
+
+$$ leaflet_x = \frac{pixel_x}{LEAFLET\_TILE\_SIZE} $$
+$$ leaflet_y = \frac{pixel_y}{LEAFLET\_TILE\_SIZE} $$
+
+These `leaflet_x` and `leaflet_y` values are then passed to the `L.marker` function to place the POI on the map.
+
+---
+
+## 4. Version Control
 
 A `.gitignore` file is included in this directory to prevent the large cache files and generated output (`output/` directory and `pois.json`) from being committed to the repository. Only the tool source code and scripts should be version-controlled.
-
