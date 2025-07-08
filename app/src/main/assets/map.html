@@ -18,7 +18,7 @@
          * by the browser (i.e., for zoom levels > maxNativeZoom). This preserves
          * the sharp, pixelated aesthetic of the original game graphics.
          */
-        .pixelated-overzoom .leaflet-tile {
+        .pixelated-zoom .leaflet-tile {
             image-rendering: pixelated;
             image-rendering: -moz-crisp-edges; /* Firefox */
             image-rendering: crisp-edges;
@@ -72,8 +72,6 @@
 
         if (isRetina) {
             // On retina devices, create a second layer that points to the @2x tiles.
-            // No custom class is needed; sharpness is achieved by loading 512px
-            // source images into a layer with a default 256px tile size.
             sharpRetinaLayer = new L.tileLayer(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
                 attribution: 'OSRS Wiki',
                 tms: false,
@@ -104,10 +102,12 @@
             const container = standardLayer.getContainer();
             if (!container) return;
 
-            if (currentZoom > maxNativeZoom) {
-                L.DomUtil.addClass(container, 'pixelated-overzoom');
+            // Apply pixelated rendering for the native non-retina zoom level (8)
+            // and all overzoomed levels.
+            if (currentZoom >= maxNativeZoom) {
+                L.DomUtil.addClass(container, 'pixelated-zoom');
             } else {
-                L.DomUtil.removeClass(container, 'pixelated-overzoom');
+                L.DomUtil.removeClass(container, 'pixelated-zoom');
             }
         }
         
