@@ -15,7 +15,7 @@
 
         /*
          * Apply nearest-neighbor interpolation to map tiles when they are upscaled
-         * by the browser (i.e., for zoom levels > maxNativeZoom). This preserves
+         * by the browser (i.e., for zoom levels >= maxNativeZoom). This preserves
          * the sharp, pixelated aesthetic of the original game graphics.
          */
         .pixelated-zoom .leaflet-tile {
@@ -59,7 +59,6 @@
         
         // --- Layer Configuration ---
 
-        // This is the base layer for standard-resolution tiles and overzooming.
         const standardLayer = L.tileLayer(tileBaseUrl + '{z}/{x}/{y}.png', {
             attribution: 'OSRS Wiki',
             tms: false,
@@ -71,7 +70,6 @@
         var sharpRetinaLayer;
 
         if (isRetina) {
-            // On retina devices, create a second layer that points to the @2x tiles.
             sharpRetinaLayer = new L.tileLayer(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
                 attribution: 'OSRS Wiki',
                 tms: false,
@@ -84,9 +82,7 @@
         // --- Event Handling and Layer Management ---
 
         function updateLayerVisibility() {
-            // This function is only relevant on retina devices.
             if (!sharpRetinaLayer) return;
-
             const currentZoom = map.getZoom();
             if (currentZoom < maxNativeZoom) {
                 sharpRetinaLayer.setOpacity(1);
@@ -102,8 +98,6 @@
             const container = standardLayer.getContainer();
             if (!container) return;
 
-            // Apply pixelated rendering for the native non-retina zoom level (8)
-            // and all overzoomed levels.
             if (currentZoom >= maxNativeZoom) {
                 L.DomUtil.addClass(container, 'pixelated-zoom');
             } else {
@@ -116,6 +110,12 @@
             updatePixelation();
         }
 
+        function logMapState() {
+            const center = map.getCenter();
+            const zoom = map.getZoom();
+            console.log(`Map State - Zoom: ${zoom}, Center: [${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}]`);
+        }
+
         // --- Map Initialization ---
 
         if (isRetina) {
@@ -126,11 +126,14 @@
         }
         
         map.on('zoomend', onZoomEnd);
+        map.on('moveend', logMapState);
         
-        // Set initial state for all dynamic elements.
         onZoomEnd();
         
-        map.setView([boundsY / 2, boundsX / 2], minZoom);
+        // Set the default view to Lumbridge at zoom 8.
+        map.setView([146.5088, 34.5174], 8);
+        
+        logMapState();
     }
 
     function loadPois(jsonData) {
