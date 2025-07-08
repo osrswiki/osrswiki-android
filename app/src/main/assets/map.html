@@ -56,24 +56,7 @@
             maxZoom: maxZoom,
             maxBounds: contentMaxBounds
         });
-
-        // --- Custom Tile Layer for Sharp Retina Rendering ---
-        L.TileLayer.SharpRetina = L.TileLayer.extend({
-            _getTileUrl: function (coords) {
-                // Create a new 'coords' object to modify for the URL.
-                const urlCoords = L.Util.clone(coords);
-
-                // Fetch tiles from one zoom level lower, and adjust x/y accordingly.
-                urlCoords.z -= 1;
-                urlCoords.x = Math.floor(coords.x / 2);
-                urlCoords.y = Math.floor(coords.y / 2);
-
-                // Call the parent method with the transformed coordinates.
-                // The URL template for this layer already includes '@2x'.
-                return L.TileLayer.prototype._getTileUrl.call(this, urlCoords);
-            }
-        });
-
+        
         // --- Layer Configuration ---
 
         // This is the base layer for standard-resolution tiles and overzooming.
@@ -85,43 +68,37 @@
             maxNativeZoom: maxNativeZoom
         });
 
+        var sharpRetinaLayer;
+
         if (isRetina) {
-            // On retina devices, create the custom sharp retina layer.
-            // The URL template now includes the '@2x' suffix directly.
-            const sharpRetinaLayer = new L.TileLayer.SharpRetina(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
+            // On retina devices, create a second layer that points to the @2x tiles.
+            // No custom class is needed; sharpness is achieved by loading 512px
+            // source images into a layer with a default 256px tile size.
+            sharpRetinaLayer = new L.tileLayer(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
                 attribution: 'OSRS Wiki',
                 tms: false,
                 noWrap: true,
                 bounds: [[0, 0], [256, 256]],
-                minZoom: minZoom,
-                maxZoom: maxNativeZoom - 1 // This layer only operates where @2x tiles exist.
+                maxZoom: maxNativeZoom - 1
             });
-
-            // Add layers and manage their visibility based on zoom.
-            map.addLayer(standardLayer);
-            map.addLayer(sharpRetinaLayer);
-
-            function updateLayerVisibility() {
-                const currentZoom = map.getZoom();
-                if (currentZoom < maxNativeZoom) {
-                    sharpRetinaLayer.setOpacity(1);
-                    standardLayer.setOpacity(0);
-                } else {
-                    sharpRetinaLayer.setOpacity(0);
-                    standardLayer.setOpacity(1);
-                }
-            }
-
-            map.on('zoomend', updateLayerVisibility);
-            // Set initial state
-            updateLayerVisibility();
-
-        } else {
-            // On non-retina devices, just add the standard layer.
-            standardLayer.addTo(map);
         }
 
-        // --- Dynamic Styling for Overzoom ---
+        // --- Event Handling and Layer Management ---
+
+        function updateLayerVisibility() {
+            // This function is only relevant on retina devices.
+            if (!sharpRetinaLayer) return;
+
+            const currentZoom = map.getZoom();
+            if (currentZoom < maxNativeZoom) {
+                sharpRetinaLayer.setOpacity(1);
+                standardLayer.setOpacity(0);
+            } else {
+                sharpRetinaLayer.setOpacity(0);
+                standardLayer.setOpacity(1);
+            }
+        }
+
         function updatePixelation() {
             const currentZoom = map.getZoom();
             const container = standardLayer.getContainer();
@@ -133,10 +110,26 @@
                 L.DomUtil.removeClass(container, 'pixelated-overzoom');
             }
         }
+        
+        function onZoomEnd() {
+            updateLayerVisibility();
+            updatePixelation();
+        }
 
-        map.on('zoomend', updatePixelation);
-        updatePixelation(); // Set initial state
+        // --- Map Initialization ---
 
+        if (isRetina) {
+            map.addLayer(standardLayer);
+            map.addLayer(sharpRetinaLayer);
+        } else {
+            standardLayer.addTo(map);
+        }
+        
+        map.on('zoomend', onZoomEnd);
+        
+        // Set initial state for all dynamic elements.
+        onZoomEnd();
+        
         map.setView([boundsY / 2, boundsX / 2], minZoom);
     }
 
