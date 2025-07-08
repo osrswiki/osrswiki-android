@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!DOCTYPE html><html lang="en"><head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>OSRS World Map</title>
@@ -10,6 +8,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
+        :root {
+            /* Default fallback colors */
+            --color-surface-variant: #444;
+            --color-on-surface-variant: #ccc;
+        }
+
         html, body { height: 100%; margin: 0; padding: 0; }
         #map { width: 100%; height: 100%; background-color: #0b0b0b; }
 
@@ -23,12 +27,53 @@
             image-rendering: -moz-crisp-edges; /* Firefox */
             image-rendering: crisp-edges;
         }
-    </style>
-</head>
-<body>
-<div id="map"></div>
-<script>
+
+        /* --- Themed UI Controls --- */
+        .leaflet-bar a,
+        .leaflet-bar a:focus {
+            background-color: var(--color-surface-variant) !important;
+            color: var(--color-on-surface-variant) !important;
+            border: none;
+            outline: none;
+        }
+
+        .leaflet-bar a:active {
+            background-color: var(--color-on-surface-variant) !important;
+            color: var(--color-surface-variant) !important;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .leaflet-bar a:hover {
+                background-color: var(--color-on-surface-variant) !important;
+                color: var(--color-surface-variant) !important;
+            }
+        }
+
+        .leaflet-control-attribution {
+            background-color: var(--color-surface-variant) !important;
+            color: var(--color-on-surface-variant);
+            border-radius: 4px; /* Optional: adds rounded corners */
+        }
+    </style></head><body><div id="map"></div><script>
     var map;
+
+    function applyTheme() {
+        if (typeof Android === 'undefined' || typeof Android.getThemeColors === 'undefined') {
+            console.log("Android interface not available, using fallback theme.");
+            return;
+        }
+        try {
+            const colorsJson = Android.getThemeColors();
+            const colors = JSON.parse(colorsJson);
+            if (colors.surfaceVariant && colors.onSurfaceVariant) {
+                document.documentElement.style.setProperty('--color-surface-variant', colors.surfaceVariant);
+                document.documentElement.style.setProperty('--color-on-surface-variant', colors.onSurfaceVariant);
+                console.log("Applied native theme colors:", colors);
+            }
+        } catch (e) {
+            console.error("Error applying native theme: ", e);
+        }
+    }
 
     function initializeMap(tileBaseUrl) {
         console.log("Initializing map with base URL: " + tileBaseUrl);
@@ -56,11 +101,11 @@
             maxZoom: maxZoom,
             maxBounds: contentMaxBounds
         });
-        
+
         // --- Layer Configuration ---
 
         const standardLayer = L.tileLayer(tileBaseUrl + '{z}/{x}/{y}.png', {
-            attribution: 'OSRS Wiki',
+            attribution: '&copy; Jagex Ltd.',
             tms: false,
             noWrap: true,
             bounds: [[0, 0], [256, 256]],
@@ -71,7 +116,7 @@
 
         if (isRetina) {
             sharpRetinaLayer = new L.tileLayer(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
-                attribution: 'OSRS Wiki',
+                attribution: '&copy; Jagex Ltd.',
                 tms: false,
                 noWrap: true,
                 bounds: [[0, 0], [256, 256]],
@@ -104,7 +149,7 @@
                 L.DomUtil.removeClass(container, 'pixelated-zoom');
             }
         }
-        
+
         function onZoomEnd() {
             updateLayerVisibility();
             updatePixelation();
@@ -124,15 +169,15 @@
         } else {
             standardLayer.addTo(map);
         }
-        
+
         map.on('zoomend', onZoomEnd);
         map.on('moveend', logMapState);
-        
+
         onZoomEnd();
-        
+
         // Set the default view to Lumbridge at zoom 8.
         map.setView([146.5088, 34.5174], 8);
-        
+
         logMapState();
     }
 
@@ -169,7 +214,4 @@
         } catch (e) {
             console.error("ERROR in loadPois(): ", e);
         }
-    }
-</script>
-</body>
-</html>
+    }</script></body></html>

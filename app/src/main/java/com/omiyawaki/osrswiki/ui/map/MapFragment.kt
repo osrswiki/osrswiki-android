@@ -15,7 +15,7 @@ import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.webkit.WebViewAssetLoader
-import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,8 +26,9 @@ import java.util.zip.ZipInputStream
 
 class MapFragment : Fragment() {
 
-    private val logTag = "MapDebug"
-    private lateinit var webView: WebView
+    private val logTag = "MapFragment"
+    private var _binding: FragmentMapBinding? = null
+    private val binding get() = _binding!!
     private lateinit var assetLoader: WebViewAssetLoader
 
     // State flags to ensure map initialization happens only when all prerequisites are met.
@@ -37,7 +38,6 @@ class MapFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         assetLoader = WebViewAssetLoader.Builder()
-            .setDomain("appassets.androidplatform.net")
             // This handler serves files from the app's /assets directory.
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(requireContext()))
             // This handler serves files from the app's internal storage directory.
@@ -49,24 +49,25 @@ class MapFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_map, container, false)
+    ): View {
+        _binding = FragmentMapBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        webView = view.findViewById(R.id.map_webview)
-
+        setupWebView()
         // Launch the tile unpacking process in a background coroutine.
         lifecycleScope.launch {
             unpackMapTiles()
         }
-
-        setupWebView()
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        val webView = binding.mapWebview
+        val webViewInterface = WebViewInterface(requireContext())
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                 Log.d(logTag, "[JS Console] ${consoleMessage.message()} -- line ${consoleMessage.lineNumber()}")
@@ -75,6 +76,7 @@ class MapFragment : Fragment() {
         }
 
         webView.webViewClient = LocalContentWebViewClient(assetLoader)
+        webView.addJavascriptInterface(webViewInterface, "Android")
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -93,11 +95,19 @@ class MapFragment : Fragment() {
     private fun tryToInitializeMap() {
         if (isPageLoaded && isTilesUnpacked) {
             val tilesUrl = "https://appassets.androidplatform.net/files/map_tiles/"
-            Log.d(logTag, "All prerequisites met. Initializing map with URL: $tilesUrl")
+            Log.d(logTag, "All prerequisites met. Initializing map, theme, and POIs.")
 
-            val script = "initializeMap('$tilesUrl')"
-            webView.evaluateJavascript(script) {
-                injectPoiData()
+            val initScript = "initializeMap('$tilesUrl')"
+            val themeScript = "applyTheme()"
+
+            // Chain the JS calls to ensure they execute in order:
+            // 1. Initialize map
+            // 2. Apply theme
+            // 3. Load POIs
+            binding.mapWebview.evaluateJavascript(initScript) {
+                binding.mapWebview.evaluateJavascript(themeScript) {
+                    injectPoiData()
+                }
             }
         } else {
             Log.d(logTag, "Prerequisites not met. Page loaded: $isPageLoaded, Tiles unpacked: $isTilesUnpacked")
@@ -160,7 +170,8 @@ class MapFragment : Fragment() {
                 .bufferedReader()
                 .use { it.readText() }
             val script = "loadPois(`$jsonString`);"
-            webView.evaluateJavascript(script, null)
+            binding.mapWebview.evaluateJavascript(script, null)
+            Log.d(logTag, "Successfully injected POI data.")
         } catch (e: IOException) {
             Log.e(logTag, "Failed to read or inject pois.json", e)
         }
@@ -191,5 +202,10 @@ class MapFragment : Fragment() {
                 tryToInitializeMap()
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
