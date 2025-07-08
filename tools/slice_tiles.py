@@ -13,9 +13,11 @@ system expected by standard tiling libraries like Leaflet.
 
 The process involves two main phases:
 1.  Base Tile Generation: The full-resolution padded canvas is sliced into
-    tiles at the highest zoom level (NATIVE_ZOOM).
+    256x256 tiles at the highest zoom level (NATIVE_ZOOM).
 2.  Overview Tile Generation: Lower zoom level tiles are created by recursively
-    combining and downscaling tiles from the next highest zoom level.
+    combining and downscaling tiles from the next highest zoom level. For
+    retina support, it generates both standard (256px) and high-resolution
+    512px '@2x' tiles.
 3.  Archiving: The entire generated tile directory is compressed into a
     single .zip file to avoid Android build issues with too many assets.
 """
@@ -51,6 +53,9 @@ CANVAS_SIZE = 65536
 # 256px * 2^8 = 65536px, so NATIVE_ZOOM is 8.
 NATIVE_ZOOM = 8
 
+# The minimum zoom level to generate. The map is visually set to a minZoom of 3.
+MIN_ZOOM = 3
+
 
 def log_time(message):
     """Prints a message with a timestamp."""
@@ -61,8 +66,8 @@ def generate_base_tiles(padded_image):
     """
     Phase 1: Generate tiles for the native zoom level.
 
-    This function slices the padded canvas into a complete grid of tiles for
-    the highest zoom level (NATIVE_ZOOM).
+    This function slices the padded canvas into a complete grid of 256x256
+    tiles for the highest zoom level (NATIVE_ZOOM).
     """
     zoom = NATIVE_ZOOM
     num_tiles = 2**zoom
@@ -80,14 +85,14 @@ def generate_base_tiles(padded_image):
             top = y * TILE_SIZE
             right = left + TILE_SIZE
             bottom = top + TILE_SIZE
-            
+
             box = (left, top, right, bottom)
             tile = padded_image.crop(box)
 
             # Save the generated tile to the correct z/x/y path.
             tile_path = os.path.join(col_dir, f"{y}.png")
             tile.save(tile_path, 'PNG')
-        
+
         if (x + 1) % 10 == 0 or x == num_tiles - 1:
             log_time(f"  ...completed generating tiles for column x={x}/{num_tiles - 1}")
 
@@ -98,13 +103,13 @@ def generate_overview_tiles():
     """
     Phase 2: Generate overview tiles for lower zoom levels.
 
-    This function creates tiles for zoom levels z=7 down to z=0. Each tile
-    is a 2x downscaled version of a 2x2 composite of tiles from the next
-    highest zoom level.
+    This function creates tiles for zoom levels z=(NATIVE_ZOOM - 1) down to z=MIN_ZOOM.
+    It generates both standard 256x256 tiles and true high-resolution
+    512x512 '@2x' tiles for each level.
     """
-    log_time("Starting Phase 2: Generating overview tiles...")
+    log_time(f"Starting Phase 2: Generating overview tiles from zoom {NATIVE_ZOOM - 1} down to {MIN_ZOOM}...")
 
-    for zoom in range(NATIVE_ZOOM - 1, -1, -1):
+    for zoom in range(NATIVE_ZOOM - 1, MIN_ZOOM - 1, -1):
         num_tiles_current_zoom = 2**zoom
         zoom_plus_1 = zoom + 1
         log_time(f"  Generating tiles for zoom level {zoom} from {zoom_plus_1}...")
@@ -119,42 +124,38 @@ def generate_overview_tiles():
             os.makedirs(col_dir, exist_ok=True)
             for y in range(num_tiles_current_zoom):
                 # Create a new 512x512 image to hold the four source tiles.
+                # This will become the standard-resolution tile for this level.
                 combined_image = Image.new('RGB', (TILE_SIZE * 2, TILE_SIZE * 2))
-                
-                # Define the coordinates of the four source tiles.
+
                 top_left_x, top_left_y = 2 * x, 2 * y
 
-                # Define paths for the four source tiles from the higher zoom level.
-                # (z+1, 2x, 2y), (z+1, 2x+1, 2y), (z+1, 2x, 2y+1), (z+1, 2x+1, 2y+1)
+                # Get paths for the four standard-res source tiles from the higher zoom level.
                 path_tl = os.path.join(source_zoom_dir, str(top_left_x), f"{top_left_y}.png")
                 path_tr = os.path.join(source_zoom_dir, str(top_left_x + 1), f"{top_left_y}.png")
                 path_bl = os.path.join(source_zoom_dir, str(top_left_x), f"{top_left_y + 1}.png")
                 path_br = os.path.join(source_zoom_dir, str(top_left_x + 1), f"{top_left_y + 1}.png")
-                
+
                 try:
-                    # Open the four source tiles.
                     img_tl = Image.open(path_tl)
                     img_tr = Image.open(path_tr)
                     img_bl = Image.open(path_bl)
                     img_br = Image.open(path_br)
 
-                    # Paste the tiles into the combined image.
                     combined_image.paste(img_tl, (0, 0))
                     combined_image.paste(img_tr, (TILE_SIZE, 0))
                     combined_image.paste(img_bl, (0, TILE_SIZE))
                     combined_image.paste(img_br, (TILE_SIZE, TILE_SIZE))
                 except FileNotFoundError as e:
-                    # This should not happen with the padding strategy, but is here
-                    # as a safeguard.
-                    log_time(f"    WARNING: Missing source tile: {e}. The resulting overview tile will be black.")
+                    log_time(f"  WARNING: Missing source tile: {e}. The resulting overview tile will be black.")
 
-                # Resize the 512x512 composite image down to a 256x256 tile.
-                # LANCZOS is a high-quality downsampling filter.
+                # Save the 512x512 composite as the high-resolution @2x tile.
+                retina_tile_path = os.path.join(col_dir, f"{y}@2x.png")
+                combined_image.save(retina_tile_path, 'PNG')
+
+                # Resize the 512x512 composite down to a 256x256 standard tile.
                 overview_tile = combined_image.resize((TILE_SIZE, TILE_SIZE), Image.Resampling.LANCZOS)
-                
-                # Save the new overview tile.
-                tile_path = os.path.join(col_dir, f"{y}.png")
-                overview_tile.save(tile_path, 'PNG')
+                std_tile_path = os.path.join(col_dir, f"{y}.png")
+                overview_tile.save(std_tile_path, 'PNG')
 
     log_time("Phase 2: Overview tile generation complete.")
 
@@ -164,7 +165,7 @@ def main():
     Main execution function.
     """
     log_time("Starting map tile generation process.")
-    
+
     # 0. Verify source image exists.
     if not os.path.exists(SOURCE_IMAGE_PATH):
         log_time(f"FATAL: Source image not found at '{SOURCE_IMAGE_PATH}'")
@@ -180,10 +181,10 @@ def main():
     log_time(f"Loading source image from '{SOURCE_IMAGE_PATH}'")
     source_image = Image.open(SOURCE_IMAGE_PATH)
     log_time(f"Source image dimensions: {source_image.size[0]}x{source_image.size[1]}")
-    
+
     log_time(f"Creating a {CANVAS_SIZE}x{CANVAS_SIZE} black canvas...")
     padded_canvas = Image.new('RGB', (CANVAS_SIZE, CANVAS_SIZE), 'black')
-    
+
     log_time("Pasting source image onto the canvas at position (0, 0)...")
     padded_canvas.paste(source_image, (0, 0))
     # Release memory for the original source image
@@ -195,15 +196,14 @@ def main():
 
     # Release memory for the large padded canvas
     padded_canvas.close()
-    
+
     log_time("Tile generation has finished successfully.")
 
     # 4. Archive the generated tile directory into a single zip file.
     log_time(f"Archiving tile directory '{OUTPUT_DIR}'...")
-    # The final zip file will be named 'map_tiles.zip' and placed in the assets dir.
     assets_dir = os.path.dirname(OUTPUT_DIR)
     zip_output_base_path = os.path.join(assets_dir, 'map_tiles')
-    
+
     try:
         shutil.make_archive(zip_output_base_path, 'zip', root_dir=OUTPUT_DIR)
         log_time(f"Successfully created archive at '{zip_output_base_path}.zip'")

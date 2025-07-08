@@ -12,6 +12,17 @@
     <style>
         html, body { height: 100%; margin: 0; padding: 0; }
         #map { width: 100%; height: 100%; background-color: #0b0b0b; }
+
+        /*
+         * Apply nearest-neighbor interpolation to map tiles when they are upscaled
+         * by the browser (i.e., for zoom levels > maxNativeZoom). This preserves
+         * the sharp, pixelated aesthetic of the original game graphics.
+         */
+        .pixelated-overzoom .leaflet-tile {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges; /* Firefox */
+            image-rendering: crisp-edges;
+        }
     </style>
 </head>
 <body>
@@ -34,24 +45,99 @@
             transformation: new L.Transformation(1, 0, 1, 0)
         });
 
+        const minZoom = 3;
+        const maxZoom = 11;
+        const maxNativeZoom = 8;
+        const isRetina = L.Browser.retina;
+
         map = L.map('map', {
             crs: TopDownCRS,
-            minZoom: 0,
-            maxZoom: 8,
+            minZoom: minZoom,
+            maxZoom: maxZoom,
             maxBounds: contentMaxBounds
         });
 
-        const tileUrl = tileBaseUrl + '{z}/{x}/{y}.png';
-        console.log("Using tile URL template: " + tileUrl);
+        // --- Custom Tile Layer for Sharp Retina Rendering ---
+        L.TileLayer.SharpRetina = L.TileLayer.extend({
+            _getTileUrl: function (coords) {
+                // Create a new 'coords' object to modify for the URL.
+                const urlCoords = L.Util.clone(coords);
 
-        L.tileLayer(tileUrl, {
+                // Fetch tiles from one zoom level lower, and adjust x/y accordingly.
+                urlCoords.z -= 1;
+                urlCoords.x = Math.floor(coords.x / 2);
+                urlCoords.y = Math.floor(coords.y / 2);
+
+                // Call the parent method with the transformed coordinates.
+                // The URL template for this layer already includes '@2x'.
+                return L.TileLayer.prototype._getTileUrl.call(this, urlCoords);
+            }
+        });
+
+        // --- Layer Configuration ---
+
+        // This is the base layer for standard-resolution tiles and overzooming.
+        const standardLayer = L.tileLayer(tileBaseUrl + '{z}/{x}/{y}.png', {
             attribution: 'OSRS Wiki',
             tms: false,
             noWrap: true,
-            bounds: [[0, 0], [256, 256]]
-        }).addTo(map);
+            bounds: [[0, 0], [256, 256]],
+            maxNativeZoom: maxNativeZoom
+        });
 
-        map.setView([boundsY / 2, boundsX / 2], 1);
+        if (isRetina) {
+            // On retina devices, create the custom sharp retina layer.
+            // The URL template now includes the '@2x' suffix directly.
+            const sharpRetinaLayer = new L.TileLayer.SharpRetina(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
+                attribution: 'OSRS Wiki',
+                tms: false,
+                noWrap: true,
+                bounds: [[0, 0], [256, 256]],
+                minZoom: minZoom,
+                maxZoom: maxNativeZoom - 1 // This layer only operates where @2x tiles exist.
+            });
+
+            // Add layers and manage their visibility based on zoom.
+            map.addLayer(standardLayer);
+            map.addLayer(sharpRetinaLayer);
+
+            function updateLayerVisibility() {
+                const currentZoom = map.getZoom();
+                if (currentZoom < maxNativeZoom) {
+                    sharpRetinaLayer.setOpacity(1);
+                    standardLayer.setOpacity(0);
+                } else {
+                    sharpRetinaLayer.setOpacity(0);
+                    standardLayer.setOpacity(1);
+                }
+            }
+
+            map.on('zoomend', updateLayerVisibility);
+            // Set initial state
+            updateLayerVisibility();
+
+        } else {
+            // On non-retina devices, just add the standard layer.
+            standardLayer.addTo(map);
+        }
+
+        // --- Dynamic Styling for Overzoom ---
+        function updatePixelation() {
+            const currentZoom = map.getZoom();
+            const container = standardLayer.getContainer();
+            if (!container) return;
+
+            if (currentZoom > maxNativeZoom) {
+                L.DomUtil.addClass(container, 'pixelated-overzoom');
+            } else {
+                L.DomUtil.removeClass(container, 'pixelated-overzoom');
+            }
+        }
+
+        map.on('zoomend', updatePixelation);
+        updatePixelation(); // Set initial state
+
+        map.setView([boundsY / 2, boundsX / 2], minZoom);
     }
 
     function loadPois(jsonData) {
@@ -70,17 +156,10 @@
 
             pois.forEach(poi => {
                 if (poi.plane === 0) {
-                    // Step 1: Apply the RuneLite formula to get the base pixel coordinate.
                     let x_image = (poi.x - MIN_X_OFFSET) * PIXELS_PER_TILE;
                     let y_image = (MAX_Y_OFFSET - poi.y) * PIXELS_PER_TILE;
-
-                    // Step 2: Apply final calibration based on visual feedback.
-                    // +4 pixels to move one tile to the right.
-                    // -4 pixels to move one tile up.
                     x_image += PIXELS_PER_TILE;
                     y_image -= PIXELS_PER_TILE;
-
-                    // Step 3: Scale the final pixel coordinate for Leaflet.
                     const x_leaflet = x_image / conversionFactor;
                     const y_leaflet = y_image / conversionFactor;
 
