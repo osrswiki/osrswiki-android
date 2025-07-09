@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_floor_up">Increase map floor level</string>
+    <string name="map_floor_down">Decrease map floor level</string>
+</resources>

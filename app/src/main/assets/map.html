@@ -1,4 +1,6 @@
-<!DOCTYPE html><html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>OSRS World Map</title>
@@ -9,26 +11,16 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
         :root {
-            /* Default fallback colors */
             --color-surface-variant: #444;
             --color-on-surface-variant: #ccc;
         }
-
         html, body { height: 100%; margin: 0; padding: 0; }
         #map { width: 100%; height: 100%; background-color: #0b0b0b; }
-
-        /*
-         * Apply nearest-neighbor interpolation to map tiles when they are upscaled
-         * by the browser (i.e., for zoom levels >= maxNativeZoom). This preserves
-         * the sharp, pixelated aesthetic of the original game graphics.
-         */
         .pixelated-zoom .leaflet-tile {
             image-rendering: pixelated;
-            image-rendering: -moz-crisp-edges; /* Firefox */
+            image-rendering: -moz-crisp-edges;
             image-rendering: crisp-edges;
         }
-
-        /* --- Themed UI Controls --- */
         .leaflet-bar a,
         .leaflet-bar a:focus {
             background-color: var(--color-surface-variant) !important;
@@ -36,182 +28,157 @@
             border: none;
             outline: none;
         }
-
         .leaflet-bar a:active {
             background-color: var(--color-on-surface-variant) !important;
             color: var(--color-surface-variant) !important;
         }
-
         @media (hover: hover) and (pointer: fine) {
             .leaflet-bar a:hover {
                 background-color: var(--color-on-surface-variant) !important;
                 color: var(--color-surface-variant) !important;
             }
         }
-
         .leaflet-control-attribution {
             background-color: var(--color-surface-variant) !important;
             color: var(--color-on-surface-variant);
-            border-radius: 4px; /* Optional: adds rounded corners */
+            border-radius: 4px;
         }
-    </style></head><body><div id="map"></div><script>
-    var map;
-
-    function applyTheme() {
-        if (typeof Android === 'undefined' || typeof Android.getThemeColors === 'undefined') {
-            console.log("Android interface not available, using fallback theme.");
-            return;
-        }
-        try {
-            const colorsJson = Android.getThemeColors();
-            const colors = JSON.parse(colorsJson);
-            if (colors.surfaceVariant && colors.onSurfaceVariant) {
-                document.documentElement.style.setProperty('--color-surface-variant', colors.surfaceVariant);
-                document.documentElement.style.setProperty('--color-on-surface-variant', colors.onSurfaceVariant);
-                console.log("Applied native theme colors:", colors);
-            }
-        } catch (e) {
-            console.error("Error applying native theme: ", e);
-        }
-    }
-
-    function initializeMap(tileBaseUrl) {
-        console.log("Initializing map with base URL: " + tileBaseUrl);
-
-        const conversionFactor = 256.0;
-        const contentWidth = 12800;
-        const contentHeight = 45568;
-
-        const boundsY = contentHeight / conversionFactor;
-        const boundsX = contentWidth / conversionFactor;
-        const contentMaxBounds = [[0, 0], [boundsY, boundsX]];
-
-        const TopDownCRS = L.Util.extend({}, L.CRS.Simple, {
-            transformation: new L.Transformation(1, 0, 1, 0)
-        });
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var map;
+        const tileLayers = {};
+        const poiLayers = {};
+        var currentFloor = 0;
 
         const minZoom = 3;
         const maxZoom = 11;
         const maxNativeZoom = 8;
+        const numFloors = 4;
         const isRetina = L.Browser.retina;
 
-        map = L.map('map', {
-            crs: TopDownCRS,
-            minZoom: minZoom,
-            maxZoom: maxZoom,
-            maxBounds: contentMaxBounds
-        });
+        function applyTheme() {
+            if (typeof Android === 'undefined' || typeof Android.getThemeColors === 'undefined') return;
+            try {
+                const colorsJson = Android.getThemeColors();
+                const colors = JSON.parse(colorsJson);
+                if (colors.surfaceVariant && colors.onSurfaceVariant) {
+                    document.documentElement.style.setProperty('--color-surface-variant', colors.surfaceVariant);
+                    document.documentElement.style.setProperty('--color-on-surface-variant', colors.onSurfaceVariant);
+                }
+            } catch (e) { console.error("Error applying theme", e); }
+        }
 
-        // --- Layer Configuration ---
-
-        const standardLayer = L.tileLayer(tileBaseUrl + '{z}/{x}/{y}.png', {
-            attribution: '&copy; Jagex Ltd.',
-            tms: false,
-            noWrap: true,
-            bounds: [[0, 0], [256, 256]],
-            maxNativeZoom: maxNativeZoom
-        });
-
-        var sharpRetinaLayer;
-
-        if (isRetina) {
-            sharpRetinaLayer = new L.tileLayer(tileBaseUrl + '{z}/{x}/{y}@2x.png', {
-                attribution: '&copy; Jagex Ltd.',
-                tms: false,
-                noWrap: true,
-                bounds: [[0, 0], [256, 256]],
-                maxZoom: maxNativeZoom - 1
+        function initializeMap(tileBaseUrl) {
+            console.log("Initializing map with base URL: " + tileBaseUrl);
+            const conversionFactor = 256.0;
+            const contentMaxBounds = [[0, 0], [45568 / conversionFactor, 12800 / conversionFactor]];
+            const TopDownCRS = L.Util.extend({}, L.CRS.Simple, {
+                transformation: new L.Transformation(1, 0, 1, 0)
             });
-        }
 
-        // --- Event Handling and Layer Management ---
+            map = L.map('map', { crs: TopDownCRS, minZoom: minZoom, maxZoom: maxZoom, maxBounds: contentMaxBounds });
 
-        function updateLayerVisibility() {
-            if (!sharpRetinaLayer) return;
-            const currentZoom = map.getZoom();
-            if (currentZoom < maxNativeZoom) {
-                sharpRetinaLayer.setOpacity(1);
-                standardLayer.setOpacity(0);
-            } else {
-                sharpRetinaLayer.setOpacity(0);
-                standardLayer.setOpacity(1);
+            for (let floor = 0; floor < numFloors; floor++) {
+                const retinaUrl = tileBaseUrl + floor + '/{z}/{x}/{y}@2x.png';
+                const standardLayer = L.tileLayer(tileBaseUrl + floor + '/{z}/{x}/{y}.png', {
+                    attribution: '&copy; Jagex Ltd.', tms: false, noWrap: true, bounds: [[0, 0], [256, 256]], maxNativeZoom: maxNativeZoom
+                });
+                var sharpRetinaLayer = isRetina ? L.tileLayer(retinaUrl, {
+                    attribution: '&copy; Jagex Ltd.', tms: false, noWrap: true, bounds: [[0, 0], [256, 256]], maxZoom: maxNativeZoom - 1
+                }) : undefined;
+                tileLayers[floor] = { standard: standardLayer, retina: sharpRetinaLayer };
             }
-        }
 
-        function updatePixelation() {
-            const currentZoom = map.getZoom();
-            const container = standardLayer.getContainer();
-            if (!container) return;
-
-            if (currentZoom >= maxNativeZoom) {
-                L.DomUtil.addClass(container, 'pixelated-zoom');
-            } else {
-                L.DomUtil.removeClass(container, 'pixelated-zoom');
-            }
+            map.on('zoomend', onZoomEnd);
+            map.on('moveend', logMapState);
+            map.setView([146.5088, 34.5174], 8);
+            updateActiveLayers(); // Initial layer setup
+            logMapState();
         }
 
         function onZoomEnd() {
-            updateLayerVisibility();
+            updateActiveLayers();
             updatePixelation();
+        }
+
+        function updatePixelation() {
+            const container = tileLayers[currentFloor].standard.getContainer();
+            if (container) {
+                if (map.getZoom() >= maxNativeZoom) L.DomUtil.addClass(container, 'pixelated-zoom');
+                else L.DomUtil.removeClass(container, 'pixelated-zoom');
+            }
+        }
+
+        function updateActiveLayers() {
+            const currentZoom = map.getZoom();
+
+            for (let i = 0; i < numFloors; i++) {
+                const layers = tileLayers[i];
+                const targetOpacity = (i === currentFloor) ? 1.0 : (i === 0 && currentFloor > 0) ? 0.5 : 0.0;
+                const shouldUseRetina = isRetina && layers.retina && currentZoom < maxNativeZoom;
+
+                // Set opacity first
+                layers.standard.setOpacity(targetOpacity);
+                if (layers.retina) layers.retina.setOpacity(targetOpacity);
+                
+                // Add/remove standard layer
+                if (!shouldUseRetina && targetOpacity > 0) {
+                    if (!map.hasLayer(layers.standard)) map.addLayer(layers.standard);
+                } else {
+                    if (map.hasLayer(layers.standard)) map.removeLayer(layers.standard);
+                }
+
+                // Add/remove retina layer
+                if (shouldUseRetina && targetOpacity > 0) {
+                     if (!map.hasLayer(layers.retina)) map.addLayer(layers.retina);
+                } else {
+                    if (layers.retina && map.hasLayer(layers.retina)) map.removeLayer(layers.retina);
+                }
+            }
+        }
+
+        function setFloor(newFloor) {
+            if (newFloor === currentFloor) return;
+            
+            if (poiLayers[currentFloor] && map.hasLayer(poiLayers[currentFloor])) {
+                map.removeLayer(poiLayers[currentFloor]);
+            }
+            currentFloor = newFloor;
+            if (poiLayers[currentFloor]) {
+                map.addLayer(poiLayers[currentFloor]);
+            }
+            updateActiveLayers();
+        }
+
+        function loadPois(jsonData) {
+            try {
+                if (!map) return;
+                const MIN_X_OFFSET = 1024, MAX_Y_OFFSET = 12608, PIXELS_PER_TILE = 4, conversionFactor = 256.0;
+                const pois = JSON.parse(jsonData);
+
+                for (let i = 0; i < numFloors; i++) poiLayers[i] = L.markerClusterGroup();
+
+                pois.forEach(poi => {
+                    if (poi.plane >= 0 && poi.plane < numFloors) {
+                        let x_image = (poi.x - MIN_X_OFFSET) * PIXELS_PER_TILE + PIXELS_PER_TILE;
+                        let y_image = (MAX_Y_OFFSET - poi.y) * PIXELS_PER_TILE - PIXELS_PER_TILE;
+                        const marker = L.marker([y_image / conversionFactor, x_image / conversionFactor]);
+                        marker.bindPopup(`<b>${poi.name}</b><br>Floor: ${poi.plane}<br>Game: [${poi.y}, ${poi.x}]`);
+                        poiLayers[poi.plane].addLayer(marker);
+                    }
+                });
+                if (poiLayers[currentFloor]) map.addLayer(poiLayers[currentFloor]);
+            } catch(e) { console.error("ERROR in loadPois(): ", e); }
         }
 
         function logMapState() {
             const center = map.getCenter();
             const zoom = map.getZoom();
-            console.log(`Map State - Zoom: ${zoom}, Center: [${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}]`);
+            console.log(`Map State - Floor: ${currentFloor}, Zoom: ${zoom}, Center: [${center.lat.toFixed(4)}, ${center.lng.toFixed(4)}]`);
         }
-
-        // --- Map Initialization ---
-
-        if (isRetina) {
-            map.addLayer(standardLayer);
-            map.addLayer(sharpRetinaLayer);
-        } else {
-            standardLayer.addTo(map);
-        }
-
-        map.on('zoomend', onZoomEnd);
-        map.on('moveend', logMapState);
-
-        onZoomEnd();
-
-        // Set the default view to Lumbridge at zoom 8.
-        map.setView([146.5088, 34.5174], 8);
-
-        logMapState();
-    }
-
-    function loadPois(jsonData) {
-        if (!map) {
-            console.error("Map is not initialized. Cannot load POIs.");
-            return;
-        }
-        try {
-            const MIN_X_OFFSET = 1024;
-            const MAX_Y_OFFSET = 12608;
-            const PIXELS_PER_TILE = 4;
-            const conversionFactor = 256.0;
-
-            const pois = JSON.parse(jsonData);
-            const markers = L.markerClusterGroup();
-
-            pois.forEach(poi => {
-                if (poi.plane === 0) {
-                    let x_image = (poi.x - MIN_X_OFFSET) * PIXELS_PER_TILE;
-                    let y_image = (MAX_Y_OFFSET - poi.y) * PIXELS_PER_TILE;
-                    x_image += PIXELS_PER_TILE;
-                    y_image -= PIXELS_PER_TILE;
-                    const x_leaflet = x_image / conversionFactor;
-                    const y_leaflet = y_image / conversionFactor;
-
-                    const marker = L.marker([y_leaflet, x_leaflet]);
-                    marker.bindPopup(`<b>${poi.name}</b><br>Game: [${poi.y}, ${poi.x}]`);
-                    markers.addLayer(marker);
-                }
-            });
-            map.addLayer(markers);
-            console.log("Marker cluster layer added with final calibration.");
-        } catch (e) {
-            console.error("ERROR in loadPois(): ", e);
-        }
-    }</script></body></html>
+    </script>
+</body>
+</html>
