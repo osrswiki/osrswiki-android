@@ -19,13 +19,14 @@
     <color name="wiki_text_near_black">#202122</color>
     <color name="wiki_surface_dark">#202122</color>
     <color name="wiki_text_near_white">#EAECF0</color>
-
     <color name="page_bg_wiki_dark">#1e1e1e</color>
     <color name="link_color_osrs_light">#936039</color>
     <color name="link_color_wiki_light">#3366cc</color>
     <color name="link_color_osrs_dark">#b79d7e</color>
     <color name="link_color_wiki_dark">#8ab4f8</color>
-
     <color name="section_header_wiki_light">#F8F9FA</color>
     <color name="section_header_wiki_dark">#363a3d</color>
+
+    <color name="osrs_loading_bar_red">#8c1111</color>
+    <color name="osrs_loading_bar_black">#000000</color>
 </resources>

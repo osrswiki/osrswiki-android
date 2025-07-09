@@ -43,6 +43,12 @@ android {
         viewBinding = true
         buildConfig = true // Ensure BuildConfig generation is explicitly enabled
     }
+
+    // This block prevents .zip files in /assets from being compressed,
+    // which allows AssetManager.openFd() to work correctly.
+    aaptOptions {
+        noCompress("zip")
+    }
 }
 
 dependencies {
