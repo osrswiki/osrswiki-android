@@ -88,3 +88,6 @@ file_backups/
 app/src/main/assets/map_tiles.zip
 app/src/main/assets/pois.json
 tools/map-dumper/output/
+
+# Ignore temporary map tile directory used by slice_tiles.py
+/app/src/main/assets/map_tiles_temp/
