@@ -2,11 +2,14 @@ package com.omiyawaki.osrswiki.ui.map
 
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,6 +17,7 @@ import kotlinx.coroutines.withContext
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
@@ -37,6 +41,13 @@ class MapFragment : Fragment() {
     private var currentFloor = 0
     private val mapFiles = (0..3).map { "map_floor_$it.mbtiles" }
     private val maxFloor = 3
+
+    companion object {
+        private const val CANVAS_WIDTH = 65536.0
+        private const val CANVAS_HEIGHT = 65536.0
+        private const val MAP_CONTENT_WIDTH = 12800.0
+        private const val MAP_CONTENT_HEIGHT = 45568.0
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,21 +74,13 @@ class MapFragment : Fragment() {
     }
 
     private suspend fun copyAssetsToInternalStorage() = withContext(Dispatchers.IO) {
-        Log.d(logTag, "Checking for map assets in internal storage...")
         for (fileName in mapFiles) {
             val destFile = File(requireContext().filesDir, fileName)
-            if (destFile.exists()) {
-                Log.d(logTag, "Asset '$fileName' already exists. Skipping copy.")
-                continue
-            }
-            Log.d(logTag, "Asset '$fileName' not found. Copying from APK assets...")
+            if (destFile.exists()) continue
             try {
                 requireContext().assets.open(fileName).use { inputStream ->
-                    FileOutputStream(destFile).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
+                    FileOutputStream(destFile).use { outputStream -> inputStream.copyTo(outputStream) }
                 }
-                Log.d(logTag, "Successfully copied asset: $fileName")
             } catch (e: IOException) {
                 Log.e(logTag, "Failed to copy asset file: $fileName", e)
             }
@@ -88,17 +91,16 @@ class MapFragment : Fragment() {
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { maplibreMap ->
             this.map = maplibreMap
+            
+            configureUiSettings(maplibreMap)
+            
             val styleJson = """
                 {
                   "version": 8,
                   "name": "OSRS Map Style",
                   "sources": {},
                   "layers": [
-                    {
-                      "id": "background",
-                      "type": "background",
-                      "paint": { "background-color": "#000000" }
-                    }
+                    { "id": "background", "type": "background", "paint": { "background-color": "#000000" } }
                   ]
                 }
             """.trimIndent()
@@ -109,10 +111,37 @@ class MapFragment : Fragment() {
                     .zoom(4.0)
                     .build()
 
+                setMapBounds(maplibreMap)
                 setupMapLayers(style)
                 setupFloorControls()
             }
         }
+    }
+
+    private fun configureUiSettings(map: MapLibreMap) {
+        val uiSettings = map.uiSettings
+        
+        uiSettings.isLogoEnabled = false
+        uiSettings.isAttributionEnabled = false
+
+        val marginInDp = 16f
+        val marginInPx = (marginInDp * resources.displayMetrics.density).toInt()
+        uiSettings.setCompassGravity(Gravity.TOP or Gravity.END)
+        uiSettings.setCompassMargins(0, marginInPx, marginInPx, 0)
+    }
+
+    private fun setMapBounds(map: MapLibreMap) {
+        val north = 90.0
+        val west = -180.0
+        val south = 90.0 - (MAP_CONTENT_HEIGHT / CANVAS_HEIGHT) * 180.0
+        val east = -180.0 + (MAP_CONTENT_WIDTH / CANVAS_WIDTH) * 360.0
+
+        val bounds = LatLngBounds.Builder()
+            .include(LatLng(north, west))
+            .include(LatLng(south, east))
+            .build()
+        
+        map.setLatLngBoundsForCameraTarget(bounds)
     }
 
     private fun setupMapLayers(style: Style) {
@@ -132,72 +161,48 @@ class MapFragment : Fragment() {
             )
             style.addLayer(rasterLayer)
         }
-        Log.d(logTag, "All ${maxFloor + 1} map layers and sources have been added.")
     }
 
     private fun setupFloorControls() {
         binding.floorControls.visibility = View.VISIBLE
-        updateFloorText()
+        updateFloorControlStates()
 
         binding.floorControlUp.setOnClickListener {
-            if (currentFloor < maxFloor) {
-                showFloor(currentFloor + 1)
-            }
+            if (currentFloor < maxFloor) showFloor(currentFloor + 1)
         }
-
         binding.floorControlDown.setOnClickListener {
-            if (currentFloor > 0) {
-                showFloor(currentFloor - 1)
-            }
+            if (currentFloor > 0) showFloor(currentFloor - 1)
         }
     }
 
     private fun showFloor(newFloor: Int) {
         if (newFloor == currentFloor || newFloor < 0 || newFloor > maxFloor) return
+        val style = map?.style ?: return
 
-        val style = map?.style
-        if (style == null) {
-            Log.e(logTag, "Cannot switch floor, map style is not ready.")
-            return
-        }
-
-        Log.d(logTag, "Switching from floor $currentFloor to $newFloor")
-
-        // This is the new logic to handle visibility and opacity.
         for (floor in 0..maxFloor) {
             val layer = style.getLayer("osrs-layer-$floor") as? RasterLayer
             layer?.let {
                 when {
-                    // The selected floor is always fully opaque and visible.
-                    floor == newFloor -> {
-                        it.setProperties(
-                            PropertyFactory.visibility(Property.VISIBLE),
-                            PropertyFactory.rasterOpacity(1.0f)
-                        )
-                    }
-                    // If viewing an upper floor, make the ground floor semi-transparent.
-                    floor == 0 && newFloor > 0 -> {
-                        it.setProperties(
-                            PropertyFactory.visibility(Property.VISIBLE),
-                            PropertyFactory.rasterOpacity(0.5f)
-                        )
-                    }
-                    // Hide all other layers.
-                    else -> {
-                        it.setProperties(
-                            PropertyFactory.visibility(Property.NONE)
-                        )
-                    }
+                    floor == newFloor -> it.setProperties(
+                        PropertyFactory.visibility(Property.VISIBLE),
+                        PropertyFactory.rasterOpacity(1.0f)
+                    )
+                    floor == 0 && newFloor > 0 -> it.setProperties(
+                        PropertyFactory.visibility(Property.VISIBLE),
+                        PropertyFactory.rasterOpacity(0.5f)
+                    )
+                    else -> it.setProperties(PropertyFactory.visibility(Property.NONE))
                 }
             }
         }
-
         currentFloor = newFloor
-        updateFloorText()
+        updateFloorControlStates()
     }
-
-    private fun updateFloorText() {
+    
+    private fun updateFloorControlStates() {
         binding.floorControlText.text = currentFloor.toString()
+        binding.floorControlUp.isEnabled = currentFloor < maxFloor
+        binding.floorControlDown.isEnabled = currentFloor > 0
     }
 
     // region MapView Lifecycle
