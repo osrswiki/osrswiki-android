@@ -31,13 +31,13 @@
         android:id="@+id/floor_controls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
         android:background="@drawable/control_background_surface_variant"
         android:elevation="4dp"
         android:orientation="vertical"
         android:visibility="gone"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible">
 
@@ -47,7 +47,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/map_floor_up"
-            android:src="@drawable/ic_arrow_up" />
+            android:src="@drawable/ic_arrow_up"
+            app:tint="@color/control_icon_tint" />
 
         <TextView
             android:id="@+id/floor_control_text"
@@ -66,7 +67,8 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/map_floor_down"
-            android:src="@drawable/ic_arrow_down" />
+            android:src="@drawable/ic_arrow_down"
+            app:tint="@color/control_icon_tint" />
 
     </LinearLayout>
 
