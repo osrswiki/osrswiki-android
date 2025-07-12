@@ -85,6 +85,7 @@ file_backups/
 # Add any other project-specific ignores below this line
 
 # Generated map assets
+*.mbtiles
 app/src/main/assets/map_tiles.zip
 app/src/main/assets/pois.json
 tools/map-dumper/output/
