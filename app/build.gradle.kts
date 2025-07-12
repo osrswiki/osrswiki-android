@@ -4,19 +4,18 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
-    // alias(libs.plugins.kotlinParcelize)
     id("org.jetbrains.kotlin.plugin.parcelize")
 }
 
 android {
     namespace = "com.omiyawaki.osrswiki"
-    compileSdk = 35 // Keeping existing compileSdk
+    compileSdk = 35
     buildToolsVersion = "35.0.1"
 
     defaultConfig {
         applicationId = "com.omiyawaki.osrswiki"
-        minSdk = 24 // Keeping existing minSdk
-        targetSdk = 35 // Keeping existing targetSdk
+        minSdk = 24
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -41,32 +40,32 @@ android {
     }
     buildFeatures {
         viewBinding = true
-        buildConfig = true // Ensure BuildConfig generation is explicitly enabled
+        buildConfig = true
+    }
+    androidResources {
+        noCompress += listOf("mbtiles")
     }
 
-    // This block prevents .zip files in /assets from being compressed,
-    // which allows AssetManager.openFd() to work correctly.
-    aaptOptions {
-        noCompress("zip")
-    }
+    // Restore this block to prevent compression of .mbtiles files
 }
 
 dependencies {
-    implementation(libs.androidx.webkit) // Added for WebViewAssetLoader
+    // MapLibre Native SDK
+    implementation(libs.maplibre.native)
+
     implementation(libs.androidxPagingRuntimeKtx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
-    // MODIFIED: Added Gson dependency via version catalog for @SerializedName
     implementation(libs.gson)
     implementation(libs.kotlinx.serializationJson)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp.core)
-    implementation(libs.okhttp.loggingInterceptor) // Optional: for logging network requests
+    implementation(libs.okhttp.loggingInterceptor)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
-    implementation(libs.androidx.preference.ktx) // Added for SharedPreferences utilities
-    implementation(libs.androidx.work.runtime.ktx) // This alias should match what you defined in libs.versions.toml
+    implementation(libs.androidx.preference.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.jsoup)
     implementation(libs.apacheCommonsLang3)
 
@@ -91,6 +90,6 @@ dependencies {
     ksp(libs.glide.ksp)
 
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit) // Corrected alias if it was androidx.junit
+    androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
