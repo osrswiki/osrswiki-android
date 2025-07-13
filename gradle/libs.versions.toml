@@ -16,7 +16,7 @@ androidxWork = "2.9.0"
 jsoup = "1.20.1"
 
 # MapLibre Native SDK
-maplibre = "11.0.0"
+maplibre = "11.12.1"
 
 # Navigation Components
 navigation = "2.9.0"
