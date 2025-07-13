@@ -46,7 +46,11 @@ android {
         noCompress += listOf("mbtiles")
     }
 
-    // Restore this block to prevent compression of .mbtiles files
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
 }
 
 dependencies {
