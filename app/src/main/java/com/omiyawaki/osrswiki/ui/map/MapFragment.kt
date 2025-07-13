@@ -40,13 +40,14 @@ class MapFragment : Fragment() {
 
     private var currentFloor = 0
     private val mapFiles = (0..3).map { "map_floor_$it.mbtiles" }
-    private val maxFloor = 3
+    private val maxFloor: Int get() = mapFiles.size - 1
 
     companion object {
         private const val CANVAS_WIDTH = 65536.0
         private const val CANVAS_HEIGHT = 65536.0
         private const val MAP_CONTENT_WIDTH = 12800.0
         private const val MAP_CONTENT_HEIGHT = 45568.0
+        private const val GROUND_FLOOR_UNDERLAY_OPACITY = 0.5f
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,24 +92,25 @@ class MapFragment : Fragment() {
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { maplibreMap ->
             this.map = maplibreMap
-            
+
             configureUiSettings(maplibreMap)
-            
+
             val styleJson = """
                 {
-                  "version": 8,
-                  "name": "OSRS Map Style",
-                  "sources": {},
-                  "layers": [
-                    { "id": "background", "type": "background", "paint": { "background-color": "#000000" } }
-                  ]
+                    "version": 8,
+                    "name": "OSRS Map Style",
+                    "sources": {},
+                    "layers": [
+                        { "id": "background", "type": "background", "paint": { "background-color": "#000000" } }
+                    ]
                 }
             """.trimIndent()
 
             maplibreMap.setStyle(Style.Builder().fromJson(styleJson)) { style ->
+                // Set the default camera view to Lumbridge.
                 maplibreMap.cameraPosition = CameraPosition.Builder()
-                    .target(LatLng(0.0, 0.0))
-                    .zoom(4.0)
+                    .target(LatLng(-25.2023457171692, -131.44071698586012))
+                    .zoom(7.3414426741929)
                     .build()
 
                 setMapBounds(maplibreMap)
@@ -120,7 +122,7 @@ class MapFragment : Fragment() {
 
     private fun configureUiSettings(map: MapLibreMap) {
         val uiSettings = map.uiSettings
-        
+
         uiSettings.isLogoEnabled = false
         uiSettings.isAttributionEnabled = false
 
@@ -140,7 +142,7 @@ class MapFragment : Fragment() {
             .include(LatLng(north, west))
             .include(LatLng(south, east))
             .build()
-        
+
         map.setLatLngBoundsForCameraTarget(bounds)
     }
 
@@ -189,7 +191,7 @@ class MapFragment : Fragment() {
                     )
                     floor == 0 && newFloor > 0 -> it.setProperties(
                         PropertyFactory.visibility(Property.VISIBLE),
-                        PropertyFactory.rasterOpacity(0.5f)
+                        PropertyFactory.rasterOpacity(GROUND_FLOOR_UNDERLAY_OPACITY)
                     )
                     else -> it.setProperties(PropertyFactory.visibility(Property.NONE))
                 }
@@ -198,7 +200,7 @@ class MapFragment : Fragment() {
         currentFloor = newFloor
         updateFloorControlStates()
     }
-    
+
     private fun updateFloorControlStates() {
         binding.floorControlText.text = currentFloor.toString()
         binding.floorControlUp.isEnabled = currentFloor < maxFloor
