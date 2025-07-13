@@ -6,11 +6,11 @@
 /* Base styling for the entire infobox container. */
 .infobox {
     background: transparent; /* Use page background color. */
-    border: 1px solid var(--colorsurfacevariant); /* Subtle border to define the box */
+    border: 1px solid var(--colorsurfacevariant);
     font-size: 0.85em;
-    margin: 0 0 1em 1em;
+    margin: 0; /* Margin is handled by the collapsible content container */
     border-collapse: collapse;
-    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
     table-layout: fixed;
     word-break: break-word;
     /* Text color is intentionally not set, to inherit the page's default. */
@@ -30,13 +30,18 @@
 
 /*
     Override for the original map placeholder to ensure it fills the full
-    width of its container, eliminating any alignment gaps.
+    width of its container, eliminating any alignment gaps. A minimum height
+    is set to ensure the element is rendered and findable by the native map handler.
 */
 .mw-kartographer-map {
     box-sizing: border-box !important;
     padding: 0 !important;
     border: none !important;
     width: 100% !important; /* Force the map to fill the container width */
+    min-height: 200px; /* Prevent the placeholder from collapsing to zero height */
+    display: flex; /* Critical for the layout engine to give the element dimensions */
+    align-items: center;
+    justify-content: center;
 }
 
 /* General styling for header and data cells */
@@ -52,11 +57,12 @@
 
 /*
     Combined styling for main header and sub-headers.
+    Colors are now aligned with standard wikitable headers.
 */
 .infobox .infobox-header,
 .infobox .infobox-subheader {
-    background: var(--colorsurfacevariant) !important;
-    color: var(--coloronsurfacevariant) !important;
+    background-color: var(--wikitable-header-bg);
+    color: var(--wikitable-color);
     font-weight: bold;
     text-align: center;
 }
@@ -75,7 +81,6 @@
 
 /*
     Defines the two-column layout's left-hand-side labels.
-    The border uses colorsurfacevariant as requested.
 */
 .infobox th:not(.infobox-header):not(.infobox-subheader):not(.infobox-nested) {
     text-align: right;

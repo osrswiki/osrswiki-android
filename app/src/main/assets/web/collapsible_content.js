@@ -66,37 +66,6 @@
     }
 
     /**
-     * Logs the vertical positions of a collapsible element's components.
-     */
-    function logVerticalPositions(container) {
-        if (!container) return;
-        // Use a timeout to ensure the browser has finished the layout reflow.
-        setTimeout(function() {
-            console.log("--- Logging Vertical Positions for Debugging ---");
-            const header = container.querySelector('.collapsible-header');
-            const content = container.querySelector('.collapsible-content');
-            const table = content ? content.firstElementChild : null;
-
-            if (header && table && content) {
-                const headerRect = header.getBoundingClientRect();
-                const tableRect = table.getBoundingClientRect();
-                const contentStyle = window.getComputedStyle(content);
-                const measuredGap = tableRect.top - headerRect.bottom;
-
-                console.log(`For table: "${header.innerText.split(':')[0]}"`);
-                console.log(`Header Bottom: y=${headerRect.bottom.toFixed(2)}`);
-                console.log(`Table Top:     y=${tableRect.top.toFixed(2)}`);
-                console.log(`--> Measured Gap: ${measuredGap.toFixed(2)}px`);
-                console.log(`--> Expected Gap (CSS Padding): ${contentStyle.paddingTop}`);
-            } else {
-                console.log("Could not find all elements for logging.");
-            }
-            console.log("----------------------------------------------");
-        }, 100);
-    }
-
-
-    /**
      * Finds the main infobox and wraps it in a collapsible container.
      */
     function transformInfobox() {
@@ -146,7 +115,6 @@
 
             container.classList.toggle('collapsed');
             updateHeaderText(container, titleWrapper, captionText);
-            logVerticalPositions(container);
 
             if (isFirstExpansion) {
                 // On the first expansion, simply notify the native layer.
@@ -204,7 +172,6 @@
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
                 updateHeaderText(container, titleWrapper, captionText);
-                logVerticalPositions(container);
             });
         });
     }

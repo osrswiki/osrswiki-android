@@ -12,6 +12,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
@@ -135,6 +137,19 @@ class PageFragment : Fragment() {
             jsInterface = nativeMapHandler.jsInterface,
             jsInterfaceName = "NativeMapInterface"
         )
+
+        // Enable console logging for the WebView for debugging purposes.
+        binding.pageWebView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
+                if (consoleMessage != null) {
+                    Log.d(
+                        "JsConsole",
+                        "${consoleMessage.message()} -- From line ${consoleMessage.lineNumber()} of ${consoleMessage.sourceId()}"
+                    )
+                }
+                return true
+            }
+        }
 
         val pageActionTabLayout = callback?.getPageActionTabLayout()
         if (pageActionTabLayout != null) {
