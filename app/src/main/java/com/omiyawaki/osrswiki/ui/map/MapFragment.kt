@@ -43,16 +43,64 @@ class MapFragment : Fragment() {
     private val maxFloor: Int get() = mapFiles.size - 1
 
     companion object {
-        private const val CANVAS_WIDTH = 65536.0
-        private const val CANVAS_HEIGHT = 65536.0
-        private const val MAP_CONTENT_WIDTH = 12800.0
-        private const val MAP_CONTENT_HEIGHT = 45568.0
+        private const val ARG_LAT = "arg_lat"
+        private const val ARG_LON = "arg_lon"
+        private const val ARG_ZOOM = "arg_zoom"
+        private const val ARG_PLANE = "arg_plane"
+
         private const val GROUND_FLOOR_UNDERLAY_OPACITY = 0.5f
+
+        // Default camera settings (Lumbridge).
+        private const val DEFAULT_LAT = -25.2023457171692
+        private const val DEFAULT_LON = -131.44071698586012
+        private const val DEFAULT_ZOOM = 7.3414426741929
+
+        fun newInstance(lat: String?, lon: String?, zoom: String?, plane: String?): MapFragment {
+            return MapFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_LAT, lat)
+                    putString(ARG_LON, lon)
+                    putString(ARG_ZOOM, zoom)
+                    putString(ARG_PLANE, plane)
+                }
+            }
+        }
+
+        /**
+         * Converts OSRS in-game coordinates to geographic LatLng using an analytically
+         * derived formula based on the map tiling toolchain.
+         */
+        private fun gameToLatLng(gx: Double, gy: Double): LatLng {
+            // Constants derived from the map dumper and tiling script.
+            val gameCoordScale = 4.0
+            val gameMinX = 1024.0
+            val gameMaxY = 12608.0
+            val canvasSize = 65536.0
+
+            // 1. Convert game coordinates to canvas pixel coordinates.
+            // This accounts for the origin offset, Y-axis inversion, and 4x scaling factor.
+            val px = (gx - gameMinX) * gameCoordScale
+            val py = (gameMaxY - gy) * gameCoordScale
+
+            // 2. Normalize pixel coordinates to a [0, 1] range.
+            val nx = px / canvasSize
+            val ny = py / canvasSize
+
+            // 3. Convert normalized coordinates to geographic coordinates (EPSG:3857).
+            val lon = -180.0 + nx * 360.0
+            val lat = Math.toDegrees(Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * ny))))
+
+            return LatLng(lat, lon)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MapLibre.getInstance(requireContext())
+        // Set floor from arguments if available, otherwise defaults to 0.
+        arguments?.getString(ARG_PLANE)?.toIntOrNull()?.let {
+            currentFloor = it
+        }
     }
 
     override fun onCreateView(
@@ -107,11 +155,22 @@ class MapFragment : Fragment() {
             """.trimIndent()
 
             maplibreMap.setStyle(Style.Builder().fromJson(styleJson)) { style ->
-                // Set the default camera view to Lumbridge.
-                maplibreMap.cameraPosition = CameraPosition.Builder()
-                    .target(LatLng(-25.2023457171692, -131.44071698586012))
-                    .zoom(7.3414426741929)
-                    .build()
+                val gameLon = arguments?.getString(ARG_LON)?.toDoubleOrNull()
+                val gameLat = arguments?.getString(ARG_LAT)?.toDoubleOrNull()
+                val zoom = 6.0
+
+                val cameraBuilder = CameraPosition.Builder()
+
+                if (gameLon != null && gameLat != null) {
+                    // If we have in-game coordinates, convert them and set the camera.
+                    val target = gameToLatLng(gameLon, gameLat)
+                    cameraBuilder.target(target).zoom(zoom)
+                } else {
+                    // Otherwise, fall back to the default (Lumbridge).
+                    cameraBuilder.target(LatLng(DEFAULT_LAT, DEFAULT_LON)).zoom(DEFAULT_ZOOM)
+                }
+
+                maplibreMap.cameraPosition = cameraBuilder.build()
 
                 setMapBounds(maplibreMap)
                 setupMapLayers(style)
@@ -122,10 +181,8 @@ class MapFragment : Fragment() {
 
     private fun configureUiSettings(map: MapLibreMap) {
         val uiSettings = map.uiSettings
-
         uiSettings.isLogoEnabled = false
         uiSettings.isAttributionEnabled = false
-
         val marginInDp = 16f
         val marginInPx = (marginInDp * resources.displayMetrics.density).toInt()
         uiSettings.setCompassGravity(Gravity.TOP or Gravity.END)
@@ -133,16 +190,15 @@ class MapFragment : Fragment() {
     }
 
     private fun setMapBounds(map: MapLibreMap) {
-        val north = 90.0
+        // The bounds are static as they cover the entire world map.
+        val north = 85.0511
         val west = -180.0
-        val south = 90.0 - (MAP_CONTENT_HEIGHT / CANVAS_HEIGHT) * 180.0
-        val east = -180.0 + (MAP_CONTENT_WIDTH / CANVAS_WIDTH) * 360.0
-
+        val south = -85.0511
+        val east = 180.0
         val bounds = LatLngBounds.Builder()
             .include(LatLng(north, west))
             .include(LatLng(south, east))
             .build()
-
         map.setLatLngBoundsForCameraTarget(bounds)
     }
 
@@ -166,14 +222,27 @@ class MapFragment : Fragment() {
     }
 
     private fun setupFloorControls() {
-        binding.floorControls.visibility = View.VISIBLE
-        updateFloorControlStates()
+        // An embedded map is identified by having lon/lat arguments passed to it.
+        val isEmbeddedMap = arguments?.getString(ARG_LON) != null
 
-        binding.floorControlUp.setOnClickListener {
-            if (currentFloor < maxFloor) showFloor(currentFloor + 1)
+        if (isEmbeddedMap) {
+            binding.floorControls.visibility = View.GONE
+            return
         }
-        binding.floorControlDown.setOnClickListener {
-            if (currentFloor > 0) showFloor(currentFloor - 1)
+
+        // Only show floor controls if there is more than one floor and it's not embedded.
+        if (maxFloor > 0) {
+            binding.floorControls.visibility = View.VISIBLE
+            updateFloorControlStates()
+
+            binding.floorControlUp.setOnClickListener {
+                if (currentFloor < maxFloor) showFloor(currentFloor + 1)
+            }
+            binding.floorControlDown.setOnClickListener {
+                if (currentFloor > 0) showFloor(currentFloor - 1)
+            }
+        } else {
+            binding.floorControls.visibility = View.GONE
         }
     }
 
