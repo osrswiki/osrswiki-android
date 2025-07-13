@@ -1,49 +1,89 @@
-.collapsible-container {
-    border-radius: 4px;
-    margin-top: 1em;
-    margin-bottom: 1em;
-    width: 100%;
-    overflow: hidden; /* Ensures child elements respect the border radius */
-    background-color: var(--container-bg-color); /* Use colorSurfaceVariant for the whole container */
-    color: var(--onsurfacevariant-color); /* Use colorOnSurfaceVariant for text and icons */
+/*
+    Styles for the OSRS Wiki infobox.
+    These rules use the app's theme-aware variables.
+*/
+
+/* Base styling for the entire infobox container. */
+.infobox {
+    background: transparent; /* Use page background color. */
+    border: 1px solid var(--colorsurfacevariant); /* Subtle border to define the box */
+    font-size: 0.85em;
+    width: 300px;
+    margin: 0.5em 0 1em 1em;
+    border-collapse: collapse;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
+    float: right;
+    clear: right;
+    table-layout: fixed;
+    word-break: break-word;
+    /* Text color is intentionally not set, to inherit the page's default. */
 }
 
-.collapsible-header {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    cursor: pointer;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+/*
+    Override the global image margin and border-radius specifically for
+    images within the infobox to remove unwanted spacing and corners.
+*/
+.infobox img {
+    margin: 0;
+    border-radius: 0;
 }
 
-.collapsible-header .title-wrapper {
-    flex-grow: 1;
-    font-family: sans-serif;
+/*
+    Override for the original map placeholder to ensure it fills the full
+    width of its container, eliminating any alignment gaps.
+*/
+.mw-kartographer-map {
+    box-sizing: border-box !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important; /* Force the map to fill the container width */
 }
 
-.collapsible-header .icon {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M17.5 4.75l-7.5 7.5-7.5-7.5L1 6.25l9 9 9-9z' fill='currentColor'/%3E%3C/svg%3E");
-    transition: transform 0.2s ease-in-out;
+/* General styling for header and data cells */
+.infobox > tbody > tr > td,
+.infobox > tbody > tr > th {
+    background-color: var(--colorsurface);
+    color: var(--coloronsurface);
+    padding: 0.25em 0.5em;
+    line-height: 1.6em;
+    text-align: left;
+    vertical-align: top;
 }
 
-/* When the container is NOT collapsed, the icon points up. */
-.collapsible-container:not(.collapsed) .icon {
-    transform: rotate(180deg);
+/*
+    Combined styling for main header and sub-headers.
+*/
+.infobox .infobox-header,
+.infobox .infobox-subheader {
+    background: var(--colorsurfacevariant) !important;
+    color: var(--coloronsurfacevariant) !important;
+    font-weight: bold;
+    text-align: center;
 }
 
-.collapsible-content {
-    overflow-x: auto;
-    /* Background is now inherited from the parent container */
-    padding: 0 12px 12px 12px;
+/* Specific styling for the main header (e.g., "Varrock"). */
+.infobox .infobox-header {
+    font-size: 1.15em;
+    line-height: 1.4em;
+    padding: 0.5em 0;
 }
 
-.collapsible-container.collapsed .collapsible-content {
-    display: none;
+/* Specific styling for sub-headers (e.g., "Map"). */
+.infobox .infobox-subheader {
+    line-height: 2em;
+}
+
+/*
+    Defines the two-column layout's left-hand-side labels.
+    The border uses colorsurfacevariant as requested.
+*/
+.infobox th:not(.infobox-header):not(.infobox-subheader):not(.infobox-nested) {
+    text-align: right;
+    border-right: 2px solid var(--colorsurfacevariant);
+}
+
+/* Ensures images and maps span the full width of the infobox. */
+.infobox .infobox-full-width-content {
+    padding: 0;
+    text-align: center;
 }

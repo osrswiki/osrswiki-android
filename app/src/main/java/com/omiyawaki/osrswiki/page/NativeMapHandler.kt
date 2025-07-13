@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.page
 
+import android.util.TypedValue
 import android.view.View
 import android.webkit.JavascriptInterface
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -12,9 +13,18 @@ import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlin.math.roundToInt
 
 @Serializable
-private data class MapPlaceholder(val x: Float, val y: Float, val width: Float, val height: Float)
+private data class RectData(val x: Float, val y: Float, val width: Float, val height: Float)
+
+@Serializable
+private data class MapDiagnosticData(
+    val infoboxBounds: RectData,
+    val imageBounds: RectData,
+    val mapBounds: RectData,
+    val lat: String?, val lon: String?, val zoom: String?, val plane: String?
+)
 
 /**
  * Manages the logic for finding a map placeholder in a WebView,
@@ -42,8 +52,8 @@ class NativeMapHandler(
         fun onMapFound(json: String) {
             fragment.lifecycleScope.launch {
                 try {
-                    val placeholder = Json.decodeFromString<MapPlaceholder>(json)
-                    showNativeMap(placeholder)
+                    val diagnosticData = Json.decodeFromString<MapDiagnosticData>(json)
+                    showNativeMap(diagnosticData)
                 } catch (e: Exception) {
                     L.e("Failed to parse map placeholder JSON", e)
                 }
@@ -54,26 +64,40 @@ class NativeMapHandler(
     /**
      * Positions and displays the native map container and loads the MapFragment.
      */
-    private fun showNativeMap(placeholder: MapPlaceholder) {
+    private fun showNativeMap(data: MapDiagnosticData) {
         if (!fragment.isAdded) return
 
         val container = binding.nativeMapContainer
         val params = container.layoutParams as ConstraintLayout.LayoutParams
         val scale = binding.pageWebView.scale
 
-        // Apply the WebView's scale to convert CSS pixels from JS to device pixels for the layout.
-        params.width = (placeholder.width * scale).toInt()
-        params.height = (placeholder.height * scale).toInt()
-        params.topMargin = (placeholder.y * scale).toInt()
-        params.marginStart = (placeholder.x * scale).toInt()
+        val placeholder = data.mapBounds
+
+        // A correction factor to compensate for rounding errors between the WebView's
+        // sub-pixel rendering and the native Android layout's integer pixel system.
+        val renderingArtifactCorrectionPx = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            1f,
+            fragment.resources.displayMetrics
+        ).roundToInt()
+
+        params.width = (placeholder.width * scale).roundToInt() + renderingArtifactCorrectionPx
+        params.height = (placeholder.height * scale).roundToInt()
+        params.topMargin = (placeholder.y * scale).roundToInt()
+        params.marginStart = (placeholder.x * scale).roundToInt()
 
         container.layoutParams = params
         container.visibility = View.VISIBLE
 
-        // Add the MapFragment if it's not already there.
         if (fragment.childFragmentManager.findFragmentById(R.id.native_map_container) == null) {
+            val mapFragment = MapFragment.newInstance(
+                lat = data.lat,
+                lon = data.lon,
+                zoom = data.zoom,
+                plane = data.plane
+            )
             fragment.childFragmentManager.beginTransaction()
-                .replace(R.id.native_map_container, MapFragment())
+                .replace(R.id.native_map_container, mapFragment)
                 .commit()
         }
     }

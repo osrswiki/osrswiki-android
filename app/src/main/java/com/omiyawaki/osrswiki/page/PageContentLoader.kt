@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
 import java.net.URLEncoder
 
 class PageContentLoader(
@@ -28,6 +29,30 @@ class PageContentLoader(
     private val onStateUpdated: () -> Unit
 ) {
     private val baseApiUrl = "https://oldschool.runescape.wiki/api.php"
+
+    /**
+     * Pre-processes the HTML content before it's displayed.
+     * This is where we strip unwanted elements and perform other cleanup.
+     */
+    private fun preprocessHtmlContent(rawHtml: String?): String? {
+        if (rawHtml == null) {
+            return null
+        }
+
+        val document = Jsoup.parse(rawHtml)
+
+        // Select and remove all unwanted table rows and navboxes by their CSS class.
+        val selectorsToRemove = listOf(
+            "tr.advanced-data",
+            "tr.leagues-global-flag",
+            "tr.infobox-padding",
+            "table.navbox"
+        )
+        document.select(selectorsToRemove.joinToString(", ")).remove()
+
+        // Use document.outerHtml() to preserve the <head> and <style> tags.
+        return document.outerHtml()
+    }
 
     private fun constructApiParseUrlFromApiTitle(apiTitle: String): String {
         val encodedApiTitle = URLEncoder.encode(apiTitle, "UTF-8")
@@ -71,7 +96,7 @@ class PageContentLoader(
                             pageId = parsedData.pageid,
                             title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
                             plainTextTitle = parsedData.title ?: apiTitle,
-                            htmlContent = parsedData.text,
+                            htmlContent = preprocessHtmlContent(parsedData.text),
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,
                             lastFetchedTimestamp = readingListPage.mtime,
@@ -105,7 +130,10 @@ class PageContentLoader(
                             pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data
+                            val originalState = result.data
+                            pageViewModel.uiState = originalState.copy(
+                                htmlContent = preprocessHtmlContent(originalState.htmlContent)
+                            )
                         }
                         is Result.Error -> {
                             L.e("Error from PageRepository for title '$articleQueryTitle': ${result.message}", result.throwable)
@@ -153,7 +181,7 @@ class PageContentLoader(
                             pageId = parsedData.pageid ?: pageId,
                             title = parsedData.displaytitle ?: parsedData.title ?: apiTitle,
                             plainTextTitle = parsedData.title ?: apiTitle,
-                            htmlContent = parsedData.text,
+                            htmlContent = preprocessHtmlContent(parsedData.text),
                             wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parsedData.title ?: apiTitle),
                             revisionId = parsedData.revid,
                             lastFetchedTimestamp = readingListPage.mtime,
@@ -189,7 +217,10 @@ class PageContentLoader(
                             pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = true, error = null)
                         }
                         is Result.Success -> {
-                            pageViewModel.uiState = result.data
+                            val originalState = result.data
+                            pageViewModel.uiState = originalState.copy(
+                                htmlContent = preprocessHtmlContent(originalState.htmlContent)
+                            )
                         }
                         is Result.Error -> {
                             L.e("Error from PageRepository for page ID '$pageId': ${result.message}", result.throwable)

@@ -29,13 +29,23 @@ object JavaScriptActionHandler {
 
     // --- App Content Loaders ---
     fun getCollapsibleContentCss(context: Context): String {
-        val containerBgColor = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f0f0f0")
-        val onSurfaceVariantColor = getThemeColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, "#444746")
+        // Fetch all the required theme colors and create CSS variables for them.
+        val colorSurface = getThemeColor(context, com.google.android.material.R.attr.colorSurface, "#FFFFFF")
+        val colorOnSurface = getThemeColor(context, com.google.android.material.R.attr.colorOnSurface, "#000000")
+        val colorSurfaceVariant = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f0f0f0")
+        val colorOnSurfaceVariant = getThemeColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, "#444746")
+        val colorPrimaryContainer = getThemeColor(context, com.google.android.material.R.attr.colorPrimaryContainer, "#b8a282")
+        val colorOnPrimaryContainer = getThemeColor(context, com.google.android.material.R.attr.colorOnPrimaryContainer, "#000000")
+
 
         val cssVariables = """
             :root {
-                --container-bg-color: $containerBgColor;
-                --onsurfacevariant-color: $onSurfaceVariantColor;
+                --colorsurface: $colorSurface;
+                --coloronsurface: $colorOnSurface;
+                --colorsurfacevariant: $colorSurfaceVariant;
+                --coloronsurfacevariant: $colorOnSurfaceVariant;
+                --colorprimarycontainer: $colorPrimaryContainer;
+                --coloronprimarycontainer: $colorOnPrimaryContainer;
             }
         """.trimIndent()
 
