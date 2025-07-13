@@ -18,13 +18,15 @@ object JavaScriptActionHandler {
     // App-specific scripts
     private const val CSS_TABLES_PATH = "web/collapsible_tables.css"
     private const val UNIFIED_JS_PATH = "web/collapsible_content.js"
+    private const val MAP_NATIVE_FINDER_JS_PATH = "web/map_native_finder.js"
 
     // --- Library Loaders ---
     fun getLeafletJs(context: Context): String = getFileFromAssets(context, LEAFLET_JS_PATH)
     fun getMapInitializerJs(context: Context): String = getFileFromAssets(context, MAP_INITIALIZER_JS_PATH)
+    fun getMapNativeFinderJs(context: Context): String = getFileFromAssets(context, MAP_NATIVE_FINDER_JS_PATH)
 
     fun getLeafletCss(context: Context): String = "<style>${getFileFromAssets(context, LEAFLET_CSS_PATH)}</style>"
-    
+
     // --- App Content Loaders ---
     fun getCollapsibleContentCss(context: Context): String {
         val containerBgColor = getThemeColor(context, com.google.android.material.R.attr.colorSurfaceVariant, "#f0f0f0")

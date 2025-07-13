@@ -14,7 +14,9 @@ class PageWebViewManager(
     private val webView: WebView,
     private val linkHandler: PageLinkHandler,
     private val onPageReady: () -> Unit,
-    private val onTitleReceived: (String) -> Unit
+    private val onTitleReceived: (String) -> Unit,
+    private val jsInterface: Any?,
+    private val jsInterfaceName: String?
 ) {
     private val managerTag = "PageWebViewManager"
     private val consoleTag = "WebViewConsole"
@@ -25,6 +27,9 @@ class PageWebViewManager(
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        if (jsInterface != null && jsInterfaceName != null) {
+            webView.addJavascriptInterface(jsInterface, jsInterfaceName)
+        }
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
@@ -33,6 +38,9 @@ class PageWebViewManager(
                 view?.evaluateJavascript(JavaScriptActionHandler.getLeafletJs(webView.context), null)
                 view?.evaluateJavascript(JavaScriptActionHandler.getMapInitializerJs(webView.context), null)
                 view?.evaluateJavascript(JavaScriptActionHandler.getCollapsibleContentJs(webView.context), null)
+
+                // Run the native map finder script.
+                view?.evaluateJavascript(JavaScriptActionHandler.getMapNativeFinderJs(webView.context), null)
 
                 revealBody()
             }
@@ -66,7 +74,7 @@ class PageWebViewManager(
         val finalHtml = fullHtml.replaceFirst("<head>", "<head>\n$leafletCss\n$collapsibleCss")
 
         Log.d(managerTag, "Loading HTML content with injected assets.")
-        
+
         val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
         webView.loadDataWithBaseURL(finalBaseUrl, finalHtml, "text/html", "UTF-8", null)
     }
