@@ -38,6 +38,10 @@ class NativeMapHandler(
     /** The JavaScript interface object that will be exposed to the WebView. */
     val jsInterface = NativeMapInterface()
 
+    /** This flag is accessible by the PageFragment to check the scroll state. */
+    @Volatile
+    var isHorizontalScrollInProgress = false
+
     init {
         setupScrollListener()
     }
@@ -67,6 +71,11 @@ class NativeMapHandler(
             fragment.view?.post {
                 fragment.handleInfoboxExpansion()
             }
+        }
+
+        @JavascriptInterface
+        fun setHorizontalScroll(inProgress: Boolean) {
+            isHorizontalScrollInProgress = inProgress
         }
     }
 
