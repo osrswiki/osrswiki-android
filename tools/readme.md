@@ -7,10 +7,11 @@ This directory contains a set of tools used to extract and process assets requir
 The new native map system relies on several pre-processed assets generated from the OSRS game cache and the RuneLite open-source client. This toolchain is designed to be as automated and future-proof as possible.
 
 The core asset generation workflow is a multi-step process:
-1.  **Fetch Decryption Keys**: Automatically download the latest map decryption keys (XTEAs).
-2.  **Dump Complete Map Images**: Render the full game world, including terrain, objects, and borders, from the cache.
-3.  **Slice Map Tiles**: Process the map images into `.mbtiles` assets for use in the app.
-4.  **Extract POIs (Optional)**: Parse the RuneLite source code to generate a JSON file of points of interest.
+1.  **Setup/Update Game Cache**: Automatically download the latest complete game cache from a public archive.
+2.  **Fetch Decryption Keys**: Automatically download the latest map decryption keys (XTEAs).
+3.  **Dump Complete Map Images**: Render the full game world from the cache.
+4.  **Slice Map Tiles**: Process the map images into `.mbtiles` assets for use in the app.
+5.  **Extract POIs (Optional)**: Parse the RuneLite source code to generate a JSON file of points of interest.
 
 ---
 
@@ -38,7 +39,7 @@ If you are setting up this project for the first time, use the `environment.yml`
 
 ### Exporting/Updating the Environment File
 
-If you have manually installed or updated packages in your `osrs-tools` environment (e.g., `pip install some-package`), you should regenerate the `environment.yml` file to reflect these changes before committing your work.
+If you have manually installed or updated packages in your `osrs-tools` environment, you should regenerate the `environment.yml` file to reflect these changes before committing your work.
 
 ```bash
 # Make sure the 'osrs-tools' environment is active
@@ -53,24 +54,32 @@ Follow these steps in order to generate a complete and up-to-date set of map ass
 
 ### Prerequisites
 
-- A complete and up-to-date copy of the Old School RuneScape `jagexcache` directory, placed in `tools/map-dumper/`.
 - The `osrs-tools` micromamba environment must be active.
 - A Java Development Kit (JDK) version 11 or higher.
 
-### Step 1: Update XTEA Decryption Keys
+### Step 1: Setup or Update the Game Cache
 
-The `update_xteas.py` script automatically fetches the latest, community-sourced XTEA keys for all map regions from the OpenRS2 Archive.
+The `setup_cache.py` script automatically finds and downloads the latest complete OSRS game cache from the OpenRS2 Archive. It is idempotent: it will only download the cache if it doesn't exist locally or if the local version is outdated.
 
-**This step should be run whenever you want to ensure you are using the most current map data.**
+**Run this script first to ensure you have the necessary game data.** The initial download is large and may take several minutes.
+
+```bash
+python3 setup_cache.py
+```
+
+### Step 2: Update XTEA Decryption Keys
+
+The `update_xteas.py` script automatically fetches the latest XTEA keys that correspond to the latest cache from the OpenRS2 Archive.
+
+**Run this script after setting up the cache to get the correct decryption keys.**
 
 ```bash
 python3 update_xteas.py
 ```
-This will download and replace the `tools/map-dumper/xtea.json` file.
 
-### Step 2: Dump Complete Map Images
+### Step 3: Dump Complete Map Images
 
-The `map-dumper/` directory contains a Java project that reads the game cache and renders the full game world.
+The `map-dumper/` directory contains a Java project that reads the game cache and renders the full game world. The `run_dumper.sh` script now automatically points to the cache downloaded by `setup_cache.py`.
 
 **This step only needs to be re-run when there are significant changes to the game world.**
 
@@ -79,7 +88,7 @@ The `map-dumper/` directory contains a Java project that reads the game cache an
 ```
 The output images (`img-0.png`, `img-1.png`, etc.) will be placed in `tools/map-dumper/output/`.
 
-### Step 3: Slice Tiles into MBTiles
+### Step 4: Slice Tiles into MBTiles
 
 The `slice_tiles.py` script takes the high-resolution images from the `map-dumper` and processes them into the final `.mbtiles` assets used by the Android application.
 
@@ -88,22 +97,12 @@ python3 slice_tiles.py
 ```
 This will create `map_floor_0.mbtiles`, `map_floor_1.mbtiles`, etc., and place them directly in the Android app's assets folder (`app/src/main/assets/`).
 
-### Step 4 (Optional): Extract POI Data
+### Step 5 (Optional): Extract POI Data
 
-The `extract_pois.py` script parses a local copy of the RuneLite source code to extract locations for various points of interest (dungeons, shortcuts, etc.). This supplements the native game icons.
-
-**Note:** This currently extracts only a subset of all possible POIs. A future enhancement will be to also dump the native map icons directly from the cache.
+The `extract_pois.py` script parses a local copy of the RuneLite source code to extract locations for various points of interest.
 
 ```bash
 # This script assumes a checkout of the RuneLite repo at /home/miyawaki/runelite
 python3 extract_pois.py
 ```
 This generates `pois.json` in the `tools/` directory, which should then be copied to the Android app's assets.
-
----
-
-## Android App Integration
-
-- **Raster Tiles**: The generated `map_floor_N.mbtiles` files are copied from the app's assets to its internal storage on first launch. They are then loaded as `RasterSource`s in MapLibre.
-- **POI Data**: The `pois.json` file will be loaded by the app, converted to a GeoJSON FeatureCollection, and rendered on the map using a `SymbolLayer`.
-- **Coordinate System**: The app uses a simple projection to map the game's pixel coordinates to the `LatLng` system used by MapLibre's camera and bounds. This logic is contained within `MapFragment.kt`.
