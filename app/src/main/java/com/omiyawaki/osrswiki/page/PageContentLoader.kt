@@ -40,6 +40,26 @@ class PageContentLoader(
         }
 
         val document = Jsoup.parse(rawHtml)
+        val siteUrl = WikiSite.OSRS_WIKI.url() // e.g., "https://oldschool.runescape.wiki"
+
+        // Convert root-relative resource paths (e.g., /images/foo.png) to absolute URLs.
+        // This is critical for ensuring images, stylesheets, and links work correctly,
+        // especially when the HTML content is loaded from an offline cache.
+        val urlAttributes = listOf("src", "href")
+        urlAttributes.forEach { attr ->
+            document.select("[$attr]").forEach { element ->
+                val originalUrl = element.attr(attr)
+                // Check for paths that start with "/" but not "//".
+                // The second check prevents modification of protocol-relative URLs.
+                if (originalUrl.startsWith("/") && !originalUrl.startsWith("//")) {
+                    element.attr(attr, siteUrl + originalUrl)
+                }
+            }
+        }
+
+        // Disable pretty-printing to preserve original whitespace. This is critical
+        // for preventing text nodes from merging (e.g., "word1</a> word2").
+        document.outputSettings().prettyPrint(false)
 
         // Select and remove all unwanted table rows and navboxes by their CSS class.
         val selectorsToRemove = listOf(

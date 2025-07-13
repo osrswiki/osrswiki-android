@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.util.Log
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.dataclient.WikiSite
@@ -30,6 +31,15 @@ class PageWebViewManager(
         if (jsInterface != null && jsInterfaceName != null) {
             webView.addJavascriptInterface(jsInterface, jsInterfaceName)
         }
+        
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            allowFileAccess = true
+            allowContentAccess = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        }
+
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
@@ -65,19 +75,17 @@ class PageWebViewManager(
                 return true
             }
         }
-        webView.settings.javaScriptEnabled = true
         webView.setBackgroundColor(Color.TRANSPARENT)
     }
 
     fun render(fullHtml: String, baseUrl: String?, theme: Theme) {
-        // Inject all necessary CSS.
         val leafletCss = JavaScriptActionHandler.getLeafletCss(webView.context)
         val collapsibleCss = JavaScriptActionHandler.getCollapsibleContentCss(webView.context)
         val finalHtml = fullHtml.replaceFirst("<head>", "<head>\n$leafletCss\n$collapsibleCss")
 
         Log.d(managerTag, "Loading HTML content with injected assets.")
 
-        val finalBaseUrl = baseUrl ?: WikiSite.OSRS_WIKI.url()
+        val finalBaseUrl = if (baseUrl.isNullOrEmpty()) WikiSite.OSRS_WIKI.url() else baseUrl
         webView.loadDataWithBaseURL(finalBaseUrl, finalHtml, "text/html", "UTF-8", null)
     }
 
