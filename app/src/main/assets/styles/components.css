@@ -52,9 +52,9 @@ table.sortable th::after {
 }
 
 /*
- * 3. Unsorted State (stacked, faint up/down arrows).
- * Uses calc() to precisely control the gap between the triangles.
- */
+  * 3. Unsorted State (stacked, faint up/down arrows).
+  * Uses calc() to precisely control the gap between the triangles.
+  */
 table.sortable th:not([aria-sort])::before {
     /* Faint up arrow. */
     /* Calculation to center the combined icon (2 arrows + gap):
@@ -79,9 +79,9 @@ table.sortable th:not([aria-sort])::after {
 }
 
 /*
- * 4. Sorted States (single, solid arrow, vertically centered).
- * The CSS rules remain inverted to counteract the Tablesort.js bug.
- */
+  * 4. Sorted States (single, solid arrow, vertically centered).
+  * The CSS rules remain inverted to counteract the Tablesort.js bug.
+  */
 th[aria-sort="ascending"]::after {
     /* Solid down arrow, vertically centered */
     top: 50%;
@@ -191,4 +191,55 @@ table.relative-location td {
         margin-left: auto;
         margin-right: auto;
     }
+}
+
+/* --- Messagebox Styles --- */
+/*
+ * Styles for message boxes (e.g., skill guide notifications) to match the
+ * live wiki's appearance, featuring a prominent left border.
+ */
+.messagebox {
+    margin: 0.5em auto;
+    border: none; /* Reset any default table borders */
+    border-left: 15px solid var(--body-dark-shade); /* Accent color from infobox headers */
+    background-color: var(--ooui-interface); /* Standard component background */
+    box-sizing: border-box;
+    float: none;
+    clear: both;
+    width: 95%; /* More suitable for mobile-first */
+    max-width: 800px; /* Prevent it from being too wide on large screens */
+}
+
+/*
+ * General cell styling within a messagebox.
+ * Provides consistent padding and vertical alignment.
+ */
+.messagebox td {
+    padding: 0.5em 0.75em;
+    vertical-align: middle;
+}
+
+/*
+ * Styles the cell containing the icon.
+ */
+.messagebox .messagebox-image {
+    width: 50px;
+    padding-right: 0;
+    text-align: center;
+}
+
+/*
+ * Styles the title text of the message.
+ */
+.messagebox .messagebox-title {
+    font-weight: bold;
+}
+
+/*
+ * Styles the descriptive text of the message.
+ * The font-size is slightly reduced for hierarchy.
+ */
+.messagebox .messagebox-text {
+    font-size: 0.9em;
+    line-height: 1.4em;
 }
