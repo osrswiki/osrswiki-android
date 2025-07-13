@@ -26,16 +26,16 @@
             // Only proceed if the map placeholder is actually visible.
             if (rect.width > 0 && rect.height > 0) {
                  window.NativeMapInterface.onMapFound(JSON.stringify({
-                    y: rect.top + window.scrollY,
-                    x: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                    // Pass data attributes for map configuration.
-                    lat: mapPlaceholder.dataset.lat,
-                    lon: mapPlaceholder.dataset.lon,
-                    zoom: mapPlaceholder.dataset.zoom,
-                    plane: mapPlaceholder.dataset.plane
-                }));
+                     y: rect.top + window.scrollY,
+                     x: rect.left,
+                     width: rect.width,
+                     height: rect.height,
+                     // Pass data attributes for map configuration.
+                     lat: mapPlaceholder.dataset.lat,
+                     lon: mapPlaceholder.dataset.lon,
+                     zoom: mapPlaceholder.dataset.zoom,
+                     plane: mapPlaceholder.dataset.plane
+                 }));
                 // Make the original placeholder transparent, but keep it in the layout.
                 mapPlaceholder.style.opacity = '0';
             }
@@ -66,6 +66,37 @@
     }
 
     /**
+     * Logs the vertical positions of a collapsible element's components.
+     */
+    function logVerticalPositions(container) {
+        if (!container) return;
+        // Use a timeout to ensure the browser has finished the layout reflow.
+        setTimeout(function() {
+            console.log("--- Logging Vertical Positions for Debugging ---");
+            const header = container.querySelector('.collapsible-header');
+            const content = container.querySelector('.collapsible-content');
+            const table = content ? content.firstElementChild : null;
+
+            if (header && table && content) {
+                const headerRect = header.getBoundingClientRect();
+                const tableRect = table.getBoundingClientRect();
+                const contentStyle = window.getComputedStyle(content);
+                const measuredGap = tableRect.top - headerRect.bottom;
+
+                console.log(`For table: "${header.innerText.split(':')[0]}"`);
+                console.log(`Header Bottom: y=${headerRect.bottom.toFixed(2)}`);
+                console.log(`Table Top:     y=${tableRect.top.toFixed(2)}`);
+                console.log(`--> Measured Gap: ${measuredGap.toFixed(2)}px`);
+                console.log(`--> Expected Gap (CSS Padding): ${contentStyle.paddingTop}`);
+            } else {
+                console.log("Could not find all elements for logging.");
+            }
+            console.log("----------------------------------------------");
+        }, 100);
+    }
+
+
+    /**
      * Finds the main infobox and wraps it in a collapsible container.
      */
     function transformInfobox() {
@@ -73,6 +104,10 @@
         if (!infobox || infobox.closest('.collapsible-container')) {
             return;
         }
+
+        // Programmatically override inline styles from the server.
+        infobox.style.width = '100%';
+        infobox.style.marginTop = '0px';
 
         var container = document.createElement('div');
         container.className = 'collapsible-container collapsed';
@@ -111,6 +146,7 @@
 
             container.classList.toggle('collapsed');
             updateHeaderText(container, titleWrapper, captionText);
+            logVerticalPositions(container);
 
             if (isFirstExpansion) {
                 // On the first expansion, simply notify the native layer.
@@ -168,6 +204,7 @@
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
                 updateHeaderText(container, titleWrapper, captionText);
+                logVerticalPositions(container);
             });
         });
     }
