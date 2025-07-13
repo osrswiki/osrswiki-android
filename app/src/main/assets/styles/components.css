@@ -144,3 +144,51 @@ hr {
     background-color: var(--sidebar-color);
     margin: 1em 0;
 }
+
+/* --- Relative Location Table --- */
+table.relative-location {
+    float: right;
+    clear: right;
+    width: 200px;
+    margin-bottom: 1em;
+    background: var(--wikitable-bg);
+    border: 1px solid var(--wikitable-border);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+
+table.relative-location td {
+    padding: 0.3em;
+    text-align: center;
+}
+
+.relative-location .relative-location-header {
+    background-color: var(--wikitable-header-bg);
+    font-weight: bold;
+}
+
+/* --- Responsive & Infobox Adjustments for Relative Location --- */
+
+/* The cell in the infobox that contains the location grid */
+.infobox td:has(> .relative-location) {
+    padding: 0; /* Remove padding to make the nested grid seamless. */
+}
+
+/* Make the nested location grid table transparent inside the infobox */
+.infobox .relative-location {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    width: 100%; /* Fill the container cell */
+    margin: 0;
+}
+
+/* On small screens, if NOT in an infobox (i.e., the JS didn't run),
+   stack the original table centrally instead of floating it. */
+@media (max-width: 399px) {
+    body:not(:has(.infobox)) table.relative-location {
+        float: none;
+        clear: both;
+        margin-left: auto;
+        margin-right: auto;
+    }
+}

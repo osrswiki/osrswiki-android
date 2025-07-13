@@ -80,6 +80,64 @@ class PageHtmlBuilder(private val context: Context) {
                 </script>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
+                        // Find the infobox and the original location table.
+                        var infobox = document.querySelector('.infobox');
+                        var locationTable = document.querySelector('table.relative-location');
+
+                        // If both elements exist, deconstruct the location table and merge it into the infobox.
+                        if (infobox && locationTable) {
+                            var infoboxBody = infobox.querySelector('tbody');
+                            var locationHeader = locationTable.querySelector('.relative-location-header');
+
+                            // Ensure all necessary parts exist before proceeding.
+                            if (infoboxBody && locationHeader) {
+                                // Dynamically determine the correct colspan for the infobox table.
+                                let maxCols = 0;
+                                const rows = infobox.querySelectorAll('tbody > tr');
+                                rows.forEach(function(row) {
+                                    let currentColCount = 0;
+                                    // Sum the colspan property of each cell in the current row.
+                                    for (const cell of row.cells) {
+                                        currentColCount += cell.colSpan;
+                                    }
+                                    if (currentColCount > maxCols) {
+                                        maxCols = currentColCount;
+                                    }
+                                });
+                                // If no columns were found (e.g., empty table), default to a safe value.
+                                const colspan = maxCols > 0 ? maxCols : 2;
+                                console.log("Determined infobox colspan to be: " + colspan);
+
+                                // 1. Create a new subheader row for the infobox.
+                                var headerRow = document.createElement('tr');
+                                var headerCell = document.createElement('td');
+                                headerCell.className = 'infobox-header';
+                                headerCell.colSpan = colspan; // Use the dynamically calculated value.
+                                headerCell.innerHTML = locationHeader.innerHTML;
+                                headerRow.appendChild(headerCell);
+
+                                // 2. Create a new content row for the infobox to hold the map grid.
+                                var contentRow = document.createElement('tr');
+                                var contentCell = document.createElement('td');
+                                contentCell.colSpan = colspan; // Use the dynamically calculated value.
+
+                                // 3. Move the location table itself into the new cell.
+                                contentCell.appendChild(locationTable);
+                                contentRow.appendChild(contentCell);
+
+                                // 4. Clean up the moved location table.
+                                locationTable.removeAttribute('style'); // Remove inline styles.
+                                locationHeader.parentElement.remove(); // Remove its original header row.
+
+                                // 5. Append the new rows to the infobox.
+                                infoboxBody.appendChild(headerRow);
+                                infoboxBody.appendChild(contentRow);
+
+                                console.log("Deconstructed and merged location table into infobox.");
+                            }
+                        }
+
+                        // Wrap all wikitables in a scrollable div for responsiveness.
                         var tables = document.querySelectorAll('table.wikitable');
                         tables.forEach(function(table) {
                             if (table.parentElement.className !== 'scrollable-table-wrapper') {
@@ -90,6 +148,7 @@ class PageHtmlBuilder(private val context: Context) {
                             }
                         });
 
+                        // Initialize sorting on any sortable wikitables.
                         var sortableTables = document.querySelectorAll('table.wikitable.sortable');
                         sortableTables.forEach(function(table) {
                             if (!table.querySelector('thead')) {
