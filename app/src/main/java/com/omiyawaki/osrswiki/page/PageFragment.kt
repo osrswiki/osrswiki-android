@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
@@ -162,6 +163,28 @@ class PageFragment : Fragment() {
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
     }
 
+    /**
+     * Called from NativeMapHandler when the infobox is expanded in the WebView.
+     * This method is public so it can be reached by the handler.
+     */
+    fun handleInfoboxExpansion() {
+        // This listener will run once after the next layout pass.
+        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                // Remove the listener immediately so it doesn't run again.
+                binding.pageWebView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+
+                // Now that the native layout is stable, tell the WebView to execute
+                // the map measurement and placement script.
+                val script = "javascript:findAndShowNativeMap(document.querySelector('.infobox').closest('.collapsible-container'));"
+                binding.pageWebView.evaluateJavascript(script, null)
+            }
+        }
+        // Add the listener to the WebView's ViewTreeObserver.
+        binding.pageWebView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestureDetector() {
         val gestureListener = object : GestureDetector.SimpleOnGestureListener() {
@@ -211,34 +234,34 @@ class PageFragment : Fragment() {
 
     private fun fetchTableOfContents() {
         val script = """
-                    (function() {
-                        var tocData = { leadSectionDetails: null, sections: [] };
-                        var headerSpans = document.querySelectorAll('.mw-headline');
-                        for (var i = 0; i < headerSpans.length; i++) {
-                            var span = headerSpans[i];
-                            var header = span.parentElement;
-                            if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
-                                var level = parseInt(header.tagName.substring(1));
-                                var computedStyle = window.getComputedStyle(span);
-                                tocData.sections.push({
-                                    id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
-                                    isItalic: computedStyle.fontStyle === 'italic',
-                                    isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
-                                });
-                            }
-                        }
-                        var leadHeader = document.querySelector('h1.page-header');
-                        if (leadHeader) {
-                            var leadStyle = window.getComputedStyle(leadHeader);
-                            tocData.leadSectionDetails = {
-                                title: leadHeader.textContent.trim(),
-                                isItalic: leadStyle.fontStyle === 'italic',
-                                isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
-                            };
-                        }
-                        return JSON.stringify(tocData);
-                    })();
-                """.trimIndent()
+            (function() {
+                var tocData = { leadSectionDetails: null, sections: [] };
+                var headerSpans = document.querySelectorAll('.mw-headline');
+                for (var i = 0; i < headerSpans.length; i++) {
+                    var span = headerSpans[i];
+                    var header = span.parentElement;
+                    if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
+                        var level = parseInt(header.tagName.substring(1));
+                        var computedStyle = window.getComputedStyle(span);
+                        tocData.sections.push({
+                            id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
+                            isItalic: computedStyle.fontStyle === 'italic',
+                            isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
+                        });
+                    }
+                }
+                var leadHeader = document.querySelector('h1.page-header');
+                if (leadHeader) {
+                    var leadStyle = window.getComputedStyle(leadHeader);
+                    tocData.leadSectionDetails = {
+                        title: leadHeader.textContent.trim(),
+                        isItalic: leadStyle.fontStyle === 'italic',
+                        isBold: parseInt(leadStyle.fontWeight) >= 700 || leadStyle.fontWeight === 'bold' || leadStyle.fontWeight === 'bolder'
+                    };
+                }
+                return JSON.stringify(tocData);
+            })();
+        """.trimIndent()
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
             if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
                 try {

@@ -1,26 +1,63 @@
 /*
  * OSRSWiki Collapsible Content Transformer
  *
- * This script unifies the handling of two types of collapsible content:
- * 1. Wraps all `.wikitable` elements in a standard collapsible container.
- * 2. Finds specific collapsible text sections (marked by `div.mw-collapsible`),
- * and transforms them into the same container style, leaving the original
- * section heading (H2) intact.
+ * This script unifies the handling of three types of collapsible content:
+ * 1. Wraps the main `.infobox` element in a standard collapsible container.
+ * 2. Wraps all `.wikitable` elements in the same container style.
+ * 3. Finds specific collapsible text sections (marked by `div.mw-collapsible`),
+ * and transforms them into the same container style.
  */
 (function() {
     'use strict';
 
     /**
-     * Sets header text for tables ("Caption: Tap to collapse").
+     * Finds the map placeholder within an expanded infobox and passes its
+     * details to the native layer. This is called only once, triggered by native code
+     * after the layout is stable.
      */
-    function updateTableHeaderText(container, titleWrapper, captionText) {
+    function findAndShowNativeMap(container) {
+        if (!container) return;
+        var mapPlaceholder = container.querySelector('.mw-kartographer-map');
+
+        // The NativeMapInterface check is now redundant if only native calls this,
+        // but it provides a good defensive check.
+        if (mapPlaceholder && window.NativeMapInterface) {
+            var rect = mapPlaceholder.getBoundingClientRect();
+            // Only proceed if the map placeholder is actually visible.
+            if (rect.width > 0 && rect.height > 0) {
+                 window.NativeMapInterface.onMapFound(JSON.stringify({
+                    y: rect.top + window.scrollY,
+                    x: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                    // Pass data attributes for map configuration.
+                    lat: mapPlaceholder.dataset.lat,
+                    lon: mapPlaceholder.dataset.lon,
+                    zoom: mapPlaceholder.dataset.zoom,
+                    plane: mapPlaceholder.dataset.plane
+                }));
+                // Make the original placeholder transparent, but keep it in the layout.
+                mapPlaceholder.style.opacity = '0';
+            }
+        }
+    }
+
+    // Make the map measurement function globally accessible to be called from native code.
+    window.findAndShowNativeMap = findAndShowNativeMap;
+
+    /**
+     * Sets header text for tables and infoboxes.
+     * Example: "Varrock: Tap to collapse"
+     */
+    function updateHeaderText(container, titleWrapper, captionText) {
         var isCollapsed = container.classList.contains('collapsed');
         var stateText = isCollapsed ? ': Tap to expand' : ': Tap to collapse';
         titleWrapper.innerHTML = '<strong>' + captionText + '</strong>' + stateText;
     }
 
     /**
-     * Sets header text for text sections ("Infobox: Click here to hide").
+     * Sets header text for generic text sections.
+     * Example: "Infobox: Click here to hide"
      */
     function updateSectionHeaderText(container, titleWrapper) {
         var isCollapsed = container.classList.contains('collapsed');
@@ -29,12 +66,71 @@
     }
 
     /**
+     * Finds the main infobox and wraps it in a collapsible container.
+     */
+    function transformInfobox() {
+        var infobox = document.querySelector('table.infobox');
+        if (!infobox || infobox.closest('.collapsible-container')) {
+            return;
+        }
+
+        var container = document.createElement('div');
+        container.className = 'collapsible-container collapsed';
+        container.dataset.mapLoaded = 'false';
+
+        var header = document.createElement('div');
+        header.className = 'collapsible-header';
+
+        var titleWrapper = document.createElement('div');
+        titleWrapper.className = 'title-wrapper';
+
+        var captionText = 'Infobox';
+        var infoboxHeader = infobox.querySelector('.infobox-header');
+        if (infoboxHeader && infoboxHeader.innerText.trim() !== '') {
+            captionText = infoboxHeader.innerText.trim();
+        }
+
+        var icon = document.createElement('span');
+        icon.className = 'icon';
+
+        header.appendChild(titleWrapper);
+        header.appendChild(icon);
+
+        infobox.parentNode.insertBefore(container, infobox);
+        container.appendChild(header);
+
+        var content = document.createElement('div');
+        content.className = 'collapsible-content';
+        content.appendChild(infobox);
+        container.appendChild(content);
+
+        updateHeaderText(container, titleWrapper, captionText);
+
+        header.addEventListener('click', function() {
+            var isFirstExpansion = container.classList.contains('collapsed') && container.dataset.mapLoaded === 'false';
+
+            container.classList.toggle('collapsed');
+            updateHeaderText(container, titleWrapper, captionText);
+
+            if (isFirstExpansion) {
+                // On the first expansion, simply notify the native layer.
+                // The native layer will be responsible for waiting for the layout
+                // to be stable before calling back into the JS to find the map.
+                if (window.NativeMapInterface) {
+                    window.NativeMapInterface.onInfoboxExpanded();
+                }
+                container.dataset.mapLoaded = 'true';
+            }
+        });
+    }
+
+    /**
      * Finds all wikitable elements and wraps them in a collapsible container.
      */
     function transformTables() {
         document.querySelectorAll('table.wikitable').forEach(function(table) {
             if (table.closest('.collapsible-container')) {
-                return; // Already handled, likely inside a transformed section.
+                return;
             }
 
             var container = document.createElement('div');
@@ -67,11 +163,11 @@
             content.appendChild(table);
             container.appendChild(content);
 
-            updateTableHeaderText(container, titleWrapper, captionText);
+            updateHeaderText(container, titleWrapper, captionText);
 
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
-                updateTableHeaderText(container, titleWrapper, captionText);
+                updateHeaderText(container, titleWrapper, captionText);
             });
         });
     }
@@ -81,7 +177,6 @@
      */
     function transformSections() {
         document.querySelectorAll('div.mw-collapsible').forEach(function(collapsibleDiv) {
-            // Only transform the divs that use the "CLICK HERE TO SHOW" pattern.
             const triggerSpan = collapsibleDiv.querySelector('.collapsed-sec');
             if (!triggerSpan) {
                 return;
@@ -117,7 +212,6 @@
             container.appendChild(header);
             container.appendChild(newContent);
 
-            // Replace the old div with the new container, leaving the H2 untouched.
             collapsibleDiv.parentNode.replaceChild(container, collapsibleDiv);
 
             updateSectionHeaderText(container, titleWrapper);
@@ -130,6 +224,7 @@
     }
 
     function initialize() {
+        transformInfobox();
         transformSections();
         transformTables();
     }
