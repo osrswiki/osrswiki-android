@@ -26,16 +26,16 @@
             // Only proceed if the map placeholder is actually visible.
             if (rect.width > 0 && rect.height > 0) {
                  window.NativeMapInterface.onMapFound(JSON.stringify({
-                     y: rect.top + window.scrollY,
-                     x: rect.left,
-                     width: rect.width,
-                     height: rect.height,
-                     // Pass data attributes for map configuration.
-                     lat: mapPlaceholder.dataset.lat,
-                     lon: mapPlaceholder.dataset.lon,
-                     zoom: mapPlaceholder.dataset.zoom,
-                     plane: mapPlaceholder.dataset.plane
-                 }));
+                    y: rect.top + window.scrollY,
+                    x: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                    // Pass data attributes for map configuration.
+                    lat: mapPlaceholder.dataset.lat,
+                    lon: mapPlaceholder.dataset.lon,
+                    zoom: mapPlaceholder.dataset.zoom,
+                    plane: mapPlaceholder.dataset.plane
+                }));
                 // Make the original placeholder transparent, but keep it in the layout.
                 mapPlaceholder.style.opacity = '0';
             }
@@ -124,6 +124,11 @@
                     window.NativeMapInterface.onInfoboxExpanded();
                 }
                 container.dataset.mapLoaded = 'true';
+            } else if (container.dataset.mapLoaded === 'true' && window.NativeMapInterface) {
+                // For all subsequent clicks after the map is loaded,
+                // sync the native map's visibility with the container's state.
+                var isVisible = !container.classList.contains('collapsed');
+                window.NativeMapInterface.setMapVisibility(isVisible);
             }
         });
     }

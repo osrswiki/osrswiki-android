@@ -73,6 +73,18 @@ class NativeMapHandler(
             }
         }
 
+        /**
+         * Called from JavaScript to show or hide the native map view.
+         * This is used to sync the map's visibility with its collapsible container.
+         * @param visible True to show the map, false to hide it.
+         */
+        @JavascriptInterface
+        fun setMapVisibility(visible: Boolean) {
+            fragment.view?.post {
+                binding.nativeMapContainer.visibility = if (visible) View.VISIBLE else View.GONE
+            }
+        }
+
         @JavascriptInterface
         fun setHorizontalScroll(inProgress: Boolean) {
             isHorizontalScrollInProgress = inProgress
