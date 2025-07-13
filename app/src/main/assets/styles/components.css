@@ -229,6 +229,16 @@ table.relative-location td {
 }
 
 /*
+ * THIS IS THE FIX for the invisible messagebox image.
+ * The <figure> wrapper needs an explicit size to be rendered.
+ */
+.messagebox figure {
+    margin: 0 auto;
+    width: 25px;
+    height: 23px;
+}
+
+/*
  * Styles the title text of the message.
  */
 .messagebox .messagebox-title {
