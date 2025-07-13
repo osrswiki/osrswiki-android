@@ -223,6 +223,11 @@ class PageFragment : Fragment() {
                 val dy = e2.y - e1.y
                 var result = false
                 try {
+                    // If a horizontal scroll is in progress within the WebView (e.g., on a wide
+                    // table), do not trigger the native swipe gesture. Let the WebView handle it.
+                    if (nativeMapHandler.isHorizontalScrollInProgress) {
+                        return false
+                    }
                     if (abs(dx) > abs(dy) &&
                         abs(dx) > swipeThreshold &&
                         abs(velocityX) > swipeVelocityThreshold) {

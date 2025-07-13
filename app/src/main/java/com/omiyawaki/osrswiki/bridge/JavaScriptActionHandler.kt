@@ -19,11 +19,13 @@ object JavaScriptActionHandler {
     private const val CSS_TABLES_PATH = "web/collapsible_tables.css"
     private const val UNIFIED_JS_PATH = "web/collapsible_content.js"
     private const val MAP_NATIVE_FINDER_JS_PATH = "web/map_native_finder.js"
+    private const val HORIZONTAL_SCROLL_INTERCEPTOR_JS_PATH = "web/horizontal_scroll_interceptor.js"
 
     // --- Library Loaders ---
     fun getLeafletJs(context: Context): String = getFileFromAssets(context, LEAFLET_JS_PATH)
     fun getMapInitializerJs(context: Context): String = getFileFromAssets(context, MAP_INITIALIZER_JS_PATH)
     fun getMapNativeFinderJs(context: Context): String = getFileFromAssets(context, MAP_NATIVE_FINDER_JS_PATH)
+    fun getHorizontalScrollJs(context: Context): String = getFileFromAssets(context, HORIZONTAL_SCROLL_INTERCEPTOR_JS_PATH)
 
     fun getLeafletCss(context: Context): String = "<style>${getFileFromAssets(context, LEAFLET_CSS_PATH)}</style>"
 
@@ -39,14 +41,14 @@ object JavaScriptActionHandler {
 
 
         val cssVariables = """
-            :root {
-                --colorsurface: $colorSurface;
-                --coloronsurface: $colorOnSurface;
-                --colorsurfacevariant: $colorSurfaceVariant;
-                --coloronsurfacevariant: $colorOnSurfaceVariant;
-                --colorprimarycontainer: $colorPrimaryContainer;
-                --coloronprimarycontainer: $colorOnPrimaryContainer;
-            }
+                :root {
+                    --colorsurface: $colorSurface;
+                    --coloronsurface: $colorOnSurface;
+                    --colorsurfacevariant: $colorSurfaceVariant;
+                    --coloronsurfacevariant: $colorOnSurfaceVariant;
+                    --colorprimarycontainer: $colorPrimaryContainer;
+                    --coloronprimarycontainer: $colorOnPrimaryContainer;
+                }
         """.trimIndent()
 
         val baseCss = getFileFromAssets(context, CSS_TABLES_PATH)

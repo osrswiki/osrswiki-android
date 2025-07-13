@@ -41,6 +41,8 @@ class PageWebViewManager(
 
                 // Run the native map finder script.
                 view?.evaluateJavascript(JavaScriptActionHandler.getMapNativeFinderJs(webView.context), null)
+                // Run the horizontal scroll interceptor script.
+                view?.evaluateJavascript(JavaScriptActionHandler.getHorizontalScrollJs(webView.context), null)
 
                 revealBody()
             }
