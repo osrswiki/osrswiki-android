@@ -59,6 +59,7 @@ class PageFragment : Fragment() {
     private lateinit var pageReadingListManager: PageReadingListManager
     private lateinit var pageUiUpdater: PageUiUpdater
     private lateinit var gestureDetector: GestureDetector
+    private lateinit var nativeMapHandler: NativeMapHandler
 
     private var callback: Callback? = null
     private var isFindInPageActive = false
@@ -99,6 +100,7 @@ class PageFragment : Fragment() {
         callback?.onWebViewReady(binding.pageWebView)
         setupGestureDetector()
         contentsHandler = ContentsHandler(this)
+        nativeMapHandler = NativeMapHandler(this, binding)
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
         val backgroundColorRes = when (currentTheme) {
@@ -128,7 +130,9 @@ class PageFragment : Fragment() {
                     val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
                     (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
                 }
-            }
+            },
+            jsInterface = nativeMapHandler.jsInterface,
+            jsInterfaceName = "NativeMapInterface"
         )
 
         val pageActionTabLayout = callback?.getPageActionTabLayout()
@@ -234,7 +238,7 @@ class PageFragment : Fragment() {
                         }
                         return JSON.stringify(tocData);
                     })();
-                """
+                """.trimIndent()
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
             if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
                 try {
@@ -292,6 +296,8 @@ class PageFragment : Fragment() {
         super.onDetach()
         callback = null
     }
+
+
 
     fun getPageIdArg(): String? = pageIdArg
     fun getPageTitleArg(): String? = pageTitleArg
