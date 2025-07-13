@@ -20,9 +20,7 @@ private data class RectData(val x: Float, val y: Float, val width: Float, val he
 
 @Serializable
 private data class MapDiagnosticData(
-    val infoboxBounds: RectData,
-    val imageBounds: RectData,
-    val mapBounds: RectData,
+    val y: Float, val x: Float, val width: Float, val height: Float,
     val lat: String?, val lon: String?, val zoom: String?, val plane: String?
 )
 
@@ -34,7 +32,7 @@ private data class MapDiagnosticData(
  * @param binding The view binding for the host fragment, used to access UI elements.
  */
 class NativeMapHandler(
-    private val fragment: Fragment,
+    private val fragment: PageFragment,
     private val binding: FragmentPageBinding
 ) {
     /** The JavaScript interface object that will be exposed to the WebView. */
@@ -52,11 +50,22 @@ class NativeMapHandler(
         fun onMapFound(json: String) {
             fragment.lifecycleScope.launch {
                 try {
-                    val diagnosticData = Json.decodeFromString<MapDiagnosticData>(json)
-                    showNativeMap(diagnosticData)
+                    // Use a more specific name for the parsed data.
+                    val mapPlacementData = Json.decodeFromString<MapDiagnosticData>(json)
+                    showNativeMap(mapPlacementData)
                 } catch (e: Exception) {
                     L.e("Failed to parse map placeholder JSON", e)
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun onInfoboxExpanded() {
+            // When the JS tells us the infobox has expanded,
+            // post the action to the main thread and ask the fragment
+            // to handle the layout listening.
+            fragment.view?.post {
+                fragment.handleInfoboxExpansion()
             }
         }
     }
@@ -71,8 +80,6 @@ class NativeMapHandler(
         val params = container.layoutParams as ConstraintLayout.LayoutParams
         val scale = binding.pageWebView.scale
 
-        val placeholder = data.mapBounds
-
         // A correction factor to compensate for rounding errors between the WebView's
         // sub-pixel rendering and the native Android layout's integer pixel system.
         val renderingArtifactCorrectionPx = TypedValue.applyDimension(
@@ -81,10 +88,10 @@ class NativeMapHandler(
             fragment.resources.displayMetrics
         ).roundToInt()
 
-        params.width = (placeholder.width * scale).roundToInt() + renderingArtifactCorrectionPx
-        params.height = (placeholder.height * scale).roundToInt()
-        params.topMargin = (placeholder.y * scale).roundToInt()
-        params.marginStart = (placeholder.x * scale).roundToInt()
+        params.width = (data.width * scale).roundToInt() + renderingArtifactCorrectionPx
+        params.height = (data.height * scale).roundToInt()
+        params.topMargin = (data.y * scale).roundToInt()
+        params.marginStart = (data.x * scale).roundToInt()
 
         container.layoutParams = params
         container.visibility = View.VISIBLE
