@@ -1,16 +1,10 @@
 package com.omiyawaki.osrswiki.page
 
 import android.util.Log
-import android.util.TypedValue
 import android.view.View
 import androidx.core.view.isVisible
-import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
-import com.omiyawaki.osrswiki.settings.Prefs
-// NOTE: We are not using the custom L wrapper for the HTML log
-// import com.omiyawaki.osrswiki.util.log.L
 
 class PageUiUpdater(
     private val binding: FragmentPageBinding,
@@ -18,8 +12,7 @@ class PageUiUpdater(
     private val pageWebViewManager: PageWebViewManager,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
-    private val TAG = "PageUiUpdater"
-    private val HTML_LOG_TAG = "PageUiUpdater-HTML"
+    private val htmlLogTag = "PageUiUpdater-HTML"
 
     fun updateUi() {
         val fragment = fragmentContextProvider() ?: return
@@ -43,21 +36,17 @@ class PageUiUpdater(
         } else {
             if (state.htmlContent != null) {
                 binding.pageWebView.visibility = View.INVISIBLE
-                val currentTheme = (fragment.requireActivity().application as OSRSWikiApp).getCurrentTheme()
-
-                val finalHtml = state.htmlContent
 
                 // Use the standard Android Log class to specify a custom tag
-                Log.d(HTML_LOG_TAG, finalHtml)
+                Log.d(htmlLogTag, state.htmlContent)
 
+                // Call the updated render function with only the HTML content.
                 pageWebViewManager.render(
-                    fullHtml = finalHtml,
-                    baseUrl = state.wikiUrl,
-                    theme = currentTheme
+                    fullHtml = state.htmlContent
                 )
             } else {
                 if (binding.pageWebView.visibility != View.VISIBLE) binding.pageWebView.visibility = View.VISIBLE
-                binding.pageWebView.loadDataWithBaseURL(null, fragment.getString(R.string.label_content_unavailable), "text/html", "UTF-8", null)
+                binding.pageWebView.loadData("<!DOCTYPE html><html><body>${fragment.getString(R.string.label_content_unavailable)}</body></html>", "text/html", "UTF-8")
             }
         }
     }

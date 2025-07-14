@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.webkit)
     implementation(libs.jsoup)
     implementation(libs.apacheCommonsLang3)
 
