@@ -13,6 +13,7 @@ room = "2.7.1"
 androidxPaging = "3.3.6"
 androidxLifecycle = "2.9.0"
 androidxWork = "2.9.0"
+webkit = "1.10.0"
 jsoup = "1.20.1"
 
 # MapLibre Native SDK
@@ -55,6 +56,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "androidxPreferenceKtx" }
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidxWork" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
 
 # Lifecycle (ViewModel)

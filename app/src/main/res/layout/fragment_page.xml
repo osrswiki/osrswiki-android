@@ -21,7 +21,7 @@
         tools:visibility="visible"/>
 
     <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/native_map_container"
+        android:id="@+id/mapView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:visibility="gone"

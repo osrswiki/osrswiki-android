@@ -1,0 +1,71 @@
+/*
+ * Official CSS for the infobox switcher, provided by user.
+ * Plus reconstructed styles for base functionality.
+ */
+
+.infobox-buttons {
+    text-align: center;
+    max-width: 300px;
+    display: flex; /* Script sets this, but good to have in CSS */
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.switch-infobox .switch-infobox-triggers .button,
+.infobox-switch .infobox-buttons .button,
+.infobox-wrapper .infobox-buttons .button {
+    display: inline;
+    background: var(--body-light);
+    border: 1px solid var(--ooui-normal-border);
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 0.75rem;
+    line-height: 1.6em;
+    padding: 0.0625em 0.625em;
+    margin: 0.25em;
+    transition: background-color 100ms, color 100ms, border-color 100ms;
+    user-select: none;
+}
+
+.switch-infobox-triggers .trigger.button[disabled="disabled"],
+.infobox-buttons .button[disabled="disabled"],
+.infobox-buttons .button.button-selected,
+.switch-infobox-triggers .trigger.button.button-selected {
+    background: var(--button-background);
+    border-color: var(--button-background);
+    color: #fff;
+}
+
+/* --- Reconstructed functional styles --- */
+
+/* Hide the resource pool for Module:Infobox switchers */
+.infobox-switch-resources {
+    display: none;
+}
+
+/* By default, hide all legacy switchable items/panes */
+.switch-infobox .item {
+    display: none;
+}
+
+/* Show only the active/selected legacy item */
+.switch-infobox .item.showing {
+    display: block;
+}
+
+/* Hide synced switch items by default */
+.rsw-synced-switch-item {
+    display: none;
+}
+
+/* Show the active synced switch item */
+.rsw-synced-switch-item.showing {
+    display: block;
+}
+
+/* Gender Render Styles */
+.gender-render-hidden {
+    display: none !important;
+}

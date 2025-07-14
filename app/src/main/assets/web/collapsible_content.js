@@ -1,80 +1,45 @@
 /*
  * OSRSWiki Collapsible Content Transformer
- *
- * This script unifies the handling of three types of collapsible content:
- * 1. Wraps the main `.infobox` element in a standard collapsible container.
- * 2. Wraps all `.wikitable` elements in the same container style.
- * 3. Finds specific collapsible text sections (marked by `div.mw-collapsible`),
- * and transforms them into the same container style.
  */
 (function() {
     'use strict';
 
-    /**
-     * Finds the map placeholder within an expanded infobox and passes its
-     * details to the native layer. This is called only once, triggered by native code
-     * after the layout is stable.
-     */
     function findAndShowNativeMap(container) {
         if (!container) return;
         var mapPlaceholder = container.querySelector('.mw-kartographer-map');
 
-        // The NativeMapInterface check is now redundant if only native calls this,
-        // but it provides a good defensive check.
-        if (mapPlaceholder && window.NativeMapInterface) {
+        if (mapPlaceholder && window.OsrsWikiBridge) {
             var rect = mapPlaceholder.getBoundingClientRect();
-            // Only proceed if the map placeholder is actually visible.
             if (rect.width > 0 && rect.height > 0) {
-                 window.NativeMapInterface.onMapFound(JSON.stringify({
+                window.OsrsWikiBridge.onMapFound(JSON.stringify({
                     y: rect.top + window.scrollY,
                     x: rect.left,
                     width: rect.width,
                     height: rect.height,
-                    // Pass data attributes for map configuration.
                     lat: mapPlaceholder.dataset.lat,
                     lon: mapPlaceholder.dataset.lon,
                     zoom: mapPlaceholder.dataset.zoom,
                     plane: mapPlaceholder.dataset.plane
                 }));
-                // Make the original placeholder transparent, but keep it in the layout.
                 mapPlaceholder.style.opacity = '0';
             }
         }
     }
 
-    // Make the map measurement function globally accessible to be called from native code.
     window.findAndShowNativeMap = findAndShowNativeMap;
 
-    /**
-     * Sets header text for tables and infoboxes.
-     * Example: "Varrock: Tap to collapse"
-     */
     function updateHeaderText(container, titleWrapper, captionText) {
         var isCollapsed = container.classList.contains('collapsed');
         var stateText = isCollapsed ? ': Tap to expand' : ': Tap to collapse';
         titleWrapper.innerHTML = '<strong>' + captionText + '</strong>' + stateText;
     }
 
-    /**
-     * Sets header text for generic text sections.
-     * Example: "Infobox: Click here to hide"
-     */
-    function updateSectionHeaderText(container, titleWrapper) {
-        var isCollapsed = container.classList.contains('collapsed');
-        var stateText = isCollapsed ? 'Click here to show' : 'Click here to hide';
-        titleWrapper.innerHTML = '<strong>Infobox:</strong> ' + stateText;
-    }
-
-    /**
-     * Finds the main infobox and wraps it in a collapsible container.
-     */
     function transformInfobox() {
         var infobox = document.querySelector('table.infobox');
         if (!infobox || infobox.closest('.collapsible-container')) {
             return;
         }
 
-        // Programmatically override inline styles from the server.
         infobox.style.width = '100%';
         infobox.style.marginTop = '0px';
 
@@ -117,29 +82,26 @@
             updateHeaderText(container, titleWrapper, captionText);
 
             if (isFirstExpansion) {
-                // On the first expansion, simply notify the native layer.
-                // The native layer will be responsible for waiting for the layout
-                // to be stable before calling back into the JS to find the map.
-                if (window.NativeMapInterface) {
-                    window.NativeMapInterface.onInfoboxExpanded();
+                if (window.OsrsWikiBridge) {
+                    window.OsrsWikiBridge.onInfoboxExpanded();
                 }
                 container.dataset.mapLoaded = 'true';
-            } else if (container.dataset.mapLoaded === 'true' && window.NativeMapInterface) {
-                // For all subsequent clicks after the map is loaded,
-                // sync the native map's visibility with the container's state.
+            } else if (container.dataset.mapLoaded === 'true' && window.OsrsWikiBridge) {
                 var isVisible = !container.classList.contains('collapsed');
-                window.NativeMapInterface.setMapVisibility(isVisible);
+                window.OsrsWikiBridge.setMapVisibility(isVisible);
             }
         });
+        window.OsrsWikiBridge?.log('Collapser: Transformed infobox.');
     }
 
-    /**
-     * Finds all wikitable elements and wraps them in a collapsible container.
-     */
     function transformTables() {
-        document.querySelectorAll('table.wikitable').forEach(function(table) {
+        const tables = document.querySelectorAll('table.wikitable');
+        if (tables.length > 0) {
+            window.OsrsWikiBridge?.log(`Collapser: Found ${tables.length} wikitable(s) to transform.`);
+        }
+        tables.forEach(function(table, index) {
             if (table.closest('.collapsible-container')) {
-                return;
+                return; // Already transformed, skip.
             }
 
             var container = document.createElement('div');
@@ -174,68 +136,20 @@
 
             updateHeaderText(container, titleWrapper, captionText);
 
+            // This listener is now simpler, as the scroll interceptor handles everything automatically.
             header.addEventListener('click', function() {
                 container.classList.toggle('collapsed');
                 updateHeaderText(container, titleWrapper, captionText);
             });
-        });
-    }
-
-    /**
-     * Finds collapsible text divs and replaces them with the standard container.
-     */
-    function transformSections() {
-        document.querySelectorAll('div.mw-collapsible').forEach(function(collapsibleDiv) {
-            const triggerSpan = collapsibleDiv.querySelector('.collapsed-sec');
-            if (!triggerSpan) {
-                return;
-            }
-
-            var container = document.createElement('div');
-            container.className = 'collapsible-container';
-            if (collapsibleDiv.classList.contains('mw-collapsed')) {
-                container.classList.add('collapsed');
-            }
-
-            var header = document.createElement('div');
-            header.className = 'collapsible-header';
-
-            var titleWrapper = document.createElement('div');
-            titleWrapper.className = 'title-wrapper';
-
-            var icon = document.createElement('span');
-            icon.className = 'icon';
-
-            header.appendChild(titleWrapper);
-            header.appendChild(icon);
-
-            var originalContent = collapsibleDiv.querySelector('.mw-collapsible-content');
-            if (!originalContent) return;
-
-            var newContent = document.createElement('div');
-            newContent.className = 'collapsible-content';
-            while (originalContent.firstChild) {
-                newContent.appendChild(originalContent.firstChild);
-            }
-
-            container.appendChild(header);
-            container.appendChild(newContent);
-
-            collapsibleDiv.parentNode.replaceChild(container, collapsibleDiv);
-
-            updateSectionHeaderText(container, titleWrapper);
-
-            header.addEventListener('click', function() {
-                container.classList.toggle('collapsed');
-                updateSectionHeaderText(container, titleWrapper);
-            });
+            window.OsrsWikiBridge?.log(`Collapser: Transformed wikitable #${index + 1} with caption "${captionText}".`);
         });
     }
 
     function initialize() {
+        window.OsrsWikiBridge?.log('Collapser: Initializing content transformers...');
         transformInfobox();
-        transformSections();
         transformTables();
+        window.OsrsWikiBridge?.log('Collapser: Content transformers finished.');
     }
 
     if (document.readyState === 'loading') {

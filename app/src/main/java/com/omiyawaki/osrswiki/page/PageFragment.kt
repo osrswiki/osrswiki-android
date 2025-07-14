@@ -135,7 +135,7 @@ class PageFragment : Fragment() {
                 }
             },
             jsInterface = nativeMapHandler.jsInterface,
-            jsInterfaceName = "NativeMapInterface"
+            jsInterfaceName = "OsrsWikiBridge" // Corrected name
         )
 
         // Enable console logging for the WebView for debugging purposes.

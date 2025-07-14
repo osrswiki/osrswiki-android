@@ -32,9 +32,9 @@
     document.addEventListener('touchstart', function(event) {
         // Check if the touch target is inside a scrollable container.
         isHorizontallyScrollable = checkHorizontalScroll(event.target);
-        if (window.NativeMapInterface && typeof window.NativeMapInterface.setHorizontalScroll === 'function') {
+        if (window.OsrsWikiBridge && typeof window.OsrsWikiBridge.setHorizontalScroll === 'function') {
             // Inform the native layer whether a horizontal scroll is in progress.
-            window.NativeMapInterface.setHorizontalScroll(isHorizontallyScrollable);
+            window.OsrsWikiBridge.setHorizontalScroll(isHorizontallyScrollable);
         }
     }, { passive: true });
 
@@ -44,8 +44,8 @@
     function resetScrollState() {
         // Only send a reset call if the state was previously true, to avoid unnecessary calls.
         if (isHorizontallyScrollable) {
-            if (window.NativeMapInterface && typeof window.NativeMapInterface.setHorizontalScroll === 'function') {
-                window.NativeMapInterface.setHorizontalScroll(false);
+            if (window.OsrsWikiBridge && typeof window.OsrsWikiBridge.setHorizontalScroll === 'function') {
+                window.OsrsWikiBridge.setHorizontalScroll(false);
             }
             isHorizontallyScrollable = false;
         }
