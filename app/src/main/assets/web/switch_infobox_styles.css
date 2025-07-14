@@ -1,16 +1,17 @@
 /*
- * Official CSS for the infobox switcher, provided by user.
- * Plus reconstructed styles for base functionality.
- */
+  * Official CSS for the infobox switcher, provided by user.
+  * Plus reconstructed styles for base functionality.
+  */
 
 .infobox-buttons {
     text-align: center;
     max-width: 300px;
-    display: flex; /* Script sets this, but good to have in CSS */
+    display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 4px;
     padding: 4px 0;
+    margin: 0 auto; /* Center the container horizontally */
 }
 
 .switch-infobox .switch-infobox-triggers .button,
@@ -33,9 +34,9 @@
 .infobox-buttons .button[disabled="disabled"],
 .infobox-buttons .button.button-selected,
 .switch-infobox-triggers .trigger.button.button-selected {
-    background: var(--button-background);
-    border-color: var(--button-background);
-    color: #fff;
+    background: var(--text-color); /* Inverted: Use text color for background */
+    border-color: var(--text-color); /* Match background */
+    color: var(--body-light); /* Inverted: Use background color for text */
 }
 
 /* --- Reconstructed functional styles --- */
