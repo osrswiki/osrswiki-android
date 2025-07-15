@@ -1,134 +1,103 @@
 /**
  * Modern, vanilla JS implementation of the infobox switcher.
- * Handles multiple, varied switcher formats on the same page.
+ *
+ * FOUC Fix Strategy: "Image Preloading & Decoding"
+ * This script fixes the "flash" on the first switch by finding all potential
+ * switcher images on page load and preloading them into the browser's cache.
+ * It also uses non-destructive update methods for image elements to prevent
+ * repaint flashes.
  */
+
 function initializePage() {
     try {
         const mainInfobox = document.querySelector('.infobox-switch');
-        if (!mainInfobox) {
-            window.OsrsWikiBridge?.log('Switcher: No main infobox found (.infobox-switch). Aborting initialization.');
-            return;
-        }
-        const mainButtons = mainInfobox.querySelectorAll('.infobox-buttons .button');
-        if (mainButtons.length === 0) {
-            window.OsrsWikiBridge?.log('Switcher: Main infobox found, but it has no buttons. Aborting initialization.');
-            return;
-        }
-        window.OsrsWikiBridge?.log(`Switcher: Found ${mainButtons.length} main buttons. Initializing...`);
+        if (!mainInfobox) return;
 
-        // (Point 3) Unify legacy switchers to use the main button attributes.
-        const legacyTriggers = document.querySelectorAll('.switch-infobox-triggers');
-        if (legacyTriggers.length > 0) {
-            window.OsrsWikiBridge?.log(`Switcher (Legacy): Found ${legacyTriggers.length} legacy trigger containers.`);
-        }
-        legacyTriggers.forEach((triggerContainer, i) => {
-            const legacyButtons = triggerContainer.querySelectorAll('.trigger.button');
-            legacyButtons.forEach(legacyButton => {
-                const id = legacyButton.getAttribute('data-id');
-                const correspondingMainButton = mainButtons[parseInt(id, 10) - 1];
-                if (correspondingMainButton) {
-                    const index = correspondingMainButton.getAttribute('data-switch-index');
-                    const anchor = correspondingMainButton.getAttribute('data-switch-anchor');
-                    legacyButton.setAttribute('data-switch-index', index);
-                    legacyButton.setAttribute('data-switch-anchor', anchor);
-                    window.OsrsWikiBridge?.log(`Switcher (Legacy): Mapped legacy button (data-id: ${id}) to main button (data-switch-index: ${index})`);
+        const mainButtons = mainInfobox.querySelectorAll('.infobox-buttons .button');
+        if (mainButtons.length === 0) return;
+
+        // --- IMAGE PRELOADING (with srcset support) ---
+        const imageUrlsToPreload = new Set();
+        const resourceContainers = document.querySelectorAll('[class*="infobox-resources-"], .rsw-synced-switch');
+
+        resourceContainers.forEach(container => {
+            const images = container.querySelectorAll('img');
+            images.forEach(img => {
+                const src = img.getAttribute('src');
+                if (src) { imageUrlsToPreload.add(src); }
+                const srcset = img.getAttribute('srcset');
+                if (srcset) {
+                    const sources = srcset.split(',').map(s => s.trim().split(/\s+/)[0]);
+                    sources.forEach(sourceUrl => imageUrlsToPreload.add(sourceUrl));
                 }
             });
-            const parentBox = triggerContainer.closest('.switch-infobox');
-            if (parentBox) {
-                const loadingButton = parentBox.querySelector('.loading-button');
-                if (loadingButton) {
-                    loadingButton.style.display = 'none';
-                    window.OsrsWikiBridge?.log(`Switcher (Legacy): Hid loading button for container ${i+1}.`);
-                }
-                triggerContainer.style.display = 'flex';
-                triggerContainer.style.justifyContent = 'center';
-                triggerContainer.style.gap = '5px';
-            }
         });
 
-        // (Point 2) Attach a single, global click handler.
+        imageUrlsToPreload.forEach(url => {
+            const preloader = new Image();
+            preloader.src = url;
+            // Attempt to decode, but don't block initialization.
+            // The primary benefit comes from getting the image into the network cache.
+            preloader.decode().catch(() => {});
+        });
+        // --- END PRELOADER ---
+
         document.body.addEventListener('click', (event) => {
             const button = event.target.closest('.button');
             if (button && button.hasAttribute('data-switch-index')) {
-                window.OsrsWikiBridge?.log(`Switcher (Click): Global handler fired for button with index: ${button.getAttribute('data-switch-index')}`);
-                switchAllContent(button);
+                const switchIndex = button.getAttribute('data-switch-index');
+                performSwitch(switchIndex);
             }
         });
 
-        // Perform initial switch.
-        if (mainButtons.length > 0) {
-            window.OsrsWikiBridge?.log('Switcher: Performing initial switch using the first main button.');
-            switchAllContent(mainButtons[0]);
-        }
+        configureLegacySwitchers(mainButtons);
 
+        if (mainButtons.length > 0) {
+            const firstIndex = mainButtons[0].getAttribute('data-switch-index');
+            performSwitch(firstIndex);
+        }
     } catch (e) {
-        window.OsrsWikiBridge?.log(`Switcher CRITICAL ERROR in initializePage: ${e.message}`);
+        console.error(`Switcher CRITICAL ERROR in initializePage: ${e.message}`);
     }
 }
 
-function switchAllContent(clickedButton) {
-    // (Point 1) Use the index, not the anchor text.
-    const switchIndex = clickedButton.getAttribute('data-switch-index');
-    if (!switchIndex) {
-        window.OsrsWikiBridge?.log('Switcher ERROR: Clicked button is missing data-switch-index. Cannot switch.');
-        return;
-    }
-    window.OsrsWikiBridge?.log(`Switcher: Starting global switch for index: ${switchIndex}`);
+function performSwitch(switchIndex) {
+    if (typeof switchIndex === 'undefined' || switchIndex === null) return;
 
-    // Part 1: Update all button states.
+    // Update button states
     document.querySelectorAll('.infobox-buttons, .switch-infobox-triggers').forEach(container => {
         container.querySelectorAll('.button, .trigger').forEach(btn => btn.classList.remove('button-selected'));
         const btnToSelect = container.querySelector(`[data-switch-index="${switchIndex}"]`);
         if (btnToSelect) btnToSelect.classList.add('button-selected');
     });
-    window.OsrsWikiBridge?.log(`Switcher: Updated all button highlights for index ${switchIndex}.`);
 
-    // (Point 5) Part 2: Populate placeholders in all infoboxes, using their specific data source.
+    // Update infobox content
     const infoboxesToUpdate = document.querySelectorAll('.infobox-switch[data-resource-class]');
-    window.OsrsWikiBridge?.log(`Switcher (Data Sourcing): Found ${infoboxesToUpdate.length} placeholder-based infoboxes to update.`);
     infoboxesToUpdate.forEach(infobox => {
         const resourceClass = infobox.getAttribute('data-resource-class');
-        if (resourceClass) {
-            // THE FIX IS HERE: Use resourceClass directly, without prepending a dot.
-            const resources = document.querySelector(resourceClass);
-            if (resources) {
-                window.OsrsWikiBridge?.log(`Switcher (Data Sourcing): For infobox, found data source div '${resourceClass}'. Populating placeholders...`);
-                populatePlaceholders(infobox, resources, switchIndex);
-            } else {
-                window.OsrsWikiBridge?.log(`Switcher WARNING (Data Sourcing): Infobox requested resource '${resourceClass}', but it was not found in the DOM.`);
-            }
+        const resources = resourceClass ? document.querySelector(resourceClass) : null;
+        if (resources) {
+            populatePlaceholders(infobox, resources, switchIndex);
         }
     });
 
-    // Part 3: Update all synced-switch image galleries.
+    // Update synced galleries
     const syncedSwitches = document.querySelectorAll('.rsw-synced-switch');
-    if (syncedSwitches.length > 0) {
-        window.OsrsWikiBridge?.log(`Switcher (Sync): Found ${syncedSwitches.length} synced galleries to update.`);
-    }
     syncedSwitches.forEach(syncedSwitch => {
         const allItems = syncedSwitch.querySelectorAll('.rsw-synced-switch-item');
         allItems.forEach(item => item.classList.remove('showing'));
-
         const itemIndexToShow = parseInt(switchIndex, 10);
         if (allItems.length > itemIndexToShow) {
             const itemToShow = allItems[itemIndexToShow];
             if (itemToShow) {
-                const originalHtml = itemToShow.innerHTML;
-                const fixedHtml = fixUrls(originalHtml);
-                itemToShow.innerHTML = fixedHtml;
                 itemToShow.classList.add('showing');
-                if(originalHtml !== fixedHtml) {
-                    window.OsrsWikiBridge?.log(`Switcher (Sync): URL fixed in synced gallery.`);
-                }
             }
         }
     });
 }
 
-function populatePlaceholders(infobox, resources, switchIndex) {
-    const placeholders = infobox.querySelectorAll('[data-attr-param]');
-    window.OsrsWikiBridge?.log(`Switcher (Populate): Found ${placeholders.length} placeholders in an infobox.`);
+function populatePlaceholders(container, resources, switchIndex) {
+    const placeholders = container.querySelectorAll('[data-attr-param]');
     placeholders.forEach(placeholder => {
         const paramName = placeholder.getAttribute('data-attr-param');
         if (!paramName) return;
@@ -140,18 +109,45 @@ function populatePlaceholders(infobox, resources, switchIndex) {
                 newContentElement = resourceGroup.querySelector('[data-attr-index="0"]');
             }
             if (newContentElement) {
-                const originalContent = newContentElement.innerHTML;
-                const fixedContent = fixUrls(originalContent);
-                placeholder.innerHTML = fixedContent;
-
-                if (originalContent !== fixedContent) {
-                    window.OsrsWikiBridge?.log(`Switcher (Populate FIX): URLs fixed for param '${paramName}'.`);
+                // For the large equipped-cape images, update attributes directly to prevent repaint flash.
+                if ((paramName === 'image' || paramName === 'altimage') && container.classList.contains('infobox-bonuses')) {
+                    const oldImg = placeholder.querySelector('img');
+                    const newImg = newContentElement.querySelector('img');
+                    if (oldImg && newImg) {
+                        oldImg.src = newImg.src;
+                        if (newImg.hasAttribute('srcset')) {
+                            oldImg.srcset = newImg.getAttribute('srcset');
+                        } else {
+                            oldImg.removeAttribute('srcset');
+                        }
+                    } else {
+                        placeholder.innerHTML = fixUrls(newContentElement.innerHTML); // Fallback
+                    }
                 } else {
-                     window.OsrsWikiBridge?.log(`Switcher (Populate): Set content for param '${paramName}'. No URL fix needed.`);
+                    // For all other content, standard replacement is fine.
+                    placeholder.innerHTML = fixUrls(newContentElement.innerHTML);
                 }
             }
-        } else {
-             window.OsrsWikiBridge?.log(`Switcher WARNING (Populate): Could not find resource group for param '${paramName}'.`);
+        }
+    });
+}
+
+function configureLegacySwitchers(mainButtons) {
+    const legacyTriggers = document.querySelectorAll('.switch-infobox-triggers');
+    legacyTriggers.forEach((triggerContainer) => {
+        const legacyButtons = triggerContainer.querySelectorAll('.trigger.button');
+        legacyButtons.forEach(legacyButton => {
+            const id = legacyButton.getAttribute('data-id');
+            const correspondingMainButton = mainButtons[parseInt(id, 10) - 1];
+            if (correspondingMainButton) {
+                legacyButton.setAttribute('data-switch-index', correspondingMainButton.getAttribute('data-switch-index'));
+            }
+        });
+        const parentBox = triggerContainer.closest('.switch-infobox');
+        if (parentBox) {
+            const loadingButton = parentBox.querySelector('.loading-button');
+            if (loadingButton) loadingButton.style.display = 'none';
+            triggerContainer.style.display = 'flex';
         }
     });
 }
@@ -160,10 +156,8 @@ const remoteWikiDomain = "https://oldschool.runescape.wiki";
 
 const fixUrls = (htmlString) => {
     if (!htmlString) return "";
-    // Regex to find src="/images/..." or srcset="/images/..." and prepend the domain.
-    const regex = /(src|srcset)\s*=\s*['"](\/images\/[^'"]*)['"]/g;
+    const regex = /(src|srcset)\s*=\s*['"](\/(?!\/)[^'"]*)['"]/g;
     return htmlString.replace(regex, `$1="${remoteWikiDomain}$2"`);
 };
 
-// This hook is called by the bootstrap script after the page is loaded.
 mw.hook('wikipage.content').add(initializePage);
