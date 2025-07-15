@@ -7,12 +7,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.news.model.UpdateItem
 
-/**
- * A nested adapter to display the horizontal list of "Recent Update" cards.
- */
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
     private val onItemClicked: (UpdateItem) -> Unit
@@ -37,14 +35,21 @@ class UpdatesAdapter(
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {
             titleView.text = item.title
-            // Replace smart quotes with standard apostrophes to fix rendering inconsistency.
             snippetView.text = item.snippet.replace('’', '\'')
 
-            Glide.with(itemView.context)
-                .load(item.imageUrl)
-                .placeholder(R.drawable.ic_placeholder_image)
-                .error(R.drawable.ic_error_image)
-                .into(imageView)
+            val app = itemView.context.applicationContext as OSRSWikiApp
+            val cachedBitmap = app.imageCache.get(item.imageUrl)
+
+            if (cachedBitmap != null) {
+                imageView.setImageBitmap(cachedBitmap)
+            } else {
+                Glide.with(itemView.context)
+                    .load(item.imageUrl)
+                    .placeholder(R.drawable.ic_placeholder_image)
+                    .error(R.drawable.ic_error_image)
+                    .dontAnimate()
+                    .into(imageView)
+            }
 
             itemView.setOnClickListener {
                 onItemClicked(item)

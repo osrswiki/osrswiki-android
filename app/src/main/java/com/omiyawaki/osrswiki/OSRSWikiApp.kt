@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -10,6 +11,7 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.util.Log
 import android.webkit.WebView
+import androidx.collection.LruCache
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.PageHtmlBuilder
@@ -30,6 +32,9 @@ import kotlinx.coroutines.flow.asStateFlow
 class OSRSWikiApp : Application() {
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // A simple in-memory cache for preloaded images.
+    val imageCache: LruCache<String, Bitmap> = LruCache(10)
 
     lateinit var pageRepository: PageRepository
         private set
