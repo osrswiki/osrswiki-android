@@ -13,6 +13,7 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/base.css",
         "styles/layout.css",
         "styles/components.css",
+        "web/collapsible_tables.css",
         "styles/fixes.css"
     )
 
@@ -22,6 +23,7 @@ class PageHtmlBuilder(private val context: Context) {
         }
     }
     private val tablesortJs: String by lazy { readAsset("js/tablesort.min.js") }
+    private val collapsibleContentJs: String by lazy { readAsset("web/collapsible_content.js") }
 
     fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         val documentTitle = if (title.isBlank()) "OSRS Wiki" else title
@@ -49,6 +51,9 @@ class PageHtmlBuilder(private val context: Context) {
                 ${finalBodyContent}
                 <script>
                     ${tablesortJs}
+                </script>
+                <script>
+                    ${collapsibleContentJs}
                 </script>
                 <script>
                     // Extend Tablesort.js with a custom parser for comma-separated numbers.
@@ -136,17 +141,6 @@ class PageHtmlBuilder(private val context: Context) {
                                 console.log("Deconstructed and merged location table into infobox.");
                             }
                         }
-
-                        // Wrap all wikitables in a scrollable div for responsiveness.
-                        var tables = document.querySelectorAll('table.wikitable');
-                        tables.forEach(function(table) {
-                            if (table.parentElement.className !== 'scrollable-table-wrapper') {
-                                var wrapper = document.createElement('div');
-                                wrapper.className = 'scrollable-table-wrapper';
-                                table.parentNode.insertBefore(wrapper, table);
-                                wrapper.appendChild(table);
-                            }
-                        });
 
                         // Initialize sorting on any sortable wikitables.
                         var sortableTables = document.querySelectorAll('table.wikitable.sortable');

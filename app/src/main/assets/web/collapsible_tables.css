@@ -3,7 +3,7 @@
     These rules use the app's theme-aware variables.
 */
 
-/* Base styling for the entire infobox container. */
+/* Base styling for all infobox containers. */
 .infobox {
     background: transparent; /* Use page background color. */
     border: 1px solid var(--colorsurfacevariant);
@@ -11,16 +11,21 @@
     margin: 0; /* Margin is handled by the collapsible content container */
     border-collapse: collapse;
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
-    table-layout: fixed;
     word-break: break-word;
-    /* Text color is intentionally not set, to inherit the page's default. */
 }
 
-/*
-    Override the global image margin and border-radius specifically for
-    images within the infobox to remove unwanted spacing and corners.
-    Images are centered and capped at 100% width, but not stretched.
-*/
+/* The main infobox should be full-width with a fixed layout. */
+.main-infobox {
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* The bonuses infobox needs an auto layout to prevent squishing. */
+.infobox.infobox-bonuses {
+    table-layout: auto;
+}
+
+/* Generic rule for all images in an infobox. */
 .infobox img {
     margin: 0 auto; /* Center the image horizontally */
     border-radius: 0;
@@ -31,17 +36,23 @@
 }
 
 /*
-    Override for the original map placeholder to ensure it fills the full
-    width of its container, eliminating any alignment gaps. A minimum height
-    is set to ensure the element is rendered and findable by the native map handler.
+  This is the final fix. By setting `max-width` to `none`, we tell the small
+  icons to ignore the width of their parent cell and instead respect the
+  width and height attributes from their HTML `<img>` tag.
 */
+.infobox .infobox-nested img,
+.infobox .infobox-subheader img {
+    max-width: none;
+    vertical-align: middle;
+}
+
 .mw-kartographer-map {
     box-sizing: border-box !important;
     padding: 0 !important;
     border: none !important;
-    width: 100% !important; /* Force the map to fill the container width */
-    min-height: 200px; /* Prevent the placeholder from collapsing to zero height */
-    display: flex; /* Critical for the layout engine to give the element dimensions */
+    width: 100% !important;
+    min-height: 200px;
+    display: flex;
     align-items: center;
     justify-content: center;
 }
@@ -57,10 +68,6 @@
     vertical-align: top;
 }
 
-/*
-    Combined styling for main header and sub-headers.
-    Colors are now aligned with standard wikitable headers.
-*/
 .infobox .infobox-header,
 .infobox .infobox-subheader {
     background-color: var(--wikitable-header-bg);
@@ -69,36 +76,30 @@
     text-align: center;
 }
 
-/* Specific styling for the main header (e.g., "Varrock"). */
 .infobox .infobox-header {
     font-size: 1.15em;
     line-height: 1.4em;
     padding: 0.5em 0;
 }
 
-/* Specific styling for sub-headers (e.g., "Map"). */
 .infobox .infobox-subheader {
     line-height: 2em;
 }
 
-/*
-    Defines the two-column layout's left-hand-side labels.
-*/
 .infobox th:not(.infobox-header):not(.infobox-subheader):not(.infobox-nested) {
     text-align: right;
     border-right: 2px solid var(--colorsurfacevariant);
 }
 
-/* Ensures images and maps span the full width of the infobox. */
 .infobox .infobox-full-width-content {
     padding: 0;
     text-align: center;
 }
 
 /*
-  ==============================================================================
-   Restored styles for generic collapsible tables and content sections.
-  ==============================================================================
+    ==============================================================================
+    Styles for generic collapsible containers.
+    ==============================================================================
 */
 
 .collapsible-container {
@@ -106,7 +107,7 @@
     margin-top: 1em;
     margin-bottom: 1em;
     width: 100%;
-    overflow: hidden; /* Ensures child elements respect the border radius */
+    overflow: hidden;
     background-color: var(--colorsurfacevariant);
     color: var(--coloronsurfacevariant);
 }
@@ -136,7 +137,6 @@
     transition: transform 0.2s ease-in-out;
 }
 
-/* When the container is NOT collapsed, the icon points up. */
 .collapsible-container:not(.collapsed) .icon {
     transform: rotate(180deg);
 }
@@ -144,12 +144,6 @@
 .collapsible-content {
     overflow-x: auto;
     padding: 12px;
-    /*
-        The background and color are intentionally not set.
-        This allows the content area to be transparent and inherit
-        the desired 'colorsurfacevariant' background from its
-        parent, .collapsible-container.
-    */
 }
 
 .collapsible-container.collapsed .collapsible-content {
