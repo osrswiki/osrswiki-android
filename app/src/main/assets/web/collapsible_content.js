@@ -23,24 +23,54 @@
         titleWrapper.innerHTML = '<strong>' + captionText + '</strong>' + stateText;
     }
 
+    function setupCollapsible(header, container, titleWrapper, captionText) {
+        var content = container.querySelector('.collapsible-content');
+        if (!content) return;
+
+        // Initialize content height for JS-driven animations.
+        if (container.classList.contains('collapsed')) {
+            content.style.height = '0px';
+        }
+
+        header.addEventListener('click', function() {
+            var isCurrentlyCollapsed = container.classList.contains('collapsed');
+
+            if (isCurrentlyCollapsed) {
+                // --- Was collapsed, now OPENING ---
+                container.classList.remove('collapsed');
+                content.style.height = content.scrollHeight + 'px';
+
+                var onTransitionEnd = function() {
+                    content.style.height = 'auto';
+                    content.removeEventListener('transitionend', onTransitionEnd);
+                };
+                content.addEventListener('transitionend', onTransitionEnd);
+
+            } else {
+                // --- Was open, now CLOSING ---
+                content.style.height = content.scrollHeight + 'px';
+                setTimeout(function() {
+                    container.classList.add('collapsed');
+                }, 10);
+            }
+            updateHeaderText(container, titleWrapper, captionText);
+        });
+    }
+
     function transformInfoboxes() {
         var allInfoboxes = document.querySelectorAll('table.infobox');
-        
         allInfoboxes.forEach(function(infobox, index) {
             if (infobox.closest('.collapsible-container')) { return; }
-
             if (index === 0) {
                 infobox.classList.add('main-infobox');
                 infobox.style.marginTop = '0px';
             }
-
             var container = document.createElement('div');
             container.className = 'collapsible-container collapsed';
             var header = document.createElement('div');
             header.className = 'collapsible-header';
             var titleWrapper = document.createElement('div');
             titleWrapper.className = 'title-wrapper';
-
             var captionText = 'Infobox';
             var bonusesCaption = infobox.querySelector('.infobox-switch-buttons-caption');
             var primaryCaption = infobox.querySelector('.infobox-header');
@@ -49,7 +79,6 @@
             } else if (primaryCaption && primaryCaption.innerText.trim() !== '') {
                 captionText = primaryCaption.innerText.trim();
             }
-
             var icon = document.createElement('span');
             icon.className = 'icon';
             header.appendChild(titleWrapper);
@@ -61,17 +90,7 @@
             content.appendChild(infobox);
             container.appendChild(content);
             updateHeaderText(container, titleWrapper, captionText);
-
-            header.addEventListener('click', function() {
-                var wasCollapsed = container.classList.contains('collapsed');
-                container.classList.toggle('collapsed');
-                updateHeaderText(container, titleWrapper, captionText);
-
-                if (wasCollapsed && window.OsrsWikiBridge) {
-                    var isVisible = !container.classList.contains('collapsed');
-                    // Additional logic for map visibility can be handled here if needed
-                }
-            });
+            setupCollapsible(header, container, titleWrapper, captionText);
         });
     }
 
@@ -102,14 +121,53 @@
             content.appendChild(table);
             container.appendChild(content);
             updateHeaderText(container, titleWrapper, captionText);
-            header.addEventListener('click', function() {
-                container.classList.toggle('collapsed');
-                updateHeaderText(container, titleWrapper, captionText);
+            setupCollapsible(header, container, titleWrapper, captionText);
+        });
+    }
+
+    /**
+     * Finds all images within collapsible content and preloads them to prevent
+     * layout jank on first expansion. This mirrors the strategy used for switchable
+     * infoboxes.
+     */
+    function preloadCollapsibleImages() {
+        const imageUrlsToPreload = new Set();
+        const containers = document.querySelectorAll('.collapsible-container');
+
+        containers.forEach(function(container) {
+            const images = container.querySelectorAll('img');
+            images.forEach(function(img) {
+                const src = img.getAttribute('src');
+                if (src) { imageUrlsToPreload.add(src); }
+
+                const srcset = img.getAttribute('srcset');
+                if (srcset) {
+                    const sources = srcset.split(',').map(function(s) {
+                        return s.trim().split(/\s+/)[0];
+                    });
+                    sources.forEach(function(sourceUrl) {
+                        imageUrlsToPreload.add(sourceUrl);
+                    });
+                }
+            });
+        });
+
+        imageUrlsToPreload.forEach(function(url) {
+            const preloader = new Image();
+            preloader.src = url;
+            // Attempt to decode, but don't block initialization. The primary
+            // benefit comes from getting the image into the network cache.
+            preloader.decode().catch(function() {
+                // Ignore decoding errors for now.
             });
         });
     }
 
     function initialize() {
+        // Preload all images first to prevent jank.
+        preloadCollapsibleImages();
+
+        // Then, transform the DOM.
         transformInfoboxes();
         transformTables();
     }
