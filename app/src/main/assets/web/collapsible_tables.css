@@ -142,10 +142,20 @@
 }
 
 .collapsible-content {
-    overflow-x: auto;
     padding: 12px;
+    overflow: hidden;
+    transition: height 0.25s ease-in-out, padding-top 0.25s ease-in-out, padding-bottom 0.25s ease-in-out;
+}
+
+/* Allow wide tables inside the content to scroll horizontally */
+.collapsible-content > .wikitable,
+.collapsible-content > .infobox {
+    overflow-x: auto;
+    display: block;
 }
 
 .collapsible-container.collapsed .collapsible-content {
-    display: none;
+    height: 0 !important; /* Use !important to override inline style 'auto' */
+    padding-top: 0;
+    padding-bottom: 0;
 }
