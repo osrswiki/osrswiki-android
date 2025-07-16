@@ -27,7 +27,6 @@
         var content = container.querySelector('.collapsible-content');
         if (!content) return;
 
-        // Initialize content height for JS-driven animations.
         if (container.classList.contains('collapsed')) {
             content.style.height = '0px';
         }
@@ -36,7 +35,7 @@
             var isCurrentlyCollapsed = container.classList.contains('collapsed');
 
             if (isCurrentlyCollapsed) {
-                // --- Was collapsed, now OPENING ---
+                // --- OPENING ---
                 container.classList.remove('collapsed');
                 content.style.height = content.scrollHeight + 'px';
 
@@ -47,7 +46,7 @@
                 content.addEventListener('transitionend', onTransitionEnd);
 
             } else {
-                // --- Was open, now CLOSING ---
+                // --- CLOSING ---
                 content.style.height = content.scrollHeight + 'px';
                 setTimeout(function() {
                     container.classList.add('collapsed');
@@ -125,21 +124,14 @@
         });
     }
 
-    /**
-     * Finds all images within collapsible content and preloads them to prevent
-     * layout jank on first expansion. This mirrors the strategy used for switchable
-     * infoboxes.
-     */
     function preloadCollapsibleImages() {
         const imageUrlsToPreload = new Set();
         const containers = document.querySelectorAll('.collapsible-container');
-
         containers.forEach(function(container) {
             const images = container.querySelectorAll('img');
             images.forEach(function(img) {
                 const src = img.getAttribute('src');
                 if (src) { imageUrlsToPreload.add(src); }
-
                 const srcset = img.getAttribute('srcset');
                 if (srcset) {
                     const sources = srcset.split(',').map(function(s) {
@@ -151,23 +143,15 @@
                 }
             });
         });
-
         imageUrlsToPreload.forEach(function(url) {
             const preloader = new Image();
             preloader.src = url;
-            // Attempt to decode, but don't block initialization. The primary
-            // benefit comes from getting the image into the network cache.
-            preloader.decode().catch(function() {
-                // Ignore decoding errors for now.
-            });
+            preloader.decode().catch(function() {});
         });
     }
 
     function initialize() {
-        // Preload all images first to prevent jank.
         preloadCollapsibleImages();
-
-        // Then, transform the DOM.
         transformInfoboxes();
         transformTables();
     }
