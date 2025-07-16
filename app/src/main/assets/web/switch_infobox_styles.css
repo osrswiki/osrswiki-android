@@ -90,3 +90,11 @@
 .gender-render-hidden {
     display: none !important;
 }
+
+/* --- FINAL FIX: Gap between collapsible header and switcher --- */
+/* The gap is caused by padding on both the header and the content area below it. */
+/* These rules reduce that padding, but only for collapsible infoboxes. */
+
+.collapsible-container:has(table.infobox) > .collapsible-content {
+    padding-top: 0px;
+}
