@@ -74,7 +74,7 @@
             var bonusesCaption = infobox.querySelector('.infobox-switch-buttons-caption');
             var primaryCaption = infobox.querySelector('.infobox-header');
             if (bonusesCaption && bonusesCaption.innerText.trim() !== '') {
-                 captionText = 'Equipment bonuses';
+                captionText = 'Equipment bonuses';
             } else if (primaryCaption && primaryCaption.innerText.trim() !== '') {
                 captionText = primaryCaption.innerText.trim();
             }
