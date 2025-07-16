@@ -15,7 +15,6 @@
     margin: 0 auto; /* Center the container horizontally */
 }
 
-/* --- FIX --- */
 /* When inside an infobox, give the button container the infobox's background color. */
 .infobox .infobox-buttons {
     background-color: var(--colorsurfacevariant);
@@ -35,14 +34,16 @@
 .switch-infobox .switch-infobox-triggers .button,
 .infobox-switch .infobox-buttons .button,
 .infobox-wrapper .infobox-buttons .button {
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--body-light);
-    border: 1px solid var(--ooui-normal-border);
+    border: 1px solid var(--ooui-interface-border);
     color: var(--text-color);
     cursor: pointer;
     font-size: 0.75rem;
-    line-height: 1.6em;
-    padding: 0.0625em 0.625em;
+    /* The line-height property was removed to allow flexbox to control alignment perfectly. */
+    padding: 0.25em 0.625em; /* Increased vertical padding slightly for aesthetics */
     margin: 0.25em;
     transition: background-color 100ms, color 100ms, border-color 100ms;
     user-select: none;
@@ -52,9 +53,10 @@
 .infobox-buttons .button[disabled="disabled"],
 .infobox-buttons .button.button-selected,
 .switch-infobox-triggers .trigger.button.button-selected {
-    background: var(--text-color); /* Inverted: Use text color for background */
-    border-color: var(--text-color); /* Match background */
-    color: var(--body-light); /* Inverted: Use background color for text */
+    /* Using inverted colors as this was deemed acceptable. */
+    background: var(--text-color);
+    border-color: var(--text-color);
+    color: var(--body-light);
 }
 
 /* --- Reconstructed functional styles --- */
