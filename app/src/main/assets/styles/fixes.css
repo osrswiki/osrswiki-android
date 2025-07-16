@@ -34,3 +34,16 @@ li img.mw-file-element {
     vertical-align: middle !important;
     margin: 0 !important;
 }
+
+/* Experiment: Fix for horizontal alignment of images in tables.
+ * The .mw-halign-center class from MediaWiki uses a combination of
+ * display: table and margin: auto to achieve robust centering for
+ * figure elements without requiring an explicit width.
+ */
+figure.mw-halign-center {
+    display: table;
+    margin: 0 auto;
+    border-collapse: collapse;
+    clear: none;
+    float: none;
+}
