@@ -1,9 +1,10 @@
 /*
-  * Official CSS for the infobox switcher, provided by user.
-  * Plus reconstructed styles for base functionality.
-  */
+ * Official CSS for the infobox switcher, provided by user.
+ * Plus reconstructed styles for base functionality.
+ */
 
-.infobox-buttons {
+.infobox-buttons,
+.switch-infobox-triggers {
     text-align: center;
     max-width: 300px;
     display: flex;
@@ -13,6 +14,23 @@
     padding: 4px 0;
     margin: 0 auto; /* Center the container horizontally */
 }
+
+/* --- FIX --- */
+/* When inside an infobox, give the button container the infobox's background color. */
+.infobox .infobox-buttons {
+    background-color: var(--colorsurfacevariant);
+    border-radius: 4px; /* Add rounded corners to match the container */
+    margin: 4px auto; /* Add some vertical margin for spacing */
+    padding: 4px; /* Add some internal padding */
+    max-width: fit-content; /* Ensure it doesn't stretch unnecessarily */
+}
+
+/* Make the caption element that holds the button container transparent */
+.infobox .infobox-switch-buttons-caption {
+    background-color: transparent;
+    padding: 0; /* Remove any default padding from the caption itself */
+}
+
 
 .switch-infobox .switch-infobox-triggers .button,
 .infobox-switch .infobox-buttons .button,
