@@ -21,13 +21,15 @@
 }
 
 /*
-   `table-layout: auto` allows the table to calculate its width from its
-   content. `max-width: none` overrides a global constraint, allowing this
-   calculation to work correctly.
+   `table-layout: fixed` ensures all columns are of uniform width.
+   A total width is set to constrain the layout algorithm.
 */
 .infobox.infobox-bonuses {
-    table-layout: auto;
+    table-layout: fixed;
     max-width: none;
+    /* Total width is the sum of the desired column widths:
+       250px (bonuses) + 153px (image1) + 153px (image2) = 556px */
+    width: 556px;
 }
 
 /* Generic rule for all images in an infobox. */
@@ -41,13 +43,19 @@
 }
 
 /*
-   By setting `max-width: none`, we force these specific images to render
-   at their full native width, ignoring the container. This is the key
-   to making the `table-layout: auto` algorithm expand the table.
-   Setting `display: inline-block` allows `vertical-align` to work.
+   For small icons, we only need to ensure they are centered.
+   They do not need `max-width: none`.
 */
 .infobox .infobox-nested img,
-.infobox .infobox-subheader img,
+.infobox .infobox-subheader img {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*
+   For large equipment images, `max-width: none` is the key to forcing
+   the table to expand and enable horizontal scrolling.
+*/
 .infobox .infobox-bonuses-image img {
     display: inline-block;
     max-width: none;
@@ -92,6 +100,9 @@
 
 .infobox .infobox-subheader {
     line-height: 2em;
+    /* Set an explicit width on the subheader that spans the icon columns.
+       In a fixed-layout table, this width is distributed to the columns it spans. */
+    width: 250px;
 }
 
 .infobox th:not(.infobox-header):not(.infobox-subheader):not(.infobox-nested) {
@@ -197,11 +208,12 @@
     vertical-align: middle;
 }
 
-/* Add a border and center the content of the equipped item image cell. */
+/* Add a border, center content, and set an explicit width for the image columns. */
 .infobox-bonuses .infobox-bonuses-image {
     border: 1px solid var(--wikitable-border);
     text-align: center;
     vertical-align: middle;
+    width: 153px;
 }
 
 /* Center the content of the nested icon cells, overriding the global defaults. */
