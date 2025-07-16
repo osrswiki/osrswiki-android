@@ -20,9 +20,14 @@
     table-layout: fixed;
 }
 
-/* The bonuses infobox needs an auto layout to prevent squishing. */
+/*
+  `table-layout: auto` allows the table to calculate its width from its
+  content. `max-width: none` overrides a global constraint, allowing this
+  calculation to work correctly.
+*/
 .infobox.infobox-bonuses {
     table-layout: auto;
+    max-width: none;
 }
 
 /* Generic rule for all images in an infobox. */
@@ -36,12 +41,13 @@
 }
 
 /*
-  This is the final fix. By setting `max-width` to `none`, we tell the small
-  icons to ignore the width of their parent cell and instead respect the
-  width and height attributes from their HTML `<img>` tag.
+  By setting `max-width: none`, we force these specific images to render
+  at their full native width, ignoring the container. This is the key
+  to making the `table-layout: auto` algorithm expand the table.
 */
 .infobox .infobox-nested img,
-.infobox .infobox-subheader img {
+.infobox .infobox-subheader img,
+.infobox .infobox-bonuses-image img {
     max-width: none;
     vertical-align: middle;
 }
@@ -107,7 +113,7 @@
     margin-top: 1em;
     margin-bottom: 1em;
     width: 100%;
-    overflow: hidden;
+    overflow: hidden; /* This clips the corners for the border-radius */
     background-color: var(--colorsurfacevariant);
     color: var(--coloronsurfacevariant);
 }
@@ -141,17 +147,16 @@
     transform: rotate(180deg);
 }
 
+/*
+  `overflow-y: hidden` is required for the vertical collapse animation.
+  `overflow-x: auto` allows the container to scroll horizontally if its
+  content (like a wide table) is wider than the container.
+*/
 .collapsible-content {
     padding: 12px;
-    overflow: hidden;
-    transition: height 0.25s ease-in-out, padding-top 0.25s ease-in-out, padding-bottom 0.25s ease-in-out;
-}
-
-/* Allow wide tables inside the content to scroll horizontally */
-.collapsible-content > .wikitable,
-.collapsible-content > .infobox {
+    overflow-y: hidden;
     overflow-x: auto;
-    display: block;
+    transition: height 0.25s ease-in-out, padding-top 0.25s ease-in-out, padding-bottom 0.25s ease-in-out;
 }
 
 .collapsible-container.collapsed .collapsible-content {
