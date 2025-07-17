@@ -28,6 +28,7 @@
         <item name="search_box_background_color">#1AFFFFFF</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="colorControlHighlight">@color/ripple_dark</item>
     </style>
 
 </resources>

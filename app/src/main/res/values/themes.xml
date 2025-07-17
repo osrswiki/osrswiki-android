@@ -31,6 +31,7 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Light" parent="Theme.Material3.Light.NoActionBar">
@@ -48,6 +49,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -61,6 +63,7 @@
         <item name="windowActionModeOverlay">true</item>
         <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="colorControlHighlight">@color/ripple_dark</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
