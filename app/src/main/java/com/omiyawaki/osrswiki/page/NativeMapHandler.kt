@@ -1,9 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
-import android.view.ViewTreeObserver
 import android.webkit.JavascriptInterface
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
@@ -37,23 +35,17 @@ class NativeMapHandler(
 
     inner class OsrsWikiBridge {
         @JavascriptInterface
-        fun log(message: String) {
-            Log.d("OsrsWikiBridge", message)
-        }
-
-        @JavascriptInterface
         fun onInfoboxExpanded() {
-            binding.pageWebView.post {
-                val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
-                    override fun onGlobalLayout() {
-                        if (binding.pageWebView.viewTreeObserver.isAlive) {
-                            binding.pageWebView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                        }
-                        val script = "javascript:findAndShowNativeMap(document.querySelector('.infobox'));"
-                        binding.pageWebView.evaluateJavascript(script, null)
-                    }
-                }
-                binding.pageWebView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+            fragment.view?.post {
+                val script = "javascript:findAndShowNativeMap(document.querySelector('.infobox'));"
+                binding.pageWebView.evaluateJavascript(script, null)
+            }
+        }
+        
+        @JavascriptInterface
+        fun onInfoboxCollapsed() {
+            fragment.view?.post {
+                binding.mapView.visibility = View.GONE
             }
         }
 
@@ -70,49 +62,45 @@ class NativeMapHandler(
         }
 
         @JavascriptInterface
-        fun setMapVisibility(visible: Boolean) {
-            fragment.view?.post {
-                binding.mapView.visibility = if (visible) View.VISIBLE else View.GONE
-            }
-        }
-
-        @JavascriptInterface
         fun setHorizontalScroll(inProgress: Boolean) {
             isHorizontalScrollInProgress = inProgress
         }
     }
 
     private fun showNativeMap(data: MapData) {
-        if (!fragment.isAdded) {
-            return
-        }
+        if (!fragment.isAdded) return
 
         val container = binding.mapView
-        val params = container.layoutParams as ConstraintLayout.LayoutParams
-        val scale = binding.pageWebView.scale
-        val correction = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, 1f, fragment.resources.displayMetrics
-        ).roundToInt()
-
-        params.width = (data.width * scale).roundToInt() + correction
-        params.height = (data.height * scale).roundToInt()
-        params.topMargin = (data.y * scale).roundToInt()
-        params.marginStart = (data.x * scale).roundToInt()
-
-        container.layoutParams = params
-        container.visibility = View.VISIBLE
-
+        
+        // If the map fragment doesn't exist yet, this is the first open.
         if (fragment.childFragmentManager.findFragmentById(R.id.mapView) == null) {
+            L.d("First map open. Creating new fragment.")
+            
+            val params = container.layoutParams as ConstraintLayout.LayoutParams
+            val scale = binding.pageWebView.scale
+            val correction = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 1f, fragment.resources.displayMetrics
+            ).roundToInt()
+            params.width = (data.width * scale).roundToInt() + correction
+            params.height = (data.height * scale).roundToInt()
+            params.topMargin = (data.y * scale).roundToInt()
+            params.marginStart = (data.x * scale).roundToInt()
+            container.layoutParams = params
+
             val mapFragment = MapFragment.newInstance(
                 lat = data.lat,
                 lon = data.lon,
                 zoom = data.zoom,
                 plane = data.plane
             )
+            
             fragment.childFragmentManager.beginTransaction()
                 .replace(R.id.mapView, mapFragment)
                 .commit()
         }
+        
+        // For both first and subsequent opens, just make sure the container is visible.
+        container.visibility = View.VISIBLE
     }
 
     private fun setupScrollListener() {

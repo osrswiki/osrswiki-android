@@ -138,7 +138,6 @@ class PageFragment : Fragment() {
             jsInterfaceName = "OsrsWikiBridge" // Corrected name
         )
 
-        // Enable console logging for the WebView for debugging purposes.
         binding.pageWebView.webChromeClient = object : WebChromeClient() {
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 if (consoleMessage != null) {
@@ -178,28 +177,6 @@ class PageFragment : Fragment() {
         binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
     }
 
-    /**
-     * Called from NativeMapHandler when the infobox is expanded in the WebView.
-     * This method is public so it can be reached by the handler.
-     */
-    fun handleInfoboxExpansion() {
-        // This listener will run once after the next layout pass.
-        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                // Remove the listener immediately so it doesn't run again.
-                binding.pageWebView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-
-                // Now that the native layout is stable, tell the WebView to execute
-                // the map measurement and placement script.
-                val script = "javascript:findAndShowNativeMap(document.querySelector('.infobox').closest('.collapsible-container'));"
-                binding.pageWebView.evaluateJavascript(script, null)
-            }
-        }
-        // Add the listener to the WebView's ViewTreeObserver.
-        binding.pageWebView.viewTreeObserver.addOnGlobalLayoutListener(listener)
-    }
-
-
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestureDetector() {
         val gestureListener = object : GestureDetector.SimpleOnGestureListener() {
@@ -223,8 +200,6 @@ class PageFragment : Fragment() {
                 val dy = e2.y - e1.y
                 var result = false
                 try {
-                    // If a horizontal scroll is in progress within the WebView (e.g., on a wide
-                    // table), do not trigger the native swipe gesture. Let the WebView handle it.
                     if (nativeMapHandler.isHorizontalScrollInProgress) {
                         return false
                     }
@@ -285,11 +260,7 @@ class PageFragment : Fragment() {
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
             if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
                 try {
-                    // The string from the WebView is a doubly-encoded JSON string (a string containing JSON).
-                    // The correct way to parse this is in two steps:
-                    // 1. Decode the outer string, which properly un-escapes all content.
                     val unescapedJson = Json.decodeFromString<String>(jsonString)
-                    // 2. Decode the now-clean inner string into the TocData object.
                     val tocData = Json.decodeFromString<TocData>(unescapedJson)
 
                     val leadSection = tocData.leadSectionDetails?.let {
@@ -339,8 +310,6 @@ class PageFragment : Fragment() {
         super.onDetach()
         callback = null
     }
-
-
 
     fun getPageIdArg(): String? = pageIdArg
     fun getPageTitleArg(): String? = pageTitleArg
