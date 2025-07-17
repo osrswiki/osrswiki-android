@@ -29,4 +29,5 @@
 
     <color name="osrs_loading_bar_red">#8c1111</color>
     <color name="osrs_loading_bar_black">#000000</color>
-</resources>
+
+    <color name="ripple_light">#1A000000</color> <color name="ripple_dark">#1AFFFFFF</color>  </resources>
