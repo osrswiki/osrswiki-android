@@ -34,6 +34,12 @@
         header.addEventListener('click', function() {
             var isCurrentlyCollapsed = container.classList.contains('collapsed');
 
+            // When the main infobox is clicked to open, notify the native layer.
+            // This is the critical fix that triggers the map loading sequence.
+            if (isCurrentlyCollapsed && container.querySelector('.main-infobox')) {
+                window.OsrsWikiBridge.onInfoboxExpanded();
+            }
+
             if (isCurrentlyCollapsed) {
                 // --- OPENING ---
                 container.classList.remove('collapsed');
@@ -50,6 +56,7 @@
                 content.style.height = content.scrollHeight + 'px';
                 setTimeout(function() {
                     container.classList.add('collapsed');
+                    content.style.height = '0px';
                 }, 10);
             }
             updateHeaderText(container, titleWrapper, captionText);
