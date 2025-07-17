@@ -2,7 +2,6 @@
 
 /*
  * Set a consistent size for all images within a wikitable.
- * This is the general rule for skill icons and other simple images.
  */
 .wikitable img {
     width: 22px;
@@ -14,20 +13,17 @@
 }
 
 /*
- * Specifically target the <figure> element that wraps certain icons
- * (like the Members star) and force its size. This overrides the
- * problematic upstream styles that were collapsing its width.
+ * Force size for <figure> elements inside wikitables.
  */
 .wikitable figure.mw-default-size {
     width: 22px;
     height: 22px;
-    margin: 0 auto; /* Center the container in the table cell */
+    margin: 0 auto;
 }
 
 /*
  * Fix for images inside list items (<li>) that were being
- * rendered as block elements, causing text to wrap to the next line.
- * Also removes excessive vertical margin that creates unwanted line spacing.
+ * rendered as block elements, causing incorrect text wrapping.
  */
 li img.mw-file-element {
     display: inline-block !important;
@@ -35,15 +31,55 @@ li img.mw-file-element {
     margin: 0 !important;
 }
 
-/* Experiment: Fix for horizontal alignment of images in tables.
- * The .mw-halign-center class from MediaWiki uses a combination of
- * display: table and margin: auto to achieve robust centering for
- * figure elements without requiring an explicit width.
+/*
+ * REGRESSION FIX: Restore the horizontal alignment rule for figures
+ * that have the .mw-halign-center class.
  */
 figure.mw-halign-center {
     display: table;
-    margin: 0 auto;
+    margin: 1em auto;
     border-collapse: collapse;
-    clear: none;
+    clear: both;
     float: none;
+}
+
+/*
+ * FIX: Horizontally align standalone framed images (e.g., Hitpoints cape emote)
+ * that do not have the .mw-halign-center class.
+ */
+figure[typeof="mw:File/Frame"] {
+    display: table;
+    margin: 1em auto;
+    border-collapse: collapse;
+    clear: both;
+    float: none;
+}
+
+/*
+ * FIX: Target the image inside the framed figure specifically.
+ * - Set width to 100% to match the caption width.
+ * - Set margin to 0 to remove the vertical gap.
+ */
+figure[typeof="mw:File/Frame"] > a > img {
+    width: 100%;
+    margin: 0;
+}
+
+/*
+ * Shared styling for all captions.
+ */
+figure > figcaption,
+.thumbcaption {
+    border: none;
+    background-color: var(--colorsurfacevariant);
+    padding: 4px 6px;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+/*
+ * Hide empty caption blocks to prevent rendering empty boxes.
+ */
+figcaption:empty {
+    display: none;
 }
