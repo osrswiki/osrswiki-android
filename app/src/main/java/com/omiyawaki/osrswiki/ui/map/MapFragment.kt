@@ -104,14 +104,12 @@ class MapFragment : Fragment() {
         mapView = binding.mapView
 
         lifecycleScope.launch {
-            L.d("MapFragment: Coroutine launched for map initialization.")
             copyAssetsToInternalStorage()
             initializeMap(savedInstanceState)
         }
     }
 
     private suspend fun copyAssetsToInternalStorage() = withContext(Dispatchers.IO) {
-        L.d("MapFragment: copyAssetsToInternalStorage started.")
         for (fileName in mapFiles) {
             val destFile = File(requireContext().filesDir, fileName)
             if (destFile.exists()) continue
@@ -123,14 +121,11 @@ class MapFragment : Fragment() {
                 Log.e(logTag, "Failed to copy asset file: $fileName", e)
             }
         }
-        L.d("MapFragment: copyAssetsToInternalStorage finished.")
     }
 
     private fun initializeMap(savedInstanceState: Bundle?) {
-        L.d("MapFragment: initializeMap called.")
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { maplibreMap ->
-            L.d("MapFragment: getMapAsync callback fired. MapLibreMap instance received.")
             this.map = maplibreMap
             configureUiSettings(maplibreMap)
             val styleJson = """
@@ -144,7 +139,6 @@ class MapFragment : Fragment() {
                 }
             """.trimIndent()
             maplibreMap.setStyle(Style.Builder().fromJson(styleJson)) { style ->
-                L.d("MapFragment: setStyle callback fired. Style instance received.")
                 val gameLon = arguments?.getString(ARG_LON)?.toDoubleOrNull()
                 val gameLat = arguments?.getString(ARG_LAT)?.toDoubleOrNull()
                 val zoom = 6.0
@@ -156,11 +150,9 @@ class MapFragment : Fragment() {
                     cameraBuilder.target(LatLng(DEFAULT_LAT, DEFAULT_LON)).zoom(DEFAULT_ZOOM)
                 }
                 maplibreMap.cameraPosition = cameraBuilder.build()
-                L.d("MapFragment: Camera position set.")
                 setMapBounds(maplibreMap)
                 setupMapLayers(style)
                 setupFloorControls()
-                L.d("MapFragment: Map setup complete.")
             }
         }
     }
@@ -188,7 +180,6 @@ class MapFragment : Fragment() {
     }
 
     private fun setupMapLayers(style: Style) {
-        L.d("MapFragment: setupMapLayers called for currentFloor: $currentFloor.")
         for (floor in 0..maxFloor) {
             val sourceId = "osrs-source-$floor"
             val layerId = "osrs-layer-$floor"
@@ -203,7 +194,6 @@ class MapFragment : Fragment() {
             )
             style.addLayer(rasterLayer)
         }
-        L.d("MapFragment: All map layers added.")
     }
 
     private fun setupFloorControls() {
@@ -229,7 +219,6 @@ class MapFragment : Fragment() {
     private fun showFloor(newFloor: Int) {
         if (newFloor == currentFloor || newFloor < 0 || newFloor > maxFloor) return
         val style = map?.style ?: return
-        L.d("MapFragment: showFloor changing from $currentFloor to $newFloor.")
         for (floor in 0..maxFloor) {
             val layer = style.getLayer("osrs-layer-$floor") as? RasterLayer
             layer?.let {
@@ -258,16 +247,15 @@ class MapFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        L.d("MapFragment: LIFECYCLE: onDestroyView")
         mapView?.onDestroy()
         _binding = null
         map = null
     }
 
-    override fun onStart() { super.onStart(); L.d("MapFragment: LIFECYCLE: onStart"); mapView?.onStart() }
-    override fun onResume() { super.onResume(); L.d("MapFragment: LIFECYCLE: onResume"); mapView?.onResume() }
-    override fun onPause() { super.onPause(); L.d("MapFragment: LIFECYCLE: onPause"); mapView?.onPause() }
-    override fun onStop() { super.onStop(); L.d("MapFragment: LIFECYCLE: onStop"); mapView?.onStop() }
-    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); L.d("MapFragment: LIFECYCLE: onSaveInstanceState"); mapView?.onSaveInstanceState(outState) }
-    override fun onLowMemory() { super.onLowMemory(); L.d("MapFragment: LIFECYCLE: onLowMemory"); mapView?.onLowMemory() }
+    override fun onStart() { super.onStart(); mapView?.onStart() }
+    override fun onResume() { super.onResume(); mapView?.onResume() }
+    override fun onPause() { super.onPause(); mapView?.onPause() }
+    override fun onStop() { super.onStop(); mapView?.onStop() }
+    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView?.onSaveInstanceState(outState) }
+    override fun onLowMemory() { super.onLowMemory(); mapView?.onLowMemory() }
 }

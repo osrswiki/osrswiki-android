@@ -1,6 +1,6 @@
 /*
- * OSRSWiki Collapsible Content Transformer
- */
+  * OSRSWiki Collapsible Content Transformer
+  */
 (function() {
     'use strict';
 
@@ -34,8 +34,6 @@
         header.addEventListener('click', function() {
             var isCurrentlyCollapsed = container.classList.contains('collapsed');
 
-            // When the main infobox is clicked to open, notify the native layer.
-            // This is the critical fix that triggers the map loading sequence.
             if (isCurrentlyCollapsed && container.querySelector('.main-infobox')) {
                 window.OsrsWikiBridge.onInfoboxExpanded();
             }
@@ -53,6 +51,9 @@
 
             } else {
                 // --- CLOSING ---
+                if (container.querySelector('.main-infobox')) {
+                    window.OsrsWikiBridge.onInfoboxCollapsed();
+                }
                 content.style.height = content.scrollHeight + 'px';
                 setTimeout(function() {
                     container.classList.add('collapsed');
