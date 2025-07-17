@@ -28,12 +28,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class OSRSWikiApp : Application() {
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // A simple in-memory cache for preloaded images.
     val imageCache: LruCache<String, Bitmap> = LruCache(10)
 
     lateinit var pageRepository: PageRepository
@@ -42,13 +42,11 @@ class OSRSWikiApp : Application() {
     lateinit var searchRepository: SearchRepository
         private set
 
-    // Tab Management Stubs
     var currentTab: Tab? = null
     val tabList: MutableList<Tab> = mutableListOf()
     private val _tabCountFlow = MutableStateFlow(0)
     val tabCountFlow: StateFlow<Int> = _tabCountFlow.asStateFlow()
 
-    // Network Status
     private val _currentNetworkStatus = MutableStateFlow(false)
     val currentNetworkStatus: StateFlow<Boolean> = _currentNetworkStatus.asStateFlow()
     private var connectivityManager: ConnectivityManager? = null
@@ -73,12 +71,14 @@ class OSRSWikiApp : Application() {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
-        // Common dependencies
+        initializeDependencies()
+    }
+
+    private fun initializeDependencies() {
         val appContext = this.applicationContext
         val appDb = AppDatabase.instance
         val mediaWikiApiService = RetrofitClient.apiService
 
-        // --- Refactored PageRepository Dependencies ---
         val pageHtmlBuilder = PageHtmlBuilder(this)
         val pageLocalDataSource = PageLocalDataSource(
             articleMetaDao = appDb.articleMetaDao(),
@@ -92,7 +92,6 @@ class OSRSWikiApp : Application() {
             remoteDataSource = pageRemoteDataSource,
             htmlBuilder = pageHtmlBuilder
         )
-        // --- End of PageRepository Dependencies ---
 
         val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
         val offlinePageFtsDao = appDb.offlinePageFtsDao()
@@ -121,7 +120,6 @@ class OSRSWikiApp : Application() {
 
     fun getCurrentTheme(): Theme {
         val themeMode = Prefs.appThemeMode
-
         val isNightMode = when (themeMode) {
             "light" -> false
             "dark" -> true
@@ -134,12 +132,7 @@ class OSRSWikiApp : Application() {
                 nightModeFlags == Configuration.UI_MODE_NIGHT_YES
             }
         }
-
-        val themeTag = if (isNightMode) {
-            Prefs.darkThemeChoice
-        } else {
-            Prefs.lightThemeChoice
-        }
+        val themeTag = if (isNightMode) Prefs.darkThemeChoice else Prefs.lightThemeChoice
         return Theme.ofTag(themeTag) ?: Theme.DEFAULT_LIGHT
     }
 

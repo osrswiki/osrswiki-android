@@ -17,16 +17,6 @@
         app:layout_constraintTop_toTopOf="parent"
         maplibre:maplibre_cameraZoom="3.0"/>
 
-    <ViewStub
-        android:id="@+id/loading_view_stub"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout="@layout/view_map_loading"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <LinearLayout
         android:id="@+id/floor_controls"
         android:layout_width="wrap_content"
