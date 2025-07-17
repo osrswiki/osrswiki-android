@@ -11,7 +11,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
 import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import androidx.appcompat.app.AppCompatActivity
@@ -126,6 +125,8 @@ class PageFragment : Fragment() {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
                     fetchTableOfContents()
+                    // This is the critical line that was missing. It triggers the map discovery.
+                    binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
                 }
             },
             onTitleReceived = { newTitle ->
@@ -135,7 +136,7 @@ class PageFragment : Fragment() {
                 }
             },
             jsInterface = nativeMapHandler.jsInterface,
-            jsInterfaceName = "OsrsWikiBridge" // Corrected name
+            jsInterfaceName = "OsrsWikiBridge"
         )
 
         binding.pageWebView.webChromeClient = object : WebChromeClient() {
