@@ -1,16 +1,17 @@
 package com.omiyawaki.osrswiki.ui.map
 
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
+import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -47,10 +48,7 @@ class MapFragment : Fragment() {
         private const val ARG_LON = "arg_lon"
         private const val ARG_ZOOM = "arg_zoom"
         private const val ARG_PLANE = "arg_plane"
-
         private const val GROUND_FLOOR_UNDERLAY_OPACITY = 0.5f
-
-        // Default camera settings (Lumbridge).
         private const val DEFAULT_LAT = -25.2023457171692
         private const val DEFAULT_LON = -131.44071698586012
         private const val DEFAULT_ZOOM = 7.3414426741929
@@ -66,38 +64,25 @@ class MapFragment : Fragment() {
             }
         }
 
-        /**
-         * Converts OSRS in-game coordinates to geographic LatLng using an analytically
-         * derived formula based on the map tiling toolchain.
-         */
         private fun gameToLatLng(gx: Double, gy: Double): LatLng {
-            // Constants derived from the map dumper and tiling script.
             val gameCoordScale = 4.0
             val gameMinX = 1024.0
             val gameMaxY = 12608.0
             val canvasSize = 65536.0
-
-            // 1. Convert game coordinates to canvas pixel coordinates.
-            // This accounts for the origin offset, Y-axis inversion, and 4x scaling factor.
             val px = (gx - gameMinX) * gameCoordScale
             val py = (gameMaxY - gy) * gameCoordScale
-
-            // 2. Normalize pixel coordinates to a [0, 1] range.
             val nx = px / canvasSize
             val ny = py / canvasSize
-
-            // 3. Convert normalized coordinates to geographic coordinates (EPSG:3857).
             val lon = -180.0 + nx * 360.0
             val lat = Math.toDegrees(Math.atan(Math.sinh(Math.PI * (1.0 - 2.0 * ny))))
-
             return LatLng(lat, lon)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        L.d("MapFragment: LIFECYCLE: onCreate")
         MapLibre.getInstance(requireContext())
-        // Set floor from arguments if available, otherwise defaults to 0.
         arguments?.getString(ARG_PLANE)?.toIntOrNull()?.let {
             currentFloor = it
         }
@@ -108,21 +93,25 @@ class MapFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        L.d("MapFragment: LIFECYCLE: onCreateView")
         _binding = FragmentMapBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        L.d("MapFragment: LIFECYCLE: onViewCreated")
         mapView = binding.mapView
 
         lifecycleScope.launch {
+            L.d("MapFragment: Coroutine launched for map initialization.")
             copyAssetsToInternalStorage()
             initializeMap(savedInstanceState)
         }
     }
 
     private suspend fun copyAssetsToInternalStorage() = withContext(Dispatchers.IO) {
+        L.d("MapFragment: copyAssetsToInternalStorage started.")
         for (fileName in mapFiles) {
             val destFile = File(requireContext().filesDir, fileName)
             if (destFile.exists()) continue
@@ -134,15 +123,16 @@ class MapFragment : Fragment() {
                 Log.e(logTag, "Failed to copy asset file: $fileName", e)
             }
         }
+        L.d("MapFragment: copyAssetsToInternalStorage finished.")
     }
 
     private fun initializeMap(savedInstanceState: Bundle?) {
+        L.d("MapFragment: initializeMap called.")
         mapView?.onCreate(savedInstanceState)
         mapView?.getMapAsync { maplibreMap ->
+            L.d("MapFragment: getMapAsync callback fired. MapLibreMap instance received.")
             this.map = maplibreMap
-
             configureUiSettings(maplibreMap)
-
             val styleJson = """
                 {
                     "version": 8,
@@ -153,28 +143,24 @@ class MapFragment : Fragment() {
                     ]
                 }
             """.trimIndent()
-
             maplibreMap.setStyle(Style.Builder().fromJson(styleJson)) { style ->
+                L.d("MapFragment: setStyle callback fired. Style instance received.")
                 val gameLon = arguments?.getString(ARG_LON)?.toDoubleOrNull()
                 val gameLat = arguments?.getString(ARG_LAT)?.toDoubleOrNull()
                 val zoom = 6.0
-
                 val cameraBuilder = CameraPosition.Builder()
-
                 if (gameLon != null && gameLat != null) {
-                    // If we have in-game coordinates, convert them and set the camera.
                     val target = gameToLatLng(gameLon, gameLat)
                     cameraBuilder.target(target).zoom(zoom)
                 } else {
-                    // Otherwise, fall back to the default (Lumbridge).
                     cameraBuilder.target(LatLng(DEFAULT_LAT, DEFAULT_LON)).zoom(DEFAULT_ZOOM)
                 }
-
                 maplibreMap.cameraPosition = cameraBuilder.build()
-
+                L.d("MapFragment: Camera position set.")
                 setMapBounds(maplibreMap)
                 setupMapLayers(style)
                 setupFloorControls()
+                L.d("MapFragment: Map setup complete.")
             }
         }
     }
@@ -190,7 +176,6 @@ class MapFragment : Fragment() {
     }
 
     private fun setMapBounds(map: MapLibreMap) {
-        // The bounds are static as they cover the entire world map.
         val north = 85.0511
         val west = -180.0
         val south = -85.0511
@@ -203,38 +188,33 @@ class MapFragment : Fragment() {
     }
 
     private fun setupMapLayers(style: Style) {
+        L.d("MapFragment: setupMapLayers called for currentFloor: $currentFloor.")
         for (floor in 0..maxFloor) {
             val sourceId = "osrs-source-$floor"
             val layerId = "osrs-layer-$floor"
             val fileName = mapFiles[floor]
             val mbtilesFile = File(requireContext().filesDir, fileName)
             val mbtilesUri = "mbtiles://${mbtilesFile.absolutePath}"
-
             val rasterSource = RasterSource(sourceId, mbtilesUri)
             style.addSource(rasterSource)
-
             val rasterLayer = RasterLayer(layerId, sourceId).withProperties(
                 PropertyFactory.rasterResampling(Property.RASTER_RESAMPLING_NEAREST),
                 PropertyFactory.visibility(if (floor == currentFloor) Property.VISIBLE else Property.NONE)
             )
             style.addLayer(rasterLayer)
         }
+        L.d("MapFragment: All map layers added.")
     }
 
     private fun setupFloorControls() {
-        // An embedded map is identified by having lon/lat arguments passed to it.
         val isEmbeddedMap = arguments?.getString(ARG_LON) != null
-
         if (isEmbeddedMap) {
             binding.floorControls.visibility = View.GONE
             return
         }
-
-        // Only show floor controls if there is more than one floor and it's not embedded.
         if (maxFloor > 0) {
             binding.floorControls.visibility = View.VISIBLE
             updateFloorControlStates()
-
             binding.floorControlUp.setOnClickListener {
                 if (currentFloor < maxFloor) showFloor(currentFloor + 1)
             }
@@ -249,7 +229,7 @@ class MapFragment : Fragment() {
     private fun showFloor(newFloor: Int) {
         if (newFloor == currentFloor || newFloor < 0 || newFloor > maxFloor) return
         val style = map?.style ?: return
-
+        L.d("MapFragment: showFloor changing from $currentFloor to $newFloor.")
         for (floor in 0..maxFloor) {
             val layer = style.getLayer("osrs-layer-$floor") as? RasterLayer
             layer?.let {
@@ -276,13 +256,18 @@ class MapFragment : Fragment() {
         binding.floorControlDown.isEnabled = currentFloor > 0
     }
 
-    // region MapView Lifecycle
-    override fun onStart() { super.onStart(); mapView?.onStart() }
-    override fun onResume() { super.onResume(); mapView?.onResume() }
-    override fun onPause() { super.onPause(); mapView?.onPause() }
-    override fun onStop() { super.onStop(); mapView?.onStop() }
-    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView?.onSaveInstanceState(outState) }
-    override fun onLowMemory() { super.onLowMemory(); mapView?.onLowMemory() }
-    override fun onDestroyView() { super.onDestroyView(); mapView?.onDestroy(); _binding = null; map = null }
-    // endregion
+    override fun onDestroyView() {
+        super.onDestroyView()
+        L.d("MapFragment: LIFECYCLE: onDestroyView")
+        mapView?.onDestroy()
+        _binding = null
+        map = null
+    }
+
+    override fun onStart() { super.onStart(); L.d("MapFragment: LIFECYCLE: onStart"); mapView?.onStart() }
+    override fun onResume() { super.onResume(); L.d("MapFragment: LIFECYCLE: onResume"); mapView?.onResume() }
+    override fun onPause() { super.onPause(); L.d("MapFragment: LIFECYCLE: onPause"); mapView?.onPause() }
+    override fun onStop() { super.onStop(); L.d("MapFragment: LIFECYCLE: onStop"); mapView?.onStop() }
+    override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); L.d("MapFragment: LIFECYCLE: onSaveInstanceState"); mapView?.onSaveInstanceState(outState) }
+    override fun onLowMemory() { super.onLowMemory(); L.d("MapFragment: LIFECYCLE: onLowMemory"); mapView?.onLowMemory() }
 }
