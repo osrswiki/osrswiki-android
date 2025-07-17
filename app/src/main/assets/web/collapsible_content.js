@@ -1,21 +1,51 @@
 /*
-  * OSRSWiki Collapsible Content Transformer
-  */
+ * OSRSWiki Collapsible Content Transformer
+ */
 (function() {
     'use strict';
 
-    function findAndShowNativeMap(container) {
-        if (!container) return;
-        var mapPlaceholder = container.querySelector('.mw-kartographer-map');
-        if (mapPlaceholder && window.OsrsWikiBridge) {
-            var rect = mapPlaceholder.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-                window.OsrsWikiBridge.onMapFound(JSON.stringify({ y: rect.top + window.scrollY, x: rect.left, width: rect.width, height: rect.height, lat: mapPlaceholder.dataset.lat, lon: mapPlaceholder.dataset.lon, zoom: mapPlaceholder.dataset.zoom, plane: mapPlaceholder.dataset.plane }));
-                mapPlaceholder.style.opacity = '0';
+    function measureAndPreloadMaps() {
+        if (!window.OsrsWikiBridge) return;
+        console.log("MAP_DEBUG: Starting measureAndPreloadMaps.");
+        const mapPlaceholders = document.querySelectorAll('.mw-kartographer-map');
+        console.log("MAP_DEBUG: Found " + mapPlaceholders.length + " map placeholders.");
+
+        mapPlaceholders.forEach((mapPlaceholder, index) => {
+            const mapId = 'map-placeholder-' + index;
+            mapPlaceholder.id = mapId;
+
+            const container = mapPlaceholder.closest('.collapsible-container');
+            if (!container) return;
+
+            // Use a reflow/remeasure technique for accuracy.
+            if (container.classList.contains('collapsed')) {
+                // Temporarily un-collapse to measure, then re-collapse.
+                container.classList.remove('collapsed');
+                requestAnimationFrame(() => {
+                    const rect = mapPlaceholder.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        const rectJson = JSON.stringify({
+                            y: rect.top + window.scrollY,
+                            x: rect.left,
+                            width: rect.width,
+                            height: rect.height
+                        });
+                        const mapDataJson = JSON.stringify({
+                            lat: mapPlaceholder.dataset.lat,
+                            lon: mapPlaceholder.dataset.lon,
+                            zoom: mapPlaceholder.dataset.zoom,
+                            plane: mapPlaceholder.dataset.plane
+                        });
+                        console.log("MAP_DEBUG: Measuring mapId '" + mapId + "'. Calling native with rect: " + rectJson);
+                        window.OsrsWikiBridge.onMapPlaceholderMeasured(mapId, rectJson, mapDataJson);
+                    }
+                    // Restore the collapsed state immediately after measurement.
+                    container.classList.add('collapsed');
+                });
             }
-        }
+        });
     }
-    window.findAndShowNativeMap = findAndShowNativeMap;
+    window.measureAndPreloadMaps = measureAndPreloadMaps;
 
     function updateHeaderText(container, titleWrapper, captionText) {
         var isCollapsed = container.classList.contains('collapsed');
@@ -33,16 +63,18 @@
 
         header.addEventListener('click', function() {
             var isCurrentlyCollapsed = container.classList.contains('collapsed');
+            var mapPlaceholder = content.querySelector('.mw-kartographer-map');
+            var mapId = mapPlaceholder ? mapPlaceholder.id : null;
 
-            if (isCurrentlyCollapsed && container.querySelector('.main-infobox')) {
-                window.OsrsWikiBridge.onInfoboxExpanded();
+            if (window.OsrsWikiBridge && mapId) {
+                console.log("MAP_DEBUG: Toggling mapId '" + mapId + "'. Is opening: " + isCurrentlyCollapsed);
+                window.OsrsWikiBridge.onCollapsibleToggled(mapId, isCurrentlyCollapsed);
             }
 
             if (isCurrentlyCollapsed) {
                 // --- OPENING ---
                 container.classList.remove('collapsed');
                 content.style.height = content.scrollHeight + 'px';
-
                 var onTransitionEnd = function() {
                     content.style.height = 'auto';
                     content.removeEventListener('transitionend', onTransitionEnd);
@@ -51,9 +83,6 @@
 
             } else {
                 // --- CLOSING ---
-                if (container.querySelector('.main-infobox')) {
-                    window.OsrsWikiBridge.onInfoboxCollapsed();
-                }
                 content.style.height = content.scrollHeight + 'px';
                 setTimeout(function() {
                     container.classList.add('collapsed');
@@ -162,6 +191,7 @@
         preloadCollapsibleImages();
         transformInfoboxes();
         transformTables();
+        // The native layer will call measureAndPreloadMaps when it's ready.
     }
 
     if (document.readyState === 'loading') {
