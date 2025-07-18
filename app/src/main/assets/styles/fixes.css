@@ -114,3 +114,14 @@ figcaption:empty {
     display: inline-block !important;
     vertical-align: middle;
 }
+
+/*
+ * EXPERIMENTAL FIX (v3): Ensure scenic images in an infobox span the entire
+ * container, while leaving inventory/item images at their natural size.
+ * This rule targets a container with .infobox-full-width-content but
+ * explicitly ignores it if it also has the .inventory-image class.
+ */
+.infobox-full-width-content:not(.inventory-image) img {
+    width: 100%;
+    height: auto; /* Maintain aspect ratio */
+}
