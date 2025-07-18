@@ -36,8 +36,6 @@ function initializePage() {
         imageUrlsToPreload.forEach(url => {
             const preloader = new Image();
             preloader.src = url;
-            // Attempt to decode, but don't block initialization.
-            // The primary benefit comes from getting the image into the network cache.
             preloader.decode().catch(() => {});
         });
         // --- END PRELOADER ---

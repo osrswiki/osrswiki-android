@@ -57,7 +57,7 @@ class PageContentLoader(
 
         // --- PRESERVATION & CLEANING (Corrected Logic) ---
         // 1. Find and detach the essential resource divs to protect them.
-        val resources = document.select("[class*=infobox-resources-]")
+        val resources = document.select("[class*=\"infobox-resources-\"]")
         resources.remove()
 
         // 2. Select and remove all other unwanted elements.

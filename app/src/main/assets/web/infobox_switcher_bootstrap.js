@@ -2,21 +2,31 @@ window.rswiki = {
     initQtyBox: function() {}
 };
 
+function safeLog(message, isError = false) {
+    const logMessage = '[Switcher Bootstrap] ' + message;
+    if (isError) {
+        console.error(logMessage);
+    } else {
+        console.log(logMessage);
+    }
+    try {
+        if (typeof OsrsWikiBridge !== 'undefined' && OsrsWikiBridge.log) {
+            OsrsWikiBridge.log('Gadget Log: ' + message);
+        }
+    } catch (e) {
+        // Bridge may not be available. This is expected during initial load.
+    }
+}
+
 window.mw = {
     log: function(message) {
-        try {
-            if (typeof message === 'object') {
-                OsrsWikiBridge.log('Gadget Log: ' + JSON.stringify(message));
-            } else {
-                OsrsWikiBridge.log('Gadget Log: ' + message);
-            }
-        } catch (e) { /* Bridge may not be available. */ }
+        safeLog(JSON.stringify(message));
     },
     hook: function(eventName) {
         return {
             add: function(callback) {
                 if (eventName === 'wikipage.content') {
-                    OsrsWikiBridge.log('Bootstrap: mw.hook.add called. Storing callback.');
+                    safeLog('mw.hook.add called. Storing callback.');
                     window.infoboxSwitcherCallback = callback;
                 }
             },
@@ -26,21 +36,18 @@ window.mw = {
 };
 
 function initializeInfoboxSwitcher() {
-    OsrsWikiBridge.log('Bootstrap: Initializer called.');
-    // The only dependency now is that the callback function has been stored.
+    safeLog('Initializer called.');
     if (typeof window.infoboxSwitcherCallback === 'function') {
-        OsrsWikiBridge.log('Bootstrap: Dependencies met. Preparing to fire callback.');
+        safeLog('Dependencies met. Firing callback now.');
         try {
-            // The callback no longer needs jQuery. It finds the content itself.
             window.infoboxSwitcherCallback(document);
-            OsrsWikiBridge.log('Bootstrap: Callback fired successfully.');
-
+            safeLog('Callback fired successfully.');
         } catch (e) {
-            OsrsWikiBridge.log('Bootstrap ERROR: ' + e.message);
+            safeLog('ERROR firing callback: ' + e.message, true);
         }
     } else {
-        var status = 'callback=' + (typeof window.infoboxSwitcherCallback === 'function');
-        OsrsWikiBridge.log('Bootstrap: Dependencies not met (' + status + '). Retrying in 100ms...');
+        var status = 'callback=' + (typeof window.infoboxSwitcherCallback);
+        safeLog('Dependencies not met (' + status + '). Retrying in 100ms...');
         setTimeout(initializeInfoboxSwitcher, 100);
     }
 }
