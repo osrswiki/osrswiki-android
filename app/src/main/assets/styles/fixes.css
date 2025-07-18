@@ -36,45 +36,62 @@ li img.mw-file-element {
  * that have the .mw-halign-center class.
  */
 figure.mw-halign-center {
-    display: table;
+    display: block;
+    width: fit-content;
+    width: -moz-fit-content;
     margin: 1em auto;
-    border-collapse: collapse;
     clear: both;
-    float: none;
 }
 
 /*
- * FIX: Horizontally align standalone framed images (e.g., Hitpoints cape emote)
- * that do not have the .mw-halign-center class.
+ * FIX: Horizontally align standalone file figures (e.g., Frame, Thumb)
+ * and style them as a unified container block, but ONLY if they have a
+ * non-empty caption.
  */
-figure[typeof="mw:File/Frame"] {
-    display: table;
+figure[typeof^="mw:File"]:has(figcaption:not(:empty)) {
+    display: block;
+    width: fit-content;
+    width: -moz-fit-content; /* Firefox compatibility */
     margin: 1em auto;
-    border-collapse: collapse;
     clear: both;
-    float: none;
+    /* Container styling */
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 4px;
+    box-sizing: border-box;
 }
 
 /*
- * FIX: Target the image inside the framed figure specifically.
- * - Set width to 100% to match the caption width.
+ * FIX: Make the link wrapping the figure image a block element
+ * so that it respects the parent's padding.
+ */
+figure[typeof^="mw:File"] > a {
+    display: block;
+}
+
+/*
+ * FIX: Target the image inside any file figure specifically.
  * - Set margin to 0 to remove the vertical gap.
+ * - Set border-radius to 0 to override the global style.
+ * - Width is handled by the global `max-width: 100%` in base.css
  */
-figure[typeof="mw:File/Frame"] > a > img {
-    width: 100%;
+figure[typeof^="mw:File"] > a > img {
     margin: 0;
+    border-radius: 0;
 }
 
 /*
- * Shared styling for all captions.
+ * Styling for all captions within the new figure container.
  */
 figure > figcaption,
 .thumbcaption {
+    background-color: transparent;
     border: none;
-    background-color: var(--colorsurfacevariant);
-    padding: 4px 6px;
+    padding: 0;
+    margin: 6px 2px 2px 2px; /* Top, Right, Bottom, Left */
     box-sizing: border-box;
     text-align: left;
+    font-size: 0.9em;
 }
 
 /*
