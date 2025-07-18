@@ -64,8 +64,7 @@ class PageContentLoader(
         val selectorsToRemove = listOf(
             "tr.advanced-data",
             "tr.leagues-global-flag",
-            "tr.infobox-padding",
-            "table.navbox"
+            "tr.infobox-padding"
         )
         document.select(selectorsToRemove.joinToString(", ")).remove()
 

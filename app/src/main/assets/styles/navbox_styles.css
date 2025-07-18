@@ -1,0 +1,43 @@
+/*
+    Styles for MediaWiki navbox tables.
+    These rules are based on the desktop wiki's styling with refinements.
+*/
+
+.navbox {
+    font-size: 0.85em;
+    background: var(--navbox-background);
+    border-collapse: collapse;
+    /* Margin is now handled by the parent .collapsible-container. */
+    margin: 0;
+    width: 100%;
+    clear: both;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
+}
+
+/* Add a border to all cells for a consistent look with wikitables. */
+.navbox th,
+.navbox td {
+    border: 1px solid var(--navbox-border);
+}
+
+.navbox-title {
+    font-size: 110%;
+    line-height: 1.6em;
+    background: var(--navbox-title-background);
+    text-align: center;
+    padding: 0.25em 1em;
+}
+
+.navbox-group-title {
+    background: var(--navbox-group-title-background);
+    /* Borders are now handled by the global th, td rule. */
+    text-align: left;
+    padding: 0.25em 1em;
+    width: 1%;
+    white-space: nowrap;
+}
+
+.navbox-list {
+    /* Borders are now handled by the global th, td rule. */
+    padding: 0.25em 0.5em;
+}
