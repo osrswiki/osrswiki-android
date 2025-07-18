@@ -104,3 +104,13 @@ figcaption:empty {
 .mw-halign-right > figcaption {
     display: none;
 }
+
+/*
+ * EXPERIMENTAL FIX: Force images within an infobox to display inline-block
+ * to allow for grid-like layouts (e.g., coin stacks). This overrides the
+ * general figure styles above that force images into block display.
+ */
+.infobox a > img {
+    display: inline-block !important;
+    vertical-align: middle;
+}
