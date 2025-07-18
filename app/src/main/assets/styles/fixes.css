@@ -32,10 +32,12 @@ li img.mw-file-element {
 }
 
 /*
- * REGRESSION FIX: Restore the horizontal alignment rule for figures
- * that have the .mw-halign-center class.
+ * REGRESSION FIX & REFACTOR: Horizontally align figures with the
+ * .mw-halign-center class and all standalone file figures
+ * ([typeof^="mw:File"]) by default.
  */
-figure.mw-halign-center {
+figure.mw-halign-center,
+figure[typeof^="mw:File"] {
     display: block;
     width: fit-content;
     width: -moz-fit-content;
@@ -44,17 +46,11 @@ figure.mw-halign-center {
 }
 
 /*
- * FIX: Horizontally align standalone file figures (e.g., Frame, Thumb)
- * and style them as a unified container block, but ONLY if they have a
- * non-empty caption.
+ * FIX: Add container styling (border, background) to standalone file figures,
+ * but ONLY if they have a non-empty caption. This prevents uncaptioned images
+ * from being boxed in.
  */
 figure[typeof^="mw:File"]:has(figcaption:not(:empty)) {
-    display: block;
-    width: fit-content;
-    width: -moz-fit-content; /* Firefox compatibility */
-    margin: 1em auto;
-    clear: both;
-    /* Container styling */
     background-color: var(--body-light);
     border: 1px solid var(--body-border);
     padding: 4px;
@@ -62,21 +58,21 @@ figure[typeof^="mw:File"]:has(figcaption:not(:empty)) {
 }
 
 /*
- * FIX: Make the link wrapping the figure image a block element
- * so that it respects the parent's padding.
+ * FIX: Make the link wrapping the figure image a block element.
+ * The text-align property is retained as a fallback.
  */
 figure[typeof^="mw:File"] > a {
     display: block;
+    text-align: center;
 }
 
 /*
  * FIX: Target the image inside any file figure specifically.
- * - Set margin to 0 to remove the vertical gap.
- * - Set border-radius to 0 to override the global style.
- * - Width is handled by the global `max-width: 100%` in base.css
+ * Treat it as a block element and center it with automatic margins.
  */
 figure[typeof^="mw:File"] > a > img {
-    margin: 0;
+    display: block;
+    margin: 0 auto;
     border-radius: 0;
 }
 
