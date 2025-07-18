@@ -33,6 +33,7 @@ class PageWebViewManager(
     private val assetLoader = WebViewAssetLoader.Builder()
         .setDomain(localAssetDomain)
         .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(webView.context))
+        .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(webView.context))
         .build()
 
     init {
@@ -170,7 +171,7 @@ class PageWebViewManager(
 
         val finalHtml = processedHtml.replaceFirst(
             "<head>",
-            "<head>\n$cssTags\n$jsTags"
+            "<head>\n<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/fonts.css\">\n$cssTags\n$jsTags"
         )
 
         val baseUrl = "https://$localAssetDomain/"
