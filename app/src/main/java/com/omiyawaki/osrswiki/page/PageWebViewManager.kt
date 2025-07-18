@@ -140,9 +140,9 @@ class PageWebViewManager(
 
     private fun triggerInitializers(view: WebView?) {
         applyThemeColors(view)
-        // The collapsible_content.js script now self-initializes from the HTML head.
-        // We only need to call the switcher's initializer function.
-        view?.evaluateJavascript("initializeInfoboxSwitcher();", null)
+        // The collapsible_content.js script now self-initializes AND is responsible
+        // for calling the switcher's initializer. This call is no longer needed here.
+        // view?.evaluateJavascript("initializeInfoboxSwitcher();", null)
     }
 
     fun render(fullHtml: String) {
