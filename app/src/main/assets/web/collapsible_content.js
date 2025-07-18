@@ -82,72 +82,73 @@
         });
     }
 
-    function transformInfoboxes() {
-        var allInfoboxes = document.querySelectorAll('table.infobox');
-        allInfoboxes.forEach(function(infobox, index) {
-            if (infobox.closest('.collapsible-container')) { return; }
-            if (index === 0) {
-                infobox.classList.add('main-infobox');
-                infobox.style.marginTop = '0px';
-            }
-            var container = document.createElement('div');
-            container.className = 'collapsible-container collapsed';
-            var header = document.createElement('div');
-            header.className = 'collapsible-header';
-            var titleWrapper = document.createElement('div');
-            titleWrapper.className = 'title-wrapper';
-            var captionText = 'Infobox';
-            var bonusesCaption = infobox.querySelector('.infobox-switch-buttons-caption');
-            var primaryCaption = infobox.querySelector('.infobox-header');
+    /**
+     * A generic function to transform a given element type into a collapsible section.
+     * @param {string} selector The CSS selector for the elements to transform (e.g., 'table.infobox').
+     * @param {string} defaultTitle The default title to use for the header if one cannot be found.
+     * @param {number} index The index of the element, used for special casing the first infobox.
+     * @param {HTMLElement} element The element to transform.
+     */
+    function transformElement(selector, defaultTitle, index, element) {
+        // Do not re-process an element that is already inside a collapsible container.
+        if (element.closest('.collapsible-container')) {
+            return;
+        }
+
+        // Special handling for the first infobox on the page.
+        if (selector === 'table.infobox' && index === 0) {
+            element.classList.add('main-infobox');
+            element.style.marginTop = '0px';
+        }
+
+        var container = document.createElement('div');
+        container.className = 'collapsible-container collapsed';
+
+        var header = document.createElement('div');
+        header.className = 'collapsible-header';
+
+        var titleWrapper = document.createElement('div');
+        titleWrapper.className = 'title-wrapper';
+
+        // Attempt to find a descriptive caption for the element.
+        var captionText = defaultTitle;
+        if (selector === 'table.infobox') {
+            const bonusesCaption = element.querySelector('.infobox-switch-buttons-caption');
+            const primaryCaption = element.querySelector('.infobox-header');
             if (bonusesCaption && bonusesCaption.innerText.trim() !== '') {
                 captionText = 'Equipment bonuses';
             } else if (primaryCaption && primaryCaption.innerText.trim() !== '') {
                 captionText = primaryCaption.innerText.trim();
             }
-            var icon = document.createElement('span');
-            icon.className = 'icon';
-            header.appendChild(titleWrapper);
-            header.appendChild(icon);
-            infobox.parentNode.insertBefore(container, infobox);
-            container.appendChild(header);
-            var content = document.createElement('div');
-            content.className = 'collapsible-content';
-            content.appendChild(infobox);
-            container.appendChild(content);
-            updateHeaderText(container, titleWrapper, captionText);
-            setupCollapsible(header, container, titleWrapper, captionText);
-        });
-    }
-
-    function transformTables() {
-        const tables = document.querySelectorAll('table.wikitable');
-        tables.forEach(function(table) {
-            if (table.closest('.collapsible-container')) { return; }
-            var container = document.createElement('div');
-            container.className = 'collapsible-container collapsed';
-            var header = document.createElement('div');
-            header.className = 'collapsible-header';
-            var titleWrapper = document.createElement('div');
-            titleWrapper.className = 'title-wrapper';
-            var captionText = 'Table';
-            var caption = table.querySelector('caption');
+        } else {
+            const caption = element.querySelector('caption, th'); // Use caption or first table header
             if (caption && caption.innerText.trim() !== '') {
                 captionText = caption.innerText.trim();
-                caption.style.display = 'none';
+                if (caption.tagName === 'CAPTION') {
+                    caption.style.display = 'none'; // Hide original caption
+                }
             }
-            var icon = document.createElement('span');
-            icon.className = 'icon';
-            header.appendChild(titleWrapper);
-            header.appendChild(icon);
-            table.parentNode.insertBefore(container, table);
-            container.appendChild(header);
-            var content = document.createElement('div');
-            content.className = 'collapsible-content';
-            content.appendChild(table);
-            container.appendChild(content);
-            updateHeaderText(container, titleWrapper, captionText);
-            setupCollapsible(header, container, titleWrapper, captionText);
-        });
+        }
+
+        var icon = document.createElement('span');
+        icon.className = 'icon';
+
+        header.appendChild(titleWrapper);
+        header.appendChild(icon);
+
+        // Insert the new container before the original element.
+        element.parentNode.insertBefore(container, element);
+
+        // Move the original element inside the new content wrapper.
+        container.appendChild(header);
+        var content = document.createElement('div');
+        content.className = 'collapsible-content';
+        content.appendChild(element);
+        container.appendChild(content);
+
+        // Final setup.
+        updateHeaderText(container, titleWrapper, captionText);
+        setupCollapsible(header, container, titleWrapper, captionText);
     }
 
     function preloadCollapsibleImages() {
@@ -178,8 +179,11 @@
 
     function initialize() {
         preloadCollapsibleImages();
-        transformInfoboxes();
-        transformTables();
+
+        // Use the new generic transformer for all collapsible types.
+        document.querySelectorAll('table.infobox').forEach((el, i) => transformElement('table.infobox', 'Infobox', i, el));
+        document.querySelectorAll('table.wikitable').forEach((el, i) => transformElement('table.wikitable', 'Table', i, el));
+        document.querySelectorAll('table.navbox').forEach((el, i) => transformElement('table.navbox', 'Navigation', i, el));
     }
 
     if (document.readyState === 'loading') {

@@ -23,6 +23,10 @@
     --wikitable-bg: var(--body-light);
     --wikitable-color: var(--text-color);
     --wikitable-alternating-bg: #e9e3d6;
+    --navbox-background: var(--wikitable-bg);
+    --navbox-border: var(--wikitable-border);
+    --navbox-title-background: var(--wikitable-header-bg);
+    --navbox-group-title-background: var(--wikitable-header-bg);
     --ooui-interface: var(--body-light);
     --ooui-interface-border: var(--body-border);
     --mw-code-background-color: #ddd4bb;
@@ -54,6 +58,10 @@ body.theme-wikipedia-light {
     --wikitable-bg: var(--body-main);
     --wikitable-alternating-bg: var(--body-light);
     --wikitable-color: var(--text-color);
+    --navbox-background: var(--wikitable-bg);
+    --navbox-border: var(--wikitable-border);
+    --navbox-title-background: var(--wikitable-header-bg);
+    --navbox-group-title-background: var(--wikitable-header-bg);
     --ooui-interface: var(--body-light);
     --ooui-interface-border: var(--body-border);
     --mw-code-background-color: var(--body-dark-shade);
@@ -85,6 +93,10 @@ body.theme-osrs-dark {
     --wikitable-bg: #3e362f;
     --wikitable-color: var(--text-color);
     --wikitable-alternating-bg: #372e27;
+    --navbox-background: var(--wikitable-bg);
+    --navbox-border: var(--wikitable-border);
+    --navbox-title-background: var(--wikitable-header-bg);
+    --navbox-group-title-background: var(--wikitable-header-bg);
     --ooui-interface: #312a25;
     --ooui-interface-border: #483e37;
     --mw-code-background-color: var(--body-dark-shade);
@@ -116,6 +128,10 @@ body.theme-wikipedia-dark {
     --wikitable-bg: var(--body-main);
     --wikitable-alternating-bg: var(--body-light);
     --wikitable-color: var(--text-color);
+    --navbox-background: var(--wikitable-bg);
+    --navbox-border: var(--wikitable-border);
+    --navbox-title-background: var(--wikitable-header-bg);
+    --navbox-group-title-background: var(--wikitable-header-bg);
     --ooui-interface: var(--body-light);
     --ooui-interface-border: var(--body-border);
     --mw-code-background-color: var(--body-dark-shade);
@@ -147,6 +163,10 @@ body.theme-wikipedia-black {
     --wikitable-bg: var(--body-main);
     --wikitable-alternating-bg: var(--body-light);
     --wikitable-color: var(--text-color);
+    --navbox-background: var(--wikitable-bg);
+    --navbox-border: var(--wikitable-border);
+    --navbox-title-background: var(--wikitable-header-bg);
+    --navbox-group-title-background: var(--wikitable-header-bg);
     --ooui-interface: var(--body-light);
     --ooui-interface-border: var(--body-border);
     --mw-code-background-color: var(--body-dark-shade);

@@ -13,6 +13,7 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/base.css",
         "styles/layout.css",
         "styles/components.css",
+        "styles/navbox_styles.css",
         "web/collapsible_tables.css",
         "styles/fixes.css"
     )
