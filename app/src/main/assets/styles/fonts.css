@@ -1,0 +1,10 @@
+@font-face {
+  font-family: 'runescape_plain';
+  /* The URL is the virtual path handled by WebViewAssetLoader. */
+  src: url('https://appassets.androidplatform.net/res/font/runescape_plain.ttf');
+}
+
+@font-face {
+  font-family: 'runescape_bold';
+  src: url('https://appassets.androidplatform.net/res/font/runescape_bold.ttf');
+}

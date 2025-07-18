@@ -52,9 +52,9 @@ table.sortable th::after {
 }
 
 /*
-  * 3. Unsorted State (stacked, faint up/down arrows).
-  * Uses calc() to precisely control the gap between the triangles.
-  */
+ * 3. Unsorted State (stacked, faint up/down arrows).
+ * Uses calc() to precisely control the gap between the triangles.
+ */
 table.sortable th:not([aria-sort])::before {
     /* Faint up arrow. */
     /* Calculation to center the combined icon (2 arrows + gap):
@@ -79,9 +79,9 @@ table.sortable th:not([aria-sort])::after {
 }
 
 /*
-  * 4. Sorted States (single, solid arrow, vertically centered).
-  * The CSS rules remain inverted to counteract the Tablesort.js bug.
-  */
+ * 4. Sorted States (single, solid arrow, vertically centered).
+ * The CSS rules remain inverted to counteract the Tablesort.js bug.
+ */
 th[aria-sort="ascending"]::after {
     /* Solid down arrow, vertically centered */
     top: 50%;
@@ -106,7 +106,7 @@ th[aria-sort="descending"]::after {
     font-size: 0.85em;
     width: auto;
     max-width: 450px;
-    margin: 1em auto;
+    margin: 0.5em auto 1em auto; /* Match web vertical margins, but keep horizontal centering */
     float: none;
     clear: both;
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
@@ -143,6 +143,18 @@ hr {
     height: 1px;
     background-color: var(--sidebar-color);
     margin: 1em 0;
+}
+
+/* --- Hatnote Styles --- */
+/* Styles for notes at the top of a page (e.g., disambiguation links) */
+.hatnote {
+    font-style: italic;
+    margin-bottom: 0.5em;
+}
+
+/* Collapse space between adjacent hatnotes */
+.hatnote + .hatnote {
+    margin-top: -0.5em;
 }
 
 /* --- Relative Location Table --- */
@@ -253,3 +265,18 @@ table.relative-location td {
     font-size: 0.9em;
     line-height: 1.4em;
 }
+
+/* --- In-Game Message Style --- */
+/* Style for text that mimics an in-game message box */
+.font-runescape {
+    font-family: 'runescape_plain', sans-serif;
+    color: white;
+    font-size: 12pt;
+    text-shadow: 0.5px 0.5px 0px #000;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 5px;
+    border-radius: 1.5px;
+    /* Prevent this style from affecting line-height of the paragraph */
+    vertical-align: middle;
+}
+

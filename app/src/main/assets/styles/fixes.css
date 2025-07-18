@@ -33,11 +33,10 @@ li img.mw-file-element {
 
 /*
  * REGRESSION FIX & REFACTOR: Horizontally align figures with the
- * .mw-halign-center class and all standalone file figures
- * ([typeof^="mw:File"]) by default.
+ * .mw-halign-center class, and any non-floated standalone figures.
  */
 figure.mw-halign-center,
-figure[typeof^="mw:File"] {
+figure[typeof^="mw:File"]:not(.mw-halign-left):not(.mw-halign-right) {
     display: block;
     width: fit-content;
     width: -moz-fit-content;
@@ -47,10 +46,9 @@ figure[typeof^="mw:File"] {
 
 /*
  * FIX: Add container styling (border, background) to standalone file figures,
- * but ONLY if they have a non-empty caption. This prevents uncaptioned images
- * from being boxed in.
+ * but ONLY if they have a non-empty caption AND are NOT floated.
  */
-figure[typeof^="mw:File"]:has(figcaption:not(:empty)) {
+figure[typeof^="mw:File"]:has(figcaption:not(:empty)):not(.mw-halign-left):not(.mw-halign-right) {
     background-color: var(--body-light);
     border: 1px solid var(--body-border);
     padding: 4px;
@@ -58,8 +56,8 @@ figure[typeof^="mw:File"]:has(figcaption:not(:empty)) {
 }
 
 /*
- * FIX: Make the link wrapping the figure image a block element.
- * The text-align property is retained as a fallback.
+ * FIX: Make the link wrapping the figure image a block element
+ * and center the image within it.
  */
 figure[typeof^="mw:File"] > a {
     display: block;
@@ -94,5 +92,15 @@ figure > figcaption,
  * Hide empty caption blocks to prevent rendering empty boxes.
  */
 figcaption:empty {
+    display: none;
+}
+
+/*
+ * FIX: Hide captions on floated images (.mw-halign-left, .mw-halign-right)
+ * to match the live wiki's behavior. Captions on these elements are
+ * suppressed to prevent layout issues with wrapped text.
+ */
+.mw-halign-left > figcaption,
+.mw-halign-right > figcaption {
     display: none;
 }
