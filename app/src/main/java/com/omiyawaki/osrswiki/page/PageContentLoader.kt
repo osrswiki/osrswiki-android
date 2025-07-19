@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import org.jsoup.parser.Parser
 import java.net.URLEncoder
 
 class PageContentLoader(
@@ -36,7 +37,9 @@ class PageContentLoader(
         if (rawHtml == null) {
             return null
         }
-        val document = Jsoup.parse(rawHtml)
+        // Experiment: Use the faster XML parser instead of the default HTML parser.
+        // This assumes the input from the MediaWiki API is well-formed.
+        val document = Jsoup.parse(rawHtml, "", Parser.xmlParser())
         val siteUrl = WikiSite.OSRS_WIKI.url()
         val urlAttributes = listOf("src", "href", "srcset")
         urlAttributes.forEach { attr ->
@@ -67,37 +70,35 @@ class PageContentLoader(
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         // This is the old flow and remains unchanged for now.
-        // ... (original implementation)
     }
 
     fun loadPageById(pageId: Int, initialDisplayTitle: String?, theme: Theme, forceNetwork: Boolean = false) {
         val displayTitleDuringLoad = initialDisplayTitle ?: context.getString(R.string.label_loading)
-        pageViewModel.uiState = PageUiState(isLoading = true, title = displayTitleDuringLoad, pageId = pageId)
+        pageViewModel.uiState = PageUiState(isLoading = true, title = displayTitleDuringLoad, pageId = pageId, progressText = "Downloading...")
         onStateUpdated()
 
         coroutineScope.launch {
-            if (!forceNetwork && initialDisplayTitle != null) {
-                // Offline logic remains unchanged
-                // ... (original implementation)
-            }
-
-            pageAssetDownloader.downloadPageAndAssets(
+            pageAssetDownloader.downloadPriorityAssets(
                 pageId = pageId,
                 pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
             ) { progress ->
                 withContext(Dispatchers.Main) {
-                    pageViewModel.uiState = pageViewModel.uiState.copy(progress = progress)
+                    pageViewModel.uiState = pageViewModel.uiState.copy(
+                        progress = progress,
+                        progressText = "Downloading priority assets..."
+                    )
                     onStateUpdated()
                 }
-            }.onSuccess { parseResult ->
+            }.onSuccess { downloadResult ->
+                val parseResult = downloadResult.parseResult
                 val bodyContent = preprocessHtmlContent(parseResult.text) ?: ""
                 val title = parseResult.displaytitle ?: parseResult.title ?: ""
 
                 // Use the PageHtmlBuilder to construct the final, styled document.
                 val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(title, bodyContent, theme)
 
-                pageViewModel.uiState = PageUiState(
-                    isLoading = false,
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = true,
                     error = null,
                     pageId = parseResult.pageid,
                     title = title,
@@ -107,9 +108,13 @@ class PageContentLoader(
                     revisionId = parseResult.revid,
                     lastFetchedTimestamp = System.currentTimeMillis(),
                     isCurrentlyOffline = false,
-                    progress = 100
+                    progress = 50,
+                    progressText = "Rendering page..."
                 )
                 onStateUpdated()
+
+                // Re-enable the background download.
+                pageAssetDownloader.downloadBackgroundAssets(coroutineScope, downloadResult.backgroundUrls)
             }.onFailure { exception ->
                 pageViewModel.uiState = pageViewModel.uiState.copy(
                     isLoading = false,
@@ -118,5 +123,26 @@ class PageContentLoader(
                 onStateUpdated()
             }
         }
+    }
+
+    fun updateRenderProgress(progress: Int) {
+        // Only update if we are in the rendering phase (50-99).
+        // This prevents overwriting the final 100% state.
+        if (pageViewModel.uiState.progress in 50..99) {
+            pageViewModel.uiState = pageViewModel.uiState.copy(
+                progress = progress,
+                progressText = "Rendering page..."
+            )
+            onStateUpdated()
+        }
+    }
+
+    fun onPageRendered() {
+        pageViewModel.uiState = pageViewModel.uiState.copy(
+            isLoading = false,
+            progress = 100,
+            progressText = "Finished"
+        )
+        onStateUpdated()
     }
 }

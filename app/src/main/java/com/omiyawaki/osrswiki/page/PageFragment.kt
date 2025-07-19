@@ -35,7 +35,7 @@ import com.omiyawaki.osrswiki.views.ObservableWebView
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
-class PageFragment : Fragment() {
+class PageFragment : Fragment(), RenderCallback {
 
     interface Callback {
         fun onPageStartActionMode(callback: ActionMode.Callback)
@@ -122,14 +122,6 @@ class PageFragment : Fragment() {
         pageWebViewManager = PageWebViewManager(
             webView = binding.pageWebView,
             linkHandler = pageLinkHandler,
-            onPageReady = {
-                if (isAdded && _binding != null) {
-                    binding.pageWebView.visibility = View.VISIBLE
-                    pageHistoryManager.logPageVisit()
-                    fetchTableOfContents()
-                    binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
-                }
-            },
             onTitleReceived = { newTitle ->
                 if (isAdded) {
                     val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
@@ -137,20 +129,12 @@ class PageFragment : Fragment() {
                 }
             },
             jsInterface = nativeMapHandler.jsInterface,
-            jsInterfaceName = "OsrsWikiBridge"
-        )
-
-        binding.pageWebView.webChromeClient = object : WebChromeClient() {
-            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                if (consoleMessage != null) {
-                    Log.d(
-                        "JsConsole",
-                        "${consoleMessage.message()} -- From line ${consoleMessage.lineNumber()} of ${consoleMessage.sourceId()}"
-                    )
-                }
-                return true
+            jsInterfaceName = "OsrsWikiBridge",
+            renderCallback = this,
+            onRenderProgress = { progress ->
+                pageContentLoader.updateRenderProgress(progress)
             }
-        }
+        )
 
         val pageActionTabLayout = callback?.getPageActionTabLayout()
         if (pageActionTabLayout != null) {
@@ -284,6 +268,15 @@ class PageFragment : Fragment() {
                     L.e("Failed to parse TOC JSON", e)
                 }
             }
+        }
+    }
+
+    override fun onPageFinishedRendering() {
+        if (isAdded && _binding != null) {
+            pageHistoryManager.logPageVisit()
+            fetchTableOfContents()
+            binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
+            pageContentLoader.onPageRendered()
         }
     }
 
