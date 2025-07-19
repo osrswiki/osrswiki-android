@@ -32,7 +32,52 @@ class PageContentLoader(
     }
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
-        // This is the old flow and remains unchanged for now.
+        pageViewModel.uiState = PageUiState(isLoading = true, title = articleQueryTitle, progressText = "Downloading...")
+        onStateUpdated()
+
+        coroutineScope.launch {
+            pageAssetDownloader.downloadPriorityAssetsByTitle(
+                title = articleQueryTitle,
+                pageUrl = WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)
+            ) { progress ->
+                withContext(Dispatchers.Main) {
+                    pageViewModel.uiState = pageViewModel.uiState.copy(
+                        progress = progress,
+                        progressText = "Downloading priority assets..."
+                    )
+                    onStateUpdated()
+                }
+            }.onSuccess { downloadResult ->
+                val parseResult = downloadResult.parseResult
+                val bodyContent = downloadResult.processedHtml
+                val title = parseResult.displaytitle ?: parseResult.title ?: ""
+
+                val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(title, bodyContent, theme)
+
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = true,
+                    error = null,
+                    pageId = parseResult.pageid,
+                    title = title,
+                    plainTextTitle = parseResult.title,
+                    htmlContent = finalHtml,
+                    wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(parseResult.title ?: ""),
+                    revisionId = parseResult.revid,
+                    lastFetchedTimestamp = System.currentTimeMillis(),
+                    isCurrentlyOffline = false,
+                    progress = 50,
+                    progressText = "Rendering page..."
+                )
+                onStateUpdated()
+                pageAssetDownloader.downloadBackgroundAssets(coroutineScope, downloadResult.backgroundUrls)
+            }.onFailure { exception ->
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = false,
+                    error = "Failed to load page: ${exception.message}"
+                )
+                onStateUpdated()
+            }
+        }
     }
 
     fun loadPageById(pageId: Int, initialDisplayTitle: String?, theme: Theme, forceNetwork: Boolean = false) {
