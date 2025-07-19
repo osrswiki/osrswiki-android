@@ -48,12 +48,16 @@ class PageHtmlBuilder(private val context: Context) {
             "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
         }
 
+        // Experiment: Preload the main web font to improve rendering performance.
+        val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
+
         return """
             <!DOCTYPE html>
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${documentTitle}</title>
+                ${fontPreloadLink}
                 ${cssLinks}
             </head>
             <body class="$themeClass" style="visibility: hidden;">
