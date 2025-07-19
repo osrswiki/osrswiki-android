@@ -30,9 +30,26 @@ class PageAssetDownloader(
     private val wikiApiService: WikiApiService,
     private val okHttpClient: OkHttpClient
 ) {
-    private val logTag = "PageLoadTrace"
+    private val logTag = "PageAssetDownloader"
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
     private val downloadSemaphore = Semaphore(8)
+
+    suspend fun downloadPriorityAssetsByTitle(
+        title: String,
+        pageUrl: String,
+        progressReporter: suspend (Int) -> Unit
+    ): Result<DownloadResult> = coroutineScope {
+        try {
+            val htmlDataDeferred = async(Dispatchers.IO) { wikiApiService.getArticleTextContentByTitle(title) }
+            val htmlResponse = htmlDataDeferred.await()
+            val parseResult = htmlResponse.parse
+                ?: return@coroutineScope Result.failure(Exception("Failed to parse API response for title: $title"))
+            processAndDownloadAssets(parseResult, pageUrl, progressReporter)
+        } catch (e: Exception) {
+            Log.e(logTag, "Download by title failed for '$title'", e)
+            Result.failure(e)
+        }
+    }
 
     suspend fun downloadPriorityAssets(
         pageId: Int,
@@ -40,57 +57,49 @@ class PageAssetDownloader(
         progressReporter: suspend (Int) -> Unit
     ): Result<DownloadResult> = coroutineScope {
         try {
-            var parseResult: ParseResult
-            val apiCallTime = measureTimeMillis {
-                val htmlDataDeferred = async(Dispatchers.IO) { wikiApiService.getArticleParseDataByPageId(pageId) }
-                val htmlResponse = htmlDataDeferred.await()
-                parseResult = htmlResponse.parse
-                    ?: return@coroutineScope Result.failure(Exception("Failed to parse API response."))
-            }
-            Log.d(logTag, "API call getArticleParseDataByPageId() took ${apiCallTime}ms")
-
-            val rawHtmlContent = parseResult.text ?: ""
-
-            // This is the new single-pass processing block.
-            var processedHtml: String
-            var priorityUrls: List<String>
-            var backgroundUrls: List<String>
-            val processingTime = measureTimeMillis {
-                val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
-                val (pUrls, bUrls) = extractAssetUrls(document)
-                priorityUrls = pUrls
-                backgroundUrls = bUrls
-                processedHtml = preprocessHtml(document)
-            }
-            Log.d(logTag, "Single-pass HTML processing took ${processingTime}ms")
-
-            Log.d(logTag, " - Priority assets: ${priorityUrls.size}, Background assets: ${backgroundUrls.size}")
-
-            val totalAssets = 1 + priorityUrls.size
-            val assetsDownloaded = AtomicInteger(0)
-
-            val htmlBytes = rawHtmlContent.toByteArray()
-            AssetCache.put(pageUrl, htmlBytes)
-            val initialProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
-            progressReporter(initialProgress)
-
-            coroutineScope {
-                priorityUrls.forEach { imageUrl ->
-                    launch(Dispatchers.IO) {
-                        downloadSemaphore.withPermit {
-                            downloadAndCache(imageUrl)
-                            val currentProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
-                            progressReporter(currentProgress)
-                        }
-                    }
-                }
-            }
-            Result.success(DownloadResult(processedHtml, parseResult, backgroundUrls))
+            val htmlDataDeferred = async(Dispatchers.IO) { wikiApiService.getArticleParseDataByPageId(pageId) }
+            val htmlResponse = htmlDataDeferred.await()
+            val parseResult = htmlResponse.parse
+                ?: return@coroutineScope Result.failure(Exception("Failed to parse API response for pageId: $pageId"))
+            processAndDownloadAssets(parseResult, pageUrl, progressReporter)
         } catch (e: Exception) {
-            Log.e(logTag, " - Download failed with exception", e)
+            Log.e(logTag, "Download by ID failed for '$pageId'", e)
             Result.failure(e)
         }
     }
+
+    private suspend fun processAndDownloadAssets(
+        parseResult: ParseResult,
+        pageUrl: String,
+        progressReporter: suspend (Int) -> Unit
+    ): Result<DownloadResult> = coroutineScope {
+        val rawHtmlContent = parseResult.text ?: ""
+        val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
+        val (priorityUrls, backgroundUrls) = extractAssetUrls(document)
+        val processedHtml = preprocessHtml(document)
+
+        val totalAssets = 1 + priorityUrls.size
+        val assetsDownloaded = AtomicInteger(0)
+
+        val htmlBytes = rawHtmlContent.toByteArray()
+        AssetCache.put(pageUrl, htmlBytes)
+        val initialProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
+        progressReporter(initialProgress)
+
+        coroutineScope {
+            priorityUrls.forEach { imageUrl ->
+                launch(Dispatchers.IO) {
+                    downloadSemaphore.withPermit {
+                        downloadAndCache(imageUrl)
+                        val currentProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
+                        progressReporter(currentProgress)
+                    }
+                }
+            }
+        }
+        Result.success(DownloadResult(processedHtml, parseResult, backgroundUrls))
+    }
+
 
     private fun preprocessHtml(document: Document): String {
         val siteUrl = WikiSite.OSRS_WIKI.url()
@@ -117,7 +126,6 @@ class PageAssetDownloader(
     }
 
     suspend fun downloadBackgroundAssets(scope: CoroutineScope, urls: List<String>) {
-        Log.d(logTag, "Starting background download of ${urls.size} assets.")
         scope.launch(Dispatchers.IO) {
             urls.forEach { url ->
                 launch {
@@ -141,7 +149,7 @@ class PageAssetDownloader(
                 AssetCache.put(url, bytes)
             }
         } catch (e: Exception) {
-            Log.e(logTag, " - Background download FAILED for $url", e)
+            Log.e(logTag, "Background download FAILED for $url", e)
         }
     }
 

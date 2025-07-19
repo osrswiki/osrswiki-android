@@ -308,6 +308,8 @@ class PageFragment : Fragment(), RenderCallback {
         _binding = null
     }
 
+
+
     override fun onDetach() {
         super.onDetach()
         callback = null
