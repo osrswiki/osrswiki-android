@@ -3,21 +3,18 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.theme.Theme
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.IOException
 
 class PageHtmlBuilder(private val context: Context) {
 
     private val styleSheetAssets = listOf(
         "styles/themes.css",
         "styles/base.css",
-        "styles/fonts.css", // Added fonts
+        "styles/fonts.css",
         "styles/layout.css",
         "styles/components.css",
         "styles/navbox_styles.css",
         "web/collapsible_tables.css",
-        JavaScriptActionHandler.getInfoboxSwitcherCssPath(), // Added infobox styles
+        JavaScriptActionHandler.getInfoboxSwitcherCssPath(),
         "styles/fixes.css"
     )
 
@@ -28,18 +25,6 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
         "web/horizontal_scroll_interceptor.js"
     )
-
-    private val allInlinedCss: String by lazy {
-        styleSheetAssets.joinToString(separator = "\n") { assetPath ->
-            readAsset(assetPath)
-        }
-    }
-
-    private val allInlinedJs: String by lazy {
-        jsAssetPaths.joinToString(separator = "\n") { assetPath ->
-            readAsset(assetPath)
-        }
-    }
 
     fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         val documentTitle = if (title.isBlank()) "OSRS Wiki" else title
@@ -53,36 +38,29 @@ class PageHtmlBuilder(private val context: Context) {
             else -> "" // OSRS Light is the default theme in CSS, no class needed.
         }
 
+        val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
+            // The URL must match the path handled by WebViewAssetLoader.
+            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
+        }
+
+        val jsScripts = jsAssetPaths.joinToString("\n") { assetPath ->
+            // The URL must match the path handled by WebViewAssetLoader.
+            "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+        }
+
         return """
             <!DOCTYPE html>
             <html>
             <head>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${documentTitle}</title>
-                <style>
-                    ${allInlinedCss}
-                </style>
+                ${cssLinks}
             </head>
             <body class="$themeClass" style="visibility: hidden;">
                 ${finalBodyContent}
-                <script>
-                    ${allInlinedJs}
-                </script>
+                ${jsScripts}
             </body>
             </html>
         """.trimIndent()
-    }
-
-    private fun readAsset(assetPath: String): String {
-        return try {
-            context.assets.open(assetPath).use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    reader.readText()
-                }
-            }
-        } catch (e: IOException) {
-            android.util.Log.e("PageHtmlBuilder", "Failed to read asset: $assetPath", e)
-            ""
-        }
     }
 }

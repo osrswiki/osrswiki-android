@@ -3,7 +3,6 @@ package com.omiyawaki.osrswiki.page
 import android.util.Log
 import android.view.View
 import androidx.core.view.isVisible
-import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 
 class PageUiUpdater(
@@ -24,49 +23,30 @@ class PageUiUpdater(
 
         Log.d(logTag, "PageUiUpdater.updateUi() called. isLoading: ${state.isLoading}, progress: ${state.progress}, error: ${state.error != null}, htmlContent: ${state.htmlContent != null}")
 
-        // Handle Loading State
+        // Initiate Rendering if content is ready and not already rendering.
+        // We check webView.url == null as a proxy to know if loadDataWithBaseURL has been called yet.
+        // This is the key fix: it decouples the render call from the isLoading flag.
+        if (state.htmlContent != null && binding.pageWebView.url == null) {
+            Log.d(logTag, "HTML is ready and WebView has not been loaded. Initiating render.")
+            pageWebViewManager.render(fullHtml = state.htmlContent)
+        }
+
+        // Handle Loading State and Progress Bar
         binding.progressContainer.isVisible = state.isLoading
         if (state.isLoading) {
-            state.progress?.let { progress ->
-                binding.progressBar.progress = progress
-                val progressText = "Loading page - $progress%"
-                binding.progressText.text = progressText
-                Log.d(logTag, "  - Updating progress bar: $progressText")
-            } ?: run {
-                // Default text when loading starts but progress hasn't been reported
-                binding.progressText.text = "Loading page..."
-                Log.d(logTag, "  - Showing progress bar with default text.")
-            }
+            binding.progressBar.progress = state.progress ?: 0
+            binding.progressText.text = state.progressText ?: "Loading..."
+            Log.d(logTag, " - Updating progress bar: ${binding.progressText.text} (${state.progress ?: 0}%)")
         }
 
         // Handle Error State
+        binding.errorTextView.isVisible = state.error != null
         state.error?.let {
             binding.errorTextView.text = it
-            binding.errorTextView.isVisible = true
-        } ?: run {
-            binding.errorTextView.isVisible = false
         }
 
-        // Handle Content and WebView Visibility
-        if (state.isLoading || state.error != null) {
-            binding.pageWebView.visibility = View.INVISIBLE
-        } else {
-            // This is the success state
-            if (state.htmlContent != null) {
-                // Hide webview before loading to prevent flashes of unstyled content.
-                // It will be made visible by the PageWebViewManager upon successful render.
-                binding.pageWebView.visibility = View.INVISIBLE
-                Log.d(logTag, "  - Calling pageWebViewManager.render()")
-                pageWebViewManager.render(fullHtml = state.htmlContent)
-            } else {
-                // Content is unexpectedly null after loading without error.
-                binding.pageWebView.visibility = View.VISIBLE
-                binding.pageWebView.loadData(
-                    "<!DOCTYPE html><html><body>${fragment.getString(R.string.label_content_unavailable)}</body></html>",
-                    "text/html",
-                    "UTF-8"
-                )
-            }
-        }
+        // The WebView should only become visible after loading is fully complete (isLoading=false) and there are no errors.
+        // The final reveal is handled inside PageWebViewManager to prevent content flashing.
+        binding.pageWebView.isVisible = !state.isLoading && state.error == null
     }
 }
