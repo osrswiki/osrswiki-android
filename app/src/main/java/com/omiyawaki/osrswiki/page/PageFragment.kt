@@ -23,6 +23,8 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.network.OkHttpClientFactory
+import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.model.LeadSectionDetails
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.page.model.TocData
@@ -125,7 +127,6 @@ class PageFragment : Fragment() {
                     binding.pageWebView.visibility = View.VISIBLE
                     pageHistoryManager.logPageVisit()
                     fetchTableOfContents()
-                    // This is the critical line that was missing. It triggers the map discovery.
                     binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
                 }
             },
@@ -160,10 +161,17 @@ class PageFragment : Fragment() {
         pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope, pageActionTabLayout, ::getPageTitleArg)
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
         val appDb = AppDatabase.instance
+        val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
+        val pageAssetDownloader = PageAssetDownloader(RetrofitClient.apiService, OkHttpClientFactory.offlineClient)
+
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
-            pageRepository = pageRepository, pageViewModel = pageViewModel,
-            readingListPageDao = appDb.readingListPageDao(), offlineObjectDao = appDb.offlineObjectDao(),
+            pageRepository = pageRepository,
+            pageAssetDownloader = pageAssetDownloader,
+            pageHtmlBuilder = pageHtmlBuilder,
+            pageViewModel = pageViewModel,
+            readingListPageDao = appDb.readingListPageDao(),
+            offlineObjectDao = appDb.offlineObjectDao(),
             coroutineScope = viewLifecycleOwner.lifecycleScope
         ) {
             if (isAdded && _binding != null) {
