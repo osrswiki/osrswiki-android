@@ -1,13 +1,8 @@
 package com.omiyawaki.osrswiki.network
 
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
-// MODIFIED: Import for the new ImageInfoResponse data class
+import com.omiyawaki.osrswiki.network.model.PageImagesInfo
 import com.omiyawaki.osrswiki.page.ImageInfoResponse
-
-// SearchApiResponse, ParseApiResponse, and PageImagesApiResponse are expected
-// to be in the same 'com.omiyawaki.osrswiki.network' package,
-// defined in their respective .kt files (SearchApiResponse.kt, ParseApiResponse.kt, PageImagesApiResponse.kt).
-
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -21,7 +16,7 @@ interface WikiApiService {
     @GET("api.php?action=query&list=search&format=json&srprop=snippet")
     suspend fun searchArticles(
         @Query("srsearch") query: String,    // The search term
-        @Query("srlimit") limit: Int,        // Max number of results to return
+        @Query("srlimit") limit: Int,         // Max number of results to return
         @Query("sroffset") offset: Int        // Offset for pagination
     ): SearchApiResponse // Defined in SearchApiResponse.kt
 
@@ -62,4 +57,12 @@ interface WikiApiService {
         @Query("pithumbsize") pithumbsize: Int = 500
     ): PageImagesApiResponse
 
+    /**
+     * Fetches metadata (URL and size) for all images on a given page.
+     * Uses MediaWiki API action=query with a generator for images. This is the most
+     * efficient way to get all image sizes for progress calculation.
+     * Example: https://oldschool.runescape.wiki/api.php?action=query&pageids=PAGE_ID&prop=imageinfo&iiprop=url|size&format=json&formatversion=2&generator=images
+     */
+    @GET("api.php?action=query&prop=imageinfo&iiprop=url|size&format=json&formatversion=2&generator=images")
+    suspend fun getArticleImageInfo(@Query("pageids") pageId: Int): PageImagesInfo
 }
