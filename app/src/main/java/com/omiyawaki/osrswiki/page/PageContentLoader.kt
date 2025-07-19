@@ -4,20 +4,13 @@ import android.content.Context
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
-import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
-import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.Result
-import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.jsoup.Jsoup
-import org.jsoup.parser.Parser
 import java.net.URLEncoder
 
 class PageContentLoader(
@@ -32,36 +25,6 @@ class PageContentLoader(
     private val onStateUpdated: () -> Unit
 ) {
     private val baseApiUrl = "https://oldschool.runescape.wiki/api.php"
-
-    private fun preprocessHtmlContent(rawHtml: String?): String? {
-        if (rawHtml == null) {
-            return null
-        }
-        // Experiment: Use the faster XML parser instead of the default HTML parser.
-        // This assumes the input from the MediaWiki API is well-formed.
-        val document = Jsoup.parse(rawHtml, "", Parser.xmlParser())
-        val siteUrl = WikiSite.OSRS_WIKI.url()
-        val urlAttributes = listOf("src", "href", "srcset")
-        urlAttributes.forEach { attr ->
-            document.select("[$attr]").forEach { element ->
-                val originalUrl = element.attr(attr)
-                if (originalUrl.startsWith("/") && !originalUrl.startsWith("//")) {
-                    element.attr(attr, siteUrl + originalUrl)
-                }
-            }
-        }
-        document.outputSettings().prettyPrint(false)
-        val resources = document.select("[class*=\"infobox-resources-\"]")
-        resources.remove()
-        val selectorsToRemove = listOf(
-            "tr.advanced-data",
-            "tr.leagues-global-flag",
-            "tr.infobox-padding"
-        )
-        document.select(selectorsToRemove.joinToString(", ")).remove()
-        resources.forEach { document.body().appendChild(it) }
-        return document.outerHtml()
-    }
 
     private fun constructApiParseUrlFromApiTitle(apiTitle: String): String {
         val encodedApiTitle = URLEncoder.encode(apiTitle, "UTF-8")
@@ -91,10 +54,10 @@ class PageContentLoader(
                 }
             }.onSuccess { downloadResult ->
                 val parseResult = downloadResult.parseResult
-                val bodyContent = preprocessHtmlContent(parseResult.text) ?: ""
+                // The HTML is now pre-processed. The expensive Jsoup step is gone from this class.
+                val bodyContent = downloadResult.processedHtml
                 val title = parseResult.displaytitle ?: parseResult.title ?: ""
 
-                // Use the PageHtmlBuilder to construct the final, styled document.
                 val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(title, bodyContent, theme)
 
                 pageViewModel.uiState = pageViewModel.uiState.copy(
@@ -142,6 +105,18 @@ class PageContentLoader(
             isLoading = false,
             progress = 100,
             progressText = "Finished"
+        )
+        onStateUpdated()
+    }
+
+    fun onRenderFailed(errorMessage: String) {
+        // This function is called when the WebView renderer itself crashes,
+        // which is a terminal state for the current page load.
+        pageViewModel.uiState = pageViewModel.uiState.copy(
+            isLoading = false,
+            error = errorMessage,
+            progress = null, // Clear progress as it's no longer relevant
+            progressText = null
         )
         onStateUpdated()
     }
