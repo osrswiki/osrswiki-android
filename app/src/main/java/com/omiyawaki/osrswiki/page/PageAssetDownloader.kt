@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import android.util.Log
+import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.network.WikiApiService
 import com.omiyawaki.osrswiki.network.model.ParseResult
 import com.omiyawaki.osrswiki.page.cache.AssetCache
@@ -14,12 +15,16 @@ import kotlinx.coroutines.sync.withPermit
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import org.jsoup.parser.Parser
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.Result
+import kotlin.system.measureTimeMillis
 
 data class AssetUrls(val priority: List<String>, val background: List<String>)
-data class DownloadResult(val parseResult: ParseResult, val backgroundUrls: List<String>)
+// The result now includes the fully processed HTML, ready for the WebView.
+data class DownloadResult(val processedHtml: String, val parseResult: ParseResult, val backgroundUrls: List<String>)
 
 class PageAssetDownloader(
     private val wikiApiService: WikiApiService,
@@ -35,41 +40,80 @@ class PageAssetDownloader(
         progressReporter: suspend (Int) -> Unit
     ): Result<DownloadResult> = coroutineScope {
         try {
-            val htmlDataDeferred = async(Dispatchers.IO) { wikiApiService.getArticleParseDataByPageId(pageId) }
-            val htmlResponse = htmlDataDeferred.await()
-            val parseResult = htmlResponse.parse
-                ?: return@coroutineScope Result.failure(Exception("Failed to parse API response."))
-            val htmlContent = parseResult.text ?: ""
+            var parseResult: ParseResult
+            val apiCallTime = measureTimeMillis {
+                val htmlDataDeferred = async(Dispatchers.IO) { wikiApiService.getArticleParseDataByPageId(pageId) }
+                val htmlResponse = htmlDataDeferred.await()
+                parseResult = htmlResponse.parse
+                    ?: return@coroutineScope Result.failure(Exception("Failed to parse API response."))
+            }
+            Log.d(logTag, "API call getArticleParseDataByPageId() took ${apiCallTime}ms")
 
-            val (priorityUrls, backgroundUrls) = extractAssetUrls(htmlContent)
+            val rawHtmlContent = parseResult.text ?: ""
+
+            // This is the new single-pass processing block.
+            var processedHtml: String
+            var priorityUrls: List<String>
+            var backgroundUrls: List<String>
+            val processingTime = measureTimeMillis {
+                val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
+                val (pUrls, bUrls) = extractAssetUrls(document)
+                priorityUrls = pUrls
+                backgroundUrls = bUrls
+                processedHtml = preprocessHtml(document)
+            }
+            Log.d(logTag, "Single-pass HTML processing took ${processingTime}ms")
+
             Log.d(logTag, " - Priority assets: ${priorityUrls.size}, Background assets: ${backgroundUrls.size}")
 
             val totalAssets = 1 + priorityUrls.size
             val assetsDownloaded = AtomicInteger(0)
 
-            val htmlBytes = htmlContent.toByteArray()
+            val htmlBytes = rawHtmlContent.toByteArray()
             AssetCache.put(pageUrl, htmlBytes)
             val initialProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
             progressReporter(initialProgress)
 
-            priorityUrls.forEach { imageUrl ->
-                launch(Dispatchers.IO) {
-                    downloadSemaphore.withPermit {
-                        downloadAndCache(imageUrl)
-                        val currentProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
-                        progressReporter(currentProgress)
+            coroutineScope {
+                priorityUrls.forEach { imageUrl ->
+                    launch(Dispatchers.IO) {
+                        downloadSemaphore.withPermit {
+                            downloadAndCache(imageUrl)
+                            val currentProgress = (assetsDownloaded.incrementAndGet() * 50 / totalAssets)
+                            progressReporter(currentProgress)
+                        }
                     }
                 }
             }
-            // This return needs to wait for all priority downloads to complete.
-            // A more robust implementation would use structured concurrency with a supervisor job.
-            // For now, we rely on the parent coroutineScope to wait.
-
-            Result.success(DownloadResult(parseResult, backgroundUrls))
+            Result.success(DownloadResult(processedHtml, parseResult, backgroundUrls))
         } catch (e: Exception) {
             Log.e(logTag, " - Download failed with exception", e)
             Result.failure(e)
         }
+    }
+
+    private fun preprocessHtml(document: Document): String {
+        val siteUrl = WikiSite.OSRS_WIKI.url()
+        val urlAttributes = listOf("src", "href", "srcset")
+        urlAttributes.forEach { attr ->
+            document.select("[$attr]").forEach { element ->
+                val originalUrl = element.attr(attr)
+                if (originalUrl.startsWith("/") && !originalUrl.startsWith("//")) {
+                    element.attr(attr, siteUrl + originalUrl)
+                }
+            }
+        }
+        document.outputSettings().prettyPrint(false)
+        val resources = document.select("[class*=\"infobox-resources-\"]")
+        resources.remove()
+        val selectorsToRemove = listOf(
+            "tr.advanced-data",
+            "tr.leagues-global-flag",
+            "tr.infobox-padding"
+        )
+        document.select(selectorsToRemove.joinToString(", ")).remove()
+        resources.forEach { document.body().appendChild(it) }
+        return document.outerHtml()
     }
 
     suspend fun downloadBackgroundAssets(scope: CoroutineScope, urls: List<String>) {
@@ -88,7 +132,6 @@ class PageAssetDownloader(
     private suspend fun downloadAndCache(url: String) {
         try {
             if (AssetCache.get(url) != null) {
-                Log.d(logTag, " - BG Cache HIT for $url")
                 return
             }
             val request = Request.Builder().url(url).build()
@@ -96,15 +139,13 @@ class PageAssetDownloader(
             if (response.isSuccessful) {
                 val bytes = response.body!!.bytes()
                 AssetCache.put(url, bytes)
-                Log.d(logTag, " - BG Cache MISS & DOWNLOADED for $url")
             }
         } catch (e: Exception) {
             Log.e(logTag, " - Background download FAILED for $url", e)
         }
     }
 
-    private fun extractAssetUrls(html: String): AssetUrls {
-        val document = Jsoup.parse(html)
+    private fun extractAssetUrls(document: Document): AssetUrls {
         val priorityUrls = mutableSetOf<String>()
         val allUrls = mutableSetOf<String>()
 
