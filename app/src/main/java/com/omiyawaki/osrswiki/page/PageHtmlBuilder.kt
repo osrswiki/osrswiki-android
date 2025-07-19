@@ -24,6 +24,7 @@ class PageHtmlBuilder(private val context: Context) {
 
     private val jsAssetPaths = listOf(
         "js/tablesort.min.js",
+        "js/tablesort_init.js", // Add the initialization script
         "web/collapsible_content.js",
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
