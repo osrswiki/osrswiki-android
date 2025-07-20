@@ -33,6 +33,7 @@ class PageWebViewManager(
     private val consoleTag = "WebViewConsole"
     private val managerTag = "PageWebViewManager"
     private var renderStartTime: Long = 0
+    private var pageLoaded = false
 
     private val localAssetDomain = "appassets.androidplatform.net"
 
@@ -77,6 +78,7 @@ class PageWebViewManager(
             override fun onPageFinished(view: WebView?, url: String?) {
                 val elapsedTime = System.currentTimeMillis() - renderStartTime
                 Log.d(logTag, "onPageFinished() called. Elapsed time since render(): ${elapsedTime}ms. URL: $url")
+                pageLoaded = true
                 renderCallback.onPageFinishedRendering()
                 super.onPageFinished(view, url)
                 applyThemeColors(view) {
@@ -177,6 +179,7 @@ class PageWebViewManager(
     }
 
     fun render(fullHtml: String) {
+        pageLoaded = false
         renderStartTime = System.currentTimeMillis()
         Log.d(logTag, "render() called. Starting timer to measure WebView processing time.")
         val baseUrl = "https://$localAssetDomain/"
@@ -190,6 +193,8 @@ class PageWebViewManager(
         )
         Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL(). Waiting for onPageFinished or onRenderProcessGone.")
     }
+
+    fun isPageLoaded(): Boolean = pageLoaded
 
     private fun revealBody() {
         val revealBodyJs = "document.body.style.visibility = 'visible';"

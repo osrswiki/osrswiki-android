@@ -11,8 +11,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.ConsoleMessage
-import android.webkit.WebChromeClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
@@ -116,7 +114,8 @@ class PageFragment : Fragment(), RenderCallback {
         }
         view.setBackgroundColor(ContextCompat.getColor(requireContext(), backgroundColorRes))
 
-        pageLinkHandler = PageLinkHandler(requireContext(), viewLifecycleOwner.lifecycleScope, pageRepository, currentTheme)
+        pageLinkHandler =
+            PageLinkHandler(requireContext(), viewLifecycleOwner.lifecycleScope, pageRepository, currentTheme)
         pageHistoryManager = PageHistoryManager(pageViewModel, viewLifecycleOwner.lifecycleScope) { this }
 
         pageWebViewManager = PageWebViewManager(
@@ -124,7 +123,8 @@ class PageFragment : Fragment(), RenderCallback {
             linkHandler = pageLinkHandler,
             onTitleReceived = { newTitle ->
                 if (isAdded) {
-                    val plainTextTitle = HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+                    val plainTextTitle =
+                        HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
                     (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
                 }
             },
@@ -142,11 +142,17 @@ class PageFragment : Fragment(), RenderCallback {
             pageActionTabLayout.callback = pageActionHandler.callback
         }
 
-        pageReadingListManager = PageReadingListManager(pageViewModel, readingListPageDao, viewLifecycleOwner.lifecycleScope, pageActionTabLayout, ::getPageTitleArg)
+        pageReadingListManager = PageReadingListManager(
+            pageViewModel,
+            readingListPageDao,
+            viewLifecycleOwner.lifecycleScope,
+            pageActionTabLayout,
+            ::getPageTitleArg
+        )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
-        val appDb = AppDatabase.instance
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
-        val pageAssetDownloader = PageAssetDownloader(RetrofitClient.apiService, OkHttpClientFactory.offlineClient)
+        val pageAssetDownloader =
+            PageAssetDownloader(RetrofitClient.apiService, OkHttpClientFactory.offlineClient)
 
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
@@ -154,8 +160,6 @@ class PageFragment : Fragment(), RenderCallback {
             pageAssetDownloader = pageAssetDownloader,
             pageHtmlBuilder = pageHtmlBuilder,
             pageViewModel = pageViewModel,
-            readingListPageDao = appDb.readingListPageDao(),
-            offlineObjectDao = appDb.offlineObjectDao(),
             coroutineScope = viewLifecycleOwner.lifecycleScope
         ) {
             if (isAdded && _binding != null) {
@@ -165,9 +169,13 @@ class PageFragment : Fragment(), RenderCallback {
         }
 
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
-        pageUiUpdater.updateUi()
         pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
-        binding.errorTextView.setOnClickListener { pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true) }
+        binding.errorTextView.setOnClickListener {
+            pageLoadCoordinator.initiatePageLoad(
+                currentTheme,
+                forceNetwork = true
+            )
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -198,7 +206,8 @@ class PageFragment : Fragment(), RenderCallback {
                     }
                     if (abs(dx) > abs(dy) &&
                         abs(dx) > swipeThreshold &&
-                        abs(velocityX) > swipeVelocityThreshold) {
+                        abs(velocityX) > swipeVelocityThreshold
+                    ) {
 
                         if (dx > 0) {
                             callback?.onPageSwipe(Gravity.START)
@@ -259,7 +268,8 @@ class PageFragment : Fragment(), RenderCallback {
                     val leadSection = tocData.leadSectionDetails?.let {
                         Section(0, 1, "", it.title, it.isItalic, it.isBold)
                     } ?: run {
-                        val fallbackTitle = (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
+                        val fallbackTitle =
+                            (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
                         Section(0, 1, "", fallbackTitle, isItalic = false, isBold = true)
                     }
                     val fullToc = mutableListOf(leadSection).apply { addAll(tocData.sections) }
@@ -282,7 +292,8 @@ class PageFragment : Fragment(), RenderCallback {
 
     fun showFindInPage() {
         if (isFindInPageActive) return
-        val script = "document.querySelectorAll('.collapsible-closed').forEach(function(e) { e.classList.remove('collapsible-closed'); });"
+        val script =
+            "document.querySelectorAll('.collapsible-closed').forEach(function(e) { e.classList.remove('collapsible-closed'); });"
         binding.pageWebView.evaluateJavascript(script, null)
         val manager = FindInPageManager(requireContext(), binding.pageWebView) {
             isFindInPageActive = false
