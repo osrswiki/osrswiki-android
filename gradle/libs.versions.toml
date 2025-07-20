@@ -45,6 +45,8 @@ espressoCore = "3.6.1"
 
 androidxPreferenceKtx = "1.2.1"
 
+moshi = "1.15.1"
+
 [libraries]
 # MapLibre
 maplibre-native = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
@@ -95,6 +97,9 @@ glide-ksp = { group = "com.github.bumptech.glide", name = "ksp", version.ref = "
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+
+moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
+moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

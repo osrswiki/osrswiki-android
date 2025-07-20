@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.okhttp.core)
     implementation(libs.okhttp.loggingInterceptor)
+    implementation(libs.moshi.kotlin) // Added Moshi runtime
+    ksp(libs.moshi.codegen)           // Added Moshi codegen processor
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

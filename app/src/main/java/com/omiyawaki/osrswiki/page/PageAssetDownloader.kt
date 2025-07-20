@@ -1,11 +1,12 @@
 package com.omiyawaki.osrswiki.page
 
-import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
 import com.omiyawaki.osrswiki.network.model.ParseResult
 import com.omiyawaki.osrswiki.page.cache.AssetCache
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -13,76 +14,97 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okio.Buffer
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicInteger
 
 data class AssetUrls(val priority: List<String>, val background: List<String>)
 data class DownloadResult(val processedHtml: String, val parseResult: ParseResult, val backgroundUrls: List<String>)
 
 class PageAssetDownloader(
-    private val wikiApiService: WikiApiService,
     private val okHttpClient: OkHttpClient
 ) {
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
     private val downloadSemaphore = Semaphore(8)
+    private val jsonParser = Json { ignoreUnknownKeys = true }
 
     fun downloadPriorityAssetsByTitle(title: String, pageUrl: String): Flow<DownloadProgress> = channelFlow {
         L.d("downloadPriorityAssetsByTitle: Starting flow for title: $title")
-        L.d("downloadPriorityAssetsByTitle: -> Emitting FetchingHtml")
-        send(DownloadProgress.FetchingHtml)
+        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&page=$title"
+        val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
-        val parseResult = try {
-            L.d("downloadPriorityAssetsByTitle: Starting network call for HTML.")
-            wikiApiService.getArticleTextContentByTitle(title).parse
-        } catch (e: Exception) {
-            L.e("API call failed for title: $title", e)
-            send(DownloadProgress.Failure(e))
-            return@channelFlow
-        }
-        L.d("downloadPriorityAssetsByTitle: Finished network call for HTML.")
-
-
-        if (parseResult == null) {
-            L.w("downloadPriorityAssetsByTitle: ParseResult was null for title: $title")
-            send(DownloadProgress.Failure(Exception("Failed to parse API response for title: $title")))
-            return@channelFlow
-        }
-
+        L.d("downloadPriorityAssetsByTitle: Finished HTML download, processing assets.")
         processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
     }.flowOn(Dispatchers.IO)
 
     fun downloadPriorityAssets(pageId: Int, pageUrl: String): Flow<DownloadProgress> = channelFlow {
         L.d("downloadPriorityAssets: Starting flow for pageId: $pageId")
-        L.d("downloadPriorityAssets: -> Emitting FetchingHtml")
-        send(DownloadProgress.FetchingHtml)
+        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&pageid=$pageId"
+        val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
-        val parseResult = try {
-            L.d("downloadPriorityAssets: Starting network call for HTML.")
-            wikiApiService.getArticleParseDataByPageId(pageId).parse
-        } catch (e: Exception) {
-            L.e("API call failed for pageId: $pageId", e)
-            send(DownloadProgress.Failure(e))
-            return@channelFlow
-        }
-        L.d("downloadPriorityAssets: Finished network call for HTML.")
-
-
-        if (parseResult == null) {
-            L.w("downloadPriorityAssets: ParseResult was null for pageId: $pageId")
-            send(DownloadProgress.Failure(Exception("Failed to parse API response for pageId: $pageId")))
-            return@channelFlow
-        }
-
+        L.d("downloadPriorityAssets: Finished HTML download, processing assets.")
         processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
     }.flowOn(Dispatchers.IO)
 
+    private suspend fun fetchParseResultWithProgress(url: String, flow: ProducerScope<DownloadProgress>): ParseResult? {
+        try {
+            L.d("fetchParseResultWithProgress: Starting HTML download for URL: $url")
+            val request = Request.Builder().url(url).build()
+            val response = okHttpClient.newCall(request).execute()
+
+            if (!response.isSuccessful) throw IOException("Unexpected response code: ${response.code}")
+
+            val body = response.body ?: throw IOException("Response body is null")
+            val totalBytes = body.contentLength()
+            val source = body.source()
+            val buffer = Buffer()
+            val outputStream = ByteArrayOutputStream()
+            var bytesRead = 0L
+            var lastSentProgress = -1
+
+            flow.send(DownloadProgress.FetchingHtml(0))
+
+            while (true) {
+                val readCount = source.read(buffer, 8192L)
+                if (readCount == -1L) break
+                outputStream.write(buffer.readByteArray(readCount))
+                bytesRead += readCount
+
+                if (totalBytes > 0) {
+                    val progress = ((bytesRead * 100) / totalBytes).toInt()
+                    if (progress > lastSentProgress) {
+                        flow.send(DownloadProgress.FetchingHtml(progress))
+                        lastSentProgress = progress
+                    }
+                }
+            }
+
+            val responseJson = outputStream.toString()
+            val apiResponseContainer = jsonParser.decodeFromString<ArticleParseApiResponse>(responseJson)
+
+            if (apiResponseContainer.parse == null) {
+                throw IOException("Failed to parse API response.")
+            }
+            flow.send(DownloadProgress.FetchingHtml(100))
+            return apiResponseContainer.parse
+
+        } catch (e: Exception) {
+            L.e("fetchParseResultWithProgress: Download or parse failed for $url", e)
+            flow.send(DownloadProgress.Failure(e))
+            return null
+        }
+    }
+
     private fun processAndDownloadAssets(parseResult: ParseResult, pageUrl: String): Flow<DownloadProgress> = channelFlow {
-        val rawHtmlContent = parseResult.text ?: ""
+        val rawHtmlContent = parseResult.text?.content ?: ""
         val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
         val (priorityUrls, backgroundUrls) = extractAssetUrls(document)
         val processedHtml = preprocessHtml(document)
@@ -176,7 +198,7 @@ class PageAssetDownloader(
 }
 
 sealed class DownloadProgress {
-    object FetchingHtml : DownloadProgress()
+    data class FetchingHtml(val progress: Int) : DownloadProgress()
     data class FetchingAssets(val progress: Int) : DownloadProgress()
     data class Success(val result: DownloadResult) : DownloadProgress()
     data class Failure(val error: Throwable) : DownloadProgress()

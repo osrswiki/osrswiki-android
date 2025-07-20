@@ -74,11 +74,11 @@ class PageRepository(
             return@coroutineScope Result.Error("Failed to extract image URL for File page: $title")
         }
 
-        val descriptionHtml = parseResult.text ?: ""
+        val descriptionHtml = parseResult.text?.content ?: ""
         val imageTag = "<img src=\"$imageUrl\" style=\"background-color: #333;\"/>"
         val combinedContent = "$imageTag<br/>$descriptionHtml"
 
-        val canonicalTitle = parseResult.title!!
+        val canonicalTitle = parseResult.title
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
         val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme)
 
@@ -86,7 +86,7 @@ class PageRepository(
             isLoading = false,
             error = null,
             imageUrl = imageUrl,
-            pageId = parseResult.pageid!!,
+            pageId = parseResult.pageid,
             title = displayTitle,
             plainTextTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle,
             htmlContent = finalHtml,
@@ -103,12 +103,12 @@ class PageRepository(
         return when (networkResult) {
             is Result.Success -> {
                 val parseResult = networkResult.data
-                val canonicalTitle = parseResult.title!!
+                val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme)
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!.content, theme)
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
-                    pageId = parseResult.pageid!!,
+                    pageId = parseResult.pageid,
                     title = displayTitle,
                     plainTextTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle,
                     htmlContent = htmlContent,
@@ -131,12 +131,12 @@ class PageRepository(
         return when (networkResult) {
             is Result.Success -> {
                 val parseResult = networkResult.data
-                val canonicalTitle = parseResult.title!!
+                val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
                 // Saving offline uses the default light theme, as it has no user context.
-                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, Theme.DEFAULT_LIGHT)
+                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!.content, Theme.DEFAULT_LIGHT)
                 localDataSource.saveArticle(
-                    pageId = parseResult.pageid!!,
+                    pageId = parseResult.pageid,
                     canonicalTitle = canonicalTitle,
                     revisionId = parseResult.revid,
                     fullHtmlContent = fullHtmlToSave
