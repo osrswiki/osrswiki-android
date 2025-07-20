@@ -37,28 +37,39 @@ class PageContentLoader(
     }
 
     private suspend fun handleDownloadProgress(progress: DownloadProgress, theme: Theme) {
-        withContext(Dispatchers.Main) {
-            when (progress) {
-                is DownloadProgress.FetchingHtml -> {
+        when (progress) {
+            is DownloadProgress.FetchingHtml -> {
+                withContext(Dispatchers.Main) {
                     val scaledProgress = 5 + (progress.progress * 0.05).toInt()
                     L.d("handleDownloadProgress: Received FetchingHtml ${progress.progress}%. Setting scaled progress to $scaledProgress%.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         progress = scaledProgress,
                         progressText = "Downloading..."
                     )
+                    onStateUpdated()
                 }
-                is DownloadProgress.FetchingAssets -> {
+            }
+            is DownloadProgress.FetchingAssets -> {
+                withContext(Dispatchers.Main) {
                     val scaledProgress = 10 + (progress.progress * 0.40).toInt()
                     L.d("handleDownloadProgress: Received FetchingAssets ${progress.progress}%. Setting scaled progress to $scaledProgress%.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         progress = scaledProgress,
                         progressText = "Downloading assets..."
                     )
+                    onStateUpdated()
                 }
-                is DownloadProgress.Success -> {
+            }
+            is DownloadProgress.Success -> {
+                val result = progress.result
+                // Perform CPU-intensive HTML string building on a background thread.
+                val finalHtml = withContext(Dispatchers.Default) {
+                    L.d("handleDownloadProgress: Building final HTML on background thread.")
+                    pageHtmlBuilder.buildFullHtmlDocument(result.parseResult.displaytitle ?: "", result.processedHtml, theme)
+                }
+                // Switch back to the main thread to update the UI and state.
+                withContext(Dispatchers.Main) {
                     L.d("handleDownloadProgress: Received Success. Setting progress to 50%.")
-                    val result = progress.result
-                    val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(result.parseResult.displaytitle ?: "", result.processedHtml, theme)
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         isLoading = true, error = null, pageId = result.parseResult.pageid,
                         title = result.parseResult.displaytitle ?: result.parseResult.title,
@@ -68,15 +79,18 @@ class PageContentLoader(
                         isCurrentlyOffline = false, progress = 50, progressText = "Rendering page..."
                     )
                     pageAssetDownloader.downloadBackgroundAssets(CoroutineScope(Dispatchers.IO), result.backgroundUrls)
+                    onStateUpdated()
                 }
-                is DownloadProgress.Failure -> {
+            }
+            is DownloadProgress.Failure -> {
+                withContext(Dispatchers.Main) {
                     L.w("handleDownloadProgress: Received Failure: ${progress.error.message}.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         isLoading = false, error = "Failed to load page: ${progress.error.message}"
                     )
+                    onStateUpdated()
                 }
             }
-            onStateUpdated()
         }
     }
 
