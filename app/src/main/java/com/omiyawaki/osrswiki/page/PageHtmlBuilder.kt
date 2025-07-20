@@ -31,6 +31,21 @@ class PageHtmlBuilder(private val context: Context) {
         "web/horizontal_scroll_interceptor.js"
     )
 
+    private val timelineLoggerScript = """
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+                    window.RenderTimeline.log('Event: DOMContentLoaded');
+                }
+            });
+            window.addEventListener('load', function() {
+                if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+                    window.RenderTimeline.log('Event: window.load');
+                }
+            });
+        </script>
+    """.trimIndent()
+
     fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         var finalHtml: String
         val time = measureTimeMillis {
@@ -70,6 +85,7 @@ class PageHtmlBuilder(private val context: Context) {
                 <body class="$themeClass" style="visibility: hidden;">
                     ${finalBodyContent}
                     ${jsScripts}
+                    ${timelineLoggerScript}
                 </body>
                 </html>
             """.trimIndent()

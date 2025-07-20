@@ -159,3 +159,13 @@
         initialize();
     }
 })();
+
+//
+// OSRSWiki App: Signal to the native layer that styling is complete.
+//
+(function() {
+    if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+        // This is the signal our native code will wait for before revealing the page.
+        window.RenderTimeline.log('Event: StylingScriptsComplete');
+    }
+})();

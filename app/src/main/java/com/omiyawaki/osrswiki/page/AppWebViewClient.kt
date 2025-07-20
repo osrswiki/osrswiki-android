@@ -50,12 +50,14 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
-        Log.d(logTag, "AppWebViewClient.onPageStarted: $url")
+        Log.d(logTag, "--> WebView Event: onPageStarted()")
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        Log.d(logTag, "AppWebViewClient.onPageFinished: $url")
+        // This log is for the base class. The more detailed "onPageFinished" with timing
+        // is in the PageWebViewManager's anonymous class override.
+        Log.d(logTag, "AppWebViewClient.onPageFinished (super class call)")
     }
 
     override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
