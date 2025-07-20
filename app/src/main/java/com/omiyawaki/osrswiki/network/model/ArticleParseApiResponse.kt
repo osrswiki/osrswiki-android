@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.network.model
 
-import kotlinx.serialization.Serializable // Import for kotlinx.serialization
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /**
  * Represents the top-level response from the MediaWiki API's parse action.
@@ -14,11 +15,19 @@ data class ArticleParseApiResponse(
  * Contains the actual parsed article data.
  */
 @Serializable
-@Suppress("unused")
 data class ParseResult(
-    val title: String? = null,
-    val pageid: Int? = null,
-    val revid: Long? = null,
-    val text: String? = null, // Comma added as displaytitle follows
-    val displaytitle: String? = null // New field
+    val title: String,
+    val pageid: Int,
+    val revid: Long,
+    val text: TextObject?,
+    val displaytitle: String?
+)
+
+/**
+ * Represents the nested "text" object in the API response.
+ */
+@Serializable
+data class TextObject(
+    @SerialName("*")
+    val content: String
 )

@@ -40,9 +40,10 @@ class PageContentLoader(
         withContext(Dispatchers.Main) {
             when (progress) {
                 is DownloadProgress.FetchingHtml -> {
-                    L.d("handleDownloadProgress: Received FetchingHtml. Setting progress to 5%.")
+                    val scaledProgress = 5 + (progress.progress * 0.05).toInt()
+                    L.d("handleDownloadProgress: Received FetchingHtml ${progress.progress}%. Setting scaled progress to $scaledProgress%.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
-                        progress = 5,
+                        progress = scaledProgress,
                         progressText = "Downloading..."
                     )
                 }

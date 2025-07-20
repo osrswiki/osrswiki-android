@@ -151,8 +151,7 @@ class PageFragment : Fragment(), RenderCallback {
         )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
-        val pageAssetDownloader =
-            PageAssetDownloader(RetrofitClient.apiService, OkHttpClientFactory.offlineClient)
+        val pageAssetDownloader = PageAssetDownloader(OkHttpClientFactory.offlineClient)
 
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
