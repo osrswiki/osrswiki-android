@@ -30,6 +30,9 @@ import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.ObservableWebView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
@@ -259,33 +262,48 @@ class PageFragment : Fragment(), RenderCallback {
             })();
         """.trimIndent()
         binding.pageWebView.evaluateJavascript(script) { jsonString ->
-            if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
-                try {
-                    val unescapedJson = Json.decodeFromString<String>(jsonString)
-                    val tocData = Json.decodeFromString<TocData>(unescapedJson)
+            // Coroutine to move parsing off the main thread.
+            viewLifecycleOwner.lifecycleScope.launch {
+                if (jsonString != null && jsonString != "null" && jsonString != "\"\"") {
+                    try {
+                        val fullToc = withContext(Dispatchers.Default) {
+                            // Heavy parsing now happens on a background thread.
+                            val unescapedJson = Json.decodeFromString<String>(jsonString)
+                            val tocData = Json.decodeFromString<TocData>(unescapedJson)
 
-                    val leadSection = tocData.leadSectionDetails?.let {
-                        Section(0, 1, "", it.title, it.isItalic, it.isBold)
-                    } ?: run {
-                        val fallbackTitle =
-                            (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
-                        Section(0, 1, "", fallbackTitle, isItalic = false, isBold = true)
+                            val leadSection = tocData.leadSectionDetails?.let {
+                                Section(0, 1, "", it.title, it.isItalic, it.isBold)
+                            } ?: run {
+                                val fallbackTitle =
+                                    (activity as? AppCompatActivity)?.supportActionBar?.title?.toString() ?: "Top of page"
+                                Section(0, 1, "", fallbackTitle, isItalic = false, isBold = true)
+                            }
+                            mutableListOf(leadSection).apply { addAll(tocData.sections) }
+                        }
+                        // Switch back to the main thread to update the UI.
+                        contentsHandler.setup(fullToc)
+                    } catch (e: Exception) {
+                        L.e("Failed to parse TOC JSON", e)
                     }
-                    val fullToc = mutableListOf(leadSection).apply { addAll(tocData.sections) }
-                    contentsHandler.setup(fullToc)
-                } catch (e: Exception) {
-                    L.e("Failed to parse TOC JSON", e)
                 }
             }
         }
     }
 
-    override fun onPageFinishedRendering() {
+    override fun onWebViewLoadFinished() {
+        pageContentLoader.updateRenderProgress(98)
+    }
+
+    override fun onPageReadyForDisplay() {
         if (isAdded && _binding != null) {
-            pageHistoryManager.logPageVisit()
-            fetchTableOfContents()
-            binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
-            pageContentLoader.onPageRendered()
+            pageWebViewManager.finalizeAndRevealPage {
+                // This block is now the final step. It runs only after the WebView
+                // content is visible. Now we can safely set the final state.
+                pageHistoryManager.logPageVisit()
+                fetchTableOfContents()
+                binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
+                pageContentLoader.onPageRendered() // Sets progress to 100% and isLoading=false
+            }
         }
     }
 
@@ -309,6 +327,8 @@ class PageFragment : Fragment(), RenderCallback {
     fun showPageOverflowMenu(anchorView: View) {
         if (isAdded) pageActionHandler.showPageOverflowMenu(anchorView)
     }
+
+
 
     override fun onDestroyView() {
         super.onDestroyView()

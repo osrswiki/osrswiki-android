@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.util.Log
 import android.util.TypedValue
 import android.webkit.ConsoleMessage
+import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -17,7 +18,8 @@ import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
 
 interface RenderCallback {
-    fun onPageFinishedRendering()
+    fun onWebViewLoadFinished()
+    fun onPageReadyForDisplay()
 }
 
 class PageWebViewManager(
@@ -43,6 +45,20 @@ class PageWebViewManager(
         .addPathHandler("/res/", WebViewAssetLoader.ResourcesPathHandler(webView.context))
         .build()
 
+    private inner class RenderTimelineLogger {
+        @JavascriptInterface
+        fun log(message: String) {
+            val elapsed = System.currentTimeMillis() - renderStartTime
+            Log.d(logTag, "JS TIMELINE [${elapsed}ms]: $message")
+
+            if (message == "Event: StylingScriptsComplete") {
+                webView.post {
+                    renderCallback.onPageReadyForDisplay()
+                }
+            }
+        }
+    }
+
     init {
         setupWebView()
     }
@@ -52,6 +68,8 @@ class PageWebViewManager(
         if (jsInterface != null && jsInterfaceName != null) {
             webView.addJavascriptInterface(jsInterface, jsInterfaceName)
         }
+        webView.addJavascriptInterface(RenderTimelineLogger(), "RenderTimeline")
+
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -77,13 +95,10 @@ class PageWebViewManager(
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 val elapsedTime = System.currentTimeMillis() - renderStartTime
-                Log.d(logTag, "onPageFinished() called. Elapsed time since render(): ${elapsedTime}ms. URL: $url")
+                Log.d(logTag, "--> WebView Event: onPageFinished() called. Elapsed: ${elapsedTime}ms. URL: $url")
                 pageLoaded = true
-                renderCallback.onPageFinishedRendering()
+                renderCallback.onWebViewLoadFinished()
                 super.onPageFinished(view, url)
-                applyThemeColors(view) {
-                    revealBody()
-                }
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
@@ -97,10 +112,10 @@ class PageWebViewManager(
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 super.onProgressChanged(view, newProgress)
-                Log.d(logTag, "WebView internal progress: $newProgress%")
-                // Map WebView's 0-100 progress to our UI's 50-100 range.
-                val uiProgress = 50 + (newProgress / 2)
-                // Don't report 100, as onPageFinished handles the final state.
+                val elapsed = System.currentTimeMillis() - renderStartTime
+                val cappedProgress = newProgress.coerceAtMost(95)
+                Log.d(logTag, "--> WebView Progress: ${newProgress}%. Capped at ${cappedProgress}%. Elapsed: ${elapsed}ms.")
+                val uiProgress = 50 + (cappedProgress / 2)
                 if (uiProgress < 100) {
                     onRenderProgress(uiProgress)
                 }
@@ -124,6 +139,12 @@ class PageWebViewManager(
             }
         }
         webView.setBackgroundColor(Color.TRANSPARENT)
+    }
+
+    fun finalizeAndRevealPage(onComplete: () -> Unit) {
+        applyThemeColors(webView) {
+            revealBody(onComplete)
+        }
     }
 
     private fun applyThemeColors(view: WebView?, onFinished: () -> Unit) {
@@ -181,7 +202,7 @@ class PageWebViewManager(
     fun render(fullHtml: String) {
         pageLoaded = false
         renderStartTime = System.currentTimeMillis()
-        Log.d(logTag, "render() called. Starting timer to measure WebView processing time.")
+        Log.d(logTag, "==> Event: render() called. Starting timer.")
         val baseUrl = "https://$localAssetDomain/"
         Log.d(logTag, ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars)")
         webView.loadDataWithBaseURL(
@@ -191,13 +212,14 @@ class PageWebViewManager(
             "UTF-8",
             null
         )
-        Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL(). Waiting for onPageFinished or onRenderProcessGone.")
+        Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL().")
     }
 
-    fun isPageLoaded(): Boolean = pageLoaded
-
-    private fun revealBody() {
+    private fun revealBody(onComplete: () -> Unit) {
         val revealBodyJs = "document.body.style.visibility = 'visible';"
-        webView.evaluateJavascript(revealBodyJs, null)
+        webView.evaluateJavascript(revealBodyJs) {
+            // This completion handler for evaluateJavascript runs after the JS has executed.
+            onComplete()
+        }
     }
 }
