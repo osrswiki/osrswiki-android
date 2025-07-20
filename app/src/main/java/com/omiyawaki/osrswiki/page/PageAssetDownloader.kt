@@ -6,6 +6,7 @@ import com.omiyawaki.osrswiki.page.cache.AssetCache
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +25,7 @@ import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 import java.io.ByteArrayOutputStream
 import java.io.IOException
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 data class AssetUrls(val priority: List<String>, val background: List<String>)
 data class DownloadResult(val processedHtml: String, val parseResult: ParseResult, val backgroundUrls: List<String>)
@@ -109,27 +110,91 @@ class PageAssetDownloader(
         val (priorityUrls, backgroundUrls) = extractAssetUrls(document)
         val processedHtml = preprocessHtml(document)
 
-        val totalAssets = priorityUrls.size
-        L.d("processAndDownloadAssets: Found $totalAssets priority assets.")
-        if (totalAssets == 0) {
-            L.d("processAndDownloadAssets: No assets to download. -> Sending Success.")
+        if (priorityUrls.isEmpty()) {
+            L.d("processAndDownloadAssets: No priority assets to download. -> Sending Success.")
             send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
             return@channelFlow
         }
 
-        val assetsDownloaded = AtomicInteger(0)
+        L.d("processAndDownloadAssets: Found ${priorityUrls.size} priority assets. Fetching sizes.")
+        val totalAssetBytes = getTotalAssetSize(priorityUrls)
+        L.d("processAndDownloadAssets: Total asset size: $totalAssetBytes bytes.")
+        if (totalAssetBytes == 0L) {
+            L.d("processAndDownloadAssets: Total asset size is zero. Skipping download phase. -> Sending Success.")
+            send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
+            return@channelFlow
+        }
+
+        val totalBytesRead = AtomicLong(0)
+        var lastSentProgress = -1
+
+        send(DownloadProgress.FetchingAssets(0))
+
         coroutineScope {
             priorityUrls.forEach { imageUrl ->
                 launch {
-                    downloadAndCache(imageUrl)
-                    val progress = (assetsDownloaded.incrementAndGet() * 100 / totalAssets)
-                    L.d("processAndDownloadAssets: Asset download progress: $progress%. -> Sending FetchingAssets.")
-                    send(DownloadProgress.FetchingAssets(progress))
+                    downloadAndCacheWithProgress(imageUrl) { bytesRead ->
+                        val currentTotal = totalBytesRead.addAndGet(bytesRead)
+                        val progress = ((currentTotal * 100) / totalAssetBytes).toInt()
+                        if (progress > lastSentProgress) {
+                            send(DownloadProgress.FetchingAssets(progress))
+                            lastSentProgress = progress
+                        }
+                    }
                 }
             }
         }
         L.d("processAndDownloadAssets: All assets finished downloading. -> Sending Success.")
+        send(DownloadProgress.FetchingAssets(100))
         send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
+    }
+
+    private suspend fun getTotalAssetSize(urls: List<String>): Long = coroutineScope {
+        urls.map { url ->
+            async {
+                // Return 0 if already cached, as it won't be downloaded.
+                if (AssetCache.get(url) != null) return@async 0L
+                try {
+                    val request = Request.Builder().url(url).head().build()
+                    val response = okHttpClient.newCall(request).execute()
+                    if (response.isSuccessful) {
+                        response.header("Content-Length")?.toLongOrNull() ?: 0L
+                    } else {
+                        0L
+                    }
+                } catch (e: IOException) {
+                    L.w("Failed to get content length for $url: ${e.message}")
+                    0L
+                }
+            }
+        }.sumOf { it.await() }
+    }
+
+    private suspend fun downloadAndCacheWithProgress(url: String, onProgress: suspend (Long) -> Unit) {
+        try {
+            if (AssetCache.get(url) != null) return
+
+            val request = Request.Builder().url(url).build()
+            val response = okHttpClient.newCall(request).execute()
+
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+
+            val body = response.body ?: throw IOException("Response body is null")
+            val source = body.source()
+            val buffer = Buffer()
+            val outputStream = ByteArrayOutputStream()
+
+            while (true) {
+                val readCount = source.read(buffer, 8192L)
+                if (readCount == -1L) break
+                outputStream.write(buffer.snapshot().toByteArray())
+                onProgress(readCount)
+                buffer.skip(readCount)
+            }
+            AssetCache.put(url, outputStream.toByteArray())
+        } catch (e: Exception) {
+            L.e("Download with progress FAILED for $url", e)
+        }
     }
 
     private fun preprocessHtml(document: Document): String {
