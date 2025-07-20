@@ -1,52 +1,53 @@
 package com.omiyawaki.osrswiki.page
 
-import android.util.Log
 import android.view.View
-import androidx.core.view.isVisible
+import androidx.core.text.HtmlCompat
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
+import com.omiyawaki.osrswiki.util.log.L
 
 class PageUiUpdater(
-    private val binding: FragmentPageBinding,
+    private val binding: FragmentPageBinding?,
     private val pageViewModel: PageViewModel,
-    private val pageWebViewManager: PageWebViewManager,
+    private val webViewManager: PageWebViewManager,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
-    private val logTag = "PageLoadTrace"
-
     fun updateUi() {
-        val fragment = fragmentContextProvider() ?: return
         val state = pageViewModel.uiState
+        val fragment = fragmentContextProvider()
+        val context = fragment?.context
 
-        if (!fragment.isAdded || !fragment.isVisible) {
-            return
+        val logMessage = "PageUiUpdater.updateUi() called. isLoading: ${state.isLoading}, " +
+                "progress: ${state.progress}, error: ${state.error != null}, " +
+                "htmlContent: ${state.htmlContent != null}"
+        L.d(logMessage)
+
+        binding?.apply {
+            if (state.isLoading) {
+                progressContainer.visibility = View.VISIBLE
+                progressBar.progress = state.progress ?: 0
+                progressText.text = state.progressText ?: ""
+                L.d(" - Updating progress bar: ${state.progressText} (${state.progress}%)")
+            } else {
+                progressContainer.visibility = View.GONE
+            }
+
+            if (state.error != null) {
+                errorTextView.visibility = View.VISIBLE
+                errorTextView.text = state.error
+                pageWebView.visibility = View.GONE
+            } else {
+                errorTextView.visibility = View.GONE
+                pageWebView.visibility = View.VISIBLE
+                state.htmlContent?.let {
+                    if (!webViewManager.isPageLoaded()) {
+                        L.d("HTML is ready and WebView has not been loaded. Initiating render.")
+                        webViewManager.render(it)
+                    }
+                }
+            }
+
+            fragment?.activity?.title =
+                HtmlCompat.fromHtml(state.title ?: "", HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
         }
-
-        Log.d(logTag, "PageUiUpdater.updateUi() called. isLoading: ${state.isLoading}, progress: ${state.progress}, error: ${state.error != null}, htmlContent: ${state.htmlContent != null}")
-
-        // Initiate Rendering if content is ready and not already rendering.
-        // We check webView.url == null as a proxy to know if loadDataWithBaseURL has been called yet.
-        // This is the key fix: it decouples the render call from the isLoading flag.
-        if (state.htmlContent != null && binding.pageWebView.url == null) {
-            Log.d(logTag, "HTML is ready and WebView has not been loaded. Initiating render.")
-            pageWebViewManager.render(fullHtml = state.htmlContent)
-        }
-
-        // Handle Loading State and Progress Bar
-        binding.progressContainer.isVisible = state.isLoading
-        if (state.isLoading) {
-            binding.progressBar.progress = state.progress ?: 0
-            binding.progressText.text = state.progressText ?: "Loading..."
-            Log.d(logTag, " - Updating progress bar: ${binding.progressText.text} (${state.progress ?: 0}%)")
-        }
-
-        // Handle Error State
-        binding.errorTextView.isVisible = state.error != null
-        state.error?.let {
-            binding.errorTextView.text = it
-        }
-
-        // The WebView should only become visible after loading is fully complete (isLoading=false) and there are no errors.
-        // The final reveal is handled inside PageWebViewManager to prevent content flashing.
-        binding.pageWebView.isVisible = !state.isLoading && state.error == null
     }
 }

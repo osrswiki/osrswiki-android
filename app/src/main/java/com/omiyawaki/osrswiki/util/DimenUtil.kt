@@ -84,7 +84,7 @@ object DimenUtil {
                 str.toInt()
             }
         } catch (e: Exception) {
-            L.e(e)
+            L.e("Failed to parse px string: $str", e)
         }
         return 0
     }
