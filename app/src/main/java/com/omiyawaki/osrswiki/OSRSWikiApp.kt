@@ -13,7 +13,9 @@ import android.util.Log
 import android.webkit.WebView
 import androidx.collection.LruCache
 import com.omiyawaki.osrswiki.database.AppDatabase
+import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.network.RetrofitClient
+import com.omiyawaki.osrswiki.page.PageAssetDownloader
 import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.PageLocalDataSource
 import com.omiyawaki.osrswiki.page.PageRemoteDataSource
@@ -40,6 +42,14 @@ class OSRSWikiApp : Application() {
         private set
 
     lateinit var searchRepository: SearchRepository
+        private set
+
+    // Added for preemptive loading
+    lateinit var pageAssetDownloader: PageAssetDownloader
+        private set
+
+    // Added for preemptive loading
+    lateinit var pageHtmlBuilder: PageHtmlBuilder
         private set
 
     var currentTab: Tab? = null
@@ -78,8 +88,13 @@ class OSRSWikiApp : Application() {
         val appContext = this.applicationContext
         val appDb = AppDatabase.instance
         val mediaWikiApiService = RetrofitClient.apiService
+        // Correctly get the shared OkHttpClient from the factory.
+        val okHttpClient = OkHttpClientFactory.offlineClient
 
-        val pageHtmlBuilder = PageHtmlBuilder(this)
+        // Instantiate and store loaders needed for preemption
+        pageAssetDownloader = PageAssetDownloader(okHttpClient)
+        pageHtmlBuilder = PageHtmlBuilder(this)
+
         val pageLocalDataSource = PageLocalDataSource(
             articleMetaDao = appDb.articleMetaDao(),
             applicationContext = appContext
