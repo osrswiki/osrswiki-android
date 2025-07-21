@@ -14,22 +14,18 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
+import com.omiyawaki.osrswiki.page.DownloadProgress
+import com.omiyawaki.osrswiki.page.PageAssetDownloader
+import com.omiyawaki.osrswiki.page.PageHtmlBuilder
+import com.omiyawaki.osrswiki.page.preemptive.PreloadedPage
+import com.omiyawaki.osrswiki.page.preemptive.PreloadedPageCache
+import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Locale // For lowercase comparison
+import java.util.Locale
 
 // Assuming CleanedSearchResultItem is defined in its own file and imported correctly:
 // import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
@@ -46,7 +42,10 @@ data class SearchScreenUiState(
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SearchViewModel(
     private val searchRepository: SearchRepository,
-    val isOnline: StateFlow<Boolean>
+    val isOnline: StateFlow<Boolean>,
+    // Dependencies for preemptive loading
+    private val pageAssetDownloader: PageAssetDownloader,
+    private val pageHtmlBuilder: PageHtmlBuilder
 ) : ViewModel() {
 
     private companion object {
@@ -61,6 +60,8 @@ class SearchViewModel(
 
     private val _screenUiState = MutableStateFlow(SearchScreenUiState())
     val screenUiState: StateFlow<SearchScreenUiState> = _screenUiState.asStateFlow()
+
+    private var preemptiveLoadJob: Job? = null
 
     val onlineSearchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
         .debounce(SEARCH_DEBOUNCE_MS)
@@ -148,9 +149,66 @@ class SearchViewModel(
     }
 
     fun performSearch(query: String) {
+        // Cancel any pending preemptive load as the search query has changed.
+        preemptiveLoadJob?.cancel()
+        PreloadedPageCache.clear()
+        L.d("SearchViewModel: New search performed, preemptive load cancelled and cache cleared.")
+
         val trimmedQuery = query.trim()
         Log.d(TAG, "Search query submitted: '$trimmedQuery'")
         _currentQuery.value = trimmedQuery
+    }
+
+    /**
+     * Initiates a preemptive, headless load of a page's content.
+     */
+    fun preemptivelyLoadTopResult(item: CleanedSearchResultItem) {
+        val pageId = item.id.toIntOrNull() ?: return
+        val currentTheme = OSRSWikiApp.instance.getCurrentTheme()
+        val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
+
+        // Do not start a new load if one is already running for the same page.
+        if (preemptiveLoadJob?.isActive == true) {
+            L.d("SearchViewModel: Preemptive load already in progress. Ignoring new request.")
+            return
+        }
+
+        L.d("SearchViewModel: Starting preemptive load for pageId $pageId.")
+        preemptiveLoadJob = viewModelScope.launch {
+            pageAssetDownloader.downloadPriorityAssets(pageId, pageUrl)
+                .collect { progress ->
+                    when (progress) {
+                        is DownloadProgress.Success -> {
+                            L.d("SearchViewModel: Preemptive load SUCCESS for pageId $pageId.")
+                            val result = progress.result
+                            val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(
+                                result.parseResult.displaytitle ?: "",
+                                result.processedHtml,
+                                currentTheme
+                            )
+                            val preloadedPage = PreloadedPage(
+                                pageId = result.parseResult.pageid,
+                                finalHtml = finalHtml,
+                                plainTextTitle = result.parseResult.title,
+                                displayTitle = result.parseResult.displaytitle,
+                                wikiUrl = pageUrl,
+                                revisionId = result.parseResult.revid,
+                                lastFetchedTimestamp = System.currentTimeMillis()
+                            )
+                            PreloadedPageCache.put(preloadedPage)
+                        }
+                        is DownloadProgress.Failure -> {
+                            L.w("SearchViewModel: Preemptive load FAILED for pageId $pageId: ${progress.error.message}")
+                        }
+                        is DownloadProgress.FetchingHtml -> {
+                             L.d("SearchViewModel: Preemptive load HTML progress ${progress.progress}%")
+                        }
+                        is DownloadProgress.FetchingAssets -> {
+                             L.d("SearchViewModel: Preemptive load assets progress ${progress.progress}%")
+                        }
+                    }
+                }
+        }
     }
 
     private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
@@ -201,8 +259,13 @@ class SearchViewModelFactory(
         if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
             val osrsWikiApplication = application as? OSRSWikiApp
                 ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
+            
+            // Retrieve all necessary dependencies from the Application class
             val repository = osrsWikiApplication.searchRepository
-            return SearchViewModel(repository, isOnlineFlow) as T
+            val assetDownloader = osrsWikiApplication.pageAssetDownloader
+            val htmlBuilder = osrsWikiApplication.pageHtmlBuilder
+
+            return SearchViewModel(repository, isOnlineFlow, assetDownloader, htmlBuilder) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

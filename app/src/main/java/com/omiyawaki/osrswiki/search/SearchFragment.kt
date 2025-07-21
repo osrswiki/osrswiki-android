@@ -54,7 +54,6 @@ class SearchFragment : Fragment(),
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Get the search EditText from the hosting activity
         searchEditText = (requireActivity() as SearchActivity).binding.searchEditText
 
         setupRecyclerViewAdapters()
@@ -94,6 +93,39 @@ class SearchFragment : Fragment(),
         onlineSearchAdapter = SearchAdapter(this)
         offlineSearchAdapter = OfflineSearchAdapter(this)
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
+
+        // Use a more reliable listener to trigger the preemptive load.
+        onlineSearchAdapter.addLoadStateListener { loadStates ->
+            val refreshState = loadStates.refresh
+            val currentQuery = viewModel.currentQuery.value?.trim()
+
+            binding.progressBarSearch.isVisible = refreshState is LoadState.Loading
+            binding.textViewSearchError.isVisible = refreshState is LoadState.Error
+
+            if (refreshState is LoadState.NotLoading) {
+                val hasResults = onlineSearchAdapter.itemCount > 0
+                binding.recyclerViewSearchResults.isVisible = hasResults
+                binding.textViewNoResults.isVisible = !hasResults
+
+                if (hasResults) {
+                    // Trigger for preemptive load
+                    onlineSearchAdapter.peek(0)?.let { topResult ->
+                        viewModel.preemptivelyLoadTopResult(topResult)
+                    }
+                } else if (!currentQuery.isNullOrBlank()) {
+                    binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
+                } else {
+                    updateUiForBlankQuery()
+                }
+            } else if (refreshState is LoadState.Error) {
+                val error = refreshState.error
+                val errorMessage = when (error) {
+                    is IOException -> getString(R.string.search_error_network)
+                    else -> error.localizedMessage ?: getString(R.string.search_error_generic)
+                }
+                binding.textViewSearchError.text = errorMessage
+            }
+        }
     }
 
     private fun observeViewModel() {
@@ -103,33 +135,24 @@ class SearchFragment : Fragment(),
                     viewModel.isOnline.combine(viewModel.currentQuery) { isOnline, query ->
                         Pair(isOnline, query?.trim())
                     }.collectLatest { (isOnline, trimmedQuery) ->
-                        if (!isOnline && !trimmedQuery.isNullOrBlank()) {
-                            binding.textViewOfflineIndicator.text =
-                                getString(R.string.offline_search_active_message)
-                            binding.textViewOfflineIndicator.isVisible = true
-                        } else if (!isOnline && trimmedQuery.isNullOrBlank()) {
-                            binding.textViewOfflineIndicator.text =
-                                getString(R.string.offline_indicator_generic)
-                            binding.textViewOfflineIndicator.isVisible = true
-                        } else {
-                            binding.textViewOfflineIndicator.isVisible = false
-                        }
-
+                        // Simplified logic to handle adapter switching
                         if (isOnline) {
                             if (binding.recyclerViewSearchResults.adapter != onlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = onlineSearchAdapter
                             }
-                            if (trimmedQuery.isNullOrBlank()) {
-                                updateUiForBlankQuery()
-                            }
-                        } else { // Offline
+                        } else {
                             if (binding.recyclerViewSearchResults.adapter != offlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = offlineSearchAdapter
                             }
-                            if (trimmedQuery.isNullOrBlank()) {
-                                updateUiForBlankQuery()
+                        }
+                        
+                        // Handle offline indicator visibility
+                        binding.textViewOfflineIndicator.isVisible = !isOnline
+                        if(!isOnline) {
+                            binding.textViewOfflineIndicator.text = if (!trimmedQuery.isNullOrBlank()) {
+                                getString(R.string.offline_search_active_message)
                             } else {
-                                binding.progressBarSearch.isVisible = false
+                                getString(R.string.offline_indicator_generic)
                             }
                         }
                     }
@@ -149,65 +172,17 @@ class SearchFragment : Fragment(),
                             offlineSearchAdapter.submitList(combinedOfflineList)
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             if (!currentQuery.isNullOrBlank()) {
-                                binding.recyclerViewSearchResults.isVisible =
-                                    combinedOfflineList.isNotEmpty()
-                                binding.textViewNoResults.isVisible =
-                                    combinedOfflineList.isEmpty()
+                                binding.recyclerViewSearchResults.isVisible = combinedOfflineList.isNotEmpty()
+                                binding.textViewNoResults.isVisible = combinedOfflineList.isEmpty()
                                 if (combinedOfflineList.isEmpty()) {
                                     binding.textViewNoResults.text =
-                                        getString(
-                                            R.string.search_no_results_for_query,
-                                            currentQuery
-                                        )
+                                        getString(R.string.search_no_results_for_query, currentQuery)
                                 }
-                            } else { // Blank query, offline
+                            } else {
                                 updateUiForBlankQuery()
                             }
                             binding.progressBarSearch.isVisible = false
                             binding.textViewSearchError.isVisible = false
-                        }
-                    }
-                }
-
-                launch {
-                    onlineSearchAdapter.loadStateFlow.collectLatest { loadStates ->
-                        if (binding.recyclerViewSearchResults.adapter != onlineSearchAdapter) return@collectLatest
-
-                        val isLoading = loadStates.refresh is LoadState.Loading
-                        val isError = loadStates.refresh is LoadState.Error
-                        val error =
-                            if (isError) (loadStates.refresh as LoadState.Error).error else null
-                        val currentQuery = viewModel.currentQuery.value?.trim()
-
-                        binding.progressBarSearch.isVisible = isLoading
-                        binding.recyclerViewSearchResults.isVisible = false
-                        binding.textViewNoResults.isVisible = false
-                        binding.textViewSearchError.isVisible = false
-
-                        if (isLoading) {
-                        } else if (isError) {
-                            val errorMessage = when (error) {
-                                is IOException -> getString(R.string.search_error_network)
-                                else -> error?.localizedMessage
-                                    ?: getString(R.string.search_error_generic)
-                            }
-                            binding.textViewSearchError.text = errorMessage
-                            binding.textViewSearchError.isVisible = true
-                        } else {
-                            if (onlineSearchAdapter.itemCount > 0) {
-                                binding.recyclerViewSearchResults.isVisible = true
-                            } else {
-                                if (!currentQuery.isNullOrBlank()) {
-                                    binding.textViewNoResults.text =
-                                        getString(
-                                            R.string.search_no_results_for_query,
-                                            currentQuery
-                                        )
-                                    binding.textViewNoResults.isVisible = true
-                                } else {
-                                    updateUiForBlankQuery()
-                                }
-                            }
                         }
                     }
                 }
