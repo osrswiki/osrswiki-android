@@ -7,12 +7,17 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface WikiApiService {
-    @GET("api.php?action=query&list=search&format=json&srprop=snippet")
-    suspend fun searchArticles(
-        @Query("srsearch") query: String,
-        @Query("srlimit") limit: Int,
-        @Query("sroffset") offset: Int
-    ): SearchApiResponse
+    @GET("api.php?action=query&list=prefixsearch&format=json")
+    suspend fun prefixSearchArticles(
+        @Query("pssearch") query: String,
+        @Query("pslimit") limit: Int,
+        @Query("psoffset") offset: Int
+    ): PrefixSearchApiResponse
+
+    @GET("api.php?action=query&prop=extracts&format=json&formatversion=2&exintro=true&explaintext=true&exchars=280")
+    suspend fun getPageExtracts(
+        @Query("pageids") pageIds: String
+    ): PageExtractsApiResponse
 
     @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true")
     suspend fun getArticleParseDataByPageId(@Query("pageid") pageId: Int): ArticleParseApiResponse
