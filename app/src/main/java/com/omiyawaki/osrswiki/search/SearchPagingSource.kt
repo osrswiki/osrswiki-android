@@ -8,6 +8,7 @@ import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import retrofit2.HttpException
 import java.io.IOException
+import java.util.concurrent.CancellationException
 
 private const val OSRS_WIKI_STARTING_PAGE_OFFSET = 0
 private const val DEFAULT_NETWORK_PAGE_SIZE = 20
@@ -81,6 +82,10 @@ class SearchPagingSource(
         } catch (exception: HttpException) {
             Log.e("SearchPagingSource", "HttpException during search", exception)
             return LoadResult.Error(exception)
+        } catch (exception: CancellationException) {
+            // This is expected when a new search supersedes the current one.
+            // Re-throw the exception to allow coroutines to handle cancellation gracefully.
+            throw exception
         } catch (exception: Exception) {
             Log.e("SearchPagingSource", "Generic Exception during search", exception)
             return LoadResult.Error(exception)
