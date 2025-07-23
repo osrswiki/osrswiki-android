@@ -2,7 +2,6 @@ package com.omiyawaki.osrswiki
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.core.view.doOnPreDraw
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
@@ -26,6 +25,7 @@ class MainActivity : BaseActivity(),
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
         private const val MAIN_FRAGMENT_TAG = "main_fragment"
         private const val MAP_FRAGMENT_TAG = "map_fragment"
+        private const val ACTIVE_FRAGMENT_TAG = "active_fragment_tag"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,18 +40,20 @@ class MainActivity : BaseActivity(),
         if (savedInstanceState == null) {
             L.d("MainActivity: onCreate: savedInstanceState is null, setting up initial fragments.")
             supportFragmentManager.beginTransaction()
-                .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, mainFragment, MAIN_FRAGMENT_TAG)
+                .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
                 .commit()
 
             activeFragment = mainFragment
-
-            mapFragment.view?.doOnPreDraw { it.alpha = 0.0f }
-            L.d("MainActivity: onCreate: Fragments added. MapFragment is transparent.")
+            L.d("MainActivity: onCreate: Fragments added. MainFragment is visible, MapFragment is hidden.")
         } else {
             L.d("MainActivity: onCreate: Restoring state.")
-            val restoredMain = supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
-            activeFragment = if (restoredMain.view?.alpha == 1.0f) restoredMain else supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
+            val savedActiveTag = savedInstanceState.getString(ACTIVE_FRAGMENT_TAG, MAIN_FRAGMENT_TAG)
+            activeFragment = if (savedActiveTag == MAP_FRAGMENT_TAG) {
+                supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
+            } else {
+                supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
+            }
             L.d("MainActivity: onCreate: Active fragment is ${activeFragment.javaClass.simpleName}")
         }
 
@@ -70,15 +72,11 @@ class MainActivity : BaseActivity(),
             if (selectedFragment != null && selectedFragment !== activeFragment) {
                 L.d("MainActivity: Switching from ${activeFragment.javaClass.simpleName} to ${selectedFragment.javaClass.simpleName}")
 
-                val newActiveFragment = selectedFragment
-                val oldActiveFragment = activeFragment
+                activeFragment.view?.alpha = 0.0f
+                selectedFragment.view?.alpha = 1.0f
+                selectedFragment.view?.bringToFront()
 
-                newActiveFragment.view?.alpha = 1.0f
-                oldActiveFragment.view?.alpha = 0.0f
-
-                newActiveFragment.view?.bringToFront()
-
-                activeFragment = newActiveFragment
+                activeFragment = selectedFragment
                 true
             } else {
                 false
@@ -111,6 +109,16 @@ class MainActivity : BaseActivity(),
             return true
         }
         return super.onSupportNavigateUp()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val activeTag = when (activeFragment) {
+            mapFragment -> MAP_FRAGMENT_TAG
+            else -> MAIN_FRAGMENT_TAG
+        }
+        outState.putString(ACTIVE_FRAGMENT_TAG, activeTag)
+        L.d("MainActivity: onSaveInstanceState: Saved active fragment tag: $activeTag")
     }
 
     @Deprecated(message = "Override of a deprecated Activity.onBackPressed(). Consider migrating to OnBackPressedDispatcher.")
