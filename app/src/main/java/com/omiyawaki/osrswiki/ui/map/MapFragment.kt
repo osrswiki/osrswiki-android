@@ -101,6 +101,11 @@ class MapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         L.d("MapFragment: LIFECYCLE: onViewCreated")
+        
+        if (savedInstanceState == null) {
+            view.alpha = 0.0f
+        }
+        
         mapView = binding.mapView
 
         lifecycleScope.launch {
@@ -258,4 +263,13 @@ class MapFragment : Fragment() {
     override fun onStop() { super.onStop(); mapView?.onStop() }
     override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView?.onSaveInstanceState(outState) }
     override fun onLowMemory() { super.onLowMemory(); mapView?.onLowMemory() }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (hidden) {
+            mapView?.onStop()
+        } else {
+            mapView?.onStart()
+        }
+    }
 }
