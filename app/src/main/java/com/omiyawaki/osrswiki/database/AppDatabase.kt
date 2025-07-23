@@ -4,30 +4,34 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.omiyawaki.osrswiki.OSRSWikiApp // Ensure this import points to your Application class
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.omiyawaki.osrswiki.OSRSWikiApp
 
 // Entities
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.database.SavedArticleEntry
 import com.omiyawaki.osrswiki.database.OfflineAsset
 import com.omiyawaki.osrswiki.database.OfflinePageFts
-import com.omiyawaki.osrswiki.history.db.HistoryEntry // <<< ADDED HISTORY ENTITY IMPORT
+import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.readinglist.database.ReadingList
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
-import com.omiyawaki.osrswiki.offline.db.OfflineObject // Ensure this path is correct based on your project
+import com.omiyawaki.osrswiki.offline.db.OfflineObject
+import com.omiyawaki.osrswiki.search.db.RecentSearch
 
 // DAOs
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.SavedArticleEntryDao
 import com.omiyawaki.osrswiki.database.OfflineAssetDao
 import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
-import com.omiyawaki.osrswiki.history.db.HistoryEntryDao // <<< ADDED HISTORY DAO IMPORT
-import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao // Ensure this path is correct
-import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao   // Ensure this path is correct
-import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao     // Ensure this path is correct
+import com.omiyawaki.osrswiki.history.db.HistoryEntryDao
+import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
+import com.omiyawaki.osrswiki.readinglist.db.ReadingListDao
+import com.omiyawaki.osrswiki.search.db.RecentSearchDao
 
 // Converters
-import com.omiyawaki.osrswiki.database.converters.DateConverter // Import the new DateConverter
+import com.omiyawaki.osrswiki.database.converters.DateConverter
 
 
 @Database(
@@ -39,14 +43,15 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter // Import the ne
         ReadingListPage::class,
         OfflineObject::class,
         OfflinePageFts::class,
-        HistoryEntry::class // <<< ADDED HISTORY ENTITY
+        HistoryEntry::class,
+        RecentSearch::class // Add the new RecentSearch entity.
     ],
-    version = 11, // <<< Current version
+    version = 12, // Increment the database version.
     exportSchema = false
 )
 @TypeConverters(
-    com.omiyawaki.osrswiki.database.TypeConverters::class, // Your existing converters
-    DateConverter::class                                   // Our new DateConverter
+    com.omiyawaki.osrswiki.database.TypeConverters::class,
+    DateConverter::class
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -57,10 +62,23 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun readingListPageDao(): ReadingListPageDao
     abstract fun offlineObjectDao(): OfflineObjectDao
     abstract fun offlinePageFtsDao(): OfflinePageFtsDao
-    abstract fun historyEntryDao(): HistoryEntryDao // <<< ADDED HISTORY DAO ACCESSOR
+    abstract fun historyEntryDao(): HistoryEntryDao
+    abstract fun recentSearchDao(): RecentSearchDao // Add the accessor for the new DAO.
 
     companion object {
         private const val DATABASE_NAME = "osrs_wiki_database.db"
+
+        /**
+         * Migration from version 11 to 12. Adds the `recent_searches` table.
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `recent_searches` " +
+                            "(`query` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, PRIMARY KEY(`query`))"
+                )
+            }
+        }
 
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
@@ -68,13 +86,10 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 DATABASE_NAME
             )
-            // .addMigrations( // <<< TEMPORARILY COMMENTED OUT FOR DEVELOPMENT
-            //     DatabaseMigrations.MIGRATION_6_7,
-            //     DatabaseMigrations.MIGRATION_7_8,
-            //     DatabaseMigrations.MIGRATION_8_9,
-            //     DatabaseMigrations.MIGRATION_9_10
-            // )
-                .fallbackToDestructiveMigration(true)
+             .addMigrations(
+                // Other migrations would be listed here.
+                MIGRATION_11_12 // Add the new migration to the builder.
+             )
             .build()
         }
     }

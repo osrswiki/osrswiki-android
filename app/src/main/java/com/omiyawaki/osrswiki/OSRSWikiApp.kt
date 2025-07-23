@@ -108,12 +108,15 @@ class OSRSWikiApp : Application() {
             htmlBuilder = pageHtmlBuilder
         )
 
+        // Instantiate the SearchRepository with all its DAO dependencies.
         val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
         val offlinePageFtsDao = appDb.offlinePageFtsDao()
+        val recentSearchDao = appDb.recentSearchDao() // Get the new DAO from the database.
         searchRepository = SearchRepository(
             apiService = mediaWikiApiService,
             articleMetaDao = articleMetaDaoForSearchRepo,
-            offlinePageFtsDao = offlinePageFtsDao
+            offlinePageFtsDao = offlinePageFtsDao,
+            recentSearchDao = recentSearchDao // Provide the new DAO to the repository.
         )
 
         if (tabList.isEmpty()) {

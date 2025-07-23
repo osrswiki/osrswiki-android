@@ -35,7 +35,8 @@ class PageRemoteDataSource(
     suspend fun getArticleParseResult(title: String): Result<ParseResult> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = mediaWikiApiService.getArticleTextContentByTitle(title)
+                // Use the corrected API service method.
+                val response = mediaWikiApiService.getArticleParseDataByTitle(title)
                 val parseResult = response.parse
                 if (parseResult?.title != null && parseResult.text != null && parseResult.pageid != null) {
                     Result.Success(parseResult)
