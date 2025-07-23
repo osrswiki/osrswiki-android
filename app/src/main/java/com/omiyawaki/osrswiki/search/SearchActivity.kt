@@ -3,10 +3,10 @@ package com.omiyawaki.osrswiki.search
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivitySearchBinding
 
-class SearchActivity : AppCompatActivity() {
+class SearchActivity : BaseActivity() {
 
     internal lateinit var binding: ActivitySearchBinding
 

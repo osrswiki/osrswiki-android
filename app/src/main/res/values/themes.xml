@@ -50,6 +50,7 @@
         <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
+        <item name="paper_color">?attr/colorSurface</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -64,6 +65,7 @@
         <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
         <item name="colorControlHighlight">@color/ripple_dark</item>
+        <item name="paper_color">?attr/colorSurface</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
