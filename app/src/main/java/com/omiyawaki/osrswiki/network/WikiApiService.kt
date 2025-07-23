@@ -1,12 +1,30 @@
 package com.omiyawaki.osrswiki.network
 
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
+import com.omiyawaki.osrswiki.network.model.GeneratedSearchApiResponse
 import com.omiyawaki.osrswiki.network.model.PageImagesInfo
 import com.omiyawaki.osrswiki.page.ImageInfoResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface WikiApiService {
+    /**
+     * Performs a prefix search and simultaneously fetches extracts and thumbnails for the results.
+     * This uses 'prefixsearch' as a generator for a 'query' prop action, which is much more
+     * efficient than making separate API calls.
+     */
+    @GET("api.php?action=query&format=json&formatversion=2&redirects=true" +
+            "&generator=prefixsearch" +
+            "&prop=extracts|pageimages" +
+            "&exintro=true&explaintext=true&exchars=280" + // extract properties
+            "&piprop=thumbnail&pilicense=any") // pageimages properties
+    suspend fun generatedPrefixSearch(
+        @Query("gpssearch") query: String,
+        @Query("gpslimit") limit: Int,
+        @Query("gpsoffset") offset: Int,
+        @Query("pithumbsize") thumbSize: Int
+    ): GeneratedSearchApiResponse
+
     @GET("api.php?action=query&list=prefixsearch&format=json")
     suspend fun prefixSearchArticles(
         @Query("pssearch") query: String,
