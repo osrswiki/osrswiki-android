@@ -117,10 +117,11 @@ class SearchViewModel(
     }
 
     private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
+        val cleanTitle = Html.fromHtml(networkResult.title, Html.FROM_HTML_MODE_LEGACY).toString().trim()
         val cleanSnippet = networkResult.snippet?.let { Html.fromHtml(it, Html.FROM_HTML_MODE_LEGACY).toString().trim() } ?: ""
         return CleanedSearchResultItem(
             id = networkResult.pageid.toString(),
-            title = networkResult.title,
+            title = cleanTitle,
             snippet = cleanSnippet,
             thumbnailUrl = networkResult.thumbnailUrl, // Pass the URL from the network result.
             isFtsResult = false

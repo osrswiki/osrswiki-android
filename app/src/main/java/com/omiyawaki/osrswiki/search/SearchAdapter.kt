@@ -1,6 +1,5 @@
 package com.omiyawaki.osrswiki.search
 
-import android.text.Html
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -39,10 +38,10 @@ class SearchAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: CleanedSearchResultItem) {
-            binding.searchItemTitle.text = Html.fromHtml(item.title, Html.FROM_HTML_MODE_LEGACY).toString()
+            binding.searchItemTitle.text = item.title
 
             if (item.snippet.isNotBlank()) {
-                binding.searchItemSnippet.text = Html.fromHtml(item.snippet, Html.FROM_HTML_MODE_LEGACY).toString()
+                binding.searchItemSnippet.text = item.snippet
                 binding.searchItemSnippet.visibility = View.VISIBLE
             } else {
                 binding.searchItemSnippet.visibility = View.GONE

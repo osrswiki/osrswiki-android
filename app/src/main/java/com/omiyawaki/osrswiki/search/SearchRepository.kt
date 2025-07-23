@@ -53,6 +53,7 @@ class SearchRepository(
         return Pager(
             config = PagingConfig(
                 pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
+                prefetchDistance = DEFAULT_SEARCH_RESULTS_PAGE_SIZE / 2,
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
