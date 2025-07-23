@@ -12,7 +12,6 @@ import java.util.concurrent.CancellationException
 
 private const val OSRS_WIKI_STARTING_PAGE_OFFSET = 0
 private const val THUMBNAIL_SIZE = 240
-private const val PAGE_ID_API_LIMIT = 50 // MediaWiki API limit for pageids
 
 class SearchPagingSource(
     private val apiService: WikiApiService,
@@ -29,60 +28,31 @@ class SearchPagingSource(
         }
 
         return try {
-            // Step 1: Fetch initial search results using prefix search.
-            // This response contains titles and page IDs, but no snippets or thumbnails.
-            val response = apiService.prefixSearchArticles(query = query, offset = currentOffset, limit = limit)
-            val searchResults = response.query?.prefixsearch ?: emptyList()
+            // Step 1: Make a single, combined network call.
+            val response = apiService.generatedPrefixSearch(
+                query = query,
+                limit = limit,
+                offset = currentOffset,
+                thumbSize = THUMBNAIL_SIZE
+            )
 
-            // If we have no results, we can stop here.
+            val unsortedResults = response.query?.pages ?: emptyList()
+
+            // Sort the results by the 'index' field to ensure correct relevance order.
+            val searchResults = unsortedResults.sortedBy { it.index }
+
             if (searchResults.isEmpty()) {
                 return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
             }
 
-            val allPageIds = searchResults.map { it.pageid.toString() }
+            // Step 2: Efficiently enhance results with offline status from the local database.
+            val pageIds = searchResults.map { it.pageid }
+            val offlineMetas = articleMetaDao.getMetasByPageIds(pageIds)
+            val offlinePageIds = offlineMetas.map { it.pageId }.toSet()
 
-            // Step 2: Fetch extracts (snippets) and thumbnails for the retrieved page IDs.
-            // These calls are chunked to respect the API's limit of 50 IDs per request.
-            val extractsMap = mutableMapOf<Int, String>()
-            val thumbnailsMap = mutableMapOf<String, String?>()
-
-            allPageIds.chunked(PAGE_ID_API_LIMIT).forEach { chunkOfIds ->
-                val idString = chunkOfIds.joinToString("|")
-                // Fetch extracts for the current chunk.
-                try {
-                    val extractsResponse = apiService.getPageExtracts(pageIds = idString)
-                    extractsResponse.query?.pages?.forEach { pageExtract ->
-                        pageExtract.extract?.let { extractsMap[pageExtract.pageid] = it }
-                    }
-                } catch (e: Exception) {
-                    // Log but don't fail the whole search if snippets are missing.
-                    Log.e("SearchPagingSource", "Failed to fetch extracts chunk: ${e.message}")
-                }
-
-                // Fetch thumbnails for the current chunk.
-                try {
-                    val imageResponse = apiService.getPageThumbnails(pageIds = idString, thumbSize = THUMBNAIL_SIZE)
-                    imageResponse.query?.pages?.mapValues { it.value.thumbnail?.source }?.let {
-                        thumbnailsMap.putAll(it)
-                    }
-                } catch (e: Exception) {
-                    // Log but don't fail the whole search if thumbnails are missing.
-                    Log.e("SearchPagingSource", "Failed to fetch thumbnail chunk: ${e.message}")
-                }
-            }
-
-            // Step 3: Combine the initial results with the fetched extracts and thumbnails.
-            val combinedResults = searchResults.map { result ->
-                result.copy(
-                    snippet = extractsMap[result.pageid] ?: "",
-                    thumbnailUrl = thumbnailsMap[result.pageid.toString()]
-                )
-            }
-
-            // Step 4: Enhance results with offline status from the local database.
-            val enhancedSearchResults = combinedResults.map { searchResult ->
-                val articleMeta = articleMetaDao.getMetaByPageId(searchResult.pageid)
-                val isOffline = articleMeta != null && articleMeta.localFilePath.isNotEmpty()
+            val enhancedSearchResults = searchResults.map { searchResult ->
+                val isOffline = offlinePageIds.contains(searchResult.pageid)
+                // Use .copy() to create a new instance with the offline status set.
                 searchResult.copy(isOfflineAvailable = isOffline)
             }
 
@@ -102,7 +72,6 @@ class SearchPagingSource(
             return LoadResult.Error(exception)
         } catch (exception: CancellationException) {
             // This is expected when a new search supersedes the current one.
-            // Re-throw the exception to allow coroutines to handle cancellation gracefully.
             throw exception
         } catch (exception: Exception) {
             Log.e("SearchPagingSource", "Generic Exception during search", exception)
