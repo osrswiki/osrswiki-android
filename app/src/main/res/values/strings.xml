@@ -96,4 +96,10 @@
     <string name="news_fetch_error">Failed to fetch news.</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    
+    <!-- History Fragment -->
+    <string name="history_empty_message">No pages visited yet.\nStart browsing to see your history here.</string>
+    <string name="action_clear_history">Clear history</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_search">Search</string>
 </resources>

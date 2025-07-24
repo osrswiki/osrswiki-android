@@ -306,10 +306,10 @@ class PageFragment : Fragment(), RenderCallback {
             pageWebViewManager.finalizeAndRevealPage {
                 // This block is now the final step. It runs only after the WebView
                 // content is visible. Now we can safely set the final state.
-                pageHistoryManager.logPageVisit()
+                pageContentLoader.onPageRendered() // Sets progress to 100% and isLoading=false
+                pageHistoryManager.logPageVisit() // Log history after isLoading is set to false
                 fetchTableOfContents()
                 binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
-                pageContentLoader.onPageRendered() // Sets progress to 100% and isLoading=false
             }
         }
     }
