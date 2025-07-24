@@ -31,6 +31,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_light</item>
+        <item name="secondary_text_color">@color/osrs_text_dark</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
     </style>
 
@@ -51,6 +53,8 @@
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
         <item name="paper_color">?attr/colorSurface</item>
+        <item name="base_color">?attr/colorSurface</item>
+        <item name="secondary_text_color">#757575</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -66,6 +70,8 @@
         <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
         <item name="colorControlHighlight">@color/ripple_dark</item>
         <item name="paper_color">?attr/colorSurface</item>
+        <item name="base_color">?attr/colorSurface</item>
+        <item name="secondary_text_color">#BDBDBD</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
@@ -92,6 +98,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
         <item name="linkColor">@color/link_color_osrs_light</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_light</item>
+        <item name="secondary_text_color">#8B7355</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.OSRSWiki.Base.Light">
@@ -119,6 +127,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
         <item name="linkColor">@color/link_color_wiki_light</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/white</item>
+        <item name="secondary_text_color">#757575</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -145,6 +155,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
         <item name="linkColor">@color/link_color_osrs_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_dark</item>
+        <item name="secondary_text_color">#B8B8B8</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -172,6 +184,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
         <item name="linkColor">@color/link_color_wiki_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/wiki_surface_dark</item>
+        <item name="secondary_text_color">#BDBDBD</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.OSRSWiki.Base.Dark">
@@ -199,6 +213,8 @@
         <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
         <item name="linkColor">@color/link_color_wiki_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/black</item>
+        <item name="secondary_text_color">#BDBDBD</item>
     </style>
 
     <style name="Widget.App.ActionMode" parent="Widget.Material3.ActionMode">

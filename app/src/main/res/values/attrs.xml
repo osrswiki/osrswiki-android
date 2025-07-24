@@ -12,4 +12,6 @@
     <attr name="linkColor" format="color" />
 
     <attr name="primary_text_color" format="color" />
+    <attr name="base_color" format="color" />
+    <attr name="secondary_text_color" format="color" />
 </resources>

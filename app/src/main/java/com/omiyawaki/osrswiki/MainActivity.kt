@@ -5,8 +5,10 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
+import com.omiyawaki.osrswiki.history.HistoryFragment
 import com.omiyawaki.osrswiki.navigation.AppRouterImpl
 import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
+import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.search.SearchFragment
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.map.MapFragment
@@ -19,12 +21,14 @@ class MainActivity : BaseActivity(),
     private lateinit var appRouter: AppRouterImpl
     private val mainFragment: MainFragment by lazy { MainFragment.newInstance() }
     private val mapFragment: MapFragment by lazy { MapFragment() }
+    private val historyFragment: HistoryFragment by lazy { HistoryFragment.newInstance() }
     private lateinit var activeFragment: Fragment
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
         private const val MAIN_FRAGMENT_TAG = "main_fragment"
         private const val MAP_FRAGMENT_TAG = "map_fragment"
+        private const val HISTORY_FRAGMENT_TAG = "history_fragment"
         private const val ACTIVE_FRAGMENT_TAG = "active_fragment_tag"
     }
 
@@ -42,17 +46,24 @@ class MainActivity : BaseActivity(),
             supportFragmentManager.beginTransaction()
                 .add(R.id.nav_host_container, mainFragment, MAIN_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
+                .add(R.id.nav_host_container, historyFragment, HISTORY_FRAGMENT_TAG)
+                .runOnCommit {
+                    // Ensure only mainFragment is visible on startup
+                    mapFragment.view?.alpha = 0.0f
+                    historyFragment.view?.alpha = 0.0f
+                    mainFragment.view?.alpha = 1.0f
+                }
                 .commit()
 
             activeFragment = mainFragment
-            L.d("MainActivity: onCreate: Fragments added. MainFragment is visible, MapFragment is hidden.")
+            L.d("MainActivity: onCreate: Fragments added. MainFragment is visible, others are hidden.")
         } else {
             L.d("MainActivity: onCreate: Restoring state.")
             val savedActiveTag = savedInstanceState.getString(ACTIVE_FRAGMENT_TAG, MAIN_FRAGMENT_TAG)
-            activeFragment = if (savedActiveTag == MAP_FRAGMENT_TAG) {
-                supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
-            } else {
-                supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
+            activeFragment = when (savedActiveTag) {
+                MAP_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
+                HISTORY_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(HISTORY_FRAGMENT_TAG)!!
+                else -> supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
             }
             L.d("MainActivity: onCreate: Active fragment is ${activeFragment.javaClass.simpleName}")
         }
@@ -66,6 +77,16 @@ class MainActivity : BaseActivity(),
             val selectedFragment = when (item.itemId) {
                 R.id.nav_news, R.id.nav_saved -> mainFragment
                 R.id.nav_map -> mapFragment
+                R.id.nav_search -> {
+                    // Check if current fragment is already HistoryFragment
+                    if (activeFragment === historyFragment) {
+                        // Second tap - open search activity
+                        val intent = Intent(this, SearchActivity::class.java)
+                        startActivity(intent)
+                        return@setOnItemSelectedListener true
+                    }
+                    historyFragment
+                }
                 else -> null
             }
 
@@ -115,6 +136,7 @@ class MainActivity : BaseActivity(),
         super.onSaveInstanceState(outState)
         val activeTag = when (activeFragment) {
             mapFragment -> MAP_FRAGMENT_TAG
+            historyFragment -> HISTORY_FRAGMENT_TAG
             else -> MAIN_FRAGMENT_TAG
         }
         outState.putString(ACTIVE_FRAGMENT_TAG, activeTag)
