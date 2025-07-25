@@ -72,6 +72,8 @@ class PageFragment : Fragment(), RenderCallback {
     private var pageIdArg: String? = null
     private var pageTitleArg: String? = null
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
+    private var snippetArg: String? = null
+    private var thumbnailUrlArg: String? = null
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -91,6 +93,8 @@ class PageFragment : Fragment(), RenderCallback {
             pageIdArg = it.getString(ARG_PAGE_ID)
             pageTitleArg = it.getString(ARG_PAGE_TITLE)
             navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
+            snippetArg = it.getString(ARG_PAGE_SNIPPET)
+            thumbnailUrlArg = it.getString(ARG_PAGE_THUMBNAIL)
         }
         pageViewModel = PageViewModel()
         val appInstance = requireActivity().applicationContext as OSRSWikiApp
@@ -307,7 +311,10 @@ class PageFragment : Fragment(), RenderCallback {
                 // This block is now the final step. It runs only after the WebView
                 // content is visible. Now we can safely set the final state.
                 pageContentLoader.onPageRendered() // Sets progress to 100% and isLoading=false
-                pageHistoryManager.logPageVisit() // Log history after isLoading is set to false
+                pageHistoryManager.logPageVisit(
+                    snippet = snippetArg,
+                    thumbnailUrl = thumbnailUrlArg
+                ) // Log history after isLoading is set to false
                 fetchTableOfContents()
                 binding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
             }
@@ -361,14 +368,23 @@ class PageFragment : Fragment(), RenderCallback {
         const val ARG_PAGE_ID = "pageId"
         const val ARG_PAGE_TITLE = "pageTitle"
         const val ARG_PAGE_SOURCE = "pageSource"
+        const val ARG_PAGE_SNIPPET = "pageSnippet"
+        const val ARG_PAGE_THUMBNAIL = "pageThumbnail"
         @JvmStatic
-        fun newInstance(pageId: String?, pageTitle: String?, source: Int): PageFragment =
-            PageFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PAGE_ID, pageId)
-                    putString(ARG_PAGE_TITLE, pageTitle)
-                    putInt(ARG_PAGE_SOURCE, source)
-                }
+        fun newInstance(
+            pageId: String?, 
+            pageTitle: String?, 
+            source: Int,
+            snippet: String? = null,
+            thumbnailUrl: String? = null
+        ): PageFragment = PageFragment().apply {
+            arguments = Bundle().apply {
+                putString(ARG_PAGE_ID, pageId)
+                putString(ARG_PAGE_TITLE, pageTitle)
+                putInt(ARG_PAGE_SOURCE, source)
+                putString(ARG_PAGE_SNIPPET, snippet)
+                putString(ARG_PAGE_THUMBNAIL, thumbnailUrl)
             }
+        }
     }
 }

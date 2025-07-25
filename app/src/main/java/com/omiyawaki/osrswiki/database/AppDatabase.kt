@@ -46,7 +46,7 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter
         HistoryEntry::class,
         RecentSearch::class // Add the new RecentSearch entity.
     ],
-    version = 12, // Increment the database version.
+    version = 13, // Increment the database version.
     exportSchema = false
 )
 @TypeConverters(
@@ -80,6 +80,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from version 12 to 13. Adds snippet and thumbnail_url columns to history_entries table.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE history_entries ADD COLUMN snippet TEXT")
+                db.execSQL("ALTER TABLE history_entries ADD COLUMN thumbnail_url TEXT")
+            }
+        }
+
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
                 OSRSWikiApp.instance.applicationContext,
@@ -88,7 +98,8 @@ abstract class AppDatabase : RoomDatabase() {
             )
              .addMigrations(
                 // Other migrations would be listed here.
-                MIGRATION_11_12 // Add the new migration to the builder.
+                MIGRATION_11_12, // Add the new migration to the builder.
+                MIGRATION_12_13 // Add the new migration for snippet and thumbnail_url columns.
              )
             .build()
         }

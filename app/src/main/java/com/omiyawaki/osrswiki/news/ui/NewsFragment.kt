@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -41,6 +42,7 @@ class NewsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupHeader(view)
         setupSearch(view)
         setupRecyclerView(view)
         observeViewModel()
@@ -51,9 +53,14 @@ class NewsFragment : Fragment() {
         }
     }
 
+    private fun setupHeader(view: View) {
+        // Set the page title to "News"
+        view.findViewById<TextView>(R.id.page_title)?.text = getString(R.string.nav_news)
+    }
+
     private fun setupSearch(view: View) {
         // Set a click listener on the search bar view to launch the search activity.
-        view.findViewById<View>(R.id.news_search_view).setOnClickListener {
+        view.findViewById<View>(R.id.search_container).setOnClickListener {
             val intent = Intent(requireContext(), SearchActivity::class.java)
             startActivity(intent)
         }

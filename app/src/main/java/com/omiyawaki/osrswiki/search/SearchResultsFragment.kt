@@ -141,7 +141,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
             context = requireContext(),
             pageTitle = item.title,
             pageId = item.id,
-            source = HistoryEntry.SOURCE_SEARCH
+            source = HistoryEntry.SOURCE_SEARCH,
+            snippet = item.snippet,
+            thumbnailUrl = item.thumbnailUrl
         )
         startActivity(intent)
     }
