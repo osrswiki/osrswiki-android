@@ -38,7 +38,6 @@
 
     <string name="menu_title_settings">Settings</string>
     <string name="menu_title_donate">Donate</string>
-    <string name="menu_title_tabs">Tabs</string>
     <string name="menu_search_title">Search</string>
     <string name="page_action_save">Save</string>
     <string name="page_action_find_in_article">Find in page</string>
@@ -64,7 +63,6 @@
     <string name="overflow_menu_appearance">Appearance</string>
     <string name="overflow_menu_contents">Contents</string>
     <string name="page_toolbar_search_hint">Search OSRSWiki</string>
-    <string name="page_toolbar_tabs_content_description">Show tabs</string>
     <string name="page_toolbar_overflow_content_description">More options</string>
 
     <string name="find_in_page_hint">Search in page</string>

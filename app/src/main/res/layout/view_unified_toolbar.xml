@@ -26,11 +26,6 @@
         app:drawableStartCompat="@drawable/ic_search_white_24dp"
         app:drawableTint="?attr/placeholder_color" />
 
-    <com.omiyawaki.osrswiki.views.TabCountsView
-        android:id="@+id/toolbar_tab_counts_view"
-        android:layout_width="48dp"
-        android:layout_height="match_parent"
-        android:contentDescription="@string/page_toolbar_tabs_content_description" />
 
     <View
         android:id="@+id/toolbar_notification_button_placeholder"

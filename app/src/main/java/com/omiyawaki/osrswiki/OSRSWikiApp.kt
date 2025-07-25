@@ -20,17 +20,16 @@ import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.PageLocalDataSource
 import com.omiyawaki.osrswiki.page.PageRemoteDataSource
 import com.omiyawaki.osrswiki.page.PageRepository
-import com.omiyawaki.osrswiki.page.tabs.Tab
 import com.omiyawaki.osrswiki.search.SearchRepository
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 class OSRSWikiApp : Application() {
 
@@ -52,10 +51,6 @@ class OSRSWikiApp : Application() {
     lateinit var pageHtmlBuilder: PageHtmlBuilder
         private set
 
-    var currentTab: Tab? = null
-    val tabList: MutableList<Tab> = mutableListOf()
-    private val _tabCountFlow = MutableStateFlow(0)
-    val tabCountFlow: StateFlow<Int> = _tabCountFlow.asStateFlow()
 
     private val _currentNetworkStatus = MutableStateFlow(false)
     val currentNetworkStatus: StateFlow<Boolean> = _currentNetworkStatus.asStateFlow()
@@ -119,14 +114,6 @@ class OSRSWikiApp : Application() {
             recentSearchDao = recentSearchDao // Provide the new DAO to the repository.
         )
 
-        if (tabList.isEmpty()) {
-            val initialTab = Tab()
-            tabList.add(initialTab)
-            currentTab = initialTab
-        } else {
-            currentTab = tabList.firstOrNull()
-        }
-        _tabCountFlow.value = tabList.size
 
         initializeNetworkCallback()
     }
@@ -202,7 +189,4 @@ class OSRSWikiApp : Application() {
         }
     }
 
-    fun commitTabState() {
-        Log.d("OSRSWikiApp", "commitTabState() called (STUB). Current tab ID: ${currentTab?.id}, Tab count: ${tabList.size}")
-    }
 }
