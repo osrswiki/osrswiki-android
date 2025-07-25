@@ -15,7 +15,6 @@ import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
-import com.omiyawaki.osrswiki.views.TabCountsView
 import com.omiyawaki.osrswiki.views.ViewHideHandler
 
 class PageActivity : BaseActivity(), PageFragment.Callback {
@@ -29,6 +28,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var currentActionMode: ActionMode? = null
 
     private lateinit var toolbarHideHandler: ViewHideHandler
+    private lateinit var pageActionBarManager: PageActionBarManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,10 +94,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             startActivity(searchActivityIntent)
         }
 
-        binding.pageToolbar.findViewById<TabCountsView>(R.id.toolbar_tab_counts_view).setOnClickListener {
-            Toast.makeText(this, "Tab switcher not yet implemented.", Toast.LENGTH_SHORT).show()
-        }
-
         binding.pageToolbar.findViewById<View>(R.id.toolbar_overflow_menu_button).setOnClickListener { anchorView ->
             val currentFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
             currentFragment?.showPageOverflowMenu(anchorView) ?: run {
@@ -129,9 +125,14 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         currentActionMode?.finish()
     }
 
-    override fun getPageActionTabLayout(): PageActionTabLayout = binding.pageActionsTabLayout
-
     override fun getPageToolbarContainer(): View = binding.pageAppbarLayout
+
+    override fun getPageActionBarManager(): PageActionBarManager {
+        if (!::pageActionBarManager.isInitialized) {
+            pageActionBarManager = PageActionBarManager(binding)
+        }
+        return pageActionBarManager
+    }
 
     companion object {
         const val EXTRA_PAGE_TITLE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_TITLE"

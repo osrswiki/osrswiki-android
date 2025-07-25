@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.content.Intent
 import android.view.ActionMode
 import android.view.GestureDetector
 import android.view.Gravity
@@ -11,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
@@ -29,6 +31,7 @@ import com.omiyawaki.osrswiki.page.model.TocData
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,8 +46,8 @@ class PageFragment : Fragment(), RenderCallback {
         fun onPageStopActionMode()
         fun onPageFinishActionMode()
         fun onWebViewReady(webView: ObservableWebView)
-        fun getPageActionTabLayout(): PageActionTabLayout
         fun getPageToolbarContainer(): View
+        fun getPageActionBarManager(): PageActionBarManager
         fun onPageSwipe(gravity: Int)
     }
 
@@ -58,7 +61,6 @@ class PageFragment : Fragment(), RenderCallback {
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var pageLinkHandler: PageLinkHandler
     private lateinit var pageWebViewManager: PageWebViewManager
-    private lateinit var pageActionHandler: PageActionHandler
     private lateinit var pageLoadCoordinator: PageLoadCoordinator
     private lateinit var pageHistoryManager: PageHistoryManager
     private lateinit var pageReadingListManager: PageReadingListManager
@@ -150,17 +152,12 @@ class PageFragment : Fragment(), RenderCallback {
             }
         )
 
-        val pageActionTabLayout = callback?.getPageActionTabLayout()
-        if (pageActionTabLayout != null) {
-            pageActionHandler = PageActionHandler(this, pageViewModel, pageActionTabLayout)
-            pageActionTabLayout.callback = pageActionHandler.callback
-        }
 
         pageReadingListManager = PageReadingListManager(
             pageViewModel,
             readingListPageDao,
             viewLifecycleOwner.lifecycleScope,
-            pageActionTabLayout,
+            callback?.getPageActionBarManager(),
             ::getPageTitleArg
         )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
@@ -189,6 +186,9 @@ class PageFragment : Fragment(), RenderCallback {
                 forceNetwork = true
             )
         }
+
+        // Setup the bottom action bar
+        setupBottomActionBar()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -338,8 +338,27 @@ class PageFragment : Fragment(), RenderCallback {
         contentsHandler.show()
     }
 
+    private fun setupBottomActionBar() {
+        val actionBarManager = callback?.getPageActionBarManager()
+        actionBarManager?.setupActionBar(this)
+    }
+
     fun showPageOverflowMenu(anchorView: View) {
-        if (isAdded) pageActionHandler.showPageOverflowMenu(anchorView)
+        if (isAdded) {
+            val popup = PopupMenu(requireContext(), anchorView)
+            popup.menuInflater.inflate(R.menu.menu_page_overflow, popup.menu)
+            
+            // All basic actions are now in the bottom action bar
+            // This menu is now empty but kept for future additions
+            
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    // Add future menu items here
+                    else -> false
+                }
+            }
+            popup.show()
+        }
     }
 
 

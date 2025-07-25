@@ -8,9 +8,5 @@
         android:icon="@android:drawable/ic_menu_search"
         app:showAsAction="ifRoom" />
 
-    <item
-        android:id="@+id/menu_tabs"
-        android:title="@string/menu_title_tabs"
-        app:showAsAction="always" />
 
 </menu>

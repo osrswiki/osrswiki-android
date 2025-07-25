@@ -31,4 +31,23 @@
     <style name="App.Style.PopupMenu" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">?attr/colorSurface</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item</item></style>
     <style name="App.TextAppearance.PopupMenu.Item" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">?attr/colorOnSurface</item></style>
 
+    <style name="PageActionButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingHorizontal">2dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textSize">@dimen/bottom_nav_label_text_size</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:drawableTint">?attr/colorOnSurface</item>
+        <item name="android:drawablePadding">-4dp</item>
+    </style>
+
 </resources>
