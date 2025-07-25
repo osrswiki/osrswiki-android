@@ -14,12 +14,10 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <include
-            android:id="@+id/news_search_view"
-            layout="@layout/view_main_feed_search"
+            android:id="@+id/news_header_view"
+            layout="@layout/view_tab_header_with_search"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginVertical="12dp" />
+            android:layout_height="wrap_content" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

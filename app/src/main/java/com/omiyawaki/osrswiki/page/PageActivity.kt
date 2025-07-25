@@ -24,6 +24,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var pageTitleArg: String? = null
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
+    private var snippetArg: String? = null
+    private var thumbnailUrlArg: String? = null
     private var currentActionMode: ActionMode? = null
 
     private lateinit var toolbarHideHandler: ViewHideHandler
@@ -48,9 +50,17 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
         navigationSourceArg = intent.getIntExtra(EXTRA_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
+        snippetArg = intent.getStringExtra(EXTRA_PAGE_SNIPPET)
+        thumbnailUrlArg = intent.getStringExtra(EXTRA_PAGE_THUMBNAIL)
 
         if (savedInstanceState == null) {
-            val fragment = PageFragment.newInstance(pageId = pageIdArg, pageTitle = pageTitleArg, source = navigationSourceArg)
+            val fragment = PageFragment.newInstance(
+                pageId = pageIdArg, 
+                pageTitle = pageTitleArg, 
+                source = navigationSourceArg,
+                snippet = snippetArg,
+                thumbnailUrl = thumbnailUrlArg
+            )
             supportFragmentManager.beginTransaction()
                 .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG)
                 .commit()
@@ -127,11 +137,20 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         const val EXTRA_PAGE_TITLE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_TITLE"
         const val EXTRA_PAGE_ID = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_ID"
         const val EXTRA_PAGE_SOURCE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SOURCE"
+        const val EXTRA_PAGE_SNIPPET = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SNIPPET"
+        const val EXTRA_PAGE_THUMBNAIL = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_THUMBNAIL"
         const val FRAGMENT_TAG = "PageFragmentTag"
 
         fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
             val canonicalTitle = getPageTitleFromUrl(updateItem.articleUrl)
-            return newIntent(context, canonicalTitle, null, source)
+            return newIntent(
+                context = context,
+                pageTitle = canonicalTitle, 
+                pageId = null, 
+                source = source,
+                snippet = updateItem.snippet,
+                thumbnailUrl = updateItem.imageUrl
+            )
         }
 
         private fun getPageTitleFromUrl(url: String): String {
@@ -140,11 +159,20 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             return java.net.URLDecoder.decode(withSpaces, "UTF-8")
         }
 
-        fun newIntent(context: Context, pageTitle: String?, pageId: String?, source: Int): Intent {
+        fun newIntent(
+            context: Context, 
+            pageTitle: String?, 
+            pageId: String?, 
+            source: Int,
+            snippet: String? = null,
+            thumbnailUrl: String? = null
+        ): Intent {
             return Intent(context, PageActivity::class.java).apply {
                 putExtra(EXTRA_PAGE_TITLE, pageTitle)
                 putExtra(EXTRA_PAGE_ID, pageId)
                 putExtra(EXTRA_PAGE_SOURCE, source)
+                putExtra(EXTRA_PAGE_SNIPPET, snippet)
+                putExtra(EXTRA_PAGE_THUMBNAIL, thumbnailUrl)
             }
         }
     }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 class PageHistoryManager(
     private val pageViewModel: PageViewModel,
@@ -19,7 +20,7 @@ class PageHistoryManager(
 ) {
     private val HISTORY_DEBUG_TAG = "PageHistoryManager"
 
-    fun logPageVisit() {
+    fun logPageVisit(snippet: String? = null, thumbnailUrl: String? = null) {
         coroutineScope.launch(Dispatchers.IO) {
             val fragment = fragmentContextProvider() ?: return@launch
             if (!fragment.isAdded || fragment.provideBinding() == null) {
@@ -66,7 +67,10 @@ class PageHistoryManager(
 
             val historyEntry = HistoryEntry(
                 pageTitle = commonPageTitleForHistory,
-                source = navigationSource
+                timestamp = Date(),
+                source = navigationSource,
+                snippet = snippet,
+                thumbnailUrl = thumbnailUrl
             )
 
             try {

@@ -27,12 +27,20 @@ data class HistoryEntry(
     var source: Int,
 
     @ColumnInfo(name = "is_archived", defaultValue = "0")
-    var isArchived: Boolean = false
+    var isArchived: Boolean = false,
+
+    @ColumnInfo(name = "snippet")
+    var snippet: String? = null,
+
+    @ColumnInfo(name = "thumbnail_url")
+    var thumbnailUrl: String? = null
 ) {
     constructor(pageTitle: PageTitle, source: Int) : this(
         pageTitle = pageTitle,
         source = source,
-        timestamp = Date()
+        timestamp = Date(),
+        snippet = null,
+        thumbnailUrl = null
     )
 
     companion object {

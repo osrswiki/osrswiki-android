@@ -52,9 +52,6 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     private fun groupByDate(entries: List<HistoryEntry>): List<HistoryItem> {
         val result = mutableListOf<HistoryItem>()
         
-        // Add search card at the top
-        result.add(HistoryItem.SearchCard)
-        
         if (entries.isEmpty()) {
             return result
         }
