@@ -19,10 +19,16 @@ class OSRSWikiGlideModule : AppGlideModule() {
     override fun applyOptions(context: Context, builder: GlideBuilder) {
         L.d("GLIDE_CONFIG: OSRSWikiGlideModule.applyOptions called.")
 
-        // This is an evidence-gathering experiment.
-        // We are enabling Glide's most verbose logging to see cache key
-        // generation and the reasons for cache misses.
-        builder.setLogLevel(Log.VERBOSE)
+        // Enable verbose logging only in debug builds to avoid performance overhead in production
+        if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) {
+            // This is an evidence-gathering experiment.
+            // We are enabling Glide's most verbose logging to see cache key
+            // generation and the reasons for cache misses.
+            builder.setLogLevel(Log.VERBOSE)
+        } else {
+            // Use minimal logging in production builds for performance
+            builder.setLogLevel(Log.ERROR)
+        }
 
         val calculator = MemorySizeCalculator.Builder(context)
             .setMemoryCacheScreens(2f)
