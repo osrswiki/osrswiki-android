@@ -31,8 +31,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 allEntries
             } else {
                 allEntries.filter { entry ->
-                    entry.pageTitle.displayText.contains(query, ignoreCase = true) ||
-                    entry.pageTitle.apiPath?.contains(query, ignoreCase = true) == true
+                    entry.displayText.contains(query, ignoreCase = true) ||
+                    entry.apiPath.contains(query, ignoreCase = true)
                 }
             }
             

@@ -117,7 +117,7 @@ class HistoryFragment : Fragment() {
 
     private fun navigateToPage(historyEntry: HistoryEntry) {
         val intent = Intent(requireContext(), PageActivity::class.java).apply {
-            putExtra(PageActivity.EXTRA_PAGE_TITLE, historyEntry.pageTitle)
+            putExtra(PageActivity.EXTRA_PAGE_TITLE, historyEntry.apiPath)
             putExtra(PageActivity.EXTRA_PAGE_SOURCE, HistoryEntry.SOURCE_HISTORY)
         }
         startActivity(intent)

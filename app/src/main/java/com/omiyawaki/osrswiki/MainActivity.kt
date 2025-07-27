@@ -52,6 +52,9 @@ class MainActivity : BaseActivity(),
                     mapFragment.view?.alpha = 0.0f
                     historyFragment.view?.alpha = 0.0f
                     mainFragment.view?.alpha = 1.0f
+                    
+                    // FIX: Bring mainFragment to front so it can receive touches
+                    mainFragment.view?.bringToFront()
                 }
                 .commit()
 
