@@ -51,11 +51,14 @@ class SavedPageSyncWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Log.e(loggerTag, "!!! SavedPageSyncWorker: doWork() method CALLED !!!")
-        Log.d(loggerTag, "SavedPageSyncWorker started.")
+        Log.d(loggerTag, "SavedPageSyncWorker started. (Phase 3: Enhanced with incremental sync and queue management)")
         var overallSuccess = true
 
         try {
             val pagesToSave = readingListPageDao.getPagesToProcessForSaving()
+            val pagesToDelete = readingListPageDao.getPagesToProcessForDeleting()
+            Log.i(loggerTag, "Phase 3 Queue Status: ${pagesToSave.size} pages to save, ${pagesToDelete.size} pages to delete")
+            
             if (pagesToSave.isNotEmpty()) {
                 Log.i(loggerTag, "Found ${pagesToSave.size} page(s) to save.")
                 if (!processPagesToSave(pagesToSave)) {
@@ -64,8 +67,6 @@ class SavedPageSyncWorker(
             } else {
                 Log.d(loggerTag, "No pages found to save.")
             }
-
-            val pagesToDelete = readingListPageDao.getPagesToProcessForDeleting()
             if (pagesToDelete.isNotEmpty()) {
                 Log.i(loggerTag, "Found ${pagesToDelete.size} page(s) to delete offline data for.")
                 if (!processPagesToDelete(pagesToDelete)) {
@@ -101,6 +102,20 @@ class SavedPageSyncWorker(
 
             Log.d(loggerTag, "----------------------------------------------------")
             Log.i(loggerTag, "Attempting to save and index page: '${page.displayTitle}' (URL for FTS: $canonicalPageUrlForFts, ReadingListPgID: ${page.id})")
+            
+            // Phase 3: Incremental sync - check if page has changed before downloading
+            val currentRevId = getCurrentRevisionId(page.apiTitle)
+            if (currentRevId != null && page.revId > 0 && currentRevId == page.revId) {
+                Log.i(loggerTag, "Page '${page.displayTitle}' unchanged (revId: $currentRevId). Skipping download.")
+                readingListPageDao.updatePageStatusToSavedAndMtime(page.id, currentTimeMs = System.currentTimeMillis())
+                continue
+            }
+            
+            if (currentRevId != null) {
+                Log.i(loggerTag, "Page '${page.displayTitle}' revision changed: stored=${page.revId}, current=$currentRevId. Proceeding with download.")
+            } else {
+                Log.w(loggerTag, "Could not determine current revision for '${page.displayTitle}'. Proceeding with download.")
+            }
 
             try {
                 val encodedApiTitle = URLEncoder.encode(page.apiTitle, "UTF-8")
@@ -136,11 +151,18 @@ class SavedPageSyncWorker(
                                     M1_pageId = parseObject.optInt("pageid", 0).takeIf { it != 0 }
                                     M1_canonicalTitle = if (parseObject.has("title") && !parseObject.isNull("title")) parseObject.getString("title") else null
                                     htmlContentFromJSon = if (parseObject.has("text") && !parseObject.isNull("text")) parseObject.getString("text") else null
-                                    Log.d(loggerTag, "Extracted from JSON: pageId=$M1_pageId, canonicalTitle='$M1_canonicalTitle'. HTML isNull: ${htmlContentFromJSon == null}")
+                                    val newRevId = parseObject.optLong("revid", 0L).takeIf { it != 0L }
+                                    Log.d(loggerTag, "Extracted from JSON: pageId=$M1_pageId, canonicalTitle='$M1_canonicalTitle', revId=$newRevId. HTML isNull: ${htmlContentFromJSon == null}")
 
                                     if (M1_pageId != null) {
                                         readingListPageDao.updateMediaWikiPageId(page.id, M1_pageId)
                                         Log.i(loggerTag, "Updated ReadingListPage (ID: ${page.id}) with mediaWikiPageId: $M1_pageId")
+                                    }
+                                    
+                                    // Phase 3: Update the stored revision ID
+                                    if (newRevId != null) {
+                                        readingListPageDao.updatePageRevisionId(page.id, newRevId)
+                                        Log.i(loggerTag, "Updated ReadingListPage (ID: ${page.id}) with revisionId: $newRevId")
                                     }
                                 } else { Log.w(loggerTag, "No 'parse' object in JSON response for ${page.displayTitle}") }
                             } catch (jsonEx: Exception) { Log.e(loggerTag, "Failed to parse JSON from ${contentFile.absolutePath}", jsonEx) }
@@ -237,8 +259,52 @@ class SavedPageSyncWorker(
         return allItemsInThisBatchProcessedSuccessfully
     }
 
+    /**
+     * Phase 3: Get current revision ID from API without downloading full content
+     */
+    private suspend fun getCurrentRevisionId(apiTitle: String): Long? {
+        try {
+            val encodedApiTitle = URLEncoder.encode(apiTitle, "UTF-8")
+            val infoUrl = "$baseApiUrl?action=query&format=json&formatversion=2&prop=info&titles=$encodedApiTitle"
+            val request = Request.Builder().url(infoUrl).build()
+            
+            val response = okHttpClient.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(loggerTag, "Failed to get revision info for '$apiTitle'. HTTP: ${response.code}")
+                return null
+            }
+            
+            response.body?.use { body ->
+                val jsonResponse = JSONObject(body.string())
+                val queryObject = jsonResponse.optJSONObject("query")
+                val pagesObject = queryObject?.optJSONObject("pages")
+                
+                if (pagesObject != null) {
+                    val pageKeys = pagesObject.keys()
+                    if (pageKeys.hasNext()) {
+                        val pageId = pageKeys.next()
+                        val pageInfo = pagesObject.getJSONObject(pageId)
+                        val revId = pageInfo.optLong("lastrevid", 0L)
+                        if (revId > 0) {
+                            Log.d(loggerTag, "Current revision ID for '$apiTitle': $revId")
+                            return revId
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(loggerTag, "Error getting revision ID for '$apiTitle'", e)
+        }
+        return null
+    }
+
     companion object {
         private const val UNIQUE_WORK_NAME = "SavedPageSyncWorker"
+        
+        /**
+         * Phase 3: Enhanced enqueue with proper queue management
+         * Uses APPEND_OR_REPLACE to ensure requests are processed sequentially
+         */
         fun enqueue(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -247,12 +313,15 @@ class SavedPageSyncWorker(
                 .setConstraints(constraints)
                 .addTag(UNIQUE_WORK_NAME)
                 .build()
+                
+            // Phase 3: Use APPEND_OR_REPLACE to ensure proper queuing
+            // This prevents cancelling running workers while ensuring new requests are processed
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_WORK_NAME,
-                ExistingWorkPolicy.REPLACE,
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
                 workRequest
             )
-            Log.d("OSRSWIKI_WORKER_ENQUEUE", "SavedPageSyncWorker enqueued with policy REPLACE.")
+            Log.d("OSRSWIKI_WORKER_ENQUEUE", "SavedPageSyncWorker enqueued with policy APPEND_OR_REPLACE for sequential processing.")
         }
     }
 }

@@ -10,8 +10,6 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 
 // Entities
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
-import com.omiyawaki.osrswiki.database.SavedArticleEntry
-import com.omiyawaki.osrswiki.database.OfflineAsset
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.readinglist.database.ReadingList
@@ -21,8 +19,6 @@ import com.omiyawaki.osrswiki.search.db.RecentSearch
 
 // DAOs
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
-import com.omiyawaki.osrswiki.database.SavedArticleEntryDao
-import com.omiyawaki.osrswiki.database.OfflineAssetDao
 import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
 import com.omiyawaki.osrswiki.history.db.HistoryEntryDao
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
@@ -37,16 +33,14 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter
 @Database(
     entities = [
         ArticleMetaEntity::class,
-        SavedArticleEntry::class,
-        OfflineAsset::class,
         ReadingList::class,
         ReadingListPage::class,
         OfflineObject::class,
         OfflinePageFts::class,
         HistoryEntry::class,
-        RecentSearch::class // Add the new RecentSearch entity.
+        RecentSearch::class
     ],
-    version = 15, // Increment the database version.
+    version = 16, // Increment the database version to remove legacy entities.
     exportSchema = false
 )
 @TypeConverters(
@@ -56,14 +50,12 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun articleMetaDao(): ArticleMetaDao
-    abstract fun savedArticleEntryDao(): SavedArticleEntryDao
-    abstract fun offlineAssetDao(): OfflineAssetDao
     abstract fun readingListDao(): ReadingListDao
     abstract fun readingListPageDao(): ReadingListPageDao
     abstract fun offlineObjectDao(): OfflineObjectDao
     abstract fun offlinePageFtsDao(): OfflinePageFtsDao
     abstract fun historyEntryDao(): HistoryEntryDao
-    abstract fun recentSearchDao(): RecentSearchDao // Add the accessor for the new DAO.
+    abstract fun recentSearchDao(): RecentSearchDao
 
     companion object {
         private const val DATABASE_NAME = "osrs_wiki_database.db"
@@ -154,6 +146,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from version 15 to 16. Removes legacy offline tables in favor of unified ReadingListPage system.
+         */
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Drop legacy tables - these were part of the old offline system
+                db.execSQL("DROP TABLE IF EXISTS `saved_article_entries`")
+                db.execSQL("DROP TABLE IF EXISTS `offline_assets`")
+            }
+        }
+
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
                 OSRSWikiApp.instance.applicationContext,
@@ -161,11 +164,11 @@ abstract class AppDatabase : RoomDatabase() {
                 DATABASE_NAME
             )
              .addMigrations(
-                // Other migrations would be listed here.
                 MIGRATION_11_12, // Add the new migration to the builder.
                 MIGRATION_12_13, // Add the new migration for snippet and thumbnail_url columns.
                 MIGRATION_13_14, // Add the new migration for unique index on page_wikiUrl.
-                MIGRATION_14_15  // Add the new migration for primary key change and deduplication.
+                MIGRATION_14_15, // Add the new migration for primary key change and deduplication.
+                MIGRATION_15_16  // Remove legacy offline system tables.
              )
             .build()
         }

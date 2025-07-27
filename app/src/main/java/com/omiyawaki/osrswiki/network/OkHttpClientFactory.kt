@@ -2,9 +2,7 @@ package com.omiyawaki.osrswiki.network
 
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase
-import com.omiyawaki.osrswiki.network.interceptor.OfflineAssetInterceptor // Your existing interceptor
-import com.omiyawaki.osrswiki.dataclient.okhttp.OfflineCacheInterceptor // Our new interceptor
-import com.omiyawaki.osrswiki.offline.storage.FileStorageManager
+import com.omiyawaki.osrswiki.dataclient.okhttp.OfflineCacheInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
@@ -25,15 +23,7 @@ object OkHttpClientFactory {
         val context = OSRSWikiApp.instance.applicationContext
         val appDatabase = AppDatabase.instance
 
-        // Dependencies for OfflineAssetInterceptor (your existing one)
-        val offlineAssetDao = appDatabase.offlineAssetDao() 
-        val fileStorageManager = FileStorageManager(context)
-        val offlineAssetInterceptor = OfflineAssetInterceptor(
-            offlineAssetDao = offlineAssetDao,
-            fileStorageManager = fileStorageManager
-        )
-
-        // Dependencies for our new OfflineCacheInterceptor
+        // Dependencies for OfflineCacheInterceptor
         val offlineObjectDao = appDatabase.offlineObjectDao()
         val readingListPageDao = appDatabase.readingListPageDao()
         val offlineCacheInterceptor = OfflineCacheInterceptor(
@@ -47,8 +37,7 @@ object OkHttpClientFactory {
             .connectTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .addInterceptor(offlineAssetInterceptor)  // Your existing interceptor
-            .addInterceptor(offlineCacheInterceptor) // Our new interceptor for page content caching
+            .addInterceptor(offlineCacheInterceptor) // Unified offline content caching
 
         // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging
         // Assuming your BuildConfig is accessible, e.g., com.omiyawaki.osrswiki.BuildConfig
