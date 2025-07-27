@@ -119,6 +119,9 @@ class HistoryFragment : Fragment() {
         val intent = Intent(requireContext(), PageActivity::class.java).apply {
             putExtra(PageActivity.EXTRA_PAGE_TITLE, historyEntry.apiPath)
             putExtra(PageActivity.EXTRA_PAGE_SOURCE, HistoryEntry.SOURCE_HISTORY)
+            // Pass the snippet and thumbnail so they're preserved in the history update
+            putExtra(PageActivity.EXTRA_PAGE_SNIPPET, historyEntry.snippet)
+            putExtra(PageActivity.EXTRA_PAGE_THUMBNAIL, historyEntry.thumbnailUrl)
         }
         startActivity(intent)
     }

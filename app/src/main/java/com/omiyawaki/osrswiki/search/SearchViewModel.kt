@@ -92,6 +92,7 @@ class SearchViewModel(
         if (preemptiveLoadJob?.isActive == true) return
 
         preemptiveLoadJob = viewModelScope.launch {
+            // Use page ID URL for downloading, but will be converted to canonical format later
             val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
             pageAssetDownloader.downloadPriorityAssets(pageId, pageUrl)
                 .collect { progress ->
@@ -102,12 +103,14 @@ class SearchViewModel(
                             result.processedHtml,
                             OSRSWikiApp.instance.getCurrentTheme()
                         )
+                        // Use canonical URL format for consistency
+                        val canonicalUrl = "https://oldschool.runescape.wiki/w/${result.parseResult.title.replace(" ", "_")}"
                         PreloadedPageCache.put(PreloadedPage(
                             pageId = result.parseResult.pageid,
                             finalHtml = finalHtml,
                             plainTextTitle = result.parseResult.title,
                             displayTitle = result.parseResult.displaytitle,
-                            wikiUrl = pageUrl,
+                            wikiUrl = canonicalUrl,
                             revisionId = result.parseResult.revid,
                             lastFetchedTimestamp = System.currentTimeMillis()
                         ))
