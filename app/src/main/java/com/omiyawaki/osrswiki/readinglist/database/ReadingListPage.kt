@@ -28,7 +28,8 @@ data class ReadingListPage(
     var lang: String,
     var revId: Long = 0,
     var remoteId: Long = 0,
-    var mediaWikiPageId: Int? = null // <<< NEW FIELD to store MediaWiki int page ID
+    var mediaWikiPageId: Int? = null, // <<< NEW FIELD to store MediaWiki int page ID
+    var downloadProgress: Int = 0 // Progress percentage (0-100) for offline save downloads
 ) : Serializable {
 
     constructor(title: PageTitle) :
@@ -45,7 +46,6 @@ data class ReadingListPage(
         StringUtils.stripAccents(StringUtil.fromHtml(displayTitle).toString())
     }
 
-    @Transient @Volatile var downloadProgress: Int = 0
     @Transient @Volatile var selected: Boolean = false
 
     val saving get() = offline && (status == STATUS_QUEUE_FOR_SAVE || status == STATUS_QUEUE_FOR_FORCED_SAVE)

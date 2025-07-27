@@ -176,6 +176,10 @@ interface ReadingListPageDao {
     // <<< Phase 3: NEW METHOD to update revision ID >>>
     @Query("UPDATE ReadingListPage SET revId = :revisionId WHERE id = :id")
     suspend fun updatePageRevisionId(id: Long, revisionId: Long)
+    
+    // NEW METHOD to update download progress
+    @Query("UPDATE ReadingListPage SET downloadProgress = :progress WHERE id = :id")
+    suspend fun updatePageDownloadProgress(id: Long, progress: Int)
 
     // Cache size management methods
     @Query("SELECT SUM(sizeBytes) FROM ReadingListPage WHERE offline = 1 AND status = :statusSaved")

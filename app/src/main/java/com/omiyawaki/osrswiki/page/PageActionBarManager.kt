@@ -1,7 +1,10 @@
 package com.omiyawaki.osrswiki.page
 
 import android.content.Intent
+import android.graphics.drawable.ClipDrawable
+import android.graphics.drawable.LayerDrawable
 import android.view.View
+import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
@@ -39,32 +42,33 @@ class PageActionBarManager(
         updateSaveIcon(if (isSaved) SaveState.SAVED else SaveState.NOT_SAVED)
     }
     
-    fun updateSaveIcon(saveState: SaveState) {
+    fun updateSaveIcon(saveState: SaveState, progress: Int = 0) {
         val saveButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_save)
-        val iconRes = when (saveState) {
-            SaveState.NOT_SAVED -> R.drawable.ic_page_action_save_border
-            SaveState.DOWNLOADING -> R.drawable.ic_search_24 // Temporary: use search icon as loading indicator
-            SaveState.SAVED -> R.drawable.ic_page_action_save_filled
-            SaveState.ERROR -> R.drawable.ic_error_image // Use existing error icon
-        }
         
-        saveButton.setCompoundDrawablesWithIntrinsicBounds(0, iconRes, 0, 0)
-        
-        // Update text and enable state based on status
         when (saveState) {
             SaveState.NOT_SAVED -> {
+                saveButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_page_action_save_border, 0, 0)
                 saveButton.isEnabled = true
                 saveButton.text = "Save"
             }
             SaveState.DOWNLOADING -> {
+                // Use the progress drawable and update its progress
+                val progressDrawable = ContextCompat.getDrawable(binding.root.context, R.drawable.ic_page_action_save_progress)
+                if (progressDrawable is LayerDrawable) {
+                    val clipDrawable = progressDrawable.getDrawable(1) as? ClipDrawable
+                    clipDrawable?.level = (progress * 100).coerceIn(0, 10000) // Map 0-100 to 0-10000
+                }
+                saveButton.setCompoundDrawablesWithIntrinsicBounds(null, progressDrawable, null, null)
                 saveButton.isEnabled = false
-                saveButton.text = "Saving..."
+                saveButton.text = "Saving... ${progress}%"
             }
             SaveState.SAVED -> {
+                saveButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_page_action_save_filled, 0, 0)
                 saveButton.isEnabled = true
                 saveButton.text = "Saved"
             }
             SaveState.ERROR -> {
+                saveButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_error_image, 0, 0)
                 saveButton.isEnabled = true
                 saveButton.text = "Retry"
             }
