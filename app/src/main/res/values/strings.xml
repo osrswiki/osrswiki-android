@@ -48,6 +48,7 @@
     <string name="error_generic_save_unsave">Error during save/unsave operation.</string>
     <string name="error_no_article_identifier">No page identifier provided.</string>
     <string name="title_page_not_specified">Page Not Specified</string>
+    <string name="offline_content_banner">Viewing offline content</string>
     <string name="label_content_unavailable">Content unavailable for this page.</string>
 
     <string name="saved_pages_empty_message">No pages saved for offline reading yet.</string>

@@ -44,4 +44,20 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        app:title="Offline Content"
+        app:iconSpaceReserved="false">
+
+        <ListPreference
+            app:key="offlineCacheSizeLimit"
+            app:title="Cache size limit"
+            app:summary="%s"
+            app:defaultValue="100"
+            app:entries="@array/cache_size_limit_entries"
+            app:entryValues="@array/cache_size_limit_values"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

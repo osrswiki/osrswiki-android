@@ -172,4 +172,18 @@ interface ReadingListPageDao {
     // <<< NEW METHOD to update MediaWiki Page ID >>>
     @Query("UPDATE ReadingListPage SET mediaWikiPageId = :mwPageId WHERE id = :id")
     suspend fun updateMediaWikiPageId(id: Long, mwPageId: Int)
+    
+    // <<< Phase 3: NEW METHOD to update revision ID >>>
+    @Query("UPDATE ReadingListPage SET revId = :revisionId WHERE id = :id")
+    suspend fun updatePageRevisionId(id: Long, revisionId: Long)
+
+    // Cache size management methods
+    @Query("SELECT SUM(sizeBytes) FROM ReadingListPage WHERE offline = 1 AND status = :statusSaved")
+    suspend fun getTotalCacheSizeBytes(statusSaved: Long = ReadingListPage.STATUS_SAVED): Long?
+
+    @Query("SELECT * FROM ReadingListPage WHERE offline = 1 AND status = :statusSaved ORDER BY atime ASC")
+    suspend fun getOldestSavedPages(statusSaved: Long = ReadingListPage.STATUS_SAVED): List<ReadingListPage>
+
+    @Query("DELETE FROM ReadingListPage WHERE id IN (:pageIds)")
+    suspend fun deletePagesByIds(pageIds: List<Long>)
 }

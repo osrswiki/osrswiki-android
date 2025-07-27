@@ -31,6 +31,21 @@
 
             </com.google.android.material.appbar.MaterialToolbar>
 
+            <TextView
+                android:id="@+id/page_offline_banner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/colorSecondaryContainer"
+                android:text="@string/offline_content_banner"
+                android:textColor="?attr/colorOnSecondaryContainer"
+                android:textSize="14sp"
+                android:padding="8dp"
+                android:gravity="center"
+                android:visibility="gone"
+                android:drawableStart="@drawable/ic_offline_24dp"
+                android:drawablePadding="8dp"
+                tools:visibility="visible" />
+
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.fragment.app.FragmentContainerView

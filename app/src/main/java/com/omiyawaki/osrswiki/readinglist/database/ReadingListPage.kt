@@ -59,6 +59,7 @@ data class ReadingListPage(
         const val STATUS_SAVED = 1L
         const val STATUS_QUEUE_FOR_DELETE = 2L
         const val STATUS_QUEUE_FOR_FORCED_SAVE = 3L
+        const val STATUS_ERROR = 4L // Failed to download
 
         fun toPageTitle(page: ReadingListPage): PageTitle {
             val wiki = page.wiki.apply { if (this.languageCode != page.lang) this.languageCode = page.lang }

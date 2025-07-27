@@ -2,20 +2,29 @@ package com.omiyawaki.osrswiki.page
 
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
 import android.widget.Toast
 import androidx.core.view.GravityCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
+import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
+import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.ViewHideHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PageActivity : BaseActivity(), PageFragment.Callback {
 
@@ -66,6 +75,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 .commit()
         }
         setupToolbarListeners()
+        checkAndShowOfflineBanner()
     }
 
     override fun onWebViewReady(webView: ObservableWebView) {
@@ -132,6 +142,57 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             pageActionBarManager = PageActionBarManager(binding)
         }
         return pageActionBarManager
+    }
+
+    private fun checkAndShowOfflineBanner() {
+        val pageTitle = pageTitleArg
+        if (pageTitle.isNullOrBlank()) {
+            return
+        }
+
+        lifecycleScope.launch {
+            val isOfflineMode = withContext(Dispatchers.IO) {
+                // Check if we have no network connection
+                val hasNetwork = hasNetworkConnection()
+                if (hasNetwork) {
+                    false // We have network, not in offline mode
+                } else {
+                    // No network, check if this page is saved offline
+                    isPageSavedOffline(pageTitle)
+                }
+            }
+
+            // Show offline banner if in offline mode
+            binding.pageOfflineBanner.visibility = if (isOfflineMode) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun hasNetworkConnection(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+               networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+               networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+    }
+
+    private suspend fun isPageSavedOffline(pageTitle: String): Boolean {
+        return try {
+            val readingListPageDao = AppDatabase.instance.readingListPageDao()
+            val wikiSite = WikiSite.OSRS_WIKI
+            val namespace = Namespace.MAIN
+            
+            val savedPage = readingListPageDao.findPageInAnyList(
+                wiki = wikiSite,
+                lang = wikiSite.languageCode,
+                ns = namespace,
+                apiTitle = pageTitle
+            )
+            
+            savedPage?.offline == true && savedPage.status == ReadingListPage.STATUS_SAVED
+        } catch (e: Exception) {
+            false
+        }
     }
 
     companion object {

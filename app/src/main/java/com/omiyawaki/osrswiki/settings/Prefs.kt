@@ -11,6 +11,7 @@ object Prefs {
     const val KEY_DARK_THEME_CHOICE = "dark_theme_choice"
     const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "downloadReadingListArticles"
     const val KEY_COLLAPSE_TABLES = "collapseTables"
+    const val KEY_OFFLINE_CACHE_SIZE_LIMIT = "offlineCacheSizeLimit"
 
     /**
      * Gets whether tables in WebViews should be collapsed by default.
@@ -46,4 +47,11 @@ object Prefs {
      */
     val darkThemeChoice
         get() = PrefsIoUtil.getString(KEY_DARK_THEME_CHOICE, "osrs_dark") ?: "osrs_dark"
+
+    /**
+     * Gets the cache size limit in megabytes.
+     * Defaults to "100" (100 MB).
+     */
+    val offlineCacheSizeLimitMB
+        get() = PrefsIoUtil.getString(KEY_OFFLINE_CACHE_SIZE_LIMIT, "100")?.toIntOrNull() ?: 100
 }

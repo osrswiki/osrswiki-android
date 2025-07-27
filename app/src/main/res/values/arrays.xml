@@ -33,4 +33,22 @@
         <item>wiki_dark</item>
         <item>wiki_black</item>
     </string-array>
+
+    <!-- Cache Size Limit -->
+    <string-array name="cache_size_limit_entries">
+        <item>50 MB</item>
+        <item>100 MB</item>
+        <item>200 MB</item>
+        <item>500 MB</item>
+        <item>1 GB</item>
+        <item>2 GB</item>
+    </string-array>
+    <string-array name="cache_size_limit_values">
+        <item>50</item>
+        <item>100</item>
+        <item>200</item>
+        <item>500</item>
+        <item>1024</item>
+        <item>2048</item>
+    </string-array>
 </resources>
