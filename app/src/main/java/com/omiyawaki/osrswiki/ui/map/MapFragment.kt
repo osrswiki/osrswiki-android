@@ -48,18 +48,20 @@ class MapFragment : Fragment() {
         private const val ARG_LON = "arg_lon"
         private const val ARG_ZOOM = "arg_zoom"
         private const val ARG_PLANE = "arg_plane"
+        private const val ARG_IS_PRELOADING = "arg_is_preloading"
         private const val GROUND_FLOOR_UNDERLAY_OPACITY = 0.5f
         private const val DEFAULT_LAT = -25.2023457171692
         private const val DEFAULT_LON = -131.44071698586012
         private const val DEFAULT_ZOOM = 7.3414426741929
 
-        fun newInstance(lat: String?, lon: String?, zoom: String?, plane: String?): MapFragment {
+        fun newInstance(lat: String?, lon: String?, zoom: String?, plane: String?, isPreloading: Boolean = false): MapFragment {
             return MapFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_LAT, lat)
                     putString(ARG_LON, lon)
                     putString(ARG_ZOOM, zoom)
                     putString(ARG_PLANE, plane)
+                    putBoolean(ARG_IS_PRELOADING, isPreloading)
                 }
             }
         }
@@ -103,7 +105,10 @@ class MapFragment : Fragment() {
         L.d("MapFragment: LIFECYCLE: onViewCreated")
         
         if (savedInstanceState == null) {
-            view.alpha = 0.0f
+            val isPreloading = arguments?.getBoolean(ARG_IS_PRELOADING, false) ?: false
+            if (!isPreloading) {
+                view.alpha = 0.0f
+            }
         }
         
         mapView = binding.mapView

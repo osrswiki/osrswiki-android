@@ -100,7 +100,8 @@ class NativeMapHandler(
             lat = data.lat,
             lon = data.lon,
             zoom = data.zoom,
-            plane = data.plane
+            plane = data.plane,
+            isPreloading = true
         )
         fragment.childFragmentManager.beginTransaction()
             .replace(container.id, mapFragment)
