@@ -51,6 +51,10 @@ class OSRSWikiApp : Application() {
     lateinit var pageHtmlBuilder: PageHtmlBuilder
         private set
 
+    // Repository initialization status
+    val isRepositoriesInitialized: Boolean 
+        get() = ::pageRepository.isInitialized && ::searchRepository.isInitialized
+
 
     private val _currentNetworkStatus = MutableStateFlow(false)
     val currentNetworkStatus: StateFlow<Boolean> = _currentNetworkStatus.asStateFlow()
@@ -76,50 +80,61 @@ class OSRSWikiApp : Application() {
             WebView.setWebContentsDebuggingEnabled(true)
         }
 
+        // Pre-warm database on background thread to prevent main thread blocking
+        applicationScope.launch(Dispatchers.IO) {
+            AppDatabase.instance // Force database creation/migration on background thread
+        }
+
         initializeDependencies()
     }
 
     private fun initializeDependencies() {
         val appContext = this.applicationContext
+        
+        // Access pre-warmed database instance (should be ready from background thread)
         val appDb = AppDatabase.instance
         val mediaWikiApiService = RetrofitClient.apiService
         // Correctly get the shared OkHttpClient from the factory.
         val okHttpClient = OkHttpClientFactory.offlineClient
 
-        // Create PageHtmlBuilder first
-        pageHtmlBuilder = PageHtmlBuilder(this)
+        try {
+            // Create PageHtmlBuilder first
+            pageHtmlBuilder = PageHtmlBuilder(this)
 
-        // Create PageRepository
-        val pageLocalDataSource = PageLocalDataSource(
-            articleMetaDao = appDb.articleMetaDao(),
-            applicationContext = appContext
-        )
-        val pageRemoteDataSource = PageRemoteDataSource(
-            mediaWikiApiService = mediaWikiApiService
-        )
-        pageRepository = PageRepository(
-            localDataSource = pageLocalDataSource,
-            remoteDataSource = pageRemoteDataSource,
-            htmlBuilder = pageHtmlBuilder,
-            readingListPageDao = appDb.readingListPageDao()
-        )
-        
-        // Instantiate PageAssetDownloader with PageRepository for cache checking
-        pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository)
+            // Create PageRepository
+            val pageLocalDataSource = PageLocalDataSource(
+                articleMetaDao = appDb.articleMetaDao(),
+                applicationContext = appContext
+            )
+            val pageRemoteDataSource = PageRemoteDataSource(
+                mediaWikiApiService = mediaWikiApiService
+            )
+            pageRepository = PageRepository(
+                localDataSource = pageLocalDataSource,
+                remoteDataSource = pageRemoteDataSource,
+                htmlBuilder = pageHtmlBuilder,
+                readingListPageDao = appDb.readingListPageDao()
+            )
+            
+            // Instantiate PageAssetDownloader with PageRepository for cache checking
+            pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository)
 
-        // Instantiate the SearchRepository with all its DAO dependencies.
-        val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
-        val offlinePageFtsDao = appDb.offlinePageFtsDao()
-        val recentSearchDao = appDb.recentSearchDao() // Get the new DAO from the database.
-        searchRepository = SearchRepository(
-            apiService = mediaWikiApiService,
-            articleMetaDao = articleMetaDaoForSearchRepo,
-            offlinePageFtsDao = offlinePageFtsDao,
-            recentSearchDao = recentSearchDao // Provide the new DAO to the repository.
-        )
+            // Instantiate the SearchRepository with all its DAO dependencies.
+            val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
+            val offlinePageFtsDao = appDb.offlinePageFtsDao()
+            val recentSearchDao = appDb.recentSearchDao() // Get the new DAO from the database.
+            searchRepository = SearchRepository(
+                apiService = mediaWikiApiService,
+                articleMetaDao = articleMetaDaoForSearchRepo,
+                offlinePageFtsDao = offlinePageFtsDao,
+                recentSearchDao = recentSearchDao // Provide the new DAO to the repository.
+            )
 
-
-        initializeNetworkCallback()
+            initializeNetworkCallback()
+        } catch (e: Exception) {
+            logCrashManually(e, "Failed to initialize dependencies")
+            throw e // Re-throw to prevent app from continuing in broken state
+        }
     }
 
     override fun onTerminate() {
