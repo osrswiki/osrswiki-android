@@ -7,7 +7,7 @@
     android:background="?attr/selectableItemBackground"
     android:padding="16dp">
 
-    <!-- Title with status indicator -->
+    <!-- Page Title -->
     <TextView
         android:id="@+id/item_saved_page_title"
         android:layout_width="0dp"
@@ -22,23 +22,6 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:text="Example Saved Page Title Which Can Be Quite Long" />
 
-    <!-- Status indicator -->
-    <TextView
-        android:id="@+id/item_saved_page_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/rounded_corners_4dp"
-        android:padding="4dp"
-        android:textAllCaps="true"
-        android:textAppearance="?attr/textAppearanceCaption"
-        android:textColor="?android:attr/textColorSecondary"
-        app:layout_constraintEnd_toStartOf="@+id/item_saved_page_thumbnail"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/item_saved_page_title"
-        tools:text="SAVED" />
-
     <!-- Description snippet -->
     <TextView
         android:id="@+id/item_saved_page_snippet"
@@ -52,10 +35,10 @@
         android:textColor="?android:attr/textColorSecondary"
         app:layout_constraintEnd_toStartOf="@+id/item_saved_page_thumbnail"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/item_saved_page_status"
+        app:layout_constraintTop_toBottomOf="@+id/item_saved_page_title"
         tools:text="This is a description snippet of the saved page content, showing what the page is about." />
 
-    <!-- Storage and update info -->
+    <!-- Combined status, storage and update info -->
     <TextView
         android:id="@+id/item_saved_page_info"
         android:layout_width="0dp"
@@ -68,7 +51,7 @@
         app:layout_constraintEnd_toStartOf="@+id/item_saved_page_thumbnail"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/item_saved_page_snippet"
-        tools:text="1.2 MB • Last updated: Jul 27, 2025" />
+        tools:text="SAVED • 56.59 kB • Last updated: Jul 27, 2025" />
 
     <!-- Page Thumbnail -->
     <ImageView
