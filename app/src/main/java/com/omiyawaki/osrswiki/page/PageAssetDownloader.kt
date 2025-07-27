@@ -199,6 +199,15 @@ class PageAssetDownloader(
 
     private fun preprocessHtml(document: Document): String {
         val siteUrl = "https://oldschool.runescape.wiki"
+        
+        // Remove unwanted infobox sections that should be hidden by default
+        val selectorsToRemove = listOf(
+            "tr.advanced-data",
+            "tr.leagues-global-flag", 
+            "tr.infobox-padding"
+        )
+        document.select(selectorsToRemove.joinToString(", ")).remove()
+        
         document.select("[src], [href], [srcset]").forEach { element ->
             listOf("src", "href", "srcset").forEach { attr ->
                 val originalUrl = element.attr(attr)
