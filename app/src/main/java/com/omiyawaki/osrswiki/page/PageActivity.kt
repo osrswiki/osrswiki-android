@@ -44,7 +44,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         binding = ActivityPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.pageToolbar)
-        supportActionBar?.title = "Loading..."
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         // Forcefully set the elevation and disable the StateListAnimator to

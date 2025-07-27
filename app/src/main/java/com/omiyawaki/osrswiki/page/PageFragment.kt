@@ -28,7 +28,6 @@ import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.model.LeadSectionDetails
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.page.model.TocData
-import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
@@ -140,8 +139,9 @@ class PageFragment : Fragment(), RenderCallback {
             linkHandler = pageLinkHandler,
             onTitleReceived = { newTitle ->
                 if (isAdded) {
-                    val cleanTitle = StringUtil.extractMainTitle(newTitle)
-                    (activity as? AppCompatActivity)?.supportActionBar?.title = cleanTitle
+                    val plainTextTitle =
+                        HtmlCompat.fromHtml(newTitle, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+                    (activity as? AppCompatActivity)?.supportActionBar?.title = plainTextTitle
                 }
             },
             jsInterface = nativeMapHandler.jsInterface,

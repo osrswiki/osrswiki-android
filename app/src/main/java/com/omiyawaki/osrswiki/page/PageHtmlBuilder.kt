@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
 import com.omiyawaki.osrswiki.theme.Theme
+import com.omiyawaki.osrswiki.util.StringUtil
 import kotlin.system.measureTimeMillis
 
 class PageHtmlBuilder(private val context: Context) {
@@ -49,7 +50,8 @@ class PageHtmlBuilder(private val context: Context) {
     fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         var finalHtml: String
         val time = measureTimeMillis {
-            val documentTitle = if (title.isBlank()) "OSRS Wiki" else title
+            val cleanedTitle = StringUtil.extractMainTitle(title)
+            val documentTitle = if (cleanedTitle.isBlank()) "OSRS Wiki" else cleanedTitle
             val titleHeaderHtml = "<h1 class=\"page-header\">${documentTitle}</h1>"
             val finalBodyContent = titleHeaderHtml + bodyContent
             val themeClass = when (theme) {

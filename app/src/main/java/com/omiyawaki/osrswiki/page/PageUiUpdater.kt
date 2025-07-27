@@ -4,7 +4,6 @@ import android.view.View
 import androidx.core.text.HtmlCompat
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.util.StringUtil
 
 class PageUiUpdater(
     private val binding: FragmentPageBinding?,
@@ -57,7 +56,8 @@ class PageUiUpdater(
                 }
             }
 
-            fragment?.activity?.title = state.title?.let { StringUtil.extractMainTitle(it) } ?: ""
+            fragment?.activity?.title =
+                HtmlCompat.fromHtml(state.title ?: "", HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
         }
     }
 }
