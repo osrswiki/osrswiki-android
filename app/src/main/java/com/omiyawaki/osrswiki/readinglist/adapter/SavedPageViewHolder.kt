@@ -25,14 +25,8 @@ class SavedPageViewHolder(
     ) {
         val context = binding.root.context
         
-        // Set title - clean HTML entities for display and remove "Update:" prefix
-        val cleanTitle = StringUtil.fromHtml(savedPage.displayTitle).toString()
-        val titleText = when {
-            cleanTitle.startsWith("Update: ") -> cleanTitle.removePrefix("Update: ")
-            cleanTitle.startsWith("Update:") -> cleanTitle.removePrefix("Update:")
-            else -> cleanTitle
-        }
-        binding.itemSavedPageTitle.text = titleText
+        // Set title - extract main title from displayTitle
+        binding.itemSavedPageTitle.text = StringUtil.extractMainTitle(savedPage.displayTitle)
         
         // Set description snippet (prioritize description over access time)
         if (!savedPage.description.isNullOrBlank()) {

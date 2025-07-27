@@ -17,6 +17,7 @@ import com.omiyawaki.osrswiki.page.PageAssetDownloader
 import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.preemptive.PreloadedPage
 import com.omiyawaki.osrswiki.page.preemptive.PreloadedPageCache
+import com.omiyawaki.osrswiki.util.StringUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -120,7 +121,7 @@ class SearchViewModel(
     }
 
     private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
-        val cleanTitle = Html.fromHtml(networkResult.title, Html.FROM_HTML_MODE_LEGACY).toString().trim()
+        val cleanTitle = StringUtil.extractMainTitle(networkResult.title)
         val cleanSnippet = networkResult.snippet?.let { Html.fromHtml(it, Html.FROM_HTML_MODE_LEGACY).toString().trim() } ?: ""
         return CleanedSearchResultItem(
             id = networkResult.pageid.toString(),

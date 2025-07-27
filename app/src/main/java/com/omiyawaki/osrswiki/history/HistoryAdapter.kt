@@ -72,9 +72,8 @@ class HistoryAdapter(
 
         fun bind(historyEntry: HistoryEntry) {
             binding.apply {
-                // Set page title - clean HTML from display text
-                val cleanTitle = StringUtil.fromHtml(historyEntry.pageTitle.displayText).toString().trim()
-                pageTitleText.text = cleanTitle
+                // Set page title - extract main title from displayText
+                pageTitleText.text = StringUtil.extractMainTitle(historyEntry.pageTitle.displayText)
 
                 // Set snippet text from history entry or hide if empty
                 if (!historyEntry.snippet.isNullOrBlank()) {
