@@ -31,7 +31,8 @@ data class AssetUrls(val priority: List<String>, val background: List<String>)
 data class DownloadResult(val processedHtml: String, val parseResult: ParseResult, val backgroundUrls: List<String>)
 
 class PageAssetDownloader(
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient: OkHttpClient,
+    private val pageRepository: PageRepository? = null
 ) {
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
     private val downloadSemaphore = Semaphore(8)
@@ -39,6 +40,27 @@ class PageAssetDownloader(
 
     fun downloadPriorityAssetsByTitle(title: String, pageUrl: String): Flow<DownloadProgress> = channelFlow {
         L.d("downloadPriorityAssetsByTitle: Starting flow for title: $title")
+        
+        // First check if we have this page cached (including reading list saved pages)
+        pageRepository?.let { repo ->
+            val cachedPage = repo.getSavedPageContentByTitle(title)
+            if (cachedPage != null) {
+                L.d("downloadPriorityAssetsByTitle: Found cached content for title: $title")
+                // Convert cached page to ParseResult format and check assets
+                val parseResult = ParseResult(
+                    title = cachedPage.plainTextTitle ?: title,
+                    pageid = cachedPage.pageId ?: 0,
+                    revid = cachedPage.revisionId ?: 0,
+                    text = extractBodyFromHtml(cachedPage.htmlContent),
+                    displaytitle = cachedPage.title
+                )
+                
+                L.d("downloadPriorityAssetsByTitle: Processing cached content and checking assets.")
+                processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
+                return@channelFlow
+            }
+        }
+        
         val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&page=$title"
         val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
@@ -48,6 +70,27 @@ class PageAssetDownloader(
 
     fun downloadPriorityAssets(pageId: Int, pageUrl: String): Flow<DownloadProgress> = channelFlow {
         L.d("downloadPriorityAssets: Starting flow for pageId: $pageId")
+        
+        // First check if we have this page cached (including reading list saved pages)
+        pageRepository?.let { repo ->
+            val cachedPage = repo.getSavedPageContent(pageId)
+            if (cachedPage != null) {
+                L.d("downloadPriorityAssets: Found cached content for pageId: $pageId")
+                // Convert cached page to ParseResult format and check assets
+                val parseResult = ParseResult(
+                    title = cachedPage.plainTextTitle ?: "Page $pageId",
+                    pageid = cachedPage.pageId ?: pageId,
+                    revid = cachedPage.revisionId ?: 0,
+                    text = extractBodyFromHtml(cachedPage.htmlContent),
+                    displaytitle = cachedPage.title
+                )
+                
+                L.d("downloadPriorityAssets: Processing cached content and checking assets.")
+                processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
+                return@channelFlow
+            }
+        }
+        
         val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&pageid=$pageId"
         val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
@@ -105,7 +148,7 @@ class PageAssetDownloader(
     }
 
     private fun processAndDownloadAssets(parseResult: ParseResult, pageUrl: String): Flow<DownloadProgress> = channelFlow {
-        val rawHtmlContent = parseResult.text?.content ?: ""
+        val rawHtmlContent = parseResult.text ?: ""
         val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
         val (priorityUrls, backgroundUrls) = extractAssetUrls(document)
         val processedHtml = preprocessHtml(document)
@@ -268,6 +311,21 @@ class PageAssetDownloader(
         url.startsWith("//") -> "https:$url"
         url.startsWith("/") -> "$wikiSiteUrl$url"
         else -> url
+    }
+    
+    /**
+     * Extracts the body content from a full HTML document for processing.
+     * This is needed when we have cached full HTML but need just the body content.
+     */
+    private fun extractBodyFromHtml(fullHtml: String?): String? {
+        if (fullHtml == null) return null
+        return try {
+            val document = Jsoup.parse(fullHtml)
+            document.body()?.html()
+        } catch (e: Exception) {
+            L.e("extractBodyFromHtml: Failed to extract body from HTML", e)
+            fullHtml // Fallback to full HTML
+        }
     }
 }
 

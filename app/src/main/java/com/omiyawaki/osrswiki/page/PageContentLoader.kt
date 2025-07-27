@@ -27,6 +27,7 @@ class PageContentLoader(
         }
     }
 
+
     fun loadPageById(pageId: Int, initialDisplayTitle: String?, theme: Theme, forceNetwork: Boolean = false) {
         coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
@@ -121,4 +122,5 @@ class PageContentLoader(
         )
         onStateUpdated()
     }
+
 }

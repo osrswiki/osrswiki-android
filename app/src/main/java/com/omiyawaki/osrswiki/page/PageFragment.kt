@@ -158,11 +158,12 @@ class PageFragment : Fragment(), RenderCallback {
             readingListPageDao,
             viewLifecycleOwner.lifecycleScope,
             callback?.getPageActionBarManager(),
-            ::getPageTitleArg
+            ::getPageTitleArg,
+            requireContext().applicationContext
         )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
-        val pageAssetDownloader = PageAssetDownloader(OkHttpClientFactory.offlineClient)
+        val pageAssetDownloader = PageAssetDownloader(OkHttpClientFactory.offlineClient, pageRepository)
 
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,

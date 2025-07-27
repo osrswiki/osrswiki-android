@@ -86,10 +86,10 @@ class OSRSWikiApp : Application() {
         // Correctly get the shared OkHttpClient from the factory.
         val okHttpClient = OkHttpClientFactory.offlineClient
 
-        // Instantiate and store loaders needed for preemption
-        pageAssetDownloader = PageAssetDownloader(okHttpClient)
+        // Create PageHtmlBuilder first
         pageHtmlBuilder = PageHtmlBuilder(this)
 
+        // Create PageRepository
         val pageLocalDataSource = PageLocalDataSource(
             articleMetaDao = appDb.articleMetaDao(),
             applicationContext = appContext
@@ -100,8 +100,12 @@ class OSRSWikiApp : Application() {
         pageRepository = PageRepository(
             localDataSource = pageLocalDataSource,
             remoteDataSource = pageRemoteDataSource,
-            htmlBuilder = pageHtmlBuilder
+            htmlBuilder = pageHtmlBuilder,
+            readingListPageDao = appDb.readingListPageDao()
         )
+        
+        // Instantiate PageAssetDownloader with PageRepository for cache checking
+        pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository)
 
         // Instantiate the SearchRepository with all its DAO dependencies.
         val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
