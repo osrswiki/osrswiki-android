@@ -7,10 +7,12 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ItemSavedPageBinding
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
-import com.omiyawaki.osrswiki.util.StringUtil // Assuming this is your HTML utility
+import com.omiyawaki.osrswiki.util.StringUtil
 import java.text.DateFormat
 import java.util.Date
 
@@ -24,26 +26,30 @@ class SavedPageViewHolder(
     ) {
         val context = binding.root.context
         
-        // Use StringUtil.fromHtml to decode HTML entities for display
+        // Set title - clean HTML entities for display
         binding.itemSavedPageTitle.text = StringUtil.fromHtml(savedPage.displayTitle).toString()
 
         // Set status indicator
         updateStatusIndicator(savedPage, context)
         
-        // Set subtitle (description or last accessed)
-        if (savedPage.atime > 0) {
-            val formattedDate = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
-                .format(Date(savedPage.atime))
-            binding.itemSavedPageSubtitle.text = context.getString(R.string.saved_page_last_accessed_format, formattedDate)
+        // Set description snippet (prioritize description over access time)
+        if (!savedPage.description.isNullOrBlank()) {
+            val cleanDescription = StringUtil.fromHtml(savedPage.description).toString().trim()
+            if (cleanDescription.isNotBlank()) {
+                binding.itemSavedPageSnippet.text = cleanDescription
+                binding.itemSavedPageSnippet.visibility = View.VISIBLE
+            } else {
+                binding.itemSavedPageSnippet.visibility = View.GONE
+            }
         } else {
-            // Also process description if it might contain HTML
-            binding.itemSavedPageSubtitle.text = savedPage.description?.let {
-                StringUtil.fromHtml(it).toString().takeIf { desc -> desc.isNotBlank() }
-            } ?: "" // Fallback to empty if no description or it's blank after processing
+            binding.itemSavedPageSnippet.visibility = View.GONE
         }
 
-        // Set page info (size and download time)
+        // Set page info (size and server update time)
         updatePageInfo(savedPage, context)
+
+        // Load thumbnail if available
+        loadThumbnail(savedPage)
 
         binding.root.setOnClickListener {
             onItemClicked(savedPage)
@@ -77,11 +83,11 @@ class SavedPageViewHolder(
                 append(Formatter.formatFileSize(context, savedPage.sizeBytes))
             }
             
-            // Add download/modified time
+            // Add last server update time (mtime represents when content was last modified on server)
             if (savedPage.mtime > 0) {
                 if (isNotEmpty()) append(" • ")
-                val timeAgo = getTimeAgo(savedPage.mtime, context)
-                append("Downloaded $timeAgo")
+                val updateDate = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(savedPage.mtime))
+                append("Last updated: $updateDate")
             }
         }
         
@@ -93,16 +99,17 @@ class SavedPageViewHolder(
         }
     }
     
-    private fun getTimeAgo(timestamp: Long, context: Context): String {
-        val now = System.currentTimeMillis()
-        val diff = now - timestamp
-        
-        return when {
-            diff < 60_000 -> "just now"
-            diff < 3600_000 -> "${diff / 60_000} minutes ago"
-            diff < 86400_000 -> "${diff / 3600_000} hours ago"
-            diff < 604800_000 -> "${diff / 86400_000} days ago"
-            else -> DateFormat.getDateInstance(DateFormat.SHORT).format(Date(timestamp))
+    private fun loadThumbnail(savedPage: ReadingListPage) {
+        if (!savedPage.thumbUrl.isNullOrBlank()) {
+            binding.itemSavedPageThumbnail.visibility = View.VISIBLE
+            Glide.with(binding.root.context)
+                .load(savedPage.thumbUrl)
+                .transition(DrawableTransitionOptions.withCrossFade())
+                .into(binding.itemSavedPageThumbnail)
+        } else {
+            // Clear the view and hide it to handle view recycling correctly
+            Glide.with(binding.root.context).clear(binding.itemSavedPageThumbnail)
+            binding.itemSavedPageThumbnail.visibility = View.GONE
         }
     }
 
