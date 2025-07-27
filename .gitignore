@@ -83,3 +83,6 @@ tools/map-dumper/output/
 
 # Ignore temporary map tile directory used by slice_tiles.py
 /app/src/main/assets/map_tiles_temp/
+
+# Ignore gemini config
+/GEMINI.md
