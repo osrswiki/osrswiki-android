@@ -5,7 +5,6 @@ import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -28,9 +27,6 @@ class SavedPageViewHolder(
         
         // Set title - clean HTML entities for display
         binding.itemSavedPageTitle.text = StringUtil.fromHtml(savedPage.displayTitle).toString()
-
-        // Set status indicator
-        updateStatusIndicator(savedPage, context)
         
         // Set description snippet (prioritize description over access time)
         if (!savedPage.description.isNullOrBlank()) {
@@ -56,36 +52,26 @@ class SavedPageViewHolder(
         }
     }
     
-    private fun updateStatusIndicator(savedPage: ReadingListPage, context: Context) {
-        val (statusText, statusColor) = when (savedPage.status) {
-            ReadingListPage.STATUS_QUEUE_FOR_SAVE, ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE -> {
-                "DOWNLOADING" to ContextCompat.getColor(context, android.R.color.holo_orange_dark)
-            }
-            ReadingListPage.STATUS_SAVED -> {
-                "SAVED" to ContextCompat.getColor(context, android.R.color.holo_green_dark)
-            }
-            ReadingListPage.STATUS_ERROR -> {
-                "ERROR" to ContextCompat.getColor(context, android.R.color.holo_red_dark)
-            }
-            else -> {
-                "UNKNOWN" to ContextCompat.getColor(context, android.R.color.darker_gray)
-            }
-        }
-        
-        binding.itemSavedPageStatus.text = statusText
-        binding.itemSavedPageStatus.setTextColor(statusColor)
-    }
-    
     private fun updatePageInfo(savedPage: ReadingListPage, context: Context) {
         val infoText = buildString {
+            // Add status indicator
+            val statusText = when (savedPage.status) {
+                ReadingListPage.STATUS_QUEUE_FOR_SAVE, ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE -> "DOWNLOADING"
+                ReadingListPage.STATUS_SAVED -> "SAVED"
+                ReadingListPage.STATUS_ERROR -> "ERROR"
+                else -> "UNKNOWN"
+            }
+            append(statusText)
+            
             // Add file size if available
             if (savedPage.sizeBytes > 0) {
+                append(" • ")
                 append(Formatter.formatFileSize(context, savedPage.sizeBytes))
             }
             
             // Add last server update time (mtime represents when content was last modified on server)
             if (savedPage.mtime > 0) {
-                if (isNotEmpty()) append(" • ")
+                append(" • ")
                 val updateDate = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(savedPage.mtime))
                 append("Last updated: $updateDate")
             }
@@ -107,9 +93,9 @@ class SavedPageViewHolder(
                 .transition(DrawableTransitionOptions.withCrossFade())
                 .into(binding.itemSavedPageThumbnail)
         } else {
-            // Clear the view and hide it to handle view recycling correctly
+            // Clear the view but keep space reserved for consistent layout
             Glide.with(binding.root.context).clear(binding.itemSavedPageThumbnail)
-            binding.itemSavedPageThumbnail.visibility = View.GONE
+            binding.itemSavedPageThumbnail.visibility = View.INVISIBLE
         }
     }
 
