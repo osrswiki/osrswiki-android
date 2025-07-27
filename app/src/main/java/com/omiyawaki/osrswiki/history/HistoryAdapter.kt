@@ -113,7 +113,7 @@ class HistoryAdapter(
                 oldItem is HistoryItem.DateHeader && newItem is HistoryItem.DateHeader -> 
                     oldItem.dateString == newItem.dateString
                 oldItem is HistoryItem.EntryItem && newItem is HistoryItem.EntryItem -> 
-                    oldItem.historyEntry.id == newItem.historyEntry.id
+                    oldItem.historyEntry.wikiUrl == newItem.historyEntry.wikiUrl
                 else -> false
             }
         }

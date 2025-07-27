@@ -12,12 +12,18 @@ import java.util.Date
 @Serializable
 @Entity(tableName = "history_entries")
 data class HistoryEntry(
-    @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = "id")
-    var id: Long = 0,
+    @PrimaryKey
+    @ColumnInfo(name = "page_wikiUrl")
+    var wikiUrl: String,
 
-    @Embedded(prefix = "page_")
-    var pageTitle: PageTitle,
+    @ColumnInfo(name = "page_displayText")
+    var displayText: String,
+
+    @ColumnInfo(name = "page_pageId")
+    var pageId: Int? = null,
+
+    @ColumnInfo(name = "page_apiPath")
+    var apiPath: String,
 
     @ColumnInfo(name = "timestamp")
     @Serializable(with = DateAsLongSerializer::class) // Apply the custom serializer
@@ -36,12 +42,24 @@ data class HistoryEntry(
     var thumbnailUrl: String? = null
 ) {
     constructor(pageTitle: PageTitle, source: Int) : this(
-        pageTitle = pageTitle,
+        wikiUrl = pageTitle.wikiUrl,
+        displayText = pageTitle.displayText,
+        pageId = pageTitle.pageId,
+        apiPath = pageTitle.apiPath,
         source = source,
         timestamp = Date(),
         snippet = null,
         thumbnailUrl = null
     )
+
+    // Convenience property to create a PageTitle from the embedded fields
+    val pageTitle: PageTitle
+        get() = PageTitle(
+            wikiUrl = wikiUrl,
+            displayText = displayText,
+            pageId = pageId,
+            apiPath = apiPath
+        )
 
     companion object {
         const val SOURCE_SEARCH = 1

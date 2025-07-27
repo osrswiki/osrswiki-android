@@ -40,13 +40,11 @@ class PageHistoryManager(
                 apiPath = state.plainTextTitle
             )
 
-            val historyEntry = HistoryEntry(
-                pageTitle = commonPageTitleForHistory,
-                timestamp = Date(),
-                source = navigationSource,
-                snippet = snippet,
-                thumbnailUrl = thumbnailUrl
-            )
+            val historyEntry = HistoryEntry(commonPageTitleForHistory, navigationSource).apply {
+                timestamp = Date()
+                this.snippet = snippet
+                this.thumbnailUrl = thumbnailUrl
+            }
 
             try {
                 AppDatabase.instance.historyEntryDao().upsertEntry(historyEntry)
