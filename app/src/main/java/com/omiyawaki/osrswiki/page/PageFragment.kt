@@ -159,7 +159,9 @@ class PageFragment : Fragment(), RenderCallback {
             viewLifecycleOwner.lifecycleScope,
             callback?.getPageActionBarManager(),
             ::getPageTitleArg,
-            requireContext().applicationContext
+            requireContext().applicationContext,
+            { snippetArg },
+            { thumbnailUrlArg }
         )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)

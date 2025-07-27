@@ -30,7 +30,11 @@ class SavedPageViewHolder(
         
         // Set description snippet (prioritize description over access time)
         if (!savedPage.description.isNullOrBlank()) {
-            val cleanDescription = StringUtil.fromHtml(savedPage.description).toString().trim()
+            val cleanDescription = StringUtil.fromHtml(savedPage.description).toString()
+                .trim()
+                .replace('\u00A0', ' ') // Replace non-breaking spaces with regular spaces
+                .replace("\\s+".toRegex(), " ") // Replace multiple whitespace with single space
+                .trim() // Final trim after cleanup
             if (cleanDescription.isNotBlank()) {
                 binding.itemSavedPageSnippet.text = cleanDescription
                 binding.itemSavedPageSnippet.visibility = View.VISIBLE

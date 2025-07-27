@@ -21,7 +21,9 @@ class PageReadingListManager(
     private val coroutineScope: CoroutineScope,
     private val pageActionBarManager: PageActionBarManager?,
     private val getPageTitle: () -> String?,
-    private val context: Context
+    private val context: Context,
+    private val getSnippet: () -> String? = { null },
+    private val getThumbnailUrl: () -> String? = { null }
 ) {
     private var pageStateObserverJob: Job? = null
     
@@ -146,10 +148,23 @@ class PageReadingListManager(
                             pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.DOWNLOADING, 0)
                         }
                         
+                        // Get snippet and thumbnail from the current page context
+                        val snippet = getSnippet()
+                        val thumbnailUrl = getThumbnailUrl()?.let { url ->
+                            // Fix protocol-relative URLs
+                            if (url.startsWith("//")) {
+                                "https:$url"
+                            } else {
+                                url
+                            }
+                        }
+                        
                         val pageTitle = com.omiyawaki.osrswiki.page.PageTitle(
                             namespace = namespace,
                             text = titleText,
                             wikiSite = wikiSite,
+                            thumbUrl = thumbnailUrl,
+                            description = snippet,
                             displayText = state.title ?: titleText
                         )
                         // Get the default list ID that the observer is watching
