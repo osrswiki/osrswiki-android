@@ -125,4 +125,12 @@ object DatabaseMigrations {
         }
     }
 
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Add unique index on page_wikiUrl to prevent duplicate history entries
+            database.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_history_entries_page_wikiUrl` ON `history_entries`(`page_wikiUrl`)")
+            android.util.Log.i("DBMigration", "Migrating database from version 13 to 14. Added unique index on history_entries.page_wikiUrl")
+        }
+    }
+
 }

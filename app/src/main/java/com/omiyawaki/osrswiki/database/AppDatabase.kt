@@ -46,7 +46,7 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter
         HistoryEntry::class,
         RecentSearch::class // Add the new RecentSearch entity.
     ],
-    version = 13, // Increment the database version.
+    version = 15, // Increment the database version.
     exportSchema = false
 )
 @TypeConverters(
@@ -90,6 +90,70 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migration from version 13 to 14. Adds unique index on page_wikiUrl to prevent duplicate history entries.
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_history_entries_page_wikiUrl` ON `history_entries`(`page_wikiUrl`)")
+            }
+        }
+
+        /**
+         * Migration from version 14 to 15. Changes primary key from auto-generated id to page_wikiUrl.
+         * Handles deduplication of existing data by keeping only the most recent entry per URL.
+         */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Step 1: Create the new table with page_wikiUrl as primary key
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `history_entries_new` (
+                        `page_wikiUrl` TEXT NOT NULL,
+                        `page_displayText` TEXT NOT NULL,
+                        `page_pageId` INTEGER,
+                        `page_apiPath` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `source` INTEGER NOT NULL,
+                        `is_archived` INTEGER NOT NULL DEFAULT 0,
+                        `snippet` TEXT,
+                        `thumbnail_url` TEXT,
+                        PRIMARY KEY(`page_wikiUrl`)
+                    )
+                """.trimIndent())
+                
+                // Step 2: Copy data from old table, keeping only the most recent entry per URL
+                // This handles the deduplication by using MAX(timestamp) with GROUP BY
+                db.execSQL("""
+                    INSERT INTO `history_entries_new` (
+                        `page_wikiUrl`, `page_displayText`, `page_pageId`, `page_apiPath`,
+                        `timestamp`, `source`, `is_archived`, `snippet`, `thumbnail_url`
+                    )
+                    SELECT 
+                        `page_wikiUrl`, 
+                        `page_displayText`, 
+                        `page_pageId`, 
+                        `page_apiPath`,
+                        `timestamp`, 
+                        `source`, 
+                        `is_archived`, 
+                        `snippet`, 
+                        `thumbnail_url`
+                    FROM `history_entries` h1
+                    WHERE `timestamp` = (
+                        SELECT MAX(`timestamp`) 
+                        FROM `history_entries` h2 
+                        WHERE h1.`page_wikiUrl` = h2.`page_wikiUrl`
+                    )
+                """.trimIndent())
+                
+                // Step 3: Drop the old table
+                db.execSQL("DROP TABLE `history_entries`")
+                
+                // Step 4: Rename the new table to the original name
+                db.execSQL("ALTER TABLE `history_entries_new` RENAME TO `history_entries`")
+            }
+        }
+
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
             Room.databaseBuilder(
                 OSRSWikiApp.instance.applicationContext,
@@ -99,7 +163,9 @@ abstract class AppDatabase : RoomDatabase() {
              .addMigrations(
                 // Other migrations would be listed here.
                 MIGRATION_11_12, // Add the new migration to the builder.
-                MIGRATION_12_13 // Add the new migration for snippet and thumbnail_url columns.
+                MIGRATION_12_13, // Add the new migration for snippet and thumbnail_url columns.
+                MIGRATION_13_14, // Add the new migration for unique index on page_wikiUrl.
+                MIGRATION_14_15  // Add the new migration for primary key change and deduplication.
              )
             .build()
         }

@@ -77,7 +77,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     
     fun deleteHistoryItem(historyEntry: HistoryEntry) {
         viewModelScope.launch(Dispatchers.IO) {
-            historyDao.deleteEntryById(historyEntry.id)
+            historyDao.deleteEntryByUrl(historyEntry.wikiUrl)
             // The switchMap will automatically update when the database changes
         }
     }
