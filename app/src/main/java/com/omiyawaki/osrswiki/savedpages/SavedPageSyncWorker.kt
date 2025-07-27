@@ -103,10 +103,14 @@ class SavedPageSyncWorker(
             Log.d(loggerTag, "----------------------------------------------------")
             Log.i(loggerTag, "Attempting to save and index page: '${page.displayTitle}' (URL for FTS: $canonicalPageUrlForFts, ReadingListPgID: ${page.id})")
             
+            // Update progress to 5% - starting download
+            readingListPageDao.updatePageDownloadProgress(page.id, 5)
+            
             // Phase 3: Incremental sync - check if page has changed before downloading
             val currentRevId = getCurrentRevisionId(page.apiTitle)
             if (currentRevId != null && page.revId > 0 && currentRevId == page.revId) {
                 Log.i(loggerTag, "Page '${page.displayTitle}' unchanged (revId: $currentRevId). Skipping download.")
+                readingListPageDao.updatePageDownloadProgress(page.id, 100)
                 readingListPageDao.updatePageStatusToSavedAndMtime(page.id, currentTimeMs = System.currentTimeMillis())
                 continue
             }
@@ -116,6 +120,9 @@ class SavedPageSyncWorker(
             } else {
                 Log.w(loggerTag, "Could not determine current revision for '${page.displayTitle}'. Proceeding with download.")
             }
+            
+            // Update progress to 10% - checked revision, starting API request
+            readingListPageDao.updatePageDownloadProgress(page.id, 10)
 
             try {
                 val encodedApiTitle = URLEncoder.encode(page.apiTitle, "UTF-8")
@@ -132,6 +139,9 @@ class SavedPageSyncWorker(
                     if (response.isSuccessful) {
                         pageSuccessfullyFetchedForMech2 = true
                         Log.i(loggerTag, "Successfully fetched API response for: ${page.displayTitle}")
+                        
+                        // Update progress to 30% - API response received
+                        readingListPageDao.updatePageDownloadProgress(page.id, 30)
 
                         val offlineObjectForHtml = offlineObjectDao.getOfflineObjectByUrl(apiRequestUrl)
                         if (offlineObjectForHtml != null && offlineObjectForHtml.saveType == OfflineObject.SAVE_TYPE_READING_LIST) {
@@ -164,6 +174,9 @@ class SavedPageSyncWorker(
                                         readingListPageDao.updatePageRevisionId(page.id, newRevId)
                                         Log.i(loggerTag, "Updated ReadingListPage (ID: ${page.id}) with revisionId: $newRevId")
                                     }
+                                    
+                                    // Update progress to 50% - content processed
+                                    readingListPageDao.updatePageDownloadProgress(page.id, 50)
                                 } else { Log.w(loggerTag, "No 'parse' object in JSON response for ${page.displayTitle}") }
                             } catch (jsonEx: Exception) { Log.e(loggerTag, "Failed to parse JSON from ${contentFile.absolutePath}", jsonEx) }
                         } else { Log.w(loggerTag, "Content file for JSON response not found for ${page.displayTitle}") }
@@ -179,6 +192,9 @@ class SavedPageSyncWorker(
                                     ftsDao.insertPageContent(ftsEntry)
                                     pageSuccessfullyIndexedForMech2 = true
                                     Log.i(loggerTag, "Successfully FTS-indexed page: $canonicalPageUrlForFts")
+                                    
+                                    // Update progress to 70% - FTS indexing complete
+                                    readingListPageDao.updatePageDownloadProgress(page.id, 70)
                                 } catch (e: Exception) { Log.e(loggerTag, "Error FTS DB op for $canonicalPageUrlForFts", e) }
                             } else { Log.w(loggerTag, "Extracted text for FTS is blank for $canonicalPageUrlForFts") }
                         } else { Log.w(loggerTag, "HTML from JSON was null for FTS for ${page.displayTitle}") }
@@ -190,6 +206,9 @@ class SavedPageSyncWorker(
                                 if (repoSaveResult is AppResult.Success) {
                                     pageSuccessfullySavedToArticleMeta = true
                                     Log.i(loggerTag, "Successfully saved pageId $M1_pageId to ArticleMeta.")
+                                    
+                                    // Update progress to 90% - ArticleMeta saved
+                                    readingListPageDao.updatePageDownloadProgress(page.id, 90)
                                 } else if (repoSaveResult is AppResult.Error) {
                                     Log.e(loggerTag, "Failed to save pageId $M1_pageId to ArticleMeta: ${repoSaveResult.message}")
                                 }
@@ -200,6 +219,9 @@ class SavedPageSyncWorker(
                         readingListPageDao.updatePageSizeBytes(page.id, totalSize)
                         readingListPageDao.updatePageStatusToSavedAndMtime(page.id, currentTimeMs = System.currentTimeMillis())
                         Log.d(loggerTag, "Updated ReadingListPage status to SAVED & size for page ID ${page.id} to $totalSize bytes.")
+                        
+                        // Update progress to 100% - download complete
+                        readingListPageDao.updatePageDownloadProgress(page.id, 100)
                     } else { Log.w(loggerTag, "Failed to fetch page ${page.displayTitle}. HTTP: ${response.code}") }
                 } finally { response?.body?.close() }
             } catch (ioe: IOException) { Log.e(loggerTag, "IOException for ${page.displayTitle}", ioe)

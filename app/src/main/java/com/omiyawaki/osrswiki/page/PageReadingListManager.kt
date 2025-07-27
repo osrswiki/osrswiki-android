@@ -66,6 +66,8 @@ class PageReadingListManager(
     }
 
     private fun updateSaveIcon(entry: ReadingListPage?) {
+        Log.d(TAG, "updateSaveIcon called with entry: ${entry?.let { "ID=${it.id}, status=${it.status}, progress=${it.downloadProgress}, offline=${it.offline}" } ?: "null"}")
+        
         val saveState = when {
             entry == null || !entry.offline -> PageActionBarManager.SaveState.NOT_SAVED
             entry.status == ReadingListPage.STATUS_QUEUE_FOR_SAVE -> PageActionBarManager.SaveState.DOWNLOADING
@@ -74,7 +76,16 @@ class PageReadingListManager(
             entry.status == ReadingListPage.STATUS_ERROR -> PageActionBarManager.SaveState.ERROR
             else -> PageActionBarManager.SaveState.ERROR // For any unexpected status
         }
-        pageActionBarManager?.updateSaveIcon(saveState)
+        
+        // Pass progress for downloading states
+        val progress = if (saveState == PageActionBarManager.SaveState.DOWNLOADING) {
+            entry?.downloadProgress ?: 0
+        } else {
+            0
+        }
+        
+        Log.d(TAG, "Updating save icon to state: $saveState, progress: $progress%")
+        pageActionBarManager?.updateSaveIcon(saveState, progress)
     }
 
     fun cancelObserving() {
@@ -106,26 +117,52 @@ class PageReadingListManager(
                     existingEntry != null && existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_SAVED -> {
                         // Page is saved, so remove it
                         Log.i(TAG, "Removing saved page: $titleText")
+                        
+                        // Provide immediate UI feedback for unsaving
+                        withContext(Dispatchers.Main) {
+                            pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.NOT_SAVED, 0)
+                        }
+                        
                         readingListPageDao.deleteReadingListPage(existingEntry)
                     }
                     existingEntry != null && existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_ERROR -> {
                         // Page had error, retry download
                         Log.i(TAG, "Retrying failed download for: $titleText")
+                        
+                        // Provide immediate UI feedback for retry
+                        withContext(Dispatchers.Main) {
+                            pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.DOWNLOADING, 0)
+                        }
+                        
                         readingListPageDao.updatePageStatusToSavedAndMtime(existingEntry.id, ReadingListPage.STATUS_QUEUE_FOR_SAVE, System.currentTimeMillis())
                         SavedPageSyncWorker.enqueue(context)
                     }
                     else -> {
                         // Page is not saved, so queue it for saving
                         Log.i(TAG, "Queueing page for saving: $titleText")
+                        
+                        // Provide immediate UI feedback for new save
+                        withContext(Dispatchers.Main) {
+                            pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.DOWNLOADING, 0)
+                        }
+                        
                         val pageTitle = com.omiyawaki.osrswiki.page.PageTitle(
                             namespace = namespace,
                             text = titleText,
                             wikiSite = wikiSite,
                             displayText = state.title ?: titleText
                         )
+                        // Get the default list ID that the observer is watching
+                        val defaultListId = withContext(Dispatchers.IO) { 
+                            AppDatabase.instance.readingListDao().let { 
+                                it.getDefaultList() ?: it.createDefaultListIfNotExist() 
+                            }.id 
+                        }
+                        
                         val newEntry = ReadingListPage(pageTitle).apply {
                             offline = true
-                            status = ReadingListPage.STATUS_QUEUE_FOR_SAVE // Critical fix: Queue for download
+                            status = ReadingListPage.STATUS_QUEUE_FOR_SAVE
+                            listId = defaultListId // Critical fix: Set the correct listId for observer
                         }
                         val insertedId = readingListPageDao.insertReadingListPage(newEntry)
                         Log.i(TAG, "Page queued with ID: $insertedId, status: ${ReadingListPage.STATUS_QUEUE_FOR_SAVE}")
