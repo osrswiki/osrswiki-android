@@ -21,22 +21,20 @@ import kotlin.math.abs
 class ViewHideHandler(private val targetView: View) {
     private var lastScrollY = 0
     private var state = State.EXPANDED
-    private var isAnimating = false
-    private var animationStartTime = 0L
-    private var isTouchDown = false
+    private var isReallyAnimating = false
     private var lastTouchY = 0f
-    private var touchVelocity = 0f
     
-    // Track recent scroll events for momentum detection
+    // Touch-based gesture tracking
+    private val gestureTracker = TouchGestureTracker()
+    
+    // Track recent scroll events for momentum detection (fallback only)
     private val scrollHistory = ArrayDeque<ScrollEvent>(MOMENTUM_SAMPLE_SIZE)
     
     private data class ScrollEvent(val delta: Int, val timestamp: Long)
     
     private enum class State {
         EXPANDED,
-        COLLAPSED,
-        ANIMATING_TO_EXPANDED,
-        ANIMATING_TO_COLLAPSED
+        COLLAPSED
     }
 
     /**
@@ -44,18 +42,40 @@ class ViewHideHandler(private val targetView: View) {
      * @param scrollView The scrolling view.
      */
     fun setScrollView(scrollView: ObservableWebView) {
-        // Track touch state
+        // Set up animation lifecycle tracking
+        if (targetView is AppBarLayout) {
+            targetView.addOnOffsetChangedListener { appBarLayout, verticalOffset ->
+                val totalScrollRange = appBarLayout.totalScrollRange
+                val wasAnimating = isReallyAnimating
+                
+                // Detect if we're in the middle of an animation
+                isReallyAnimating = abs(verticalOffset) > 0 && abs(verticalOffset) < totalScrollRange
+                
+                if (wasAnimating && !isReallyAnimating) {
+                    // Animation just completed
+                    Log.d(TAG, "Animation completed - offset=$verticalOffset, range=$totalScrollRange")
+                    state = if (abs(verticalOffset) >= totalScrollRange) State.COLLAPSED else State.EXPANDED
+                }
+                
+                Log.d(TAG, "AppBar offset changed: $verticalOffset/$totalScrollRange, animating=$isReallyAnimating")
+            }
+        }
+        
+        // Track raw touch gestures
         scrollView.addOnDownMotionEventListener {
-            isTouchDown = true
             lastTouchY = scrollView.lastTouchY
-            touchVelocity = 0f
-            Log.d(TAG, "Touch DOWN: lastTouchY=$lastTouchY")
+            gestureTracker.onTouchDown(lastTouchY)
+            Log.d(TAG, "Touch DOWN: y=$lastTouchY")
         }
         
         scrollView.addOnUpOrCancelMotionEventListener {
-            isTouchDown = false
-            touchVelocity = 0f
-            Log.d(TAG, "Touch UP/CANCEL")
+            val gesture = gestureTracker.onTouchUp()
+            Log.d(TAG, "Touch UP/CANCEL: $gesture")
+            
+            // Process completed gesture
+            if (gesture.isSignificant) {
+                processGesture(gesture)
+            }
         }
         
         scrollView.addOnScrollChangeListener { _, scrollY, isHumanScroll ->
@@ -64,32 +84,30 @@ class ViewHideHandler(private val targetView: View) {
             }
             
             val dy = scrollY - lastScrollY
-            Log.d(TAG, "ScrollEvent: scrollY=$scrollY, dy=$dy, touchDown=$isTouchDown, state=$state")
+            Log.d(TAG, "ScrollEvent: scrollY=$scrollY, dy=$dy, gestureActive=${gestureTracker.isActivelyTracking()}, state=$state")
+            
+            // Update gesture tracker with current touch position if actively tracking
+            if (gestureTracker.isActivelyTracking()) {
+                gestureTracker.onTouchMove(scrollView.lastTouchY)
+                
+                // For active gestures, use touch-based detection
+                val currentGesture = gestureTracker.getCurrentGesture()
+                if (currentGesture?.isSignificant == true) {
+                    Log.d(TAG, "Processing active gesture: $currentGesture")
+                    processGesture(currentGesture)
+                }
+                return@addOnScrollChangeListener
+            }
             
             // CRITICAL: Ignore all scrolls during animation to prevent oscillation
-            if (isAnimating) {
-                val currentTime = System.currentTimeMillis()
-                val animElapsed = currentTime - animationStartTime
-                // Check if animation should be done (typical AppBarLayout animation is ~300ms)
-                if (animElapsed > ANIMATION_DURATION_MS) {
-                    isAnimating = false
-                    // Update state to final state
-                    when (state) {
-                        State.ANIMATING_TO_COLLAPSED -> state = State.COLLAPSED
-                        State.ANIMATING_TO_EXPANDED -> state = State.EXPANDED
-                        else -> { /* already in final state */ }
-                    }
-                    Log.d(TAG, "Animation complete after ${animElapsed}ms, state=$state")
-                } else {
-                    // Still animating, ignore this scroll event
-                    Log.d(TAG, "Ignoring scroll during animation (${animElapsed}ms elapsed)")
-                    return@addOnScrollChangeListener
-                }
+            if (isReallyAnimating) {
+                Log.d(TAG, "Ignoring scroll during animation")
+                return@addOnScrollChangeListener
             }
             
             // Position-aware behavior: always show at absolute top
             if (scrollY <= ABSOLUTE_TOP_THRESHOLD) {
-                if (state == State.COLLAPSED || state == State.ANIMATING_TO_COLLAPSED) {
+                if (state == State.COLLAPSED) {
                     expandToolbar()
                 }
                 return@addOnScrollChangeListener
@@ -97,34 +115,22 @@ class ViewHideHandler(private val targetView: View) {
 
             val currentTime = System.currentTimeMillis()
             
-            // Update touch velocity if finger is down
-            if (isTouchDown && scrollView.lastTouchY != lastTouchY) {
-                val touchDelta = scrollView.lastTouchY - lastTouchY
-                touchVelocity = if (abs(touchDelta) > 0.1f) touchDelta else 0f
-                lastTouchY = scrollView.lastTouchY
-                Log.d(TAG, "Touch velocity updated: delta=$touchDelta, velocity=$touchVelocity")
-            }
-            
             // Skip if scroll hasn't actually changed
             if (dy == 0) {
                 Log.d(TAG, "Skipping: dy=0 (no actual scroll change)")
                 return@addOnScrollChangeListener
             }
             
-            // Detect stationary touch: finger down but not moving
-            val isStationaryTouch = isTouchDown && abs(touchVelocity) < STATIONARY_TOUCH_THRESHOLD
-            Log.d(TAG, "Touch state: stationary=$isStationaryTouch, velocity=$touchVelocity")
-            
-            // Skip tiny scroll changes that are likely noise or layout adjustments
-            // Use higher threshold during stationary touch to prevent false triggers
-            val noiseThreshold = if (isStationaryTouch) {
-                STATIONARY_NOISE_THRESHOLD
-            } else {
-                MIN_SCROLL_THRESHOLD
+            // Detect phantom scroll events (characteristic patterns)
+            val isPhantomEvent = detectPhantomScrollEvent(dy, currentTime)
+            if (isPhantomEvent) {
+                Log.d(TAG, "Phantom scroll detected - ignoring")
+                return@addOnScrollChangeListener
             }
             
-            if (abs(dy) < noiseThreshold) {
-                Log.d(TAG, "Skipping: abs(dy)=${abs(dy)} < noiseThreshold=$noiseThreshold")
+            // Skip tiny scroll changes that are likely noise
+            if (abs(dy) < MIN_SCROLL_THRESHOLD) {
+                Log.d(TAG, "Skipping: abs(dy)=${abs(dy)} < threshold=$MIN_SCROLL_THRESHOLD")
                 return@addOnScrollChangeListener
             }
             
@@ -146,13 +152,13 @@ class ViewHideHandler(private val targetView: View) {
             // Determine if we have consistent scroll direction
             val isConsistentScroll = isScrollDirectionConsistent()
             
-            // Choose threshold based on scroll consistency and touch state
-            val threshold = when {
-                isStationaryTouch -> STATIONARY_SCROLL_THRESHOLD  // Very high threshold
-                isConsistentScroll -> CONSISTENT_SCROLL_THRESHOLD  // Lower threshold
-                else -> ERRATIC_SCROLL_THRESHOLD                   // Higher threshold
+            // Choose threshold based on scroll consistency (fallback scroll-based detection)
+            val threshold = if (isConsistentScroll) {
+                CONSISTENT_SCROLL_THRESHOLD
+            } else {
+                ERRATIC_SCROLL_THRESHOLD
             }
-            Log.d(TAG, "Threshold: $threshold (stationary=$isStationaryTouch, consistent=$isConsistentScroll)")
+            Log.d(TAG, "Fallback scroll detection - threshold: $threshold (consistent=$isConsistentScroll)")
             
             // Apply hide/show logic with dynamic threshold
             when (state) {
@@ -176,10 +182,6 @@ class ViewHideHandler(private val targetView: View) {
                     }
                 }
                 
-                State.ANIMATING_TO_EXPANDED,
-                State.ANIMATING_TO_COLLAPSED -> {
-                    // Don't process new actions while animating
-                }
             }
         }
     }
@@ -235,14 +237,10 @@ class ViewHideHandler(private val targetView: View) {
     }
     
     private fun collapseToolbar() {
-        if (isAnimating) {
+        if (isReallyAnimating) {
             Log.d(TAG, "collapseToolbar: Already animating, skipping")
             return
         }
-        
-        state = State.ANIMATING_TO_COLLAPSED
-        isAnimating = true
-        animationStartTime = System.currentTimeMillis()
         
         Log.d(TAG, "Starting collapse animation")
         (targetView as AppBarLayout).setExpanded(false, true)
@@ -252,14 +250,10 @@ class ViewHideHandler(private val targetView: View) {
     }
     
     private fun expandToolbar() {
-        if (isAnimating) {
+        if (isReallyAnimating) {
             Log.d(TAG, "expandToolbar: Already animating, skipping")
             return
         }
-        
-        state = State.ANIMATING_TO_EXPANDED
-        isAnimating = true
-        animationStartTime = System.currentTimeMillis()
         
         Log.d(TAG, "Starting expand animation")
         (targetView as AppBarLayout).setExpanded(true, true)
@@ -268,24 +262,64 @@ class ViewHideHandler(private val targetView: View) {
         scrollHistory.clear()
     }
 
+    /**
+     * Process a completed touch gesture to determine toolbar action
+     */
+    private fun processGesture(gesture: TouchGestureTracker.GestureResult) {
+        Log.d(TAG, "Processing gesture: $gesture")
+        
+        when (gesture.direction) {
+            TouchGestureTracker.Direction.DOWN -> {
+                if (state == State.EXPANDED && gesture.totalDistance >= GESTURE_HIDE_THRESHOLD) {
+                    Log.d(TAG, "Gesture: Hiding toolbar (${gesture.totalDistance}px down)")
+                    collapseToolbar()
+                }
+            }
+            TouchGestureTracker.Direction.UP -> {
+                if (state == State.COLLAPSED && gesture.totalDistance >= GESTURE_SHOW_THRESHOLD) {
+                    Log.d(TAG, "Gesture: Showing toolbar (${gesture.totalDistance}px up)")
+                    expandToolbar()
+                }
+            }
+            TouchGestureTracker.Direction.NONE -> {
+                Log.d(TAG, "Gesture: No clear direction - ignoring")
+            }
+        }
+    }
+    
+    /**
+     * Detect scroll events that are likely phantom events from layout changes
+     */
+    private fun detectPhantomScrollEvent(dy: Int, currentTime: Long): Boolean {
+        // Large sudden scroll changes are suspicious
+        if (abs(dy) > PHANTOM_EVENT_THRESHOLD) {
+            Log.d(TAG, "Phantom detection: Large dy=$dy")
+            return true
+        }
+        
+        // TODO: Add more sophisticated phantom detection based on timing patterns
+        
+        return false
+    }
+
     companion object {
         private const val TAG = "ViewHideHandler"
         
-        // Threshold values
-        private const val CONSISTENT_SCROLL_THRESHOLD = 10      // For intentional scrolling
-        private const val ERRATIC_SCROLL_THRESHOLD = 25         // For erratic scrolling
-        private const val STATIONARY_SCROLL_THRESHOLD = 40     // Very high for stationary touch
-        private const val MIN_SCROLL_THRESHOLD = 3              // Ignore tiny scroll changes
-        private const val STATIONARY_NOISE_THRESHOLD = 8       // Higher noise threshold when stationary
+        // Threshold values for fallback scroll detection
+        private const val CONSISTENT_SCROLL_THRESHOLD = 15      // For intentional scrolling (fallback)
+        private const val ERRATIC_SCROLL_THRESHOLD = 30         // For erratic scrolling (fallback)
+        private const val MIN_SCROLL_THRESHOLD = 5              // Ignore tiny scroll changes
         private const val ABSOLUTE_TOP_THRESHOLD = 50          // Auto-show within 50px of top
         
-        // Touch detection
-        private const val STATIONARY_TOUCH_THRESHOLD = 2f      // Velocity threshold for stationary
+        // Phantom event detection
+        private const val PHANTOM_EVENT_THRESHOLD = 80         // Large sudden changes likely phantom
+        private const val PHANTOM_TIME_WINDOW = 500L           // Time window after state change
         
-        // Animation tracking
-        private const val ANIMATION_DURATION_MS = 300L         // Typical AppBarLayout animation
+        // Touch gesture thresholds
+        private const val GESTURE_HIDE_THRESHOLD = 100f        // Minimum down gesture to hide
+        private const val GESTURE_SHOW_THRESHOLD = 100f        // Minimum up gesture to show
         
-        // Momentum detection
+        // Momentum detection (fallback)
         private const val MOMENTUM_SAMPLE_SIZE = 4              // Number of recent scrolls to analyze
     }
 }
