@@ -28,18 +28,10 @@
 
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/toolbar_search_container"
-            android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_weight="1"
+            style="@style/SearchBarText"
             android:clickable="true"
-            android:ellipsize="end"
             android:focusable="true"
-            android:gravity="center_vertical"
-            android:hint="@string/page_toolbar_search_hint"
-            android:maxLines="1"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:hint="@string/page_toolbar_search_hint" />
 
         <ImageView
             android:id="@+id/toolbar_voice_search_button"
