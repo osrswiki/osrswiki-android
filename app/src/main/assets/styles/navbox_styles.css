@@ -34,7 +34,7 @@
 .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0.3em 0.75em;
+    padding: 0em 1em;
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
@@ -42,7 +42,7 @@
 }
 
 .navbox-list {
-    padding: 0.25em 0.5em;
+    padding: 0em 0.25em;
     line-height: 1.4em;
 }
 
@@ -66,31 +66,14 @@
     margin: 0 0.3em;
 }
 
-/* Add subtle row separators between different content groups */
+/* MediaWiki-style row separation with background-matching border */
 .navbox tr:not(:first-child) .navbox-group-title {
-    border-top: 1px solid var(--navbox-border);
+    border-top: 2px solid var(--navbox-background);
 }
 
 /* Nested navbox tables inside navbox-list cells */
 .navbox-list > .navbox {
-    margin: -0.25em -0.5em; /* Compensate for parent cell padding */
+    margin: 0; /* Remove problematic margin compensation */
     border: none; /* Remove outer border on nested tables */
     box-shadow: none; /* Remove shadow from nested tables */
-}
-
-/* Ensure nested navbox cells get proper borders */
-.navbox .navbox > * > tr > th,
-.navbox .navbox > * > tr > td {
-    border: 1px solid var(--navbox-border) !important; /* Force consistent borders */
-}
-
-/* Style nested navbox group titles consistently */
-.navbox .navbox .navbox-group-title {
-    border-top: 1px solid var(--navbox-border);
-    border-right: 1px solid var(--navbox-border);
-}
-
-/* Remove double borders between nested sections */
-.navbox .navbox tr:first-child .navbox-group-title {
-    border-top: none;
 }
