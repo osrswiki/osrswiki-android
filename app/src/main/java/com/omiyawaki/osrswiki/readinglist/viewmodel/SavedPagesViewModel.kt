@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository
 // import dagger.hilt.android.lifecycle.HiltViewModel // Removed
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 // import javax.inject.Inject // Removed
 
 /**
@@ -58,7 +60,9 @@ class SavedPagesViewModel constructor( // @Inject removed from constructor
             try {
                 val trimmedQuery = query.trim()
                 Log.d(TAG, "searchSavedPages: Calling repository with trimmed query='$trimmedQuery'")
-                val results = savedPagesRepository.searchSavedPages(trimmedQuery)
+                val results = withContext(Dispatchers.IO) {
+                    savedPagesRepository.searchSavedPages(trimmedQuery)
+                }
                 Log.d(TAG, "searchSavedPages: Repository returned ${results.size} results")
                 _searchResults.value = results
             } catch (e: Exception) {
