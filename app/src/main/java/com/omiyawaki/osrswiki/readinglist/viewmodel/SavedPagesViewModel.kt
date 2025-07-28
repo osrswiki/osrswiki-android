@@ -24,6 +24,13 @@ import kotlinx.coroutines.withContext
 class SavedPagesViewModel constructor( // @Inject removed from constructor
     private val savedPagesRepository: SavedPagesRepository
 ) : ViewModel() {
+    
+    // Context needed for deleting offline objects
+    private var applicationContext: android.content.Context? = null
+    
+    fun setApplicationContext(context: android.content.Context) {
+        applicationContext = context.applicationContext
+    }
 
     val savedPages: StateFlow<List<ReadingListPage>> =
         savedPagesRepository.getFullySavedPages()
@@ -81,6 +88,24 @@ class SavedPagesViewModel constructor( // @Inject removed from constructor
     fun clearSearchResults() {
         Log.d(TAG, "clearSearchResults: Clearing search results")
         _searchResults.value = emptyList()
+    }
+
+    /**
+     * Deletes a single saved page including its offline data.
+     */
+    fun deleteSavedPage(page: ReadingListPage) {
+        Log.d(TAG, "deleteSavedPage: Deleting page '${page.displayTitle}'")
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val context = applicationContext 
+                    ?: throw IllegalStateException("Application context not set")
+                savedPagesRepository.deleteSavedPage(page, context)
+                Log.d(TAG, "deleteSavedPage: Successfully deleted page '${page.displayTitle}'")
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteSavedPage: Error deleting page '${page.displayTitle}'", e)
+            }
+        }
     }
 
     companion object {

@@ -2,6 +2,9 @@ package com.omiyawaki.osrswiki.readinglist.ui
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -12,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -20,7 +24,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider // Added for manual ViewModel instantiation
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase // For accessing DAO
 import com.omiyawaki.osrswiki.databinding.FragmentSavedPagesBinding
@@ -66,6 +72,9 @@ class SavedPagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Set the application context on the ViewModel for deletion operations
+        viewModel.setApplicationContext(requireContext())
+        
         setupHeader()
         setupSearch()
         setupRecyclerView()
@@ -93,9 +102,18 @@ class SavedPagesFragment : Fragment() {
         savedPagesAdapter = SavedPagesAdapter { readingListPage ->
             navigateToPage(readingListPage)
         }
+        
+        // Setup swipe-to-delete
+        val swipeCallback = SwipeToDeleteCallback { savedPage ->
+            viewModel.deleteSavedPage(savedPage)
+        }
+        val itemTouchHelper = ItemTouchHelper(swipeCallback)
+        
         binding.savedPagesRecyclerView.apply {
             adapter = savedPagesAdapter
             layoutManager = LinearLayoutManager(requireContext())
+            // Attach the ItemTouchHelper to enable swipe-to-delete
+            itemTouchHelper.attachToRecyclerView(this)
         }
     }
 
@@ -241,5 +259,112 @@ class SavedPagesFragment : Fragment() {
         super.onDestroyView()
         binding.savedPagesRecyclerView.adapter = null // Important to prevent memory leaks with RecyclerView adapter
         _binding = null
+    }
+    
+    private inner class SwipeToDeleteCallback(
+        private val onItemDelete: (ReadingListPage) -> Unit
+    ) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+
+        private val deleteIcon: Drawable = ContextCompat.getDrawable(requireContext(), R.drawable.ic_baseline_delete_24)!!
+        private val background = ColorDrawable()
+        private val backgroundColor = ContextCompat.getColor(requireContext(), android.R.color.holo_red_light)
+
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean = false
+
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            val position = viewHolder.bindingAdapterPosition
+            if (position != RecyclerView.NO_POSITION) {
+                val savedPage = savedPagesAdapter.currentList[position]
+                onItemDelete(savedPage)
+            }
+        }
+
+        override fun onChildDraw(
+            c: Canvas,
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            dX: Float,
+            dY: Float,
+            actionState: Int,
+            isCurrentlyActive: Boolean
+        ) {
+            super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+
+            val itemView = viewHolder.itemView
+            val backgroundCornerOffset = 20
+
+            when {
+                dX > 0 -> { // Swiping to the right
+                    background.color = backgroundColor
+                    background.setBounds(
+                        itemView.left,
+                        itemView.top,
+                        itemView.left + dX.toInt() + backgroundCornerOffset,
+                        itemView.bottom
+                    )
+                    
+                    val iconTop = itemView.top + (itemView.height - deleteIcon.intrinsicHeight) / 2
+                    val iconMargin = (itemView.height - deleteIcon.intrinsicHeight) / 2
+                    val iconLeft = itemView.left + iconMargin
+                    val iconRight = itemView.left + iconMargin + deleteIcon.intrinsicWidth
+                    val iconBottom = iconTop + deleteIcon.intrinsicHeight
+                    
+                    deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
+                    
+                    // Draw background first
+                    background.draw(c)
+                    
+                    // Clip canvas to background area and draw icon
+                    c.save()
+                    c.clipRect(
+                        itemView.left.toFloat(),
+                        itemView.top.toFloat(),
+                        (itemView.left + dX + backgroundCornerOffset).toFloat(),
+                        itemView.bottom.toFloat()
+                    )
+                    deleteIcon.draw(c)
+                    c.restore()
+                }
+                dX < 0 -> { // Swiping to the left
+                    background.color = backgroundColor
+                    background.setBounds(
+                        itemView.right + dX.toInt() - backgroundCornerOffset,
+                        itemView.top,
+                        itemView.right,
+                        itemView.bottom
+                    )
+                    
+                    val iconTop = itemView.top + (itemView.height - deleteIcon.intrinsicHeight) / 2
+                    val iconMargin = (itemView.height - deleteIcon.intrinsicHeight) / 2
+                    val iconLeft = itemView.right - iconMargin - deleteIcon.intrinsicWidth
+                    val iconRight = itemView.right - iconMargin
+                    val iconBottom = iconTop + deleteIcon.intrinsicHeight
+                    
+                    deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
+                    
+                    // Draw background first
+                    background.draw(c)
+                    
+                    // Clip canvas to background area and draw icon
+                    c.save()
+                    c.clipRect(
+                        (itemView.right + dX - backgroundCornerOffset).toFloat(),
+                        itemView.top.toFloat(),
+                        itemView.right.toFloat(),
+                        itemView.bottom.toFloat()
+                    )
+                    deleteIcon.draw(c)
+                    c.restore()
+                }
+                else -> { // No swipe
+                    background.setBounds(0, 0, 0, 0)
+                    return // Don't draw anything when not swiping
+                }
+            }
+        }
     }
 }
