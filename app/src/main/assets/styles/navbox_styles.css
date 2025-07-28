@@ -14,10 +14,10 @@
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
 }
 
-/* Add a border to all cells for a consistent look with wikitables. */
+/* Remove internal borders for cleaner appearance - only add borders where needed for visual separation */
 .navbox th,
 .navbox td {
-    border: 1px solid var(--navbox-border);
+    border: none;
 }
 
 .navbox-title {
@@ -25,19 +25,32 @@
     line-height: 1.6em;
     background: var(--navbox-title-background);
     text-align: center;
-    padding: 0.25em 1em;
+    padding: 0.5em 1em;
+    border-bottom: 2px solid var(--navbox-border);
+    font-weight: bold;
 }
 
 .navbox-group-title {
     background: var(--navbox-group-title-background);
-    /* Borders are now handled by the global th, td rule. */
     text-align: left;
-    padding: 0.25em 1em;
+    padding: 0.4em 1em;
     width: 1%;
     white-space: nowrap;
+    border-right: 1px solid var(--navbox-border);
+    font-weight: 600;
 }
 
 .navbox-list {
-    /* Borders are now handled by the global th, td rule. */
-    padding: 0.25em 0.5em;
+    padding: 0.4em 0.75em;
+    line-height: 1.5em;
+}
+
+/* Add subtle row separators between different content groups */
+.navbox tr:not(:first-child) .navbox-group-title {
+    border-top: 1px solid var(--navbox-border);
+}
+
+/* Improve visual separation for content sections */
+.navbox tr + tr .navbox-list {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
