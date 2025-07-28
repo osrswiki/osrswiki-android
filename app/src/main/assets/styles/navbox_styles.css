@@ -94,3 +94,28 @@
     border: none; /* Remove outer border on nested tables */
     box-shadow: none; /* Remove shadow from nested tables */
 }
+
+/* Styling for navbox-subgroup nested tables */
+.navbox.navbox .navbox-subgroup {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* Cells containing navbox-subgroup tables should have zero padding to eliminate cell-in-cell effect */
+.navbox.navbox .navbox-parent {
+    padding: 0 !important;
+}
+
+/* Group titles inside navbox-subgroup tables need proper styling */
+.navbox.navbox .navbox-subgroup .navbox-group-title {
+    background: var(--navbox-group-title-background);
+    text-align: left;
+    padding: 0.3em 0.75em; /* Restore padding for nested subgroup titles */
+    width: 1%;
+    white-space: nowrap;
+    border-right: 1px solid var(--navbox-border);
+    font-weight: 600;
+}
