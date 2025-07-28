@@ -24,7 +24,6 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
-import com.omiyawaki.osrswiki.views.ActionBarHideHandler
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.ViewHideHandler
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +41,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var currentActionMode: ActionMode? = null
 
     private lateinit var toolbarHideHandler: ViewHideHandler
-    private lateinit var actionBarHideHandler: ActionBarHideHandler
     private lateinit var pageActionBarManager: PageActionBarManager
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
@@ -65,9 +63,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
         // Initialize the ViewHideHandler, targeting the AppBarLayout
         toolbarHideHandler = ViewHideHandler(binding.pageAppbarLayout)
-        
-        // Initialize the ActionBarHideHandler for the bottom action bar
-        actionBarHideHandler = ActionBarHideHandler(findViewById(R.id.page_action_bar))
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -93,7 +88,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onWebViewReady(webView: ObservableWebView) {
         toolbarHideHandler.setScrollView(webView)
-        actionBarHideHandler.setScrollView(webView)
     }
 
     override fun onPageSwipe(gravity: Int) {
