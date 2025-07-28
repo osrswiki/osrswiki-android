@@ -72,68 +72,6 @@
             return;
         }
 
-        // Targeted debug logging for problematic navbox cells
-        if (selector === 'table.navbox') {
-            const problematicTexts = ['Raids', 'Slayer', 'Bosses', 'Monsters'];
-            const cells = Array.from(elementToWrap.querySelectorAll('td, th'));
-            
-            cells.forEach((cell, idx) => {
-                const cellText = cell.textContent?.trim() || '';
-                if (problematicTexts.some(text => cellText.includes(text))) {
-                    
-                    const computedStyle = window.getComputedStyle(cell);
-                    
-                    // Analyze nested elements
-                    const childElements = Array.from(cell.children).map(child => ({
-                        tagName: child.tagName,
-                        className: child.className,
-                        textContent: child.textContent?.trim(),
-                        computedStyle: {
-                            background: window.getComputedStyle(child).background,
-                            backgroundColor: window.getComputedStyle(child).backgroundColor,
-                            padding: window.getComputedStyle(child).padding,
-                            display: window.getComputedStyle(child).display
-                        }
-                    }));
-                    
-                    const cellDebugInfo = {
-                        index: idx,
-                        text: cellText,
-                        tagName: cell.tagName,
-                        className: cell.className,
-                        classList: Array.from(cell.classList),
-                        parentElement: {
-                            tagName: cell.parentElement?.tagName,
-                            className: cell.parentElement?.className
-                        },
-                        computedStyles: {
-                            background: computedStyle.background,
-                            backgroundColor: computedStyle.backgroundColor,
-                            padding: computedStyle.padding,
-                            paddingTop: computedStyle.paddingTop,
-                            paddingRight: computedStyle.paddingRight,
-                            paddingBottom: computedStyle.paddingBottom,
-                            paddingLeft: computedStyle.paddingLeft,
-                            border: computedStyle.border,
-                            borderTop: computedStyle.borderTop,
-                            borderRight: computedStyle.borderRight,
-                            borderBottom: computedStyle.borderBottom,
-                            borderLeft: computedStyle.borderLeft,
-                            display: computedStyle.display,
-                            width: computedStyle.width,
-                            height: computedStyle.height
-                        },
-                        childElements: childElements,
-                        innerHTML: cell.innerHTML
-                    };
-                    
-                    console.log(`PROBLEMATIC CELL ANALYSIS [${cellText}]:`, JSON.stringify(cellDebugInfo, null, 2));
-                    if (window.RenderTimeline) {
-                        window.RenderTimeline.log(`PROBLEMATIC CELL [${cellText}]: ${JSON.stringify(cellDebugInfo)}`);
-                    }
-                }
-            });
-        }
 
 
         if (selector === 'table.infobox' && index === 0) {
