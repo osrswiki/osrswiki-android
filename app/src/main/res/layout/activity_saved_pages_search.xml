@@ -21,38 +21,27 @@
             app:navigationIcon="@drawable/ic_arrow_back">
 
             <LinearLayout
+                style="@style/SearchBarContainer"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_marginEnd="16dp">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    app:boxBackgroundMode="none"
-                    app:endIconMode="clear_text"
-                    app:hintEnabled="false">
+                <ImageView
+                    android:id="@+id/search_icon"
+                    style="@style/SearchBarIcon"
+                    app:srcCompat="@drawable/ic_search_white_24dp"
+                    app:tint="?attr/placeholder_color" />
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/search_edit_text"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="@android:color/transparent"
-                        android:hint="@string/search_hint_saved_pages"
-                        android:imeOptions="actionSearch"
-                        android:inputType="text"
-                        android:maxLines="1" />
-                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/search_edit_text"
+                    style="@style/SearchBarText"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/search_hint_saved_pages"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text" />
 
                 <ImageView
                     android:id="@+id/voice_search_button"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:contentDescription="@string/search_hint_voice_search"
-                    android:focusable="true"
-                    android:scaleType="center"
+                    style="@style/SearchBarVoiceIcon"
                     app:srcCompat="@drawable/ic_voice_search_24"
                     app:tint="?attr/colorOnSurfaceVariant" />
 

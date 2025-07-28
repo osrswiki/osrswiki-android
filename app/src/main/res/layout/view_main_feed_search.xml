@@ -1,64 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.omiyawaki.osrswiki.views.OSRSWikiCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/search_container"
-        android:transitionName="@string/transition_search_bar"
+    style="@style/SearchBarContainer"
+    android:transitionName="@string/transition_search_bar"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
     android:layout_marginStart="8dp"
     android:layout_marginTop="8dp"
     android:layout_marginEnd="8dp"
     android:layout_marginBottom="4dp"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?attr/selectableItemBackground"
-    app:cardCornerRadius="22dp"
-    app:cardElevation="0dp">
+    android:foreground="?attr/selectableItemBackground">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:minHeight="48dp">
+    <ImageView
+        android:id="@+id/search_icon"
+        style="@style/SearchBarIcon"
+        app:srcCompat="@drawable/ic_search_white_24dp"
+        app:tint="?attr/placeholder_color" />
 
-        <ImageView
-            android:id="@+id/search_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:contentDescription="@string/search_hint"
-            android:scaleType="center"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_search_24"
-            app:tint="?attr/colorOnSurfaceVariant" />
+    <TextView
+        android:id="@+id/search_text"
+        style="@style/SearchBarText"
+        android:text="@string/search_hint_wiki"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="Search OSRSWiki" />
 
-        <TextView
-            android:id="@+id/search_text"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="@string/search_hint_wiki"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="16sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/voice_search_button"
-            app:layout_constraintStart_toEndOf="@+id/search_icon"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Search OSRSWiki" />
+    <ImageView
+        android:id="@+id/voice_search_button"
+        style="@style/SearchBarVoiceIcon"
+        app:srcCompat="@drawable/ic_voice_search_24"
+        app:tint="?attr/colorOnSurfaceVariant" />
 
-        <ImageView
-            android:id="@+id/voice_search_button"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:contentDescription="@string/search_hint_voice_search"
-            android:focusable="true"
-            android:scaleType="center"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_voice_search_24"
-            app:tint="?attr/colorOnSurfaceVariant" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
-</com.omiyawaki.osrswiki.views.OSRSWikiCardView>
+</LinearLayout>

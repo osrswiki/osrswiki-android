@@ -55,4 +55,44 @@
         <item name="android:textStyle">bold</item>
     </style>
 
+    <!-- Standardized Search Bar Styles -->
+    <style name="SearchBarContainer">
+        <item name="android:layout_height">@dimen/search_bar_height</item>
+        <item name="android:background">@drawable/shape_search_box</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">@dimen/search_bar_padding</item>
+        <item name="android:paddingEnd">@dimen/search_bar_padding</item>
+    </style>
+
+    <style name="SearchBarIcon">
+        <item name="android:layout_width">@dimen/search_icon_size</item>
+        <item name="android:layout_height">@dimen/search_bar_height</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:contentDescription">@string/search_hint</item>
+    </style>
+
+    <style name="SearchBarText">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">@dimen/search_bar_height</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">@dimen/search_text_padding</item>
+        <item name="android:paddingEnd">@dimen/search_text_padding</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+    </style>
+
+    <style name="SearchBarVoiceIcon">
+        <item name="android:layout_width">@dimen/search_icon_size</item>
+        <item name="android:layout_height">@dimen/search_bar_height</item>
+        <item name="android:layout_gravity">center_vertical</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:scaleType">center</item>
+        <item name="android:contentDescription">@string/search_hint_voice_search</item>
+    </style>
+
 </resources>
