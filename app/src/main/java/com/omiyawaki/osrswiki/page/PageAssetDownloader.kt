@@ -316,12 +316,21 @@ class PageAssetDownloader(
     /**
      * Extracts the body content from a full HTML document for processing.
      * This is needed when we have cached full HTML but need just the body content.
+     * Removes any existing page-header titles to prevent duplication.
      */
     private fun extractBodyFromHtml(fullHtml: String?): String? {
         if (fullHtml == null) return null
         return try {
             val document = Jsoup.parse(fullHtml)
-            document.body()?.html()
+            val body = document.body()
+            if (body != null) {
+                // Remove any existing page-header titles to prevent duplication
+                // when buildFullHtmlDocument adds a new title header
+                body.select("h1.page-header").remove()
+                body.html()
+            } else {
+                null
+            }
         } catch (e: Exception) {
             L.e("extractBodyFromHtml: Failed to extract body from HTML", e)
             fullHtml // Fallback to full HTML
