@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.readinglist.ui
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -9,6 +10,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -64,9 +66,27 @@ class SavedPagesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupHeader()
+        setupSearch()
         setupRecyclerView()
         observeSavedPages()
         setupMenu()
+    }
+
+    private fun setupHeader() {
+        // Set the page title to "Saved"
+        binding.root.findViewById<TextView>(R.id.page_title)?.text = getString(R.string.nav_saved)
+    }
+
+    private fun setupSearch() {
+        // Set a click listener on the search bar view to launch the saved pages search activity.
+        binding.root.findViewById<View>(R.id.search_container)?.setOnClickListener {
+            val intent = SavedPagesSearchActivity.newIntent(requireContext())
+            startActivity(intent)
+        }
+        
+        // Update search hint text for saved pages
+        binding.root.findViewById<TextView>(R.id.search_text)?.text = getString(R.string.search_hint_saved_pages)
     }
 
     private fun setupRecyclerView() {
