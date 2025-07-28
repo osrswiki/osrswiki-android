@@ -15,8 +15,9 @@
 }
 
 /* Remove internal borders for cleaner appearance - only add borders where needed for visual separation */
-.navbox th,
-.navbox td {
+/* Use higher specificity to override wikitable border rules */
+.navbox > * > tr > th,
+.navbox > * > tr > td {
     border: none;
 }
 
