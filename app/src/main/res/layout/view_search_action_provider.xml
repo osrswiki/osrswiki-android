@@ -17,9 +17,7 @@
         android:background="@android:color/transparent"
         android:hint="@string/search_hint"
         android:imeOptions="actionSearch"
-        android:inputType="text"
-        android:textColor="?attr/primary_text_color"
-        android:textColorHint="?attr/secondary_text_color" />
+        android:inputType="text" />
 
     <ImageView
         android:id="@+id/voice_search_button"

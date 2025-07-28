@@ -24,7 +24,6 @@
         android:id="@+id/search_text"
         style="@style/SearchBarText"
         android:text="@string/search_hint_wiki"
-        android:textColor="?attr/colorOnSurfaceVariant"
         tools:text="Search OSRSWiki" />
 
     <ImageView
