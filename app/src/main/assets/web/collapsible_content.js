@@ -141,24 +141,6 @@
     function initialize() {
         preloadCollapsibleImages();
 
-        // Debug logging for navigation table investigation
-        console.log('=== NAVIGATION TABLE DEBUG ===');
-        if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
-            window.RenderTimeline.log('=== NAVIGATION TABLE DEBUG START ===');
-        }
-        
-        document.querySelectorAll('table').forEach((table, i) => {
-            if (table.classList.contains('wikitable') || table.classList.contains('navbox')) {
-                const logInfo = `Table ${i}: Classes: ${table.className}, Parent: ${table.parentElement?.className}, Caption: ${table.querySelector('caption, th')?.textContent?.trim()}`;
-                console.log(logInfo);
-                
-                // Also log via RenderTimeline for visibility in PageLoadTrace
-                if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
-                    window.RenderTimeline.log(logInfo);
-                }
-            }
-        });
-
         document.querySelectorAll('table.infobox').forEach((table, i) => {
             const switcherContainer = table.closest('.infobox-switch');
             const elementToTransform = switcherContainer || table;
