@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.readinglist.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
@@ -43,21 +44,29 @@ class SavedPagesViewModel constructor( // @Inject removed from constructor
      * (both title and content search).
      */
     fun searchSavedPages(query: String) {
+        Log.d(TAG, "searchSavedPages: Called with query='$query'")
+        
         if (query.isBlank()) {
+            Log.d(TAG, "searchSavedPages: Query is blank, clearing results")
             _searchResults.value = emptyList()
             return
         }
 
         viewModelScope.launch {
+            Log.d(TAG, "searchSavedPages: Starting search in coroutine")
             _isSearching.value = true
             try {
-                val results = savedPagesRepository.searchSavedPages(query.trim())
+                val trimmedQuery = query.trim()
+                Log.d(TAG, "searchSavedPages: Calling repository with trimmed query='$trimmedQuery'")
+                val results = savedPagesRepository.searchSavedPages(trimmedQuery)
+                Log.d(TAG, "searchSavedPages: Repository returned ${results.size} results")
                 _searchResults.value = results
             } catch (e: Exception) {
-                // Handle search error - could log or expose error state
+                Log.e(TAG, "searchSavedPages: Search error", e)
                 _searchResults.value = emptyList()
             } finally {
                 _isSearching.value = false
+                Log.d(TAG, "searchSavedPages: Search completed")
             }
         }
     }
@@ -66,6 +75,11 @@ class SavedPagesViewModel constructor( // @Inject removed from constructor
      * Clears the current search results.
      */
     fun clearSearchResults() {
+        Log.d(TAG, "clearSearchResults: Clearing search results")
         _searchResults.value = emptyList()
+    }
+
+    companion object {
+        private const val TAG = "SavedPagesViewModel"
     }
 }
