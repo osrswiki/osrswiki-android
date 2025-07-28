@@ -14,14 +14,24 @@
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
 }
 
-/* Remove internal borders for cleaner appearance - only add borders where needed for visual separation */
-/* Use higher specificity to override wikitable border rules */
-.navbox > * > tr > th,
-.navbox > * > tr > td {
+/* Override wikitable rules with higher specificity to fix cell-in-cell appearance */
+/* The wikitable rules in components.css apply padding and backgrounds to table cells,
+   which conflicts with navbox styling and creates nested appearance */
+.navbox.navbox > * > tr > th,
+.navbox.navbox > * > tr > td {
     border: none;
+    padding: 0; /* Override wikitable 8px padding that creates visual separation */
+    background: transparent; /* Remove wikitable backgrounds from table cells */
 }
 
-.navbox-title {
+/* Extra specificity needed for th elements due to specific wikitable th rules */
+.navbox.navbox.navbox > * > tr > th {
+    background: transparent !important; /* Override wikitable th background-color rule */
+    padding: 0 !important; /* Ensure no wikitable padding interference */
+}
+
+/* Apply styling directly to table cells to avoid nested background conflicts */
+.navbox.navbox .navbox-title {
     font-size: 110%;
     line-height: 1.6em;
     background: var(--navbox-title-background);
@@ -31,49 +41,49 @@
     font-weight: bold;
 }
 
-.navbox-group-title {
+.navbox.navbox .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0em 1em;
+    padding: 0.3em 0.75em;
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
     font-weight: 600;
 }
 
-.navbox-list {
-    padding: 0em 0.25em;
+.navbox.navbox .navbox-list {
+    padding: 0.25em 0.5em;
     line-height: 1.4em;
 }
 
 /* Make list items display inline like the web version */
-.navbox ul {
+.navbox.navbox ul {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.navbox li {
+.navbox.navbox li {
     display: inline;
     margin: 0;
     padding: 0;
 }
 
 /* Add separators between inline list items */
-.navbox li:not(:last-child)::after {
+.navbox.navbox li:not(:last-child)::after {
     content: " • ";
     color: var(--subtle-color);
     margin: 0 0.3em;
 }
 
-/* MediaWiki-style row separation with background-matching border */
-.navbox tr:not(:first-child) .navbox-group-title {
-    border-top: 2px solid var(--navbox-background);
+/* Add subtle row separators between different content groups */
+.navbox.navbox tr:not(:first-child) .navbox-group-title {
+    border-top: 1px solid var(--navbox-border);
 }
 
 /* Nested navbox tables inside navbox-list cells */
-.navbox-list > .navbox {
-    margin: 0; /* Remove problematic margin compensation */
+.navbox.navbox .navbox-list > .navbox {
+    margin: -0.25em -0.5em; /* Compensate for parent cell padding */
     border: none; /* Remove outer border on nested tables */
     box-shadow: none; /* Remove shadow from nested tables */
 }
