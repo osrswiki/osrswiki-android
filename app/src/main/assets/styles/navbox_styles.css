@@ -14,20 +14,27 @@
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
 }
 
-/* Override wikitable rules with higher specificity to fix cell-in-cell appearance */
-/* The wikitable rules in components.css apply padding and backgrounds to table cells,
-   which conflicts with navbox styling and creates nested appearance */
+/* Remove borders from all navbox table cells */
 .navbox.navbox > * > tr > th,
 .navbox.navbox > * > tr > td {
     border: none;
-    padding: 0; /* Override wikitable 8px padding that creates visual separation */
-    background: transparent; /* Remove wikitable backgrounds from table cells */
 }
 
-/* Extra specificity needed for th elements due to specific wikitable th rules */
-.navbox.navbox.navbox > * > tr > th {
-    background: transparent !important; /* Override wikitable th background-color rule */
-    padding: 0 !important; /* Ensure no wikitable padding interference */
+/* Target cells containing .navbox-group-title to fix cell-in-cell appearance */
+/* These cells need transparent backgrounds and zero padding so the nested element styling works */
+.navbox.navbox > * > tr > th:has(.navbox-group-title),
+.navbox.navbox > * > tr > td:has(.navbox-group-title) {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Comprehensive fallback selectors for browsers without :has() support */
+/* Target cells that are likely to contain group titles */
+.navbox.navbox > * > tr > .navbox-group,
+.navbox.navbox > * > tr > th.navbox-group,
+.navbox.navbox > * > tr > td.navbox-group {
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 /* Apply styling directly to table cells to avoid nested background conflicts */
@@ -44,7 +51,7 @@
 .navbox.navbox .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0.3em 0.75em;
+    padding: 0;
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
