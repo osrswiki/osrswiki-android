@@ -124,6 +124,35 @@ class SavedPagesRepository constructor( // @Inject removed from constructor
         return combinedResults.sortedByDescending { it.atime } // Sort by most recently accessed
     }
 
+    /**
+     * Deletes a single saved page including its offline objects and FTS entries.
+     */
+    suspend fun deleteSavedPage(page: ReadingListPage, context: android.content.Context) {
+        Log.d(TAG, "deleteSavedPage: Deleting page '${page.displayTitle}'")
+        
+        try {
+            // Delete offline objects (cached files)
+            val offlineObjectDao = AppDatabase.instance.offlineObjectDao()
+            offlineObjectDao.deleteObjectsForPageIds(listOf(page.id), context)
+            Log.d(TAG, "deleteSavedPage: Deleted offline objects for page ID ${page.id}")
+            
+            // Delete FTS entry
+            val ftsDao = AppDatabase.instance.offlinePageFtsDao()
+            val pageTitleHelper = ReadingListPage.toPageTitle(page)
+            val canonicalPageUrlForFts = pageTitleHelper.uri
+            ftsDao.deletePageContentByUrl(canonicalPageUrlForFts)
+            Log.d(TAG, "deleteSavedPage: Deleted FTS entry for URL '$canonicalPageUrlForFts'")
+            
+            // Delete the reading list page entry
+            readingListPageDao.deleteReadingListPage(page)
+            Log.d(TAG, "deleteSavedPage: Deleted reading list page entry")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteSavedPage: Error deleting page '${page.displayTitle}'", e)
+            throw e
+        }
+    }
+
     companion object {
         private const val TAG = "SavedPagesRepository"
     }

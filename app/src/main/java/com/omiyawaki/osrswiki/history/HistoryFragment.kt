@@ -159,12 +159,14 @@ class HistoryFragment : Fragment() {
         ): Boolean = false
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            val position = viewHolder.adapterPosition
-            val item = adapter.currentList[position]
-            
-            // Only allow swiping on entry items, not date headers
-            if (item is HistoryItem.EntryItem) {
-                onItemDelete(item.historyEntry)
+            val position = viewHolder.bindingAdapterPosition
+            if (position != RecyclerView.NO_POSITION) {
+                val item = adapter.currentList[position]
+                
+                // Only allow swiping on entry items, not date headers
+                if (item is HistoryItem.EntryItem) {
+                    onItemDelete(item.historyEntry)
+                }
             }
         }
 
@@ -183,7 +185,11 @@ class HistoryFragment : Fragment() {
             val backgroundCornerOffset = 20
 
             // Only show background for entry items, not date headers
-            val item = adapter.currentList.getOrNull(viewHolder.adapterPosition)
+            val position = viewHolder.bindingAdapterPosition
+            if (position == RecyclerView.NO_POSITION) {
+                return
+            }
+            val item = adapter.currentList.getOrNull(position)
             if (item !is HistoryItem.EntryItem) {
                 return
             }
@@ -205,6 +211,20 @@ class HistoryFragment : Fragment() {
                     val iconBottom = iconTop + deleteIcon.intrinsicHeight
                     
                     deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
+                    
+                    // Draw background first
+                    background.draw(c)
+                    
+                    // Clip canvas to background area and draw icon
+                    c.save()
+                    c.clipRect(
+                        itemView.left.toFloat(),
+                        itemView.top.toFloat(),
+                        (itemView.left + dX + backgroundCornerOffset).toFloat(),
+                        itemView.bottom.toFloat()
+                    )
+                    deleteIcon.draw(c)
+                    c.restore()
                 }
                 dX < 0 -> { // Swiping to the left
                     background.color = backgroundColor
@@ -222,15 +242,26 @@ class HistoryFragment : Fragment() {
                     val iconBottom = iconTop + deleteIcon.intrinsicHeight
                     
                     deleteIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom)
+                    
+                    // Draw background first
+                    background.draw(c)
+                    
+                    // Clip canvas to background area and draw icon
+                    c.save()
+                    c.clipRect(
+                        (itemView.right + dX - backgroundCornerOffset).toFloat(),
+                        itemView.top.toFloat(),
+                        itemView.right.toFloat(),
+                        itemView.bottom.toFloat()
+                    )
+                    deleteIcon.draw(c)
+                    c.restore()
                 }
                 else -> { // No swipe
                     background.setBounds(0, 0, 0, 0)
                     return // Don't draw anything when not swiping
                 }
             }
-
-            background.draw(c)
-            deleteIcon.draw(c)
         }
     }
 }
