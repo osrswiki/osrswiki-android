@@ -69,8 +69,3 @@
 .navbox tr:not(:first-child) .navbox-group-title {
     border-top: 1px solid var(--navbox-border);
 }
-
-/* Improve visual separation for content sections */
-.navbox tr + tr .navbox-list {
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-}
