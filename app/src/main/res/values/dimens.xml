@@ -5,4 +5,10 @@
     <item name="articleHeaderViewScreenHeightRatio" type="dimen">0.33</item>
 
     <dimen name="nav_bar_height">72dp</dimen>
+    
+    <!-- Search Bar Standardized Dimensions -->
+    <dimen name="search_bar_height">36dp</dimen>
+    <dimen name="search_bar_padding">4dp</dimen>
+    <dimen name="search_icon_size">32dp</dimen>
+    <dimen name="search_text_padding">8dp</dimen>
 </resources>

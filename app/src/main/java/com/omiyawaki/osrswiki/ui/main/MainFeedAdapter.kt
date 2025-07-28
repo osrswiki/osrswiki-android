@@ -47,20 +47,8 @@ class MainFeedAdapter(private val callback: Callback) :
         fun bind() {
             binding.searchContainer.setOnClickListener { callback.onSearchRequested(binding.searchContainer) }
             binding.voiceSearchButton.setOnClickListener { callback.onVoiceSearchRequested() }
-
-            // Set the background color programmatically to override theme issues.
-            val colorAttr = com.google.android.material.R.attr.colorSurfaceVariant
-            val typedValue = TypedValue()
-            val theme = itemView.context.theme
-
-            if (theme.resolveAttribute(colorAttr, typedValue, true)) {
-                val colorInt = if (typedValue.type >= TypedValue.TYPE_FIRST_COLOR_INT && typedValue.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-                    typedValue.data
-                } else {
-                    ContextCompat.getColor(itemView.context, typedValue.resourceId)
-                }
-                binding.searchContainer.setCardBackgroundColor(colorInt)
-            }
+            
+            // Background color is now handled by the standardized search bar drawable
         }
     }
 }
