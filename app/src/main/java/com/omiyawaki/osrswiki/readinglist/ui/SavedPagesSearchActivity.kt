@@ -7,6 +7,8 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +25,8 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModel
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory
+import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import kotlinx.coroutines.launch
 
 class SavedPagesSearchActivity : BaseActivity() {
@@ -36,6 +40,11 @@ class SavedPagesSearchActivity : BaseActivity() {
     }
     
     private lateinit var searchAdapter: SavedPagesAdapter
+    
+    private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,7 +54,15 @@ class SavedPagesSearchActivity : BaseActivity() {
         setupToolbar()
         setupRecyclerView()
         setupSearchField()
+        setupVoiceSearch()
         observeSearchResults()
+        
+        // Handle voice search query if provided
+        val voiceQuery = intent.getStringExtra("query")
+        if (!voiceQuery.isNullOrBlank()) {
+            binding.searchEditText.setText(voiceQuery)
+            binding.searchEditText.setSelection(voiceQuery.length)
+        }
         
         // Set focus to the search field
         binding.searchEditText.requestFocus()
@@ -88,6 +105,21 @@ class SavedPagesSearchActivity : BaseActivity() {
                 }
             }
         })
+    }
+
+    private fun setupVoiceSearch() {
+        // Initialize voice recognition manager
+        voiceRecognitionManager = createVoiceRecognitionManager(
+            onResult = { query ->
+                binding.searchEditText.setText(query)
+                binding.searchEditText.setSelection(query.length)
+            }
+        )
+        
+        // Set up voice search button
+        binding.voiceSearchButton.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+        }
     }
 
     private fun observeSearchResults() {
@@ -149,6 +181,14 @@ class SavedPagesSearchActivity : BaseActivity() {
         )
         
         startActivity(intent)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+        }
     }
 
     companion object {

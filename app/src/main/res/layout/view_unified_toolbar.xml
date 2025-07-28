@@ -26,6 +26,19 @@
         app:drawableStartCompat="@drawable/ic_search_white_24dp"
         app:drawableTint="?attr/placeholder_color" />
 
+    <ImageView
+        android:id="@+id/toolbar_voice_search_button"
+        android:layout_width="40dp"
+        android:layout_height="36dp"
+        android:layout_marginEnd="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/search_hint_voice_search"
+        android:focusable="true"
+        android:scaleType="center"
+        app:srcCompat="@drawable/ic_voice_search_24"
+        app:tint="?attr/colorOnSurface" />
+
 
     <View
         android:id="@+id/toolbar_notification_button_placeholder"

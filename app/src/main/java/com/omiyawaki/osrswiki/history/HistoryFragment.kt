@@ -8,7 +8,9 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.*
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
@@ -22,6 +24,8 @@ import com.omiyawaki.osrswiki.databinding.FragmentHistoryBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 
 class HistoryFragment : Fragment() {
 
@@ -30,6 +34,11 @@ class HistoryFragment : Fragment() {
     
     private val viewModel: HistoryViewModel by viewModels()
     private lateinit var adapter: HistoryAdapter
+    
+    private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -81,10 +90,26 @@ class HistoryFragment : Fragment() {
     }
 
     private fun setupSearch() {
+        // Initialize voice recognition manager
+        voiceRecognitionManager = createVoiceRecognitionManager(
+            onResult = { query ->
+                // Open search activity with the voice query
+                val intent = Intent(requireContext(), SearchActivity::class.java).apply {
+                    putExtra("query", query)
+                }
+                startActivity(intent)
+            }
+        )
+        
         // Set a click listener on the search bar view to launch the search activity.
         binding.root.findViewById<View>(R.id.search_container)?.setOnClickListener {
             val intent = Intent(requireContext(), SearchActivity::class.java)
             startActivity(intent)
+        }
+        
+        // Set up voice search button
+        binding.root.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
         }
     }
 
@@ -262,6 +287,14 @@ class HistoryFragment : Fragment() {
                     return // Don't draw anything when not swiping
                 }
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
         }
     }
 }

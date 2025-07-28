@@ -86,6 +86,11 @@
     <string name="search_hint_saved_pages">Search saved pages</string>
     <string name="search_hint">Search…</string>
     <string name="search_hint_voice_search">Voice search</string>
+    <string name="voice_search_prompt">Speak now to search</string>
+    <string name="voice_search_not_available">Voice recognition is not available on this device</string>
+    <string name="voice_search_permission_denied">Microphone permission is required for voice search</string>
+    <string name="voice_search_error">Voice recognition error. Please try again.</string>
+    <string name="voice_search_no_results">No speech detected. Please try again.</string>
     <string name="nav_news">News</string>
     <string name="nav_map">Map</string>
     <string name="nav_saved">Saved</string>

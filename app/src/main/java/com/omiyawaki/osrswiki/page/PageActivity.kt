@@ -8,7 +8,9 @@ import android.os.Bundle
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.GravityCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textview.MaterialTextView
@@ -20,6 +22,8 @@ import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.ViewHideHandler
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +42,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     private lateinit var toolbarHideHandler: ViewHideHandler
     private lateinit var pageActionBarManager: PageActionBarManager
+    
+    private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,10 +106,26 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
 
     private fun setupToolbarListeners() {
+        // Initialize voice recognition manager
+        voiceRecognitionManager = createVoiceRecognitionManager(
+            onResult = { query ->
+                // Open search activity with the voice query
+                val intent = Intent(this, SearchActivity::class.java).apply {
+                    putExtra("query", query)
+                }
+                startActivity(intent)
+            }
+        )
+        
         val searchContainer = binding.pageToolbar.findViewById<MaterialTextView>(R.id.toolbar_search_container)
         searchContainer.setOnClickListener {
             val searchActivityIntent = Intent(this, SearchActivity::class.java)
             startActivity(searchActivityIntent)
+        }
+        
+        // Set up voice search button
+        binding.pageToolbar.findViewById<ImageView>(R.id.toolbar_voice_search_button)?.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
         }
 
         binding.pageToolbar.findViewById<View>(R.id.toolbar_overflow_menu_button).setOnClickListener { anchorView ->
@@ -191,6 +216,14 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             savedPage?.offline == true && savedPage.status == ReadingListPage.STATUS_SAVED
         } catch (e: Exception) {
             false
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
         }
     }
 
