@@ -1,0 +1,150 @@
+package com.omiyawaki.osrswiki.readinglist.ui
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import androidx.activity.viewModels
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.activity.BaseActivity
+import com.omiyawaki.osrswiki.database.AppDatabase
+import com.omiyawaki.osrswiki.databinding.ActivitySavedPagesSearchBinding
+import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.readinglist.adapter.SavedPagesAdapter
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
+import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository
+import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModel
+import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory
+import kotlinx.coroutines.launch
+
+class SavedPagesSearchActivity : BaseActivity() {
+
+    private lateinit var binding: ActivitySavedPagesSearchBinding
+    
+    private val viewModel: SavedPagesViewModel by viewModels {
+        val readingListPageDao = AppDatabase.instance.readingListPageDao()
+        val repository = SavedPagesRepository(readingListPageDao)
+        SavedPagesViewModelFactory(repository)
+    }
+    
+    private lateinit var searchAdapter: SavedPagesAdapter
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivitySavedPagesSearchBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setupToolbar()
+        setupRecyclerView()
+        setupSearchField()
+        observeSearchResults()
+        
+        // Set focus to the search field
+        binding.searchEditText.requestFocus()
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.searchToolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+        
+        binding.searchToolbar.setNavigationOnClickListener { finishAfterTransition() }
+    }
+
+    private fun setupRecyclerView() {
+        searchAdapter = SavedPagesAdapter { readingListPage ->
+            navigateToPage(readingListPage)
+        }
+        
+        binding.searchRecyclerView.apply {
+            adapter = searchAdapter
+            layoutManager = LinearLayoutManager(this@SavedPagesSearchActivity)
+        }
+    }
+
+    private fun setupSearchField() {
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            
+            override fun afterTextChanged(s: Editable?) {
+                val query = s?.toString()?.trim() ?: ""
+                if (query.isNotEmpty()) {
+                    viewModel.searchSavedPages(query)
+                } else {
+                    viewModel.clearSearchResults()
+                }
+            }
+        })
+    }
+
+    private fun observeSearchResults() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.searchResults.collect { results ->
+                        searchAdapter.submitList(results)
+                        updateEmptyState(results)
+                    }
+                }
+                
+                launch {
+                    viewModel.isSearching.collect { isSearching ->
+                        binding.progressBar.visibility = if (isSearching) View.VISIBLE else View.GONE
+                    }
+                }
+            }
+        }
+    }
+
+    private fun updateEmptyState(results: List<ReadingListPage>) {
+        val query = binding.searchEditText.text?.toString()?.trim() ?: ""
+        
+        when {
+            query.isEmpty() -> {
+                binding.emptyStateContainer.visibility = View.VISIBLE
+                binding.emptyStateText.text = getString(R.string.search_hint_saved_pages)
+                binding.searchRecyclerView.visibility = View.GONE
+            }
+            results.isEmpty() -> {
+                binding.emptyStateContainer.visibility = View.VISIBLE
+                binding.emptyStateText.text = getString(R.string.search_no_results)
+                binding.searchRecyclerView.visibility = View.GONE
+            }
+            else -> {
+                binding.emptyStateContainer.visibility = View.GONE
+                binding.searchRecyclerView.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun navigateToPage(savedPage: ReadingListPage) {
+        val pageTitle = savedPage.apiTitle
+        val pageId = savedPage.mediaWikiPageId?.toString()
+
+        val intent = PageActivity.newIntent(
+            context = this,
+            pageTitle = pageTitle,
+            pageId = pageId,
+            source = HistoryEntry.SOURCE_SAVED_PAGE,
+            snippet = savedPage.description,
+            thumbnailUrl = savedPage.thumbUrl
+        )
+        
+        startActivity(intent)
+    }
+
+    companion object {
+        fun newIntent(context: Context): Intent {
+            return Intent(context, SavedPagesSearchActivity::class.java)
+        }
+    }
+}
