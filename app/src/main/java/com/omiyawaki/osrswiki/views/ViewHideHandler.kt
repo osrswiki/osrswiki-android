@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.views
 
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import com.google.android.material.appbar.AppBarLayout
@@ -48,11 +49,13 @@ class ViewHideHandler(private val targetView: View) {
             isTouchDown = true
             lastTouchY = scrollView.lastTouchY
             touchVelocity = 0f
+            Log.d(TAG, "Touch DOWN: lastTouchY=$lastTouchY")
         }
         
         scrollView.addOnUpOrCancelMotionEventListener {
             isTouchDown = false
             touchVelocity = 0f
+            Log.d(TAG, "Touch UP/CANCEL")
         }
         
         scrollView.addOnScrollChangeListener { _, scrollY, isHumanScroll ->
@@ -60,11 +63,15 @@ class ViewHideHandler(private val targetView: View) {
                 return@addOnScrollChangeListener
             }
             
+            val dy = scrollY - lastScrollY
+            Log.d(TAG, "ScrollEvent: scrollY=$scrollY, dy=$dy, touchDown=$isTouchDown, state=$state")
+            
             // CRITICAL: Ignore all scrolls during animation to prevent oscillation
             if (isAnimating) {
                 val currentTime = System.currentTimeMillis()
+                val animElapsed = currentTime - animationStartTime
                 // Check if animation should be done (typical AppBarLayout animation is ~300ms)
-                if (currentTime - animationStartTime > ANIMATION_DURATION_MS) {
+                if (animElapsed > ANIMATION_DURATION_MS) {
                     isAnimating = false
                     // Update state to final state
                     when (state) {
@@ -72,8 +79,10 @@ class ViewHideHandler(private val targetView: View) {
                         State.ANIMATING_TO_EXPANDED -> state = State.EXPANDED
                         else -> { /* already in final state */ }
                     }
+                    Log.d(TAG, "Animation complete after ${animElapsed}ms, state=$state")
                 } else {
                     // Still animating, ignore this scroll event
+                    Log.d(TAG, "Ignoring scroll during animation (${animElapsed}ms elapsed)")
                     return@addOnScrollChangeListener
                 }
             }
@@ -86,7 +95,6 @@ class ViewHideHandler(private val targetView: View) {
                 return@addOnScrollChangeListener
             }
 
-            val dy = scrollY - lastScrollY
             val currentTime = System.currentTimeMillis()
             
             // Update touch velocity if finger is down
@@ -94,15 +102,18 @@ class ViewHideHandler(private val targetView: View) {
                 val touchDelta = scrollView.lastTouchY - lastTouchY
                 touchVelocity = if (abs(touchDelta) > 0.1f) touchDelta else 0f
                 lastTouchY = scrollView.lastTouchY
+                Log.d(TAG, "Touch velocity updated: delta=$touchDelta, velocity=$touchVelocity")
             }
             
             // Skip if scroll hasn't actually changed
             if (dy == 0) {
+                Log.d(TAG, "Skipping: dy=0 (no actual scroll change)")
                 return@addOnScrollChangeListener
             }
             
             // Detect stationary touch: finger down but not moving
             val isStationaryTouch = isTouchDown && abs(touchVelocity) < STATIONARY_TOUCH_THRESHOLD
+            Log.d(TAG, "Touch state: stationary=$isStationaryTouch, velocity=$touchVelocity")
             
             // Skip tiny scroll changes that are likely noise or layout adjustments
             // Use higher threshold during stationary touch to prevent false triggers
@@ -113,6 +124,7 @@ class ViewHideHandler(private val targetView: View) {
             }
             
             if (abs(dy) < noiseThreshold) {
+                Log.d(TAG, "Skipping: abs(dy)=${abs(dy)} < noiseThreshold=$noiseThreshold")
                 return@addOnScrollChangeListener
             }
             
@@ -125,6 +137,7 @@ class ViewHideHandler(private val targetView: View) {
             // Validate scroll velocity pattern
             if (!isScrollVelocityValid()) {
                 // Erratic velocity pattern suggests layout-induced scrolls
+                Log.d(TAG, "Skipping: invalid scroll velocity pattern detected")
                 return@addOnScrollChangeListener
             }
             
@@ -139,20 +152,27 @@ class ViewHideHandler(private val targetView: View) {
                 isConsistentScroll -> CONSISTENT_SCROLL_THRESHOLD  // Lower threshold
                 else -> ERRATIC_SCROLL_THRESHOLD                   // Higher threshold
             }
+            Log.d(TAG, "Threshold: $threshold (stationary=$isStationaryTouch, consistent=$isConsistentScroll)")
             
             // Apply hide/show logic with dynamic threshold
             when (state) {
                 State.EXPANDED -> {
                     if (dy > threshold) {
                         // Scrolling down consistently enough to hide
+                        Log.d(TAG, "ACTION: Collapsing toolbar (dy=$dy > threshold=$threshold)")
                         collapseToolbar()
+                    } else {
+                        Log.d(TAG, "No action: dy=$dy <= threshold=$threshold")
                     }
                 }
                 
                 State.COLLAPSED -> {
                     if (dy < -threshold) {
                         // Scrolling up consistently enough to show
+                        Log.d(TAG, "ACTION: Expanding toolbar (dy=$dy < -threshold=$-threshold)")
                         expandToolbar()
+                    } else {
+                        Log.d(TAG, "No action: dy=$dy >= -threshold=$-threshold")
                     }
                 }
                 
@@ -182,6 +202,7 @@ class ViewHideHandler(private val targetView: View) {
         
         // Sudden reversal suggests animation-induced adjustment
         if (prevDelta > 5 && currDelta < -5 || prevDelta < -5 && currDelta > 5) {
+            Log.d(TAG, "Velocity validation failed: sudden reversal (prev=$prevDelta, curr=$currDelta)")
             return false
         }
         
@@ -214,12 +235,16 @@ class ViewHideHandler(private val targetView: View) {
     }
     
     private fun collapseToolbar() {
-        if (isAnimating) return
+        if (isAnimating) {
+            Log.d(TAG, "collapseToolbar: Already animating, skipping")
+            return
+        }
         
         state = State.ANIMATING_TO_COLLAPSED
         isAnimating = true
         animationStartTime = System.currentTimeMillis()
         
+        Log.d(TAG, "Starting collapse animation")
         (targetView as AppBarLayout).setExpanded(false, true)
         
         // Clear scroll history to prevent carryover
@@ -227,12 +252,16 @@ class ViewHideHandler(private val targetView: View) {
     }
     
     private fun expandToolbar() {
-        if (isAnimating) return
+        if (isAnimating) {
+            Log.d(TAG, "expandToolbar: Already animating, skipping")
+            return
+        }
         
         state = State.ANIMATING_TO_EXPANDED
         isAnimating = true
         animationStartTime = System.currentTimeMillis()
         
+        Log.d(TAG, "Starting expand animation")
         (targetView as AppBarLayout).setExpanded(true, true)
         
         // Clear scroll history to prevent carryover
@@ -240,6 +269,8 @@ class ViewHideHandler(private val targetView: View) {
     }
 
     companion object {
+        private const val TAG = "ViewHideHandler"
+        
         // Threshold values
         private const val CONSISTENT_SCROLL_THRESHOLD = 10      // For intentional scrolling
         private const val ERRATIC_SCROLL_THRESHOLD = 25         // For erratic scrolling
