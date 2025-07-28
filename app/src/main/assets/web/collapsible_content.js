@@ -141,6 +141,19 @@
     function initialize() {
         preloadCollapsibleImages();
 
+        // Debug logging for navigation table investigation
+        console.log('=== NAVIGATION TABLE DEBUG ===');
+        document.querySelectorAll('table').forEach((table, i) => {
+            if (table.classList.contains('wikitable') || table.classList.contains('navbox')) {
+                console.log(`Table ${i}:`);
+                console.log('  Classes:', table.className);
+                console.log('  Parent classes:', table.parentElement?.className);
+                console.log('  Caption/First header:', table.querySelector('caption, th')?.textContent?.trim());
+                console.log('  Full HTML snippet:', table.outerHTML.substring(0, 200) + '...');
+                console.log('---');
+            }
+        });
+
         document.querySelectorAll('table.infobox').forEach((table, i) => {
             const switcherContainer = table.closest('.infobox-switch');
             const elementToTransform = switcherContainer || table;
