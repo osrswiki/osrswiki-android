@@ -53,7 +53,10 @@ class PageHtmlBuilder(private val context: Context) {
             val cleanedTitle = StringUtil.extractMainTitle(title)
             val documentTitle = if (cleanedTitle.isBlank()) "OSRS Wiki" else cleanedTitle
             val titleHeaderHtml = "<h1 class=\"page-header\">${documentTitle}</h1>"
-            val finalBodyContent = titleHeaderHtml + bodyContent
+            
+            // Clean any existing page-header titles from bodyContent to prevent duplication
+            val cleanedBodyContent = removeDuplicatePageHeaders(bodyContent)
+            val finalBodyContent = titleHeaderHtml + cleanedBodyContent
             val themeClass = when (theme) {
                 Theme.OSRS_DARK -> "theme-osrs-dark"
                 Theme.WIKI_LIGHT -> "theme-wikipedia-light"
@@ -94,5 +97,21 @@ class PageHtmlBuilder(private val context: Context) {
         }
         Log.d(logTag, "buildFullHtmlDocument() took ${time}ms")
         return finalHtml
+    }
+    
+    /**
+     * Removes any existing page-header titles from HTML content to prevent duplication.
+     * This is useful for cleaning content that may have been processed multiple times.
+     */
+    private fun removeDuplicatePageHeaders(htmlContent: String): String {
+        return try {
+            // Use a regex to remove h1 elements with class="page-header"
+            // This is more efficient than parsing the entire HTML with Jsoup for this simple operation
+            val pageHeaderRegex = Regex("<h1\\s+class=\"page-header\"[^>]*>.*?</h1>", RegexOption.DOT_MATCHES_ALL)
+            htmlContent.replace(pageHeaderRegex, "")
+        } catch (e: Exception) {
+            Log.e(logTag, "Error removing duplicate page headers", e)
+            htmlContent // Return original content if cleaning fails
+        }
     }
 }
