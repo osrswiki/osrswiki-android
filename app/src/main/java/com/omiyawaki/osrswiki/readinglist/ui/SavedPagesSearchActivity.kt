@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.lifecycle.ViewModelProvider
@@ -77,9 +78,12 @@ class SavedPagesSearchActivity : BaseActivity() {
             
             override fun afterTextChanged(s: Editable?) {
                 val query = s?.toString()?.trim() ?: ""
+                Log.d(TAG, "setupSearchField: Text changed to '$query'")
                 if (query.isNotEmpty()) {
+                    Log.d(TAG, "setupSearchField: Triggering search for '$query'")
                     viewModel.searchSavedPages(query)
                 } else {
+                    Log.d(TAG, "setupSearchField: Clearing search results")
                     viewModel.clearSearchResults()
                 }
             }
@@ -91,6 +95,10 @@ class SavedPagesSearchActivity : BaseActivity() {
             repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 launch {
                     viewModel.searchResults.collect { results ->
+                        Log.d(TAG, "observeSearchResults: Received ${results.size} search results")
+                        results.forEachIndexed { index, page ->
+                            Log.d(TAG, "observeSearchResults: Result $index - '${page.displayTitle}'")
+                        }
                         searchAdapter.submitList(results)
                         updateEmptyState(results)
                     }
@@ -98,6 +106,7 @@ class SavedPagesSearchActivity : BaseActivity() {
                 
                 launch {
                     viewModel.isSearching.collect { isSearching ->
+                        Log.d(TAG, "observeSearchResults: Search loading state = $isSearching")
                         binding.progressBar.visibility = if (isSearching) View.VISIBLE else View.GONE
                     }
                 }
@@ -143,6 +152,8 @@ class SavedPagesSearchActivity : BaseActivity() {
     }
 
     companion object {
+        private const val TAG = "SavedPagesSearchActivity"
+        
         fun newIntent(context: Context): Intent {
             return Intent(context, SavedPagesSearchActivity::class.java)
         }
