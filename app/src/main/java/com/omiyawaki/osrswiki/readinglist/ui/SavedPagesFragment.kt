@@ -13,8 +13,10 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -41,6 +43,8 @@ import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository // For
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModel
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory // For ViewModel factory
 import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
+import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 // import dagger.hilt.android.AndroidEntryPoint // Removed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,6 +64,11 @@ class SavedPagesFragment : Fragment() {
     }
 
     private lateinit var savedPagesAdapter: SavedPagesAdapter
+    
+    private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -88,10 +97,26 @@ class SavedPagesFragment : Fragment() {
     }
 
     private fun setupSearch() {
+        // Initialize voice recognition manager
+        voiceRecognitionManager = createVoiceRecognitionManager(
+            onResult = { query ->
+                // Open saved pages search activity with the voice query
+                val intent = SavedPagesSearchActivity.newIntent(requireContext()).apply {
+                    putExtra("query", query)
+                }
+                startActivity(intent)
+            }
+        )
+        
         // Set a click listener on the search bar view to launch the saved pages search activity.
         binding.root.findViewById<View>(R.id.search_container)?.setOnClickListener {
             val intent = SavedPagesSearchActivity.newIntent(requireContext())
             startActivity(intent)
+        }
+        
+        // Set up voice search button
+        binding.root.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
         }
         
         // Update search hint text for saved pages
@@ -252,6 +277,14 @@ class SavedPagesFragment : Fragment() {
                 Log.e("SavedPagesFragment", "Error retrying failed downloads", e)
                 Toast.makeText(requireContext(), "Error retrying downloads", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
         }
     }
 

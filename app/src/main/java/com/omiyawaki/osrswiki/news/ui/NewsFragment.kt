@@ -6,8 +6,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -18,6 +20,8 @@ import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
 import java.net.URLDecoder
 
@@ -31,6 +35,11 @@ class NewsFragment : Fragment() {
     private val viewModel: NewsViewModel by viewModels()
     private lateinit var newsFeedAdapter: NewsFeedAdapter
     private val wikiBaseUrl = "https://oldschool.runescape.wiki"
+    
+    private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,10 +76,26 @@ class NewsFragment : Fragment() {
     }
 
     private fun setupSearch(view: View) {
+        // Initialize voice recognition manager
+        voiceRecognitionManager = createVoiceRecognitionManager(
+            onResult = { query ->
+                // Open search activity with the voice query
+                val intent = Intent(requireContext(), SearchActivity::class.java).apply {
+                    putExtra("query", query)
+                }
+                startActivity(intent)
+            }
+        )
+        
         // Set a click listener on the search bar view to launch the search activity.
         view.findViewById<View>(R.id.search_container).setOnClickListener {
             val intent = Intent(requireContext(), SearchActivity::class.java)
             startActivity(intent)
+        }
+        
+        // Set up voice search button
+        view.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
         }
     }
 
@@ -135,6 +160,14 @@ class NewsFragment : Fragment() {
         viewModel.feedItems.observe(viewLifecycleOwner) { feedItems ->
             // Pass the fetched data to the adapter.
             newsFeedAdapter.setItems(feedItems)
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
         }
     }
 }

@@ -21,9 +21,13 @@ class SearchActionModeCallback(
         mode.tag = ACTION_MODE_TAG
         val menuItem = menu.add(context.getString(R.string.search_hint))
         
-        val searchActionProvider = SearchActionProvider(context, context.getString(R.string.search_hint)) { query ->
-            onQueryChange(query)
-        }
+        val searchActionProvider = SearchActionProvider(
+            context, 
+            context.getString(R.string.search_hint),
+            onQueryChange = { query -> onQueryChange(query) },
+            voiceRecognitionManager = null,
+            voiceSearchLauncher = null
+        )
         
         MenuItemCompat.setActionProvider(menuItem, searchActionProvider)
         return true
