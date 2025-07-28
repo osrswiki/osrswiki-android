@@ -50,4 +50,9 @@
         <item name="android:drawablePadding">-4dp</item>
     </style>
 
+    <style name="PageTitleInList">
+        <item name="android:textAppearance">?attr/textAppearanceSubtitle1</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
 </resources>

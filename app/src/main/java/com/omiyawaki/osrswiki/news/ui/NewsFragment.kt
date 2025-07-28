@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -46,6 +47,13 @@ class NewsFragment : Fragment() {
         setupSearch(view)
         setupRecyclerView(view)
         observeViewModel()
+
+        // Diagnostic logging for header position
+        view.findViewById<TextView>(R.id.page_title)?.doOnLayout {
+            val location = IntArray(2)
+            view.findViewById<TextView>(R.id.page_title)?.getLocationOnScreen(location)
+            L.d("HeaderPosition: News title Y-coordinate: ${location[1]}")
+        }
 
         // Initial data fetch
         if (savedInstanceState == null) {
