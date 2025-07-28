@@ -10,6 +10,7 @@ import android.view.*
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -46,6 +47,13 @@ class HistoryFragment : Fragment() {
         setupSearch()
         setupRecyclerView()
         observeViewModel()
+
+        // Diagnostic logging for header position
+        binding.root.findViewById<TextView>(R.id.page_title)?.doOnLayout {
+            val location = IntArray(2)
+            binding.root.findViewById<TextView>(R.id.page_title)?.getLocationOnScreen(location)
+            com.omiyawaki.osrswiki.util.log.L.d("HeaderPosition: History title Y-coordinate: ${location[1]}")
+        }
     }
 
     private fun setupHeader() {
