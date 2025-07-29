@@ -318,8 +318,8 @@ class ViewHideHandler(private val targetView: View) {
         private const val PHANTOM_TIME_WINDOW = 500L           // Time window after state change
         
         // Touch gesture thresholds
-        private const val GESTURE_HIDE_THRESHOLD = 100f        // Minimum down gesture to hide
-        private const val GESTURE_SHOW_THRESHOLD = 100f        // Minimum up gesture to show
+        private const val GESTURE_HIDE_THRESHOLD = 1f          // Immediate response (was 100f)
+        private const val GESTURE_SHOW_THRESHOLD = 1f          // Immediate response (was 100f)
         
         // Momentum detection (fallback)
         private const val MOMENTUM_SAMPLE_SIZE = 4              // Number of recent scrolls to analyze
