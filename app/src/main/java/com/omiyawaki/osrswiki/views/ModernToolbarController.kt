@@ -98,8 +98,10 @@ class ModernToolbarController(
         // Initialize toolbar height once layout is complete
         toolbarContainer.post {
             toolbarHeight = toolbarContainer.height.toFloat()
+            // Set initial content position to account for toolbar
+            contentView.translationY = toolbarHeight
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Initialized: toolbarHeight=$toolbarHeight")
+                Log.d(TAG, "Initialized: toolbarHeight=$toolbarHeight, initial content translationY=$toolbarHeight")
             }
         }
     }
@@ -135,6 +137,9 @@ class ModernToolbarController(
         
         // Always show when near top of page
         if (currentScrollY <= NEAR_TOP_THRESHOLD) {
+            if (BuildConfig.DEBUG && currentOffset != 0f) {
+                Log.d(TAG, "Near top - forcing show (scrollY=$currentScrollY)")
+            }
             showToolbarImmediate()
             cancelScrollEndDetection()
             return
@@ -142,6 +147,11 @@ class ModernToolbarController(
         
         // Apply scroll to toolbar position (invert delta: scroll down = hide toolbar)
         val movement = -scrollDeltaF
+        
+        if (BuildConfig.DEBUG && abs(scrollDelta) > 2) {
+            Log.d(TAG, "Scroll: delta=$scrollDelta → movement=$movement | scrollY=$currentScrollY | userControlled=$isUserControlled | tracking=$isTracking")
+        }
+        
         updateToolbarPositionImmediate(movement)
         
         // Update velocity tracking
@@ -149,14 +159,13 @@ class ModernToolbarController(
         
         // Schedule snap detection if user isn't actively controlling
         if (!isUserControlled) {
+            if (BuildConfig.DEBUG && abs(scrollDelta) > 5) {
+                Log.d(TAG, "Scheduling snap (not user controlled)")
+            }
             scheduleSnapDetection()
         }
         
         lastScrollTime = System.currentTimeMillis()
-        
-        if (BuildConfig.DEBUG && abs(scrollDelta) > 5) {
-            Log.d(TAG, "Scroll: delta=$scrollDelta, offset=$currentOffset, state=$currentState")
-        }
     }
     
     /**
@@ -202,12 +211,25 @@ class ModernToolbarController(
     private fun updateToolbarPositionImmediate(movement: Float) {
         if (toolbarHeight == 0f) return
         
+        // Filter out micro movements to prevent jitter
+        if (abs(movement) < MICRO_MOVEMENT_THRESHOLD && !isUserControlled) {
+            if (BuildConfig.DEBUG && abs(movement) > 0.1f) {
+                Log.v(TAG, "Filtered micro movement: ${String.format("%.2f", movement)}")
+            }
+            return
+        }
+        
         val newOffset = currentOffset + movement
         val clampedOffset = max(-toolbarHeight, min(0f, newOffset))
         
-        if (clampedOffset != currentOffset) {
+        if (abs(clampedOffset - currentOffset) >= MIN_OFFSET_CHANGE || isUserControlled) {
+            if (BuildConfig.DEBUG && abs(movement) > 1f) {
+                Log.d(TAG, "Position update: movement=${String.format("%.1f", movement)}, $currentOffset → $clampedOffset")
+            }
             setToolbarOffset(clampedOffset)
             updateState()
+        } else if (BuildConfig.DEBUG && abs(movement) > 0.5f) {
+            Log.v(TAG, "Filtered small offset change: ${String.format("%.2f", clampedOffset - currentOffset)}")
         }
     }
     
@@ -215,14 +237,17 @@ class ModernToolbarController(
      * Set toolbar offset using GPU-accelerated transforms
      */
     private fun setToolbarOffset(offset: Float) {
+        val previousOffset = currentOffset
         currentOffset = offset
         targetOffset = offset
         
         // Apply GPU transform to toolbar
         toolbarContainer.translationY = offset
         
-        // Update content container to prevent overlap
-        contentView.translationY = max(0f, offset + toolbarHeight)
+        // Update content container to prevent overlap and eliminate empty space
+        // When toolbar is hidden (offset = -toolbarHeight), content should move up to fill space
+        val contentTranslation = offset + toolbarHeight
+        contentView.translationY = contentTranslation
         
         // Update shadow opacity based on position
         shadowView?.let { shadow ->
@@ -231,7 +256,8 @@ class ModernToolbarController(
         }
         
         if (BuildConfig.DEBUG) {
-            Log.v(TAG, "GPU offset: $offset")
+            val offsetChange = offset - previousOffset
+            Log.d(TAG, "GPU offset: $previousOffset → $offset (Δ${String.format("%.1f", offsetChange)}) | content: ${String.format("%.1f", contentTranslation)} | toolbarHeight: $toolbarHeight")
         }
     }
     
@@ -440,6 +466,10 @@ class ModernToolbarController(
         private const val NEAR_TOP_THRESHOLD = 50f // Always show within 50px of top
         private const val STATE_THRESHOLD = 5f // px tolerance for state detection
         private const val SNAP_THRESHOLD = 2f // px - don't animate if already close
+        
+        // Anti-jitter constants
+        private const val MICRO_MOVEMENT_THRESHOLD = 1.5f // px - filter movements smaller than this
+        private const val MIN_OFFSET_CHANGE = 0.5f // px - minimum change to actually apply
         
         // Animation constants
         private const val BASE_ANIMATION_DURATION = 200L // ms

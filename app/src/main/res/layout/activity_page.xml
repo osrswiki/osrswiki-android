@@ -14,6 +14,7 @@
 
         <com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar
             android:id="@+id/page_toolbar_container"
+            style="@style/Widget.App.AppBarLayout.WithShadow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/colorSurface"
@@ -53,7 +54,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:paddingBottom="@dimen/nav_bar_height"
-            android:layout_marginTop="?attr/actionBarSize"
             tools:layout="@layout/fragment_page" />
 
         <include 
