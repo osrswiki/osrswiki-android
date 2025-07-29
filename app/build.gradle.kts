@@ -75,6 +75,9 @@ dependencies {
     implementation(libs.androidx.webkit)
     implementation(libs.jsoup)
     implementation(libs.apacheCommonsLang3)
+    
+    // Physics-based animations for natural toolbar motion
+    implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
 
     // Room components
     implementation(libs.androidx.room.runtime)
