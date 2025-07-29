@@ -35,6 +35,10 @@ class ViewHideHandler(
     private var scrollVelocity = 0f
     private var pendingScrollUpdate: Runnable? = null
     
+    // Scroll smoothing to eliminate jitter
+    private var smoothedDelta = 0f
+    private var lastMovementDirection = 0 // -1, 0, 1 for up, none, down
+    
     // Touch tracking
     private var isTouching = false
     private var touchStartY = 0f
@@ -192,8 +196,53 @@ class ViewHideHandler(
     
     
     private fun calculateScrollMovement(scrollDelta: Int): Int {
-        // Map scroll movement to toolbar movement
-        return -scrollDelta
+        // Apply smoothing filter to eliminate jitter from micro-movements
+        val smoothedMovement = applySmoothingFilter(scrollDelta)
+        
+        if (BuildConfig.DEBUG && smoothedMovement != -scrollDelta) {
+            Log.d(TAG, "Smoothing: delta=$scrollDelta → movement=$smoothedMovement (was ${-scrollDelta})")
+        }
+        
+        return smoothedMovement
+    }
+    
+    /**
+     * Smoothing filter to eliminate jitter from micro-movements during slow scrolling
+     */
+    private fun applySmoothingFilter(scrollDelta: Int): Int {
+        // Accumulate small movements using exponential smoothing
+        smoothedDelta = smoothedDelta * SMOOTHING_FACTOR + scrollDelta * (1f - SMOOTHING_FACTOR)
+        
+        // Only apply movement if:
+        // 1. Accumulated movement is significant enough, AND
+        // 2. Direction is consistent (prevents oscillation)
+        val currentDirection = when {
+            scrollDelta > 0 -> 1   // Down
+            scrollDelta < 0 -> -1  // Up  
+            else -> 0              // None
+        }
+        
+        // Check if we have enough accumulated movement
+        val absSmoothed = kotlin.math.abs(smoothedDelta)
+        if (absSmoothed < MOVEMENT_THRESHOLD) {
+            return 0 // Not enough movement yet
+        }
+        
+        // Check direction consistency to prevent oscillation
+        val smoothedDirection = if (smoothedDelta > 0) 1 else -1
+        if (lastMovementDirection != 0 && lastMovementDirection != smoothedDirection) {
+            // Direction changed - require more movement to overcome previous direction
+            if (absSmoothed < DIRECTION_CHANGE_THRESHOLD) {
+                return 0
+            }
+        }
+        
+        // Apply the movement and reset accumulator
+        val movement = -smoothedDirection * kotlin.math.ceil(absSmoothed).toInt()
+        smoothedDelta = 0f
+        lastMovementDirection = smoothedDirection
+        
+        return movement
     }
     
     private fun updateToolbarPosition(movement: Int) {
@@ -214,11 +263,19 @@ class ViewHideHandler(
      */
     private fun setOffsetSmooth(offset: Int) {
         behavior?.let {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Setting offset: $currentOffset → $offset")
+            }
+            
             // Set the offset directly on the behavior
             it.topAndBottomOffset = offset
             
-            // Request a lightweight layout pass instead of full requestLayout()
-            appBarLayout.invalidate()
+            // Force a layout update using requestLayout on the AppBarLayout
+            appBarLayout.requestLayout()
+            
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "After setting: behavior.offset=${it.topAndBottomOffset}, currentOffset=$currentOffset")
+            }
         }
     }
     
@@ -399,5 +456,10 @@ class ViewHideHandler(
         // Velocity tracking
         private const val VELOCITY_WINDOW = 100L // Time window for velocity calculation
         private const val VELOCITY_SAMPLE_SIZE = 8 // Number of recent movements to consider
+        
+        // Smoothing constants to eliminate jitter
+        private const val SMOOTHING_FACTOR = 0.7f // Higher = more smoothing (0.0 to 1.0)
+        private const val MOVEMENT_THRESHOLD = 2.0f // Minimum accumulated movement to apply
+        private const val DIRECTION_CHANGE_THRESHOLD = 5.0f // Extra movement needed when direction changes
     }
 }
