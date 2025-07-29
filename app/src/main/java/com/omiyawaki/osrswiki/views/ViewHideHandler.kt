@@ -1,14 +1,9 @@
 package com.omiyawaki.osrswiki.views
 
-import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.animation.DecelerateInterpolator
 import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.dynamicanimation.animation.DynamicAnimation
-import androidx.dynamicanimation.animation.SpringAnimation
-import androidx.dynamicanimation.animation.SpringForce
 import com.google.android.material.appbar.AppBarLayout
 import com.omiyawaki.osrswiki.BuildConfig
 import kotlin.math.abs
@@ -53,8 +48,13 @@ class ViewHideHandler(
     private var isPerformingSnap = false
     private var lastSnapTrigger: String? = null
     private var lastSnapTime = 0L
-    private var currentSnapAnimator: SpringAnimation? = null
-    private var snapDirection = 0 // Direction of current snap: 1 for hiding, -1 for showing
+    private var toolbarState = ToolbarState.EXPANDED
+    
+    private enum class ToolbarState {
+        EXPANDED,      // Fully visible - AppBarLayout handles this
+        COLLAPSED,     // Fully hidden - AppBarLayout handles this  
+        TRANSITIONING  // Moving between states - GPU translationY handles this
+    }
     
     // Momentum/velocity tracking for gesture completion detection (fallback for non-touch scrolling)
     private val recentScrollEvents = ArrayDeque<ScrollEvent>(10) // Track last 10 scroll events
@@ -114,15 +114,10 @@ class ViewHideHandler(
         scrollView.addOnScrollChangeListener { oldScrollY, scrollY, isHumanScroll ->
             val scrollDelta = scrollY - oldScrollY
             
-            // Check if scroll should interrupt ongoing snap
-            if (isPerformingSnap && shouldInterruptSnap(scrollDelta)) {
-                interruptSnap("significant opposing scroll detected")
-            }
-            
-            // Skip processing if we're still performing a snap
-            if (isPerformingSnap) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Skip scroll processing - snap in progress")
-                return@addOnScrollChangeListener
+            // Allow scrolling to continue even during snap - user input takes priority
+            if (isPerformingSnap && abs(scrollDelta) > 10) {
+                isPerformingSnap = false  // Cancel snap, user is actively scrolling
+                if (BuildConfig.DEBUG) Log.d(TAG, "User scroll overrides snap")
             }
             
             // Update last scroll time for scroll-end detection
@@ -207,7 +202,7 @@ class ViewHideHandler(
     }
     
     /**
-     * Perform snap to nearest complete state with momentum awareness
+     * Perform snap to nearest complete state with immediate transition
      */
     private fun performSnap(trigger: String) {
         // Prevent concurrent snaps
@@ -219,35 +214,31 @@ class ViewHideHandler(
         // Debouncing: prevent multiple snaps in quick succession
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastSnapTime < SNAP_DEBOUNCE_DELAY) {
-            // If touch_end comes after scroll_end, prioritize touch_end
-            if (trigger == "touch_end" && lastSnapTrigger == "scroll_end") {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Prioritize touch_end over recent scroll_end")
-            } else {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - too soon after last snap ($trigger after $lastSnapTrigger)")
-                return
-            }
+            if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - too soon after last snap ($trigger)")
+            return
         }
         
         lastSnapTrigger = trigger
         lastSnapTime = currentTime
+        isPerformingSnap = true
         
-        // Snap to nearest complete state to prevent partial exposure
-        if (!isNearTop && totalScrollRange > 0) {
-            val targetOffset = calculateMomentumAwareSnapTarget()
-            
-            // Only snap if not already at target
-            if (kotlin.math.abs(currentOffset - targetOffset) > SNAP_TOLERANCE) {
-                // Set flag to prevent feedback loops
-                isPerformingSnap = true
-                
-                // Use smooth animated snapping instead of immediate jump
-                animateToOffset(targetOffset)
-            } else {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - already at target (offset=$currentOffset, target=$targetOffset)")
-            }
+        // Simple snap decision based on current visibility
+        val targetState = if (isNearTop) {
+            ToolbarState.EXPANDED
+        } else if (currentOffset > -totalScrollRange / 2) {
+            ToolbarState.EXPANDED  // More than 50% visible
         } else {
-            if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - near top or invalid range (isNearTop=$isNearTop, totalScrollRange=$totalScrollRange)")
+            ToolbarState.COLLAPSED  // Less than 50% visible
         }
+        
+        if (BuildConfig.DEBUG) {
+            val visibilityPercent = if (totalScrollRange > 0) {
+                (1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)) * 100f
+            } else 0f
+            Log.d(TAG, "Snap decision: ${String.format("%.1f", visibilityPercent)}% visible → $targetState")
+        }
+        
+        transitionToFinalState(targetState)
     }
     
     
@@ -280,6 +271,7 @@ class ViewHideHandler(
         }
         
         // Normal proportional movement for other cases
+        toolbarState = ToolbarState.TRANSITIONING  // Mark as transitioning during scroll
         val movement = -scrollDelta // Invert for toolbar movement (scroll down = hide toolbar)
         updateToolbarPositionImmediate(movement)
         
@@ -456,118 +448,6 @@ class ViewHideHandler(
         return isComplete
     }
     
-    /**
-     * Check if current scroll should interrupt ongoing snap animation
-     */
-    private fun shouldInterruptSnap(scrollDelta: Int): Boolean {
-        if (!isPerformingSnap || currentSnapAnimator == null) return false
-        
-        val scrollDirection = if (scrollDelta > 0) 1 else -1
-        
-        // Interrupt if:
-        // 1. Scroll direction opposes snap direction, AND
-        // 2. Scroll magnitude is significant enough
-        val opposesSnap = snapDirection != 0 && scrollDirection != snapDirection
-        val significantMagnitude = kotlin.math.abs(scrollDelta) >= SNAP_INTERRUPT_THRESHOLD
-        
-        val shouldInterrupt = opposesSnap && significantMagnitude
-        
-        if (BuildConfig.DEBUG && shouldInterrupt) {
-            Log.d(TAG, "Snap interrupt: scrollDelta=$scrollDelta (dir=$scrollDirection) opposes snapDir=$snapDirection, magnitude=${kotlin.math.abs(scrollDelta)} >= $SNAP_INTERRUPT_THRESHOLD")
-        }
-        
-        return shouldInterrupt
-    }
-    
-    /**
-     * Interrupt ongoing snap animation to follow real-time scroll
-     */
-    private fun interruptSnap(reason: String) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "Interrupting snap: $reason")
-        
-        currentSnapAnimator?.cancel() // This will trigger onAnimationCancel
-        // Note: onAnimationCancel will clean up isPerformingSnap, currentSnapAnimator, and snapDirection
-    }
-    
-    /**
-     * Calculate snap target considering current momentum and predicted final position
-     */
-    private fun calculateMomentumAwareSnapTarget(): Int {
-        val visibilityPercent = 1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)
-        
-        // Basic snap decision based on current visibility
-        val basicTarget = if (visibilityPercent >= SNAP_THRESHOLD) {
-            0 // Show
-        } else {
-            -totalScrollRange // Hide
-        }
-        
-        // If we have momentum, predict where we'd end up and factor that in
-        val predictedOffset = predictFinalOffset()
-        
-        val finalTarget = if (predictedOffset != null) {
-            // Use momentum-predicted position for snap decision
-            val predictedVisibility = 1f - (kotlin.math.abs(predictedOffset).toFloat() / totalScrollRange)
-            
-            val momentumTarget = if (predictedVisibility >= SNAP_THRESHOLD) {
-                0 // Show
-            } else {
-                -totalScrollRange // Hide
-            }
-            
-            // If momentum prediction differs from basic decision, use momentum prediction
-            if (momentumTarget != basicTarget) {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "Momentum-aware snap: basic=${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%), predicted=${if (momentumTarget == 0) "SHOW" else "HIDE"} (predVis=${String.format("%.1f", predictedVisibility * 100)}%), using predicted")
-                }
-                momentumTarget
-            } else {
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "Snap to ${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%) - momentum agrees")
-                }
-                basicTarget
-            }
-        } else {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Snap to ${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%) - no momentum prediction")
-            }
-            basicTarget
-        }
-        
-        return finalTarget
-    }
-    
-    /**
-     * Predict final toolbar offset based on current momentum
-     */
-    private fun predictFinalOffset(): Int? {
-        if (currentVelocity < MOMENTUM_PREDICTION_MIN_VELOCITY) {
-            return null // Not enough momentum to make a prediction
-        }
-        
-        // Determine momentum direction from recent scroll events
-        val momentumDirection = if (recentScrollEvents.isNotEmpty()) {
-            val recentDelta = recentScrollEvents.takeLast(3).sumOf { it.delta }
-            if (recentDelta > 0) -1 else 1 // Positive scroll delta (down) hides toolbar (negative offset)
-        } else {
-            0 // No clear direction
-        }
-        
-        if (momentumDirection == 0) return null
-        
-        // Estimate how much further the toolbar will move based on velocity
-        // Using simplified physics: distance = velocity * time * deceleration_factor
-        val estimatedAdditionalMovement = (currentVelocity * MOMENTUM_PREDICTION_TIME * MOMENTUM_DECELERATION_FACTOR).toInt()
-        
-        val predictedOffset = currentOffset + (momentumDirection * estimatedAdditionalMovement)
-        val clampedPrediction = max(-totalScrollRange, min(0, predictedOffset))
-        
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Momentum prediction: velocity=${String.format("%.1f", currentVelocity)}, direction=$momentumDirection, movement=$estimatedAdditionalMovement, current=$currentOffset, predicted=$clampedPrediction")
-        }
-        
-        return clampedPrediction
-    }
     
     
     /**
@@ -691,116 +571,38 @@ class ViewHideHandler(
     }
     
     /**
-     * Animate toolbar to target offset with physics-based spring animation that preserves momentum
+     * Transition toolbar to final state using AppBarLayout.setExpanded() for native Material behavior
      */
-    private fun animateToOffset(targetOffset: Int) {
-        val startOffset = currentOffset
-        
-        // Determine snap direction for interrupt detection
-        snapDirection = when {
-            targetOffset < startOffset -> 1  // Hiding (moving toward negative)
-            targetOffset > startOffset -> -1 // Showing (moving toward positive)
-            else -> 0 // No change
-        }
-        
+    private fun transitionToFinalState(targetState: ToolbarState) {
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Physics-based snap: $startOffset → $targetOffset (direction=$snapDirection, velocity=${String.format("%.1f", currentVelocity)} px/ms)")
+            Log.d(TAG, "Transitioning to final state: $targetState (from $toolbarState)")
         }
         
-        // Create physics-based spring animation that preserves momentum
-        currentSnapAnimator = SpringAnimation(appBarLayout, DynamicAnimation.TRANSLATION_Y, targetOffset.toFloat()).apply {
-            // Configure spring properties for natural motion
-            spring = SpringForce(targetOffset.toFloat()).apply {
-                dampingRatio = SPRING_DAMPING_RATIO
-                stiffness = SPRING_STIFFNESS
+        when (targetState) {
+            ToolbarState.EXPANDED -> {
+                toolbarState = ToolbarState.EXPANDED
+                // Reset GPU transform and let AppBarLayout handle native animation + shadows
+                appBarLayout.translationY = 0f
+                (appBarLayout as AppBarLayout).setExpanded(true, true)
+                currentOffset = 0
             }
-            
-            // Preserve current momentum velocity for seamless transition
-            // Convert from px/ms to px/s (SpringAnimation expects px/s)
-            val startVelocityPxPerSecond = currentVelocity * 1000f
-            setStartVelocity(startVelocityPxPerSecond)
-            
-            // Set minimum visible velocity threshold (animation stops when velocity drops below this)
-            minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_PIXELS
-            
-            // Update our internal offset tracking as animation progresses
-            addUpdateListener { animation, value, velocity ->
-                currentOffset = value.toInt()
-                
-                if (BuildConfig.DEBUG && abs(value - targetOffset) < 5f) {
-                    Log.d(TAG, "Spring approaching target: ${String.format("%.1f", value)} → $targetOffset (velocity=${String.format("%.0f", velocity)} px/s)")
-                }
+            ToolbarState.COLLAPSED -> {
+                toolbarState = ToolbarState.COLLAPSED  
+                // Reset GPU transform and let AppBarLayout handle native animation + shadows
+                appBarLayout.translationY = 0f
+                (appBarLayout as AppBarLayout).setExpanded(false, true)
+                currentOffset = -totalScrollRange
             }
-            
-            // Handle animation completion and cancellation
-            addEndListener { animation, canceled, value, velocity ->
-                isPerformingSnap = false
-                currentSnapAnimator = null
-                snapDirection = 0
-                
-                if (canceled) {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Physics snap cancelled - resumed normal processing")
-                } else {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Physics snap completed at ${String.format("%.1f", value)} - resumed normal processing")
-                    
-                    // Handle hybrid layout management when animation completes
-                    handleAnimationCompletion(targetOffset)
-                }
+            ToolbarState.TRANSITIONING -> {
+                // This state is handled by GPU translationY during scroll
+                toolbarState = ToolbarState.TRANSITIONING
             }
         }
         
-        currentSnapAnimator?.start()
+        // Clear snap flags
+        isPerformingSnap = false
     }
     
-    /**
-     * Handle hybrid layout management when spring animation completes
-     * This ensures proper space allocation by adjusting layout when toolbar is hidden
-     */
-    private fun handleAnimationCompletion(targetOffset: Int) {
-        if (targetOffset == -totalScrollRange) {
-            // Toolbar is fully hidden - reclaim its space to prevent empty area  
-            hideToolbarLayoutSpace()
-        } else if (targetOffset == 0) {
-            // Toolbar is fully shown - ensure proper space allocation
-            showToolbarLayoutSpace()
-        }
-    }
-    
-    /**
-     * Hide toolbar layout space to prevent empty area when toolbar is hidden
-     */
-    private fun hideToolbarLayoutSpace() {
-        val layoutParams = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
-        if (layoutParams != null && layoutParams.height != 0) {
-            // Store original height for restoration
-            appBarLayout.tag = layoutParams.height
-            
-            // Set height to 0 to reclaim space
-            layoutParams.height = 0
-            appBarLayout.layoutParams = layoutParams
-            
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Reclaimed toolbar space: height set to 0")
-            }
-        }
-    }
-    
-    /**
-     * Show toolbar layout space when toolbar becomes visible
-     */
-    private fun showToolbarLayoutSpace() {
-        val layoutParams = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
-        if (layoutParams != null && layoutParams.height == 0) {
-            // Restore original height from tag
-            val originalHeight = appBarLayout.tag as? Int ?: CoordinatorLayout.LayoutParams.WRAP_CONTENT
-            layoutParams.height = originalHeight
-            appBarLayout.layoutParams = layoutParams
-            
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Restored toolbar space: height set to $originalHeight")
-            }
-        }
-    }
     
     companion object {
         private const val TAG = "ViewHideHandler"
@@ -814,14 +616,8 @@ class ViewHideHandler(
         private const val OSCILLATION_SIMILARITY_THRESHOLD = 0.6f // How similar alternating deltas must be (relaxed for better detection)
         
         // Snap behavior constants  
-        private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
-        private const val SNAP_TOLERANCE = 5 // Skip snap if within 5px of target
         private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
         private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
-        
-        // Physics-based animation constants
-        private const val SPRING_DAMPING_RATIO = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY // Natural bounce feel (0.5f)
-        private const val SPRING_STIFFNESS = SpringForce.STIFFNESS_MEDIUM // Responsive but smooth (1500f)
         
         // Smart behavior constants
         private const val VISIBILITY_THRESHOLD = 20 // px - consider toolbar "visible" when within this offset from 0
@@ -838,13 +634,6 @@ class ViewHideHandler(
         // Gesture completion constants
         private const val GESTURE_COMPLETION_TIMEOUT = 80L // ms - max time to wait for complete gesture end
         
-        // Snap interruption constants
-        private const val SNAP_INTERRUPT_THRESHOLD = 15 // px - minimum scroll magnitude to interrupt snap
-        
-        // Momentum prediction constants
-        private const val MOMENTUM_PREDICTION_MIN_VELOCITY = 0.5f // px/ms - minimum velocity to make predictions
-        private const val MOMENTUM_PREDICTION_TIME = 100L // ms - time window for momentum prediction
-        private const val MOMENTUM_DECELERATION_FACTOR = 0.6f // factor to account for momentum decay
         
         // Stationary touch and feedback loop constants
         private const val STATIONARY_TOUCH_THRESHOLD = 5f // px - max movement to consider touch stationary
