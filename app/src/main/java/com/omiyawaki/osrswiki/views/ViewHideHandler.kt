@@ -45,6 +45,11 @@ class ViewHideHandler(
     private var scrollEndRunnable: Runnable? = null
     private var lastScrollTime = 0L
     
+    // Snap feedback prevention and debouncing
+    private var isPerformingSnap = false
+    private var lastSnapTrigger: String? = null
+    private var lastSnapTime = 0L
+    
     init {
         setupBehavior()
         setupOffsetTracking()
@@ -87,6 +92,12 @@ class ViewHideHandler(
         
         scrollView.addOnScrollChangeListener { oldScrollY, scrollY, isHumanScroll ->
             val scrollDelta = scrollY - oldScrollY
+            
+            // Skip processing if we're performing a snap to prevent feedback loops
+            if (isPerformingSnap) {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Skip scroll processing - snap in progress")
+                return@addOnScrollChangeListener
+            }
             
             // Update last scroll time for scroll-end detection
             lastScrollTime = System.currentTimeMillis()
@@ -134,6 +145,27 @@ class ViewHideHandler(
      * Perform snap to nearest complete state
      */
     private fun performSnap(trigger: String) {
+        // Prevent concurrent snaps
+        if (isPerformingSnap) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - already in progress")
+            return
+        }
+        
+        // Debouncing: prevent multiple snaps in quick succession
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastSnapTime < SNAP_DEBOUNCE_DELAY) {
+            // If touch_end comes after scroll_end, prioritize touch_end
+            if (trigger == "touch_end" && lastSnapTrigger == "scroll_end") {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Prioritize touch_end over recent scroll_end")
+            } else {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - too soon after last snap ($trigger after $lastSnapTrigger)")
+                return
+            }
+        }
+        
+        lastSnapTrigger = trigger
+        lastSnapTime = currentTime
+        
         // Snap to nearest complete state to prevent partial exposure
         if (!isNearTop && totalScrollRange > 0) {
             val visibilityPercent = 1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)
@@ -148,7 +180,11 @@ class ViewHideHandler(
             
             // Only snap if not already at target
             if (kotlin.math.abs(currentOffset - targetOffset) > SNAP_TOLERANCE) {
-                setOffsetImmediate(targetOffset)
+                // Set flag to prevent feedback loops
+                isPerformingSnap = true
+                
+                // Use smooth animated snapping instead of immediate jump
+                animateToOffset(targetOffset)
             } else {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - already at target (offset=$currentOffset, target=$targetOffset)")
             }
@@ -263,7 +299,14 @@ class ViewHideHandler(
         val alternationRatio = alternatingCount.toFloat() / (deltas.size - 1)
         val similarityRatio = similarMagnitudeCount.toFloat() / alternatingCount.coerceAtLeast(1)
         
-        return alternationRatio >= 0.7f && similarityRatio >= 0.5f
+        val isOscillating = alternationRatio >= 0.7f && similarityRatio >= 0.5f
+        
+        // Enhanced debugging for oscillation detection
+        if (BuildConfig.DEBUG && recentDeltas.size >= 4) {
+            Log.d(TAG, "Oscillation check: deltas=$deltas, alt=$alternatingCount/${deltas.size-1} (${String.format("%.2f", alternationRatio)}), similar=$similarMagnitudeCount/$alternatingCount (${String.format("%.2f", similarityRatio)}), result=$isOscillating")
+        }
+        
+        return isOscillating
     }
     
     /**
@@ -343,19 +386,62 @@ class ViewHideHandler(
         }
     }
     
+    /**
+     * Animate toolbar to target offset with smooth transition
+     */
+    private fun animateToOffset(targetOffset: Int) {
+        behavior?.let { behavior ->
+            val startOffset = currentOffset
+            
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Animate snap: $startOffset → $targetOffset")
+            }
+            
+            // Create smooth animation from current to target offset
+            val animator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
+                duration = SNAP_ANIMATION_DURATION
+                interpolator = DecelerateInterpolator()
+                
+                addUpdateListener { animation ->
+                    val animatedOffset = animation.animatedValue as Int
+                    behavior.topAndBottomOffset = animatedOffset
+                    appBarLayout.requestLayout()
+                }
+                
+                addListener(object : android.animation.Animator.AnimatorListener {
+                    override fun onAnimationStart(animation: android.animation.Animator) {}
+                    override fun onAnimationRepeat(animation: android.animation.Animator) {}
+                    override fun onAnimationCancel(animation: android.animation.Animator) {
+                        // Clear flag if animation is cancelled
+                        isPerformingSnap = false
+                    }
+                    override fun onAnimationEnd(animation: android.animation.Animator) {
+                        // Clear flag when animation completes
+                        isPerformingSnap = false
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation completed - resumed normal processing")
+                    }
+                })
+            }
+            
+            animator.start()
+        }
+    }
+    
     companion object {
         private const val TAG = "ViewHideHandler"
         private const val NEAR_TOP_THRESHOLD = 50 // Always show toolbar within 50px of top
         
         // Enhanced anti-jitter constants
-        private const val JITTER_THRESHOLD = 20 // Max delta considered potential jitter (increased from 10)
+        private const val JITTER_THRESHOLD = 25 // Max delta considered potential jitter (increased from 20 to catch boundary oscillations)
         private const val DIRECTION_CHANGE_THRESHOLD = 15 // Cumulative movement needed to change direction
         private const val OSCILLATION_WINDOW = 6 // Number of recent deltas to analyze for oscillation
-        private const val OSCILLATION_SIMILARITY_THRESHOLD = 0.7f // How similar alternating deltas must be
+        private const val OSCILLATION_SIMILARITY_THRESHOLD = 0.6f // How similar alternating deltas must be (relaxed for better detection)
         
         // Snap behavior constants  
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
         private const val SNAP_TOLERANCE = 5 // Skip snap if within 5px of target
         private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
+        private const val SNAP_ANIMATION_DURATION = 250L // Duration for smooth snap animations
+        private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
     }
 }
