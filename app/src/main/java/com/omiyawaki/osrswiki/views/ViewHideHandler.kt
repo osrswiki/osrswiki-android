@@ -35,9 +35,10 @@ class ViewHideHandler(
     private var scrollVelocity = 0f
     private var pendingScrollUpdate: Runnable? = null
     
-    // Scroll smoothing to eliminate jitter
+    // iOS-style scroll smoothing with stronger filtering
     private var smoothedDelta = 0f
     private var lastMovementDirection = 0 // -1, 0, 1 for up, none, down
+    private var scrollMomentum = 0f // Track momentum for natural snapping
     
     // Touch tracking
     private var isTouching = false
@@ -129,18 +130,16 @@ class ViewHideHandler(
     private fun handleTouchEnd() {
         isTouching = false
         
-        // Transition to scrolling state briefly to handle momentum
+        // iOS-style: immediate momentum-based snapping to prevent intermediate states
         if (state == State.TOUCHING) {
             state = State.SCROLLING
             
-            // Perform snap after a brief delay to allow momentum to settle
-            mainHandler.postDelayed({
-                performSnapToNearestState()
-            }, MOMENTUM_SETTLE_DELAY)
+            // Snap immediately based on momentum instead of delayed position-based snapping
+            performMomentumBasedSnap()
         }
         
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Touch END, transitioning to scrolling")
+            Log.d(TAG, "Touch END, performing momentum-based snap")
         }
     }
     
@@ -207,32 +206,27 @@ class ViewHideHandler(
     }
     
     /**
-     * Smoothing filter to eliminate jitter from micro-movements during slow scrolling
+     * iOS-style low-pass filter to eliminate high-frequency jitter
+     * Uses more aggressive smoothing similar to iOS (ALPHA = 0.2)
      */
     private fun applySmoothingFilter(scrollDelta: Int): Int {
-        // Accumulate small movements using exponential smoothing
-        smoothedDelta = smoothedDelta * SMOOTHING_FACTOR + scrollDelta * (1f - SMOOTHING_FACTOR)
+        // iOS-style low-pass filter with stronger smoothing
+        smoothedDelta = smoothedDelta * IOS_SMOOTHING_FACTOR + scrollDelta * (1f - IOS_SMOOTHING_FACTOR)
         
-        // Only apply movement if:
-        // 1. Accumulated movement is significant enough, AND
-        // 2. Direction is consistent (prevents oscillation)
-        val currentDirection = when {
-            scrollDelta > 0 -> 1   // Down
-            scrollDelta < 0 -> -1  // Up  
-            else -> 0              // None
-        }
+        // Track momentum for natural snapping behavior
+        scrollMomentum = scrollMomentum * MOMENTUM_DECAY + scrollDelta * (1f - MOMENTUM_DECAY)
         
-        // Check if we have enough accumulated movement
+        // Only apply movement if accumulated movement is significant
         val absSmoothed = kotlin.math.abs(smoothedDelta)
-        if (absSmoothed < MOVEMENT_THRESHOLD) {
-            return 0 // Not enough movement yet
+        if (absSmoothed < IOS_MOVEMENT_THRESHOLD) {
+            return 0 // Not enough movement yet (iOS uses higher threshold)
         }
         
-        // Check direction consistency to prevent oscillation
+        // Direction consistency check with stronger requirements
         val smoothedDirection = if (smoothedDelta > 0) 1 else -1
         if (lastMovementDirection != 0 && lastMovementDirection != smoothedDirection) {
-            // Direction changed - require more movement to overcome previous direction
-            if (absSmoothed < DIRECTION_CHANGE_THRESHOLD) {
+            // iOS requires more movement to change direction (prevents jitter)
+            if (absSmoothed < IOS_DIRECTION_CHANGE_THRESHOLD) {
                 return 0
             }
         }
@@ -241,6 +235,10 @@ class ViewHideHandler(
         val movement = -smoothedDirection * kotlin.math.ceil(absSmoothed).toInt()
         smoothedDelta = 0f
         lastMovementDirection = smoothedDirection
+        
+        if (BuildConfig.DEBUG && movement != 0) {
+            Log.d(TAG, "iOS Filter: momentum=${String.format("%.1f", scrollMomentum)}, movement=$movement")
+        }
         
         return movement
     }
@@ -296,7 +294,61 @@ class ViewHideHandler(
     }
     
     /**
-     * Perform snap animation to nearest state with improved velocity detection
+     * iOS-style momentum-based snapping that prevents intermediate states
+     * Always snaps immediately based on scroll momentum, not position
+     */
+    private fun performMomentumBasedSnap() {
+        if (totalScrollRange == 0) return
+        
+        state = State.ANIMATING
+        
+        // Get final velocity from tracker and momentum
+        val finalVelocity = velocityTracker.getVelocity()
+        val currentVisibility = 1f - (abs(currentOffset).toFloat() / totalScrollRange)
+        
+        // iOS-style: momentum dominates snap decision
+        val targetOffset = when {
+            // Strong momentum overrides position completely
+            scrollMomentum > IOS_MOMENTUM_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Momentum snap → HIDE (momentum=${String.format("%.1f", scrollMomentum)})")
+                -totalScrollRange // Hide
+            }
+            scrollMomentum < -IOS_MOMENTUM_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Momentum snap → SHOW (momentum=${String.format("%.1f", scrollMomentum)})")
+                0 // Show
+            }
+            // Fallback to touch velocity if momentum is weak
+            finalVelocity > VELOCITY_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Touch velocity snap → SHOW (vel=$finalVelocity)")
+                0 // Show
+            }
+            finalVelocity < -VELOCITY_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Touch velocity snap → HIDE (vel=$finalVelocity)")
+                -totalScrollRange // Hide
+            }
+            // Only use position if no clear momentum/velocity
+            else -> {
+                val target = if (currentVisibility >= 0.5f) 0 else -totalScrollRange
+                if (BuildConfig.DEBUG) Log.d(TAG, "Position snap → ${if (target == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", currentVisibility * 100)}%)")
+                target
+            }
+        }
+        
+        // Skip if already at target
+        if (abs(currentOffset - targetOffset) < SNAP_TOLERANCE) {
+            state = State.IDLE
+            return
+        }
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "iOS Snap: $currentOffset → $targetOffset (momentum=${String.format("%.1f", scrollMomentum)}, vel=$finalVelocity)")
+        }
+        
+        animateToTarget(targetOffset)
+    }
+    
+    /**
+     * Legacy snap method for comparison (now unused)
      */
     private fun performSnapToNearestState() {
         if (totalScrollRange == 0 || state == State.ANIMATING) return
@@ -457,7 +509,14 @@ class ViewHideHandler(
         private const val VELOCITY_WINDOW = 100L // Time window for velocity calculation
         private const val VELOCITY_SAMPLE_SIZE = 8 // Number of recent movements to consider
         
-        // Smoothing constants to eliminate jitter
+        // iOS-style smoothing constants (more aggressive filtering)
+        private const val IOS_SMOOTHING_FACTOR = 0.2f // iOS-like low-pass filter (stronger than 0.7)
+        private const val IOS_MOVEMENT_THRESHOLD = 4.0f // Higher threshold like iOS
+        private const val IOS_DIRECTION_CHANGE_THRESHOLD = 8.0f // iOS requires more movement to change direction
+        private const val MOMENTUM_DECAY = 0.15f // Track momentum with decay
+        private const val IOS_MOMENTUM_THRESHOLD = 2.0f // Momentum threshold for snap decisions
+        
+        // Legacy smoothing constants (for comparison)
         private const val SMOOTHING_FACTOR = 0.7f // Higher = more smoothing (0.0 to 1.0)
         private const val MOVEMENT_THRESHOLD = 2.0f // Minimum accumulated movement to apply
         private const val DIRECTION_CHANGE_THRESHOLD = 5.0f // Extra movement needed when direction changes
