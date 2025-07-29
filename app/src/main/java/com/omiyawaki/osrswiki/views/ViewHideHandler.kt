@@ -270,15 +270,17 @@ class ViewHideHandler(private val targetView: View) {
         
         when (gesture.direction) {
             TouchGestureTracker.Direction.DOWN -> {
-                if (state == State.EXPANDED && gesture.totalDistance >= GESTURE_HIDE_THRESHOLD) {
-                    Log.d(TAG, "Gesture: Hiding toolbar (${gesture.totalDistance}px down)")
-                    collapseToolbar()
+                // Finger DOWN = Scroll UP = Show toolbar
+                if (state == State.COLLAPSED && gesture.totalDistance >= GESTURE_SHOW_THRESHOLD) {
+                    Log.d(TAG, "Gesture: Showing toolbar (${gesture.totalDistance}px finger down = scroll up)")
+                    expandToolbar()
                 }
             }
             TouchGestureTracker.Direction.UP -> {
-                if (state == State.COLLAPSED && gesture.totalDistance >= GESTURE_SHOW_THRESHOLD) {
-                    Log.d(TAG, "Gesture: Showing toolbar (${gesture.totalDistance}px up)")
-                    expandToolbar()
+                // Finger UP = Scroll DOWN = Hide toolbar
+                if (state == State.EXPANDED && gesture.totalDistance >= GESTURE_HIDE_THRESHOLD) {
+                    Log.d(TAG, "Gesture: Hiding toolbar (${gesture.totalDistance}px finger up = scroll down)")
+                    collapseToolbar()
                 }
             }
             TouchGestureTracker.Direction.NONE -> {
