@@ -161,15 +161,22 @@ class ViewHideHandler(
     }
     
     private fun processScrollMovement(scrollDelta: Int, scrollView: ObservableWebView) {
-        if (state == State.ANIMATING) return
+        // Cancel ongoing snap animation if user starts scrolling
+        // This prevents the interface from feeling unresponsive during animations
+        if (state == State.ANIMATING) {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Canceling snap animation due to new scroll input")
+            }
+            cancelSnapAnimation()
+            state = if (isTouching) State.TOUCHING else State.SCROLLING
+        }
         
-        // Calculate toolbar movement based on scroll
-        val movement = if (isTouching) {
-            // During touch: use finger movement for precise control
-            calculateTouchMovement(scrollView)
-        } else {
-            // During momentum/keyboard scroll: use scroll delta
-            calculateScrollMovement(scrollDelta)
+        // Use consistent scroll delta approach for both touch and momentum scrolling
+        // This eliminates coordinate system conflicts and provides more reliable behavior
+        val movement = calculateScrollMovement(scrollDelta)
+        
+        if (BuildConfig.DEBUG && movement != 0) {
+            Log.d(TAG, "Scroll: delta=$scrollDelta, movement=$movement, velocity=${String.format("%.1f", scrollVelocity)}, state=$state")
         }
         
         if (movement != 0) {
@@ -183,13 +190,6 @@ class ViewHideHandler(
         }
     }
     
-    private fun calculateTouchMovement(scrollView: ObservableWebView): Int {
-        val currentTouchY = scrollView.lastTouchY
-        val touchDelta = currentTouchY - touchStartY
-        
-        // Direct 1:1 mapping of finger movement to toolbar movement
-        return (-touchDelta * SCROLL_TO_OFFSET_RATIO).toInt()
-    }
     
     private fun calculateScrollMovement(scrollDelta: Int): Int {
         // Map scroll movement to toolbar movement
@@ -269,19 +269,38 @@ class ViewHideHandler(
     }
     
     private fun determineSnapTarget(visibilityPercent: Float, touchVelocity: Float, scrollVel: Float): Int {
-        return when {
+        val target = when {
             // Strong touch velocity overrides everything
-            touchVelocity > VELOCITY_THRESHOLD -> 0 // Show
-            touchVelocity < -VELOCITY_THRESHOLD -> -totalScrollRange // Hide
+            touchVelocity > VELOCITY_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Touch velocity override -> SHOW (touchVel=$touchVelocity)")
+                0 // Show
+            }
+            touchVelocity < -VELOCITY_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Touch velocity override -> HIDE (touchVel=$touchVelocity)")
+                -totalScrollRange // Hide
+            }
             
-            // Medium scroll velocity influences decision
-            scrollVel > SCROLL_VELOCITY_THRESHOLD && visibilityPercent > 0.2f -> 0 // Show
-            scrollVel < -SCROLL_VELOCITY_THRESHOLD && visibilityPercent < 0.8f -> -totalScrollRange // Hide
+            // Medium scroll velocity influences decision - FIXED: reversed logic
+            scrollVel > SCROLL_VELOCITY_THRESHOLD && visibilityPercent < 0.8f -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Scroll down fast -> HIDE (scrollVel=$scrollVel, vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                -totalScrollRange // Hide when scrolling down fast
+            }
+            scrollVel < -SCROLL_VELOCITY_THRESHOLD && visibilityPercent > 0.2f -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Scroll up fast -> SHOW (scrollVel=$scrollVel, vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                0 // Show when scrolling up fast
+            }
             
             // Default to position-based snapping
-            visibilityPercent >= SNAP_THRESHOLD -> 0 // Show if more than 50% visible
-            else -> -totalScrollRange // Hide if less than 50% visible
+            visibilityPercent >= SNAP_THRESHOLD -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Position-based -> SHOW (vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                0 // Show if more than 50% visible
+            }
+            else -> {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap: Position-based -> HIDE (vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                -totalScrollRange // Hide if less than 50% visible
+            }
         }
+        return target
     }
     
     private fun animateToTarget(targetOffset: Int) {
@@ -365,17 +384,16 @@ class ViewHideHandler(
         
         // Behavior constants
         private const val NEAR_TOP_THRESHOLD = 50 // Always show toolbar within 50px of top
-        private const val SCROLL_TO_OFFSET_RATIO = 1.0f // 1:1 mapping of scroll to toolbar movement
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
         private const val SNAP_TOLERANCE = 5 // Skip animation if within 5px of target
         
         // Animation constants
         private const val SNAP_ANIMATION_DURATION = 200L // Base duration of snap animation
-        private const val MOMENTUM_SETTLE_DELAY = 50L // Delay before snap after touch release
+        private const val MOMENTUM_SETTLE_DELAY = 100L // Delay before snap after touch release (increased for less aggressive snapping)
         
-        // Velocity thresholds
-        private const val VELOCITY_THRESHOLD = 800f // Touch velocity (px/s) to override position
-        private const val SCROLL_VELOCITY_THRESHOLD = 300f // Scroll velocity threshold
+        // Velocity thresholds (adjusted to reduce excessive snapping)
+        private const val VELOCITY_THRESHOLD = 1200f // Touch velocity (px/s) to override position (increased)
+        private const val SCROLL_VELOCITY_THRESHOLD = 500f // Scroll velocity threshold (increased from 300f)
         private const val MIN_SCROLL_VELOCITY = 50f // Minimum velocity to consider "scrolling"
         
         // Velocity tracking
