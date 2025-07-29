@@ -37,6 +37,10 @@ class ViewHideHandler(
     private var isNearTop = true
     private var lastScrollY = 0
     
+    // Micro-movement filtering to eliminate jitter
+    private var accumulatedMovement = 0
+    private var lastMovementDirection = 0 // -1 = up, 0 = none, 1 = down
+    
     // Scroll-end detection for snapping
     private val scrollEndHandler = Handler(Looper.getMainLooper())
     private var scrollEndRunnable: Runnable? = null
@@ -608,15 +612,55 @@ class ViewHideHandler(
     }
     
     /**
-     * Immediate toolbar position update - no animation delays
+     * Immediate toolbar position update with micro-movement filtering - no animation delays
      */
     private fun updateToolbarPositionImmediate(movement: Int) {
         val newOffset = currentOffset + movement
         val clampedOffset = max(-totalScrollRange, min(0, newOffset))
         
         if (clampedOffset != currentOffset) {
-            setOffsetImmediate(clampedOffset)
+            // Apply micro-movement filter to reduce jitter while maintaining responsiveness
+            val offsetDifference = kotlin.math.abs(clampedOffset - currentOffset)
+            
+            if (offsetDifference >= MICRO_MOVEMENT_THRESHOLD || shouldBypassFilter(movement)) {
+                setOffsetImmediate(clampedOffset)
+                // Reset accumulated movement when we apply an update
+                accumulatedMovement = 0
+            } else {
+                // Accumulate small movements until threshold is reached
+                accumulatedMovement += movement
+                
+                if (kotlin.math.abs(accumulatedMovement) >= MICRO_MOVEMENT_THRESHOLD) {
+                    val finalOffset = max(-totalScrollRange, min(0, currentOffset + accumulatedMovement))
+                    setOffsetImmediate(finalOffset)
+                    accumulatedMovement = 0
+                }
+            }
         }
+    }
+    
+    /**
+     * Check if we should bypass the micro-movement filter for larger movements or direction changes
+     */
+    private fun shouldBypassFilter(movement: Int): Boolean {
+        // Bypass filter for larger movements (normal scrolling)
+        if (kotlin.math.abs(movement) > MICRO_MOVEMENT_THRESHOLD * 2) {
+            return true
+        }
+        
+        // Bypass filter for direction changes (with hysteresis)
+        val movementDirection = if (movement > 0) 1 else if (movement < 0) -1 else 0
+        if (lastMovementDirection != 0 && movementDirection != 0 && movementDirection != lastMovementDirection) {
+            // Direction change detected, require minimum movement to confirm
+            if (kotlin.math.abs(movement) >= DIRECTION_HYSTERESIS_THRESHOLD) {
+                lastMovementDirection = movementDirection
+                return true
+            }
+            return false
+        }
+        
+        lastMovementDirection = movementDirection
+        return false
     }
     
     /**
@@ -629,73 +673,69 @@ class ViewHideHandler(
     }
     
     /**
-     * Set toolbar offset immediately - no animation delays
+     * Set toolbar offset immediately using GPU transform - eliminates layout thrashing jitter
      */
     private fun setOffsetImmediate(offset: Int) {
-        behavior?.let {
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Immediate offset: $currentOffset → $offset")
-            }
-            
-            // Set the offset directly on the behavior
-            it.topAndBottomOffset = offset
-            
-            // Force immediate layout update
-            appBarLayout.requestLayout()
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Immediate offset: $currentOffset → $offset")
         }
+        
+        // Use GPU-accelerated transform instead of layout changes to eliminate jitter
+        appBarLayout.translationY = offset.toFloat()
+        
+        // Update internal state
+        currentOffset = offset
     }
     
     /**
-     * Animate toolbar to target offset with smooth transition
+     * Animate toolbar to target offset with smooth GPU-accelerated transition
      */
     private fun animateToOffset(targetOffset: Int) {
-        behavior?.let { behavior ->
-            val startOffset = currentOffset
-            
-            // Determine snap direction for interrupt detection
-            snapDirection = when {
-                targetOffset < startOffset -> 1  // Hiding (moving toward negative)
-                targetOffset > startOffset -> -1 // Showing (moving toward positive)
-                else -> 0 // No change
-            }
-            
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Animate snap: $startOffset → $targetOffset (direction=$snapDirection)")
-            }
-            
-            // Create smooth animation from current to target offset
-            currentSnapAnimator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
-                duration = SNAP_ANIMATION_DURATION
-                interpolator = DecelerateInterpolator()
-                
-                addUpdateListener { animation ->
-                    val animatedOffset = animation.animatedValue as Int
-                    behavior.topAndBottomOffset = animatedOffset
-                    appBarLayout.requestLayout()
-                }
-                
-                addListener(object : android.animation.Animator.AnimatorListener {
-                    override fun onAnimationStart(animation: android.animation.Animator) {}
-                    override fun onAnimationRepeat(animation: android.animation.Animator) {}
-                    override fun onAnimationCancel(animation: android.animation.Animator) {
-                        // Clear flag if animation is cancelled
-                        isPerformingSnap = false
-                        currentSnapAnimator = null
-                        snapDirection = 0
-                        if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation cancelled - resumed normal processing")
-                    }
-                    override fun onAnimationEnd(animation: android.animation.Animator) {
-                        // Clear flag when animation completes
-                        isPerformingSnap = false
-                        currentSnapAnimator = null
-                        snapDirection = 0
-                        if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation completed - resumed normal processing")
-                    }
-                })
-            }
-            
-            currentSnapAnimator?.start()
+        val startOffset = currentOffset
+        
+        // Determine snap direction for interrupt detection
+        snapDirection = when {
+            targetOffset < startOffset -> 1  // Hiding (moving toward negative)
+            targetOffset > startOffset -> -1 // Showing (moving toward positive)
+            else -> 0 // No change
         }
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Animate snap: $startOffset → $targetOffset (direction=$snapDirection)")
+        }
+        
+        // Create smooth GPU-accelerated animation
+        currentSnapAnimator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
+            duration = SNAP_ANIMATION_DURATION
+            interpolator = DecelerateInterpolator()
+            
+            addUpdateListener { animation ->
+                val animatedOffset = animation.animatedValue as Int
+                appBarLayout.translationY = animatedOffset.toFloat()
+                currentOffset = animatedOffset
+            }
+            
+            addListener(object : android.animation.Animator.AnimatorListener {
+                override fun onAnimationStart(animation: android.animation.Animator) {}
+                override fun onAnimationRepeat(animation: android.animation.Animator) {}
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    // Clear flag if animation is cancelled
+                    isPerformingSnap = false
+                    currentSnapAnimator = null
+                    snapDirection = 0
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation cancelled - resumed normal processing")
+                }
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    // Clear flag when animation completes
+                    isPerformingSnap = false
+                    currentSnapAnimator = null
+                    snapDirection = 0
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation completed - resumed normal processing")
+                }
+            })
+        }
+        
+        currentSnapAnimator?.start()
     }
     
     companion object {
@@ -718,6 +758,10 @@ class ViewHideHandler(
         
         // Smart behavior constants
         private const val VISIBILITY_THRESHOLD = 20 // px - consider toolbar "visible" when within this offset from 0
+        
+        // Anti-jitter constants
+        private const val MICRO_MOVEMENT_THRESHOLD = 3 // px - minimum movement to update toolbar position immediately
+        private const val DIRECTION_HYSTERESIS_THRESHOLD = 4 // px - minimum movement required to change direction
         
         // Momentum detection constants
         private const val MOMENTUM_WINDOW = 8 // Number of recent scroll events to track
