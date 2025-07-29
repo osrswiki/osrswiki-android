@@ -32,9 +32,13 @@ class ViewHideHandler(
     private var lastScrollY = 0
     private var scrollDirection = 0 // -1 up, 0 none, 1 down
     
-    // Anti-jitter: prevent micro-oscillations without delays
+    // Enhanced anti-jitter: prevent oscillations without delays
     private var cumulativeDelta = 0
     private var lastAppliedDirection = 0
+    
+    // Oscillation pattern detection
+    private val recentDeltas = ArrayDeque<Int>(8) // Track last 8 scroll deltas
+    private var oscillationDetected = false
     
     init {
         setupBehavior()
@@ -142,32 +146,49 @@ class ViewHideHandler(
         }
         
         if (BuildConfig.DEBUG && scrollDelta != 0) {
-            Log.d(TAG, "Scroll: delta=$scrollDelta, cumulative=$cumulativeDelta, movement=$movement, lastDir=$lastAppliedDirection")
+            Log.d(TAG, "Scroll: delta=$scrollDelta, cumulative=$cumulativeDelta, movement=$movement, lastDir=$lastAppliedDirection, oscillation=$oscillationDetected")
         }
     }
     
     /**
-     * Anti-jitter calculation: prevent micro-oscillations while maintaining immediate response
+     * Enhanced anti-jitter calculation: prevent oscillations while maintaining immediate response
      */
     private fun calculateAntiJitterMovement(scrollDelta: Int): Int {
         val currentDirection = if (scrollDelta > 0) 1 else -1
         
-        // If direction changed, check if this is micro-oscillation
+        // Add to recent deltas for oscillation detection
+        recentDeltas.add(scrollDelta)
+        if (recentDeltas.size > OSCILLATION_WINDOW) {
+            recentDeltas.removeFirst()
+        }
+        
+        // Detect oscillation pattern
+        oscillationDetected = detectOscillation()
+        
+        // If direction changed, check if this is oscillation or jitter
         if (lastAppliedDirection != 0 && lastAppliedDirection != currentDirection) {
-            // Check if this is a small opposing movement (potential jitter)
-            if (kotlin.math.abs(scrollDelta) <= JITTER_THRESHOLD) {
+            // Check if this is oscillation or small opposing movement (potential jitter)
+            if (kotlin.math.abs(scrollDelta) <= JITTER_THRESHOLD || oscillationDetected) {
                 // Accumulate opposing movements
                 cumulativeDelta += scrollDelta
                 
+                // Apply stronger damping for detected oscillation
+                val threshold = if (oscillationDetected) {
+                    DIRECTION_CHANGE_THRESHOLD * 2 // Require more movement to overcome oscillation
+                } else {
+                    DIRECTION_CHANGE_THRESHOLD
+                }
+                
                 // Only apply if accumulated movement overcomes threshold
-                if (kotlin.math.abs(cumulativeDelta) > DIRECTION_CHANGE_THRESHOLD) {
+                if (kotlin.math.abs(cumulativeDelta) > threshold) {
                     val movement = -cumulativeDelta
                     cumulativeDelta = 0 // Reset after applying
                     lastAppliedDirection = currentDirection
+                    clearOscillationHistory() // Reset pattern detection
                     return movement
                 }
                 
-                // Not enough to overcome - ignore this micro-movement
+                // Not enough to overcome - ignore this micro-movement/oscillation
                 return 0
             }
         }
@@ -175,7 +196,50 @@ class ViewHideHandler(
         // Normal movement or large direction change - apply immediately
         cumulativeDelta = 0 // Reset accumulator
         lastAppliedDirection = currentDirection
+        clearOscillationHistory() // Reset pattern detection on legitimate movement
         return -scrollDelta
+    }
+    
+    /**
+     * Detect oscillation pattern in recent scroll deltas
+     */
+    private fun detectOscillation(): Boolean {
+        if (recentDeltas.size < 4) return false // Need at least 4 samples
+        
+        val deltas = recentDeltas.toList()
+        var alternatingCount = 0
+        var similarMagnitudeCount = 0
+        
+        // Check for alternating directions
+        for (i in 1 until deltas.size) {
+            val current = deltas[i]
+            val previous = deltas[i - 1]
+            
+            // Check if direction alternated
+            if ((current > 0) != (previous > 0)) {
+                alternatingCount++
+                
+                // Check if magnitudes are similar (potential oscillation)
+                val ratio = kotlin.math.abs(current).toFloat() / kotlin.math.abs(previous).toFloat()
+                if (ratio >= OSCILLATION_SIMILARITY_THRESHOLD && ratio <= (1f / OSCILLATION_SIMILARITY_THRESHOLD)) {
+                    similarMagnitudeCount++
+                }
+            }
+        }
+        
+        // Oscillation detected if most recent movements alternate with similar magnitudes
+        val alternationRatio = alternatingCount.toFloat() / (deltas.size - 1)
+        val similarityRatio = similarMagnitudeCount.toFloat() / alternatingCount.coerceAtLeast(1)
+        
+        return alternationRatio >= 0.7f && similarityRatio >= 0.5f
+    }
+    
+    /**
+     * Clear oscillation detection history
+     */
+    private fun clearOscillationHistory() {
+        recentDeltas.clear()
+        oscillationDetected = false
     }
     
     /**
@@ -220,9 +284,11 @@ class ViewHideHandler(
         private const val TAG = "ViewHideHandler"
         private const val NEAR_TOP_THRESHOLD = 50 // Always show toolbar within 50px of top
         
-        // Anti-jitter constants
-        private const val JITTER_THRESHOLD = 10 // Max delta considered potential jitter
+        // Enhanced anti-jitter constants
+        private const val JITTER_THRESHOLD = 20 // Max delta considered potential jitter (increased from 10)
         private const val DIRECTION_CHANGE_THRESHOLD = 15 // Cumulative movement needed to change direction
+        private const val OSCILLATION_WINDOW = 6 // Number of recent deltas to analyze for oscillation
+        private const val OSCILLATION_SIMILARITY_THRESHOLD = 0.7f // How similar alternating deltas must be
         
         // Snap behavior constants  
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
