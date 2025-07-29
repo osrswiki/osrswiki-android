@@ -129,14 +129,14 @@ class ViewHideHandler(
             } else {
                 isNearTop = false
                 
-                // PRIMARY: Use touch-based proportional positioning if gesture is active
+                // Handle scroll-based positioning with smart direction logic
+                handleScrollBasedPositioning(scrollDelta)
+                
+                // Update touch gesture tracking for momentum and snap decisions
                 if (gestureTracker.isActivelyTracking()) {
                     val currentTouchY = scrollView.lastTouchY
                     val continuousState = gestureTracker.onTouchMove(currentTouchY)
-                    handleTouchBasedPositioning(continuousState)
-                } else {
-                    // FALLBACK: Use scroll events for non-touch input (keyboard, mouse wheel, etc.)
-                    handleScrollBasedPositioning(scrollDelta)
+                    updateMomentumFromTouch(continuousState)
                 }
                 
                 // Schedule scroll-end detection for snapping
@@ -243,51 +243,37 @@ class ViewHideHandler(
         }
     }
     
-    /**
-     * Handle touch-based proportional positioning (primary input method)
-     * Now provides immediate response for smooth browser-like behavior
-     */
-    private fun handleTouchBasedPositioning(continuousState: TouchGestureTracker.ContinuousState) {
-        if (!continuousState.isActive) return
-        
-        // Calculate proposed target offset based on finger movement
-        val proposedTargetOffset = (-continuousState.totalDelta).toInt().coerceIn(-totalScrollRange, 0)
-        
-        // Smart direction logic: prevent hiding when already visible and scrolling up to see content above
-        val scrollDirection = if (continuousState.instantDelta > 0) 1 else -1 // 1 = down/hide, -1 = up/show
-        val isAlreadyVisible = currentOffset >= -VISIBILITY_THRESHOLD
-        val isScrollingUp = scrollDirection == -1
-        
-        val targetOffset = if (isAlreadyVisible && isScrollingUp) {
-            // Keep toolbar visible when already visible and scrolling up to see content above
-            max(0, proposedTargetOffset)
-        } else {
-            proposedTargetOffset
-        }
-        
-        if (targetOffset != currentOffset) {
-            // Always apply immediately for browser-like responsiveness
-            setOffsetImmediate(targetOffset)
-            
-            if (BuildConfig.DEBUG) {
-                val preventedHiding = isAlreadyVisible && isScrollingUp && targetOffset != proposedTargetOffset
-                Log.d(TAG, "Touch positioning: fingerDelta=${String.format("%.1f", continuousState.totalDelta)}, offset=$currentOffset→$targetOffset, velocity=${String.format("%.1f", continuousState.velocity)}${if (preventedHiding) " [prevented hiding]" else ""}")
-            }
-        }
-        
-        // Update momentum tracking with finger-based velocity
-        updateMomentumFromTouch(continuousState)
-    }
     
     /**
-     * Handle scroll-based positioning (fallback for non-touch input)
-     * Simplified version without complex anti-jitter since feedback loops are eliminated
+     * Handle scroll-based positioning with smart direction logic for immediate browser-like response
      */
     private fun handleScrollBasedPositioning(scrollDelta: Int) {
         if (scrollDelta == 0) return
         
-        // Simple direct translation for non-touch input (keyboard, mouse wheel, etc.)
-        val movement = -scrollDelta // Invert for toolbar movement
+        // Determine scroll direction and intent
+        // Negative delta = scrolling up (revealing content above) = should show toolbar when appropriate
+        // Positive delta = scrolling down (revealing content below) = should hide toolbar when appropriate
+        val isScrollingUp = scrollDelta < 0
+        val isScrollingDown = scrollDelta > 0
+        val isAlreadyVisible = currentOffset >= -VISIBILITY_THRESHOLD
+        val isAlreadyHidden = currentOffset <= -totalScrollRange + VISIBILITY_THRESHOLD
+        
+        // Smart direction logic: respect user's intent based on scroll direction
+        val shouldApplySmartLogic = (isScrollingUp && isAlreadyVisible) || (isScrollingDown && isAlreadyHidden)
+        
+        if (shouldApplySmartLogic) {
+            // Keep current state when scrolling in a direction that suggests content viewing intent
+            if (BuildConfig.DEBUG) {
+                val reason = if (isScrollingUp && isAlreadyVisible) "keep visible while scrolling up" else "keep hidden while scrolling down"
+                Log.d(TAG, "Smart direction: delta=$scrollDelta, $reason")
+            }
+            // Don't move toolbar, but still update momentum tracking
+            updateMomentumFromScroll(scrollDelta)
+            return
+        }
+        
+        // Normal proportional movement for other cases
+        val movement = -scrollDelta // Invert for toolbar movement (scroll down = hide toolbar)
         updateToolbarPositionImmediate(movement)
         
         // Update momentum tracking for scroll-based input
@@ -731,7 +717,7 @@ class ViewHideHandler(
         private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
         
         // Smart behavior constants
-        private const val VISIBILITY_THRESHOLD = 10 // px - consider toolbar "visible" when within this offset from 0
+        private const val VISIBILITY_THRESHOLD = 20 // px - consider toolbar "visible" when within this offset from 0
         
         // Momentum detection constants
         private const val MOMENTUM_WINDOW = 8 // Number of recent scroll events to track
