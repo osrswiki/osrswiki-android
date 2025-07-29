@@ -6,6 +6,9 @@ import android.os.Looper
 import android.util.Log
 import android.view.animation.DecelerateInterpolator
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import com.google.android.material.appbar.AppBarLayout
 import com.omiyawaki.osrswiki.BuildConfig
 import kotlin.math.abs
@@ -50,7 +53,7 @@ class ViewHideHandler(
     private var isPerformingSnap = false
     private var lastSnapTrigger: String? = null
     private var lastSnapTime = 0L
-    private var currentSnapAnimator: ValueAnimator? = null
+    private var currentSnapAnimator: SpringAnimation? = null
     private var snapDirection = 0 // Direction of current snap: 1 for hiding, -1 for showing
     
     // Momentum/velocity tracking for gesture completion detection (fallback for non-touch scrolling)
@@ -688,7 +691,7 @@ class ViewHideHandler(
     }
     
     /**
-     * Animate toolbar to target offset with smooth GPU-accelerated transition
+     * Animate toolbar to target offset with physics-based spring animation that preserves momentum
      */
     private fun animateToOffset(targetOffset: Int) {
         val startOffset = currentOffset
@@ -701,41 +704,102 @@ class ViewHideHandler(
         }
         
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Animate snap: $startOffset → $targetOffset (direction=$snapDirection)")
+            Log.d(TAG, "Physics-based snap: $startOffset → $targetOffset (direction=$snapDirection, velocity=${String.format("%.1f", currentVelocity)} px/ms)")
         }
         
-        // Create smooth GPU-accelerated animation
-        currentSnapAnimator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
-            duration = SNAP_ANIMATION_DURATION
-            interpolator = DecelerateInterpolator()
-            
-            addUpdateListener { animation ->
-                val animatedOffset = animation.animatedValue as Int
-                appBarLayout.translationY = animatedOffset.toFloat()
-                currentOffset = animatedOffset
+        // Create physics-based spring animation that preserves momentum
+        currentSnapAnimator = SpringAnimation(appBarLayout, DynamicAnimation.TRANSLATION_Y, targetOffset.toFloat()).apply {
+            // Configure spring properties for natural motion
+            spring = SpringForce(targetOffset.toFloat()).apply {
+                dampingRatio = SPRING_DAMPING_RATIO
+                stiffness = SPRING_STIFFNESS
             }
             
-            addListener(object : android.animation.Animator.AnimatorListener {
-                override fun onAnimationStart(animation: android.animation.Animator) {}
-                override fun onAnimationRepeat(animation: android.animation.Animator) {}
-                override fun onAnimationCancel(animation: android.animation.Animator) {
-                    // Clear flag if animation is cancelled
-                    isPerformingSnap = false
-                    currentSnapAnimator = null
-                    snapDirection = 0
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation cancelled - resumed normal processing")
+            // Preserve current momentum velocity for seamless transition
+            // Convert from px/ms to px/s (SpringAnimation expects px/s)
+            val startVelocityPxPerSecond = currentVelocity * 1000f
+            setStartVelocity(startVelocityPxPerSecond)
+            
+            // Set minimum visible velocity threshold (animation stops when velocity drops below this)
+            minimumVisibleChange = DynamicAnimation.MIN_VISIBLE_CHANGE_PIXELS
+            
+            // Update our internal offset tracking as animation progresses
+            addUpdateListener { animation, value, velocity ->
+                currentOffset = value.toInt()
+                
+                if (BuildConfig.DEBUG && abs(value - targetOffset) < 5f) {
+                    Log.d(TAG, "Spring approaching target: ${String.format("%.1f", value)} → $targetOffset (velocity=${String.format("%.0f", velocity)} px/s)")
                 }
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    // Clear flag when animation completes
-                    isPerformingSnap = false
-                    currentSnapAnimator = null
-                    snapDirection = 0
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation completed - resumed normal processing")
+            }
+            
+            // Handle animation completion and cancellation
+            addEndListener { animation, canceled, value, velocity ->
+                isPerformingSnap = false
+                currentSnapAnimator = null
+                snapDirection = 0
+                
+                if (canceled) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Physics snap cancelled - resumed normal processing")
+                } else {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "Physics snap completed at ${String.format("%.1f", value)} - resumed normal processing")
+                    
+                    // Handle hybrid layout management when animation completes
+                    handleAnimationCompletion(targetOffset)
                 }
-            })
+            }
         }
         
         currentSnapAnimator?.start()
+    }
+    
+    /**
+     * Handle hybrid layout management when spring animation completes
+     * This ensures proper space allocation by adjusting layout when toolbar is hidden
+     */
+    private fun handleAnimationCompletion(targetOffset: Int) {
+        if (targetOffset == -totalScrollRange) {
+            // Toolbar is fully hidden - reclaim its space to prevent empty area  
+            hideToolbarLayoutSpace()
+        } else if (targetOffset == 0) {
+            // Toolbar is fully shown - ensure proper space allocation
+            showToolbarLayoutSpace()
+        }
+    }
+    
+    /**
+     * Hide toolbar layout space to prevent empty area when toolbar is hidden
+     */
+    private fun hideToolbarLayoutSpace() {
+        val layoutParams = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
+        if (layoutParams != null && layoutParams.height != 0) {
+            // Store original height for restoration
+            appBarLayout.tag = layoutParams.height
+            
+            // Set height to 0 to reclaim space
+            layoutParams.height = 0
+            appBarLayout.layoutParams = layoutParams
+            
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Reclaimed toolbar space: height set to 0")
+            }
+        }
+    }
+    
+    /**
+     * Show toolbar layout space when toolbar becomes visible
+     */
+    private fun showToolbarLayoutSpace() {
+        val layoutParams = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
+        if (layoutParams != null && layoutParams.height == 0) {
+            // Restore original height from tag
+            val originalHeight = appBarLayout.tag as? Int ?: CoordinatorLayout.LayoutParams.WRAP_CONTENT
+            layoutParams.height = originalHeight
+            appBarLayout.layoutParams = layoutParams
+            
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Restored toolbar space: height set to $originalHeight")
+            }
+        }
     }
     
     companion object {
@@ -753,8 +817,11 @@ class ViewHideHandler(
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
         private const val SNAP_TOLERANCE = 5 // Skip snap if within 5px of target
         private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
-        private const val SNAP_ANIMATION_DURATION = 150L // Duration for smooth snap animations (reduced for responsiveness)
         private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
+        
+        // Physics-based animation constants
+        private const val SPRING_DAMPING_RATIO = SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY // Natural bounce feel (0.5f)
+        private const val SPRING_STIFFNESS = SpringForce.STIFFNESS_MEDIUM // Responsive but smooth (1500f)
         
         // Smart behavior constants
         private const val VISIBILITY_THRESHOLD = 20 // px - consider toolbar "visible" when within this offset from 0
