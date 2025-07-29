@@ -35,6 +35,8 @@ class ViewHideHandler(
     // Enhanced anti-jitter: prevent oscillations without delays
     private var cumulativeDelta = 0
     private var lastAppliedDirection = 0
+    private var lastDirectionChangeTime = 0L
+    private var sustainedDirectionTime = 0L
     
     // Oscillation pattern detection
     private val recentDeltas = ArrayDeque<Int>(8) // Track last 8 scroll deltas
@@ -223,6 +225,7 @@ class ViewHideHandler(
      */
     private fun calculateAntiJitterMovement(scrollDelta: Int): Int {
         val currentDirection = if (scrollDelta > 0) 1 else -1
+        val currentTime = System.currentTimeMillis()
         
         // Add to recent deltas for oscillation detection
         recentDeltas.add(scrollDelta)
@@ -233,6 +236,15 @@ class ViewHideHandler(
         // Detect oscillation pattern
         oscillationDetected = detectOscillation()
         
+        // Track sustained scrolling time for smoother direction changes
+        if (lastAppliedDirection == currentDirection) {
+            sustainedDirectionTime = currentTime - lastDirectionChangeTime
+        } else if (lastAppliedDirection != 0) {
+            // Direction is changing, record the time
+            lastDirectionChangeTime = currentTime
+            sustainedDirectionTime = 0L
+        }
+        
         // If direction changed, check if this is oscillation or jitter
         if (lastAppliedDirection != 0 && lastAppliedDirection != currentDirection) {
             // Check if this is oscillation or small opposing movement (potential jitter)
@@ -240,20 +252,35 @@ class ViewHideHandler(
                 // Accumulate opposing movements
                 cumulativeDelta += scrollDelta
                 
-                // Apply stronger damping for detected oscillation
-                val threshold = if (oscillationDetected) {
-                    DIRECTION_CHANGE_THRESHOLD * 2 // Require more movement to overcome oscillation
+                // Calculate adaptive threshold based on context
+                val baseThreshold = if (oscillationDetected) {
+                    DIRECTION_CHANGE_THRESHOLD * 2 // Strong damping for oscillation
                 } else {
-                    DIRECTION_CHANGE_THRESHOLD
+                    // Reduce threshold for sustained scrolling to make direction changes smoother
+                    val sustainedBonus = min(4, (sustainedDirectionTime / 200L).toInt()) // Max 4px reduction after 800ms
+                    max(DIRECTION_CHANGE_THRESHOLD_MIN, DIRECTION_CHANGE_THRESHOLD - sustainedBonus)
                 }
                 
                 // Only apply if accumulated movement overcomes threshold
-                if (kotlin.math.abs(cumulativeDelta) > threshold) {
-                    val movement = -cumulativeDelta
-                    cumulativeDelta = 0 // Reset after applying
+                if (kotlin.math.abs(cumulativeDelta) > baseThreshold) {
+                    // Graduated release: don't release all at once to prevent stuttering
+                    val maxRelease = max(DIRECTION_CHANGE_THRESHOLD_MIN, baseThreshold / 2)
+                    val releaseAmount = if (kotlin.math.abs(cumulativeDelta) <= maxRelease) {
+                        -cumulativeDelta // Release all if small enough
+                    } else {
+                        // Release partial amount to prevent large jumps
+                        if (cumulativeDelta > 0) maxRelease else -maxRelease
+                    }
+                    
+                    cumulativeDelta -= releaseAmount // Subtract what we're releasing
                     lastAppliedDirection = currentDirection
-                    clearOscillationHistory() // Reset pattern detection
-                    return movement
+                    
+                    // Only clear oscillation history if we've released all accumulated movement
+                    if (cumulativeDelta == 0) {
+                        clearOscillationHistory()
+                    }
+                    
+                    return releaseAmount
                 }
                 
                 // Not enough to overcome - ignore this micro-movement/oscillation
@@ -433,7 +460,8 @@ class ViewHideHandler(
         
         // Enhanced anti-jitter constants
         private const val JITTER_THRESHOLD = 25 // Max delta considered potential jitter (increased from 20 to catch boundary oscillations)
-        private const val DIRECTION_CHANGE_THRESHOLD = 15 // Cumulative movement needed to change direction
+        private const val DIRECTION_CHANGE_THRESHOLD = 8 // Base cumulative movement needed to change direction (reduced for smoother slow scrolling)
+        private const val DIRECTION_CHANGE_THRESHOLD_MIN = 4 // Minimum threshold after time-based reduction
         private const val OSCILLATION_WINDOW = 6 // Number of recent deltas to analyze for oscillation
         private const val OSCILLATION_SIMILARITY_THRESHOLD = 0.6f // How similar alternating deltas must be (relaxed for better detection)
         
