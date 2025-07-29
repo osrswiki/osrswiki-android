@@ -51,6 +51,18 @@ class ViewHideHandler(
     private var isPerformingSnap = false
     private var lastSnapTrigger: String? = null
     private var lastSnapTime = 0L
+    private var currentSnapAnimator: ValueAnimator? = null
+    private var snapDirection = 0 // Direction of current snap: 1 for hiding, -1 for showing
+    
+    // Momentum/velocity tracking for gesture completion detection
+    private val recentScrollEvents = ArrayDeque<ScrollEvent>(10) // Track last 10 scroll events
+    private var currentVelocity = 0f // pixels/ms
+    private var lastScrollEventTime = 0L
+    
+    private data class ScrollEvent(
+        val delta: Int,
+        val timestamp: Long
+    )
     
     init {
         setupBehavior()
@@ -95,7 +107,12 @@ class ViewHideHandler(
         scrollView.addOnScrollChangeListener { oldScrollY, scrollY, isHumanScroll ->
             val scrollDelta = scrollY - oldScrollY
             
-            // Skip processing if we're performing a snap to prevent feedback loops
+            // Check if scroll should interrupt ongoing snap
+            if (isPerformingSnap && shouldInterruptSnap(scrollDelta)) {
+                interruptSnap("significant opposing scroll detected")
+            }
+            
+            // Skip processing if we're still performing a snap
             if (isPerformingSnap) {
                 if (BuildConfig.DEBUG) Log.d(TAG, "Skip scroll processing - snap in progress")
                 return@addOnScrollChangeListener
@@ -132,6 +149,13 @@ class ViewHideHandler(
      */
     private fun handleTouchEnd() {
         if (BuildConfig.DEBUG) Log.d(TAG, "Touch end detected - checking for snap")
+        
+        // Don't snap immediately if there's significant momentum - let scroll_end handle it
+        if (hasSignificantMomentum()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Skip touch_end snap - significant momentum detected, will wait for scroll_end")
+            return
+        }
+        
         performSnap("touch_end")
     }
     
@@ -140,11 +164,20 @@ class ViewHideHandler(
      */
     private fun handleScrollEnd() {
         if (BuildConfig.DEBUG) Log.d(TAG, "Scroll end detected - checking for snap")
+        
+        // Double-check that momentum has actually stopped
+        if (hasSignificantMomentum()) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "False scroll_end - momentum still detected, rescheduling")
+            scheduleScrollEndDetection() // Reschedule for later
+            return
+        }
+        
+        // Momentum has stopped, safe to snap
         performSnap("scroll_end")
     }
     
     /**
-     * Perform snap to nearest complete state
+     * Perform snap to nearest complete state with momentum awareness
      */
     private fun performSnap(trigger: String) {
         // Prevent concurrent snaps
@@ -170,15 +203,7 @@ class ViewHideHandler(
         
         // Snap to nearest complete state to prevent partial exposure
         if (!isNearTop && totalScrollRange > 0) {
-            val visibilityPercent = 1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)
-            
-            val targetOffset = if (visibilityPercent >= SNAP_THRESHOLD) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to SHOW (vis=${String.format("%.1f", visibilityPercent * 100)}%) - trigger=$trigger")
-                0 // Show
-            } else {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to HIDE (vis=${String.format("%.1f", visibilityPercent * 100)}%) - trigger=$trigger")
-                -totalScrollRange // Hide
-            }
+            val targetOffset = calculateMomentumAwareSnapTarget()
             
             // Only snap if not already at target
             if (kotlin.math.abs(currentOffset - targetOffset) > SNAP_TOLERANCE) {
@@ -201,6 +226,9 @@ class ViewHideHandler(
     private fun handleImmediateScroll(scrollDelta: Int) {
         if (scrollDelta == 0) return
         
+        // Update momentum tracking
+        updateMomentumTracking(scrollDelta)
+        
         // Update scroll direction immediately
         scrollDirection = when {
             scrollDelta > 0 -> 1  // Scrolling down
@@ -216,7 +244,7 @@ class ViewHideHandler(
         }
         
         if (BuildConfig.DEBUG && scrollDelta != 0) {
-            Log.d(TAG, "Scroll: delta=$scrollDelta, cumulative=$cumulativeDelta, movement=$movement, lastDir=$lastAppliedDirection, oscillation=$oscillationDetected")
+            Log.d(TAG, "Scroll: delta=$scrollDelta, cumulative=$cumulativeDelta, movement=$movement, lastDir=$lastAppliedDirection, oscillation=$oscillationDetected, velocity=${String.format("%.1f", currentVelocity)}")
         }
     }
     
@@ -345,21 +373,257 @@ class ViewHideHandler(
     }
     
     /**
+     * Update momentum/velocity tracking from scroll events
+     */
+    private fun updateMomentumTracking(scrollDelta: Int) {
+        val currentTime = System.currentTimeMillis()
+        lastScrollEventTime = currentTime
+        
+        // Add new scroll event
+        recentScrollEvents.add(ScrollEvent(scrollDelta, currentTime))
+        if (recentScrollEvents.size > MOMENTUM_WINDOW) {
+            recentScrollEvents.removeFirst()
+        }
+        
+        // Calculate velocity from recent events
+        currentVelocity = calculateCurrentVelocity()
+        
+        if (BuildConfig.DEBUG && recentScrollEvents.size >= 3) {
+            Log.d(TAG, "Momentum: velocity=${String.format("%.1f", currentVelocity)} px/ms, events=${recentScrollEvents.size}")
+        }
+    }
+    
+    /**
+     * Calculate current velocity from recent scroll events
+     */
+    private fun calculateCurrentVelocity(): Float {
+        if (recentScrollEvents.size < 2) return 0f
+        
+        val events = recentScrollEvents.toList()
+        val recentEvents = events.takeLast(min(5, events.size)) // Use last 5 events for velocity
+        
+        if (recentEvents.size < 2) return 0f
+        
+        // Calculate weighted average velocity (more recent events have higher weight)
+        var totalWeightedDelta = 0f
+        var totalWeightedTime = 0f
+        var totalWeight = 0f
+        
+        for (i in 1 until recentEvents.size) {
+            val deltaPixels = recentEvents[i].delta.toFloat()
+            val deltaTime = (recentEvents[i].timestamp - recentEvents[i - 1].timestamp).toFloat()
+            
+            if (deltaTime > 0) {
+                // Higher weight for more recent events
+                val weight = i.toFloat() / (recentEvents.size - 1)
+                totalWeightedDelta += kotlin.math.abs(deltaPixels) * weight
+                totalWeightedTime += deltaTime * weight
+                totalWeight += weight
+            }
+        }
+        
+        return if (totalWeight > 0 && totalWeightedTime > 0) {
+            totalWeightedDelta / totalWeightedTime // pixels per millisecond
+        } else {
+            0f
+        }
+    }
+    
+    /**
+     * Check if there's significant momentum that suggests gesture is still active
+     */
+    private fun hasSignificantMomentum(): Boolean {
+        val timeSinceLastScroll = System.currentTimeMillis() - lastScrollEventTime
+        
+        // If too much time has passed, no momentum
+        if (timeSinceLastScroll > MOMENTUM_TIMEOUT) {
+            return false
+        }
+        
+        // Check velocity threshold
+        val velocityThreshold = MOMENTUM_VELOCITY_THRESHOLD
+        
+        // Also check if recent events show consistent direction
+        val hasConsistentDirection = hasConsistentScrollDirection()
+        
+        val hasMomentum = currentVelocity > velocityThreshold && hasConsistentDirection
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Momentum check: velocity=${String.format("%.1f", currentVelocity)}, threshold=$velocityThreshold, consistent=$hasConsistentDirection, hasMomentum=$hasMomentum")
+        }
+        
+        return hasMomentum
+    }
+    
+    /**
+     * Check if recent scroll events show consistent direction (not alternating)
+     */
+    private fun hasConsistentScrollDirection(): Boolean {
+        if (recentScrollEvents.size < 3) return false
+        
+        val recentEvents = recentScrollEvents.takeLast(3)
+        val directions = recentEvents.map { if (it.delta > 0) 1 else -1 }
+        
+        // Check if at least 2 out of 3 recent events have same direction
+        val positiveCount = directions.count { it > 0 }
+        val negativeCount = directions.count { it < 0 }
+        
+        return max(positiveCount, negativeCount) >= 2
+    }
+    
+    /**
+     * Unified gesture completion check that combines touch_end and scroll_end logic
+     */
+    private fun isGestureComplete(): Boolean {
+        val timeSinceLastScroll = System.currentTimeMillis() - lastScrollEventTime
+        val hasTimedOut = timeSinceLastScroll >= SCROLL_END_TIMEOUT
+        val momentumStopped = !hasSignificantMomentum()
+        
+        // Gesture is complete if either:
+        // 1. Momentum has clearly stopped, OR
+        // 2. Enough time has passed since last scroll event
+        val isComplete = momentumStopped || hasTimedOut
+        
+        if (BuildConfig.DEBUG && recentScrollEvents.isNotEmpty()) {
+            Log.d(TAG, "Gesture completion check: timeSince=${timeSinceLastScroll}ms, momentum=$momentumStopped, timedOut=$hasTimedOut, complete=$isComplete")
+        }
+        
+        return isComplete
+    }
+    
+    /**
+     * Check if current scroll should interrupt ongoing snap animation
+     */
+    private fun shouldInterruptSnap(scrollDelta: Int): Boolean {
+        if (!isPerformingSnap || currentSnapAnimator == null) return false
+        
+        val scrollDirection = if (scrollDelta > 0) 1 else -1
+        
+        // Interrupt if:
+        // 1. Scroll direction opposes snap direction, AND
+        // 2. Scroll magnitude is significant enough
+        val opposesSnap = snapDirection != 0 && scrollDirection != snapDirection
+        val significantMagnitude = kotlin.math.abs(scrollDelta) >= SNAP_INTERRUPT_THRESHOLD
+        
+        val shouldInterrupt = opposesSnap && significantMagnitude
+        
+        if (BuildConfig.DEBUG && shouldInterrupt) {
+            Log.d(TAG, "Snap interrupt: scrollDelta=$scrollDelta (dir=$scrollDirection) opposes snapDir=$snapDirection, magnitude=${kotlin.math.abs(scrollDelta)} >= $SNAP_INTERRUPT_THRESHOLD")
+        }
+        
+        return shouldInterrupt
+    }
+    
+    /**
+     * Interrupt ongoing snap animation to follow real-time scroll
+     */
+    private fun interruptSnap(reason: String) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "Interrupting snap: $reason")
+        
+        currentSnapAnimator?.cancel() // This will trigger onAnimationCancel
+        // Note: onAnimationCancel will clean up isPerformingSnap, currentSnapAnimator, and snapDirection
+    }
+    
+    /**
+     * Calculate snap target considering current momentum and predicted final position
+     */
+    private fun calculateMomentumAwareSnapTarget(): Int {
+        val visibilityPercent = 1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)
+        
+        // Basic snap decision based on current visibility
+        val basicTarget = if (visibilityPercent >= SNAP_THRESHOLD) {
+            0 // Show
+        } else {
+            -totalScrollRange // Hide
+        }
+        
+        // If we have momentum, predict where we'd end up and factor that in
+        val predictedOffset = predictFinalOffset()
+        
+        val finalTarget = if (predictedOffset != null) {
+            // Use momentum-predicted position for snap decision
+            val predictedVisibility = 1f - (kotlin.math.abs(predictedOffset).toFloat() / totalScrollRange)
+            
+            val momentumTarget = if (predictedVisibility >= SNAP_THRESHOLD) {
+                0 // Show
+            } else {
+                -totalScrollRange // Hide
+            }
+            
+            // If momentum prediction differs from basic decision, use momentum prediction
+            if (momentumTarget != basicTarget) {
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "Momentum-aware snap: basic=${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%), predicted=${if (momentumTarget == 0) "SHOW" else "HIDE"} (predVis=${String.format("%.1f", predictedVisibility * 100)}%), using predicted")
+                }
+                momentumTarget
+            } else {
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "Snap to ${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%) - momentum agrees")
+                }
+                basicTarget
+            }
+        } else {
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Snap to ${if (basicTarget == 0) "SHOW" else "HIDE"} (vis=${String.format("%.1f", visibilityPercent * 100)}%) - no momentum prediction")
+            }
+            basicTarget
+        }
+        
+        return finalTarget
+    }
+    
+    /**
+     * Predict final toolbar offset based on current momentum
+     */
+    private fun predictFinalOffset(): Int? {
+        if (currentVelocity < MOMENTUM_PREDICTION_MIN_VELOCITY) {
+            return null // Not enough momentum to make a prediction
+        }
+        
+        // Estimate how much further the toolbar will move based on velocity
+        // Using simplified physics: distance = velocity * time * deceleration_factor
+        val momentumDirection = if (scrollDirection > 0) -1 else 1 // Scroll down hides toolbar (negative offset)
+        val estimatedAdditionalMovement = (currentVelocity * MOMENTUM_PREDICTION_TIME * MOMENTUM_DECELERATION_FACTOR).toInt()
+        
+        val predictedOffset = currentOffset + (momentumDirection * estimatedAdditionalMovement)
+        val clampedPrediction = max(-totalScrollRange, min(0, predictedOffset))
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Momentum prediction: velocity=${String.format("%.1f", currentVelocity)}, direction=$momentumDirection, movement=$estimatedAdditionalMovement, current=$currentOffset, predicted=$clampedPrediction")
+        }
+        
+        return clampedPrediction
+    }
+    
+    /**
      * Schedule scroll-end detection for snapping
      */
     private fun scheduleScrollEndDetection() {
         // Cancel any existing scroll-end detection
         cancelScrollEndDetection()
         
-        // Schedule new scroll-end detection
+        // Schedule new scroll-end detection with adaptive timing
         scrollEndRunnable = Runnable {
-            // Check if scroll has actually stopped
             val timeSinceLastScroll = System.currentTimeMillis() - lastScrollTime
-            if (timeSinceLastScroll >= SCROLL_END_TIMEOUT) {
+            val hasTimedOut = timeSinceLastScroll >= SCROLL_END_TIMEOUT
+            val momentumStopped = !hasSignificantMomentum()
+            
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Scroll end check: timeSinceLastScroll=${timeSinceLastScroll}ms, timedOut=$hasTimedOut, momentumStopped=$momentumStopped")
+            }
+            
+            if (hasTimedOut || momentumStopped) {
                 handleScrollEnd()
             } else {
-                // Reschedule if still scrolling
-                scheduleScrollEndDetection()
+                // Use shorter timeout if momentum is still high
+                val adaptiveTimeout = if (currentVelocity > MOMENTUM_VELOCITY_THRESHOLD * 2) {
+                    SCROLL_END_TIMEOUT / 2 // Check more frequently for high momentum
+                } else {
+                    SCROLL_END_TIMEOUT
+                }
+                
+                // Reschedule with adaptive timing
+                scrollEndHandler.postDelayed(scrollEndRunnable!!, adaptiveTimeout)
             }
         }
         scrollEndHandler.postDelayed(scrollEndRunnable!!, SCROLL_END_TIMEOUT)
@@ -420,12 +684,19 @@ class ViewHideHandler(
         behavior?.let { behavior ->
             val startOffset = currentOffset
             
+            // Determine snap direction for interrupt detection
+            snapDirection = when {
+                targetOffset < startOffset -> 1  // Hiding (moving toward negative)
+                targetOffset > startOffset -> -1 // Showing (moving toward positive)
+                else -> 0 // No change
+            }
+            
             if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Animate snap: $startOffset → $targetOffset")
+                Log.d(TAG, "Animate snap: $startOffset → $targetOffset (direction=$snapDirection)")
             }
             
             // Create smooth animation from current to target offset
-            val animator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
+            currentSnapAnimator = ValueAnimator.ofInt(startOffset, targetOffset).apply {
                 duration = SNAP_ANIMATION_DURATION
                 interpolator = DecelerateInterpolator()
                 
@@ -441,16 +712,21 @@ class ViewHideHandler(
                     override fun onAnimationCancel(animation: android.animation.Animator) {
                         // Clear flag if animation is cancelled
                         isPerformingSnap = false
+                        currentSnapAnimator = null
+                        snapDirection = 0
+                        if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation cancelled - resumed normal processing")
                     }
                     override fun onAnimationEnd(animation: android.animation.Animator) {
                         // Clear flag when animation completes
                         isPerformingSnap = false
+                        currentSnapAnimator = null
+                        snapDirection = 0
                         if (BuildConfig.DEBUG) Log.d(TAG, "Snap animation completed - resumed normal processing")
                     }
                 })
             }
             
-            animator.start()
+            currentSnapAnimator?.start()
         }
     }
     
@@ -469,7 +745,23 @@ class ViewHideHandler(
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
         private const val SNAP_TOLERANCE = 5 // Skip snap if within 5px of target
         private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
-        private const val SNAP_ANIMATION_DURATION = 250L // Duration for smooth snap animations
+        private const val SNAP_ANIMATION_DURATION = 150L // Duration for smooth snap animations (reduced for responsiveness)
         private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
+        
+        // Momentum detection constants
+        private const val MOMENTUM_WINDOW = 8 // Number of recent scroll events to track
+        private const val MOMENTUM_VELOCITY_THRESHOLD = 0.3f // px/ms - minimum velocity to consider significant momentum
+        private const val MOMENTUM_TIMEOUT = 50L // ms - max time since last scroll to still consider momentum active
+        
+        // Gesture completion constants
+        private const val GESTURE_COMPLETION_TIMEOUT = 80L // ms - max time to wait for complete gesture end
+        
+        // Snap interruption constants
+        private const val SNAP_INTERRUPT_THRESHOLD = 15 // px - minimum scroll magnitude to interrupt snap
+        
+        // Momentum prediction constants
+        private const val MOMENTUM_PREDICTION_MIN_VELOCITY = 0.5f // px/ms - minimum velocity to make predictions
+        private const val MOMENTUM_PREDICTION_TIME = 100L // ms - time window for momentum prediction
+        private const val MOMENTUM_DECELERATION_FACTOR = 0.6f // factor to account for momentum decay
     }
 }
