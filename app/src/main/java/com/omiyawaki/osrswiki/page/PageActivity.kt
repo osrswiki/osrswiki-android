@@ -61,8 +61,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         val elevationInDp = 9.75f
         binding.pageAppbarLayout.elevation = elevationInDp * resources.displayMetrics.density
 
-        // Initialize the ViewHideHandler, targeting the AppBarLayout
-        toolbarHideHandler = ViewHideHandler(binding.pageAppbarLayout)
+        // Initialize the ViewHideHandler with browser-style proportional behavior
+        toolbarHideHandler = ViewHideHandler(binding.pageAppbarLayout, binding.navMenuTriggerLayout)
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
