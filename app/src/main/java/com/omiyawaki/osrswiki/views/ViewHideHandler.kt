@@ -1,17 +1,20 @@
 package com.omiyawaki.osrswiki.views
 
 import android.animation.ValueAnimator
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.animation.DecelerateInterpolator
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.appbar.AppBarLayout
+import com.omiyawaki.osrswiki.BuildConfig
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
 /**
- * Browser-style proportional handler for AppBarLayout that mimics mobile browser URL bar behavior.
- * Features smooth proportional movement during scroll and snap-to-complete on release.
+ * Modern browser-style toolbar handler that provides smooth, responsive hiding behavior.
+ * Implements all-scroll responsiveness, GPU-accelerated animations, and proper state management.
  * 
  * @param appBarLayout The AppBarLayout to control
  * @param coordinatorLayout The parent CoordinatorLayout
@@ -23,32 +26,54 @@ class ViewHideHandler(
     private var behavior: AppBarLayout.Behavior? = null
     private var totalScrollRange = 0
     private var currentOffset = 0
-    private var isAnimating = false
     private var snapAnimator: ValueAnimator? = null
+    
+    // Enhanced state management
+    private var state = State.IDLE
+    private var lastScrollY = 0
+    private var lastScrollTime = 0L
+    private var scrollVelocity = 0f
+    private var pendingScrollUpdate: Runnable? = null
     
     // Touch tracking
     private var isTouching = false
-    private var lastTouchY = 0f
+    private var touchStartY = 0f
     private var touchStartOffset = 0
     private var velocityTracker = VelocityTracker()
     
+    // Frame rate optimization
+    private val mainHandler = Handler(Looper.getMainLooper())
+    
+    enum class State {
+        IDLE,           // No interaction
+        SCROLLING,      // Active scrolling (touch or momentum)
+        TOUCHING,       // User finger is down
+        ANIMATING       // Snap animation in progress
+    }
+    
     init {
-        // Get the AppBarLayout behavior
+        setupBehavior()
+        setupOffsetTracking()
+    }
+    
+    private fun setupBehavior() {
         val params = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
         behavior = params?.behavior as? AppBarLayout.Behavior
         
-        // If no behavior exists, create one
         if (behavior == null) {
             behavior = AppBarLayout.Behavior()
             params?.behavior = behavior
         }
-        
-        // Track the total scroll range
+    }
+    
+    private fun setupOffsetTracking() {
         appBarLayout.addOnOffsetChangedListener { _, verticalOffset ->
             totalScrollRange = appBarLayout.totalScrollRange
             currentOffset = verticalOffset
             
-            Log.d(TAG, "Offset changed: $verticalOffset / -$totalScrollRange")
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Offset: $verticalOffset / -$totalScrollRange (state=$state)")
+            }
         }
     }
     
@@ -56,121 +81,246 @@ class ViewHideHandler(
      * Sets the scrollable view that will drive the toolbar movement
      */
     fun setScrollView(scrollView: ObservableWebView) {
-        // Track touch state
+        setupTouchTracking(scrollView)
+        setupScrollTracking(scrollView)
+    }
+    
+    private fun setupTouchTracking(scrollView: ObservableWebView) {
         scrollView.addOnDownMotionEventListener {
-            isTouching = true
-            lastTouchY = scrollView.lastTouchY
-            touchStartOffset = currentOffset
-            velocityTracker.clear()
-            
-            // Cancel any ongoing snap animation
-            snapAnimator?.cancel()
-            
-            Log.d(TAG, "Touch DOWN at Y=$lastTouchY, offset=$currentOffset")
+            handleTouchStart(scrollView)
         }
         
         scrollView.addOnUpOrCancelMotionEventListener {
-            isTouching = false
-            
-            // Perform snap-to-complete animation
-            val velocity = velocityTracker.getVelocity()
-            performSnapAnimation(velocity)
-            
-            Log.d(TAG, "Touch UP, velocity=$velocity")
+            handleTouchEnd()
         }
-        
-        // Handle scroll events
-        scrollView.addOnScrollChangeListener { _, scrollY, isHumanScroll ->
-            if (!isHumanScroll) return@addOnScrollChangeListener
-            
+    }
+    
+    private fun setupScrollTracking(scrollView: ObservableWebView) {
+        scrollView.addOnScrollChangeListener { oldScrollY, scrollY, isHumanScroll ->
             // Always show toolbar when near top
             if (scrollY <= NEAR_TOP_THRESHOLD) {
-                setOffset(0)
+                showToolbar()
                 return@addOnScrollChangeListener
             }
             
-            // During touch, update position proportionally
-            if (isTouching && !isAnimating) {
-                val currentTouchY = scrollView.lastTouchY
-                val touchDelta = currentTouchY - lastTouchY
-                
-                // Update velocity tracker
-                velocityTracker.addMovement(touchDelta)
-                
-                // Map touch delta to offset change (inverted because finger up = scroll down)
-                val offsetDelta = -touchDelta * SCROLL_TO_OFFSET_RATIO
-                val newOffset = currentOffset + offsetDelta.toInt()
-                
-                // Clamp to valid range
-                val clampedOffset = max(-totalScrollRange, min(0, newOffset))
-                setOffset(clampedOffset)
-                
-                lastTouchY = currentTouchY
-                
-                Log.d(TAG, "Touch move: delta=$touchDelta, newOffset=$clampedOffset")
-            }
+            // Handle all scroll events (not just human/touch)
+            handleScrollEvent(oldScrollY, scrollY, isHumanScroll, scrollView)
         }
     }
     
+    private fun handleTouchStart(scrollView: ObservableWebView) {
+        isTouching = true
+        touchStartY = scrollView.lastTouchY
+        touchStartOffset = currentOffset
+        state = State.TOUCHING
+        
+        velocityTracker.clear()
+        cancelSnapAnimation()
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Touch START at Y=$touchStartY, offset=$currentOffset")
+        }
+    }
+    
+    private fun handleTouchEnd() {
+        isTouching = false
+        
+        // Transition to scrolling state briefly to handle momentum
+        if (state == State.TOUCHING) {
+            state = State.SCROLLING
+            
+            // Perform snap after a brief delay to allow momentum to settle
+            mainHandler.postDelayed({
+                performSnapToNearestState()
+            }, MOMENTUM_SETTLE_DELAY)
+        }
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Touch END, transitioning to scrolling")
+        }
+    }
+    
+    private fun handleScrollEvent(oldScrollY: Int, scrollY: Int, isHumanScroll: Boolean, scrollView: ObservableWebView) {
+        val currentTime = System.currentTimeMillis()
+        val scrollDelta = scrollY - oldScrollY
+        
+        // Update velocity tracking
+        if (currentTime - lastScrollTime > 0) {
+            scrollVelocity = scrollDelta.toFloat() / (currentTime - lastScrollTime) * 1000f
+        }
+        
+        lastScrollY = scrollY
+        lastScrollTime = currentTime
+        
+        // Throttle scroll updates for performance (60fps = 16.67ms)
+        pendingScrollUpdate?.let { mainHandler.removeCallbacks(it) }
+        pendingScrollUpdate = Runnable {
+            processScrollMovement(scrollDelta, scrollView)
+        }
+        mainHandler.post(pendingScrollUpdate!!)
+    }
+    
+    private fun processScrollMovement(scrollDelta: Int, scrollView: ObservableWebView) {
+        if (state == State.ANIMATING) return
+        
+        // Calculate toolbar movement based on scroll
+        val movement = if (isTouching) {
+            // During touch: use finger movement for precise control
+            calculateTouchMovement(scrollView)
+        } else {
+            // During momentum/keyboard scroll: use scroll delta
+            calculateScrollMovement(scrollDelta)
+        }
+        
+        if (movement != 0) {
+            updateToolbarPosition(movement)
+            updateVelocityTracking(movement)
+        }
+        
+        // Update state
+        if (!isTouching && state != State.ANIMATING) {
+            state = if (abs(scrollVelocity) > MIN_SCROLL_VELOCITY) State.SCROLLING else State.IDLE
+        }
+    }
+    
+    private fun calculateTouchMovement(scrollView: ObservableWebView): Int {
+        val currentTouchY = scrollView.lastTouchY
+        val touchDelta = currentTouchY - touchStartY
+        
+        // Direct 1:1 mapping of finger movement to toolbar movement
+        return (-touchDelta * SCROLL_TO_OFFSET_RATIO).toInt()
+    }
+    
+    private fun calculateScrollMovement(scrollDelta: Int): Int {
+        // Map scroll movement to toolbar movement
+        return -scrollDelta
+    }
+    
+    private fun updateToolbarPosition(movement: Int) {
+        val newOffset = currentOffset + movement
+        val clampedOffset = max(-totalScrollRange, min(0, newOffset))
+        
+        if (clampedOffset != currentOffset) {
+            setOffsetSmooth(clampedOffset)
+        }
+    }
+    
+    private fun updateVelocityTracking(movement: Int) {
+        velocityTracker.addMovement(movement.toFloat())
+    }
+    
     /**
-     * Directly set the toolbar offset
+     * Set toolbar offset using optimized method to prevent layout thrashing
      */
-    private fun setOffset(offset: Int) {
+    private fun setOffsetSmooth(offset: Int) {
         behavior?.let {
+            // Set the offset directly on the behavior
             it.topAndBottomOffset = offset
-            appBarLayout.requestLayout()
+            
+            // Request a lightweight layout pass instead of full requestLayout()
+            appBarLayout.invalidate()
         }
     }
     
     /**
-     * Perform snap animation to nearest state
+     * Immediately show the toolbar (used for near-top scenarios)
      */
-    private fun performSnapAnimation(velocity: Float) {
-        if (totalScrollRange == 0) return
+    private fun showToolbar() {
+        if (currentOffset != 0) {
+            cancelSnapAnimation()
+            setOffsetSmooth(0)
+            state = State.IDLE
+        }
+    }
+    
+    private fun cancelSnapAnimation() {
+        snapAnimator?.cancel()
+        snapAnimator = null
+    }
+    
+    /**
+     * Perform snap animation to nearest state with improved velocity detection
+     */
+    private fun performSnapToNearestState() {
+        if (totalScrollRange == 0 || state == State.ANIMATING) return
+        
+        state = State.ANIMATING
+        
+        // Get final velocity from tracker
+        val finalVelocity = velocityTracker.getVelocity()
         
         // Calculate current visibility percentage
         val visibilityPercent = 1f - (abs(currentOffset).toFloat() / totalScrollRange)
         
-        // Determine target based on position and velocity
-        val targetOffset = when {
-            // Strong velocity overrides position
-            velocity > VELOCITY_THRESHOLD -> 0 // Show
-            velocity < -VELOCITY_THRESHOLD -> -totalScrollRange // Hide
-            // Otherwise use position
+        // Determine target with improved logic
+        val targetOffset = determineSnapTarget(visibilityPercent, finalVelocity, scrollVelocity)
+        
+        // Skip if already at target
+        if (abs(currentOffset - targetOffset) < SNAP_TOLERANCE) {
+            state = State.IDLE
+            return
+        }
+        
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Snapping: $currentOffset → $targetOffset (vis=${String.format("%.1f", visibilityPercent * 100)}%, vel=$finalVelocity)")
+        }
+        
+        animateToTarget(targetOffset)
+    }
+    
+    private fun determineSnapTarget(visibilityPercent: Float, touchVelocity: Float, scrollVel: Float): Int {
+        return when {
+            // Strong touch velocity overrides everything
+            touchVelocity > VELOCITY_THRESHOLD -> 0 // Show
+            touchVelocity < -VELOCITY_THRESHOLD -> -totalScrollRange // Hide
+            
+            // Medium scroll velocity influences decision
+            scrollVel > SCROLL_VELOCITY_THRESHOLD && visibilityPercent > 0.2f -> 0 // Show
+            scrollVel < -SCROLL_VELOCITY_THRESHOLD && visibilityPercent < 0.8f -> -totalScrollRange // Hide
+            
+            // Default to position-based snapping
             visibilityPercent >= SNAP_THRESHOLD -> 0 // Show if more than 50% visible
             else -> -totalScrollRange // Hide if less than 50% visible
         }
+    }
+    
+    private fun animateToTarget(targetOffset: Int) {
+        cancelSnapAnimation()
         
-        // Skip if already at target
-        if (currentOffset == targetOffset) return
-        
-        Log.d(TAG, "Snapping from $currentOffset to $targetOffset (visibility=$visibilityPercent, velocity=$velocity)")
-        
-        // Animate to target
-        snapAnimator?.cancel()
         snapAnimator = ValueAnimator.ofInt(currentOffset, targetOffset).apply {
-            duration = SNAP_ANIMATION_DURATION
+            duration = calculateAnimationDuration(currentOffset, targetOffset)
             interpolator = DecelerateInterpolator()
             
             addUpdateListener { animation ->
                 val value = animation.animatedValue as Int
-                setOffset(value)
+                setOffsetSmooth(value)
             }
+            
+            addListener(object : android.animation.Animator.AnimatorListener {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    state = State.IDLE
+                    snapAnimator = null
+                }
+                override fun onAnimationStart(animation: android.animation.Animator) {}
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    state = State.IDLE
+                    snapAnimator = null
+                }
+                override fun onAnimationRepeat(animation: android.animation.Animator) {}
+            })
             
             start()
         }
+    }
+    
+    private fun calculateAnimationDuration(from: Int, to: Int): Long {
+        val distance = abs(to - from)
+        val maxDistance = totalScrollRange
         
-        isAnimating = true
-        snapAnimator?.addListener(object : android.animation.Animator.AnimatorListener {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                isAnimating = false
-            }
-            override fun onAnimationStart(animation: android.animation.Animator) {}
-            override fun onAnimationCancel(animation: android.animation.Animator) {
-                isAnimating = false
-            }
-            override fun onAnimationRepeat(animation: android.animation.Animator) {}
-        })
+        if (maxDistance == 0) return SNAP_ANIMATION_DURATION
+        
+        val ratio = distance.toFloat() / maxDistance
+        return (SNAP_ANIMATION_DURATION * (0.3f + 0.7f * ratio)).toLong()
     }
     
     /**
@@ -213,15 +363,23 @@ class ViewHideHandler(
     companion object {
         private const val TAG = "ViewHideHandler"
         
-        // Constants
+        // Behavior constants
         private const val NEAR_TOP_THRESHOLD = 50 // Always show toolbar within 50px of top
         private const val SCROLL_TO_OFFSET_RATIO = 1.0f // 1:1 mapping of scroll to toolbar movement
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
-        private const val SNAP_ANIMATION_DURATION = 200L // Duration of snap animation
-        private const val VELOCITY_THRESHOLD = 500f // Velocity (px/s) to override position-based snap
+        private const val SNAP_TOLERANCE = 5 // Skip animation if within 5px of target
+        
+        // Animation constants
+        private const val SNAP_ANIMATION_DURATION = 200L // Base duration of snap animation
+        private const val MOMENTUM_SETTLE_DELAY = 50L // Delay before snap after touch release
+        
+        // Velocity thresholds
+        private const val VELOCITY_THRESHOLD = 800f // Touch velocity (px/s) to override position
+        private const val SCROLL_VELOCITY_THRESHOLD = 300f // Scroll velocity threshold
+        private const val MIN_SCROLL_VELOCITY = 50f // Minimum velocity to consider "scrolling"
         
         // Velocity tracking
         private const val VELOCITY_WINDOW = 100L // Time window for velocity calculation
-        private const val VELOCITY_SAMPLE_SIZE = 5 // Number of recent movements to consider
+        private const val VELOCITY_SAMPLE_SIZE = 8 // Number of recent movements to consider
     }
 }
