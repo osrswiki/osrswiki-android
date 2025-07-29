@@ -40,6 +40,11 @@ class ViewHideHandler(
     private val recentDeltas = ArrayDeque<Int>(8) // Track last 8 scroll deltas
     private var oscillationDetected = false
     
+    // Scroll-end detection for snapping
+    private val scrollEndHandler = Handler(Looper.getMainLooper())
+    private var scrollEndRunnable: Runnable? = null
+    private var lastScrollTime = 0L
+    
     init {
         setupBehavior()
         setupOffsetTracking()
@@ -83,15 +88,22 @@ class ViewHideHandler(
         scrollView.addOnScrollChangeListener { oldScrollY, scrollY, isHumanScroll ->
             val scrollDelta = scrollY - oldScrollY
             
+            // Update last scroll time for scroll-end detection
+            lastScrollTime = System.currentTimeMillis()
+            
             // Immediate response - no filtering, no delays
             if (scrollY <= NEAR_TOP_THRESHOLD) {
                 // Always show when near top
                 isNearTop = true
                 showToolbarImmediate()
+                cancelScrollEndDetection() // No snapping needed near top
             } else {
                 isNearTop = false
                 // Direct translation - immediate response like iOS
                 handleImmediateScroll(scrollDelta)
+                
+                // Schedule scroll-end detection for snapping
+                scheduleScrollEndDetection()
             }
             
             lastScrollY = scrollY
@@ -106,22 +118,42 @@ class ViewHideHandler(
      * Handle touch end to prevent intermediate states
      */
     private fun handleTouchEnd() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "Touch end detected - checking for snap")
+        performSnap("touch_end")
+    }
+    
+    /**
+     * Handle scroll end to prevent intermediate states
+     */
+    private fun handleScrollEnd() {
+        if (BuildConfig.DEBUG) Log.d(TAG, "Scroll end detected - checking for snap")
+        performSnap("scroll_end")
+    }
+    
+    /**
+     * Perform snap to nearest complete state
+     */
+    private fun performSnap(trigger: String) {
         // Snap to nearest complete state to prevent partial exposure
         if (!isNearTop && totalScrollRange > 0) {
             val visibilityPercent = 1f - (kotlin.math.abs(currentOffset).toFloat() / totalScrollRange)
             
             val targetOffset = if (visibilityPercent >= SNAP_THRESHOLD) {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to SHOW (vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to SHOW (vis=${String.format("%.1f", visibilityPercent * 100)}%) - trigger=$trigger")
                 0 // Show
             } else {
-                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to HIDE (vis=${String.format("%.1f", visibilityPercent * 100)}%)")
+                if (BuildConfig.DEBUG) Log.d(TAG, "Snap to HIDE (vis=${String.format("%.1f", visibilityPercent * 100)}%) - trigger=$trigger")
                 -totalScrollRange // Hide
             }
             
             // Only snap if not already at target
             if (kotlin.math.abs(currentOffset - targetOffset) > SNAP_TOLERANCE) {
                 setOffsetImmediate(targetOffset)
+            } else {
+                if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - already at target (offset=$currentOffset, target=$targetOffset)")
             }
+        } else {
+            if (BuildConfig.DEBUG) Log.d(TAG, "Skip snap - near top or invalid range (isNearTop=$isNearTop, totalScrollRange=$totalScrollRange)")
         }
     }
     
@@ -243,6 +275,37 @@ class ViewHideHandler(
     }
     
     /**
+     * Schedule scroll-end detection for snapping
+     */
+    private fun scheduleScrollEndDetection() {
+        // Cancel any existing scroll-end detection
+        cancelScrollEndDetection()
+        
+        // Schedule new scroll-end detection
+        scrollEndRunnable = Runnable {
+            // Check if scroll has actually stopped
+            val timeSinceLastScroll = System.currentTimeMillis() - lastScrollTime
+            if (timeSinceLastScroll >= SCROLL_END_TIMEOUT) {
+                handleScrollEnd()
+            } else {
+                // Reschedule if still scrolling
+                scheduleScrollEndDetection()
+            }
+        }
+        scrollEndHandler.postDelayed(scrollEndRunnable!!, SCROLL_END_TIMEOUT)
+    }
+    
+    /**
+     * Cancel scroll-end detection
+     */
+    private fun cancelScrollEndDetection() {
+        scrollEndRunnable?.let {
+            scrollEndHandler.removeCallbacks(it)
+            scrollEndRunnable = null
+        }
+    }
+    
+    /**
      * Immediate toolbar position update - no animation delays
      */
     private fun updateToolbarPositionImmediate(movement: Int) {
@@ -293,5 +356,6 @@ class ViewHideHandler(
         // Snap behavior constants  
         private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
         private const val SNAP_TOLERANCE = 5 // Skip snap if within 5px of target
+        private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
     }
 }
