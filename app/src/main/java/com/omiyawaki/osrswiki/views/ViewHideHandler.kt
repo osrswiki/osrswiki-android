@@ -1,327 +1,227 @@
 package com.omiyawaki.osrswiki.views
 
+import android.animation.ValueAnimator
 import android.util.Log
-import android.view.MotionEvent
-import android.view.View
+import android.view.animation.DecelerateInterpolator
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.appbar.AppBarLayout
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * Animation-aware handler for showing and hiding an AppBarLayout based on scroll state.
- * Solves common UX issues: slow scroll detection, oscillation loops, and reliable recall.
+ * Browser-style proportional handler for AppBarLayout that mimics mobile browser URL bar behavior.
+ * Features smooth proportional movement during scroll and snap-to-complete on release.
  * 
- * Key Features:
- * - Animation state tracking to ignore layout-induced scroll events
- * - Touch state detection for stationary finger scenarios  
- * - Velocity-based validation to detect real vs phantom scrolls
- * - Momentum-aware thresholds for responsive behavior
- *
- * @param targetView The AppBarLayout that will be hidden or shown.
+ * @param appBarLayout The AppBarLayout to control
+ * @param coordinatorLayout The parent CoordinatorLayout
  */
-class ViewHideHandler(private val targetView: View) {
-    private var lastScrollY = 0
-    private var state = State.EXPANDED
-    private var isReallyAnimating = false
+class ViewHideHandler(
+    private val appBarLayout: AppBarLayout,
+    private val coordinatorLayout: CoordinatorLayout
+) {
+    private var behavior: AppBarLayout.Behavior? = null
+    private var totalScrollRange = 0
+    private var currentOffset = 0
+    private var isAnimating = false
+    private var snapAnimator: ValueAnimator? = null
+    
+    // Touch tracking
+    private var isTouching = false
     private var lastTouchY = 0f
+    private var touchStartOffset = 0
+    private var velocityTracker = VelocityTracker()
     
-    // Touch-based gesture tracking
-    private val gestureTracker = TouchGestureTracker()
-    
-    // Track recent scroll events for momentum detection (fallback only)
-    private val scrollHistory = ArrayDeque<ScrollEvent>(MOMENTUM_SAMPLE_SIZE)
-    
-    private data class ScrollEvent(val delta: Int, val timestamp: Long)
-    
-    private enum class State {
-        EXPANDED,
-        COLLAPSED
-    }
-
-    /**
-     * Sets the scrollable view that will trigger the hide/show behavior.
-     * @param scrollView The scrolling view.
-     */
-    fun setScrollView(scrollView: ObservableWebView) {
-        // Set up animation lifecycle tracking
-        if (targetView is AppBarLayout) {
-            targetView.addOnOffsetChangedListener { appBarLayout, verticalOffset ->
-                val totalScrollRange = appBarLayout.totalScrollRange
-                val wasAnimating = isReallyAnimating
-                
-                // Detect if we're in the middle of an animation
-                isReallyAnimating = abs(verticalOffset) > 0 && abs(verticalOffset) < totalScrollRange
-                
-                if (wasAnimating && !isReallyAnimating) {
-                    // Animation just completed
-                    Log.d(TAG, "Animation completed - offset=$verticalOffset, range=$totalScrollRange")
-                    state = if (abs(verticalOffset) >= totalScrollRange) State.COLLAPSED else State.EXPANDED
-                }
-                
-                Log.d(TAG, "AppBar offset changed: $verticalOffset/$totalScrollRange, animating=$isReallyAnimating")
-            }
+    init {
+        // Get the AppBarLayout behavior
+        val params = appBarLayout.layoutParams as? CoordinatorLayout.LayoutParams
+        behavior = params?.behavior as? AppBarLayout.Behavior
+        
+        // If no behavior exists, create one
+        if (behavior == null) {
+            behavior = AppBarLayout.Behavior()
+            params?.behavior = behavior
         }
         
-        // Track raw touch gestures
+        // Track the total scroll range
+        appBarLayout.addOnOffsetChangedListener { _, verticalOffset ->
+            totalScrollRange = appBarLayout.totalScrollRange
+            currentOffset = verticalOffset
+            
+            Log.d(TAG, "Offset changed: $verticalOffset / -$totalScrollRange")
+        }
+    }
+    
+    /**
+     * Sets the scrollable view that will drive the toolbar movement
+     */
+    fun setScrollView(scrollView: ObservableWebView) {
+        // Track touch state
         scrollView.addOnDownMotionEventListener {
+            isTouching = true
             lastTouchY = scrollView.lastTouchY
-            gestureTracker.onTouchDown(lastTouchY)
-            Log.d(TAG, "Touch DOWN: y=$lastTouchY")
+            touchStartOffset = currentOffset
+            velocityTracker.clear()
+            
+            // Cancel any ongoing snap animation
+            snapAnimator?.cancel()
+            
+            Log.d(TAG, "Touch DOWN at Y=$lastTouchY, offset=$currentOffset")
         }
         
         scrollView.addOnUpOrCancelMotionEventListener {
-            val gesture = gestureTracker.onTouchUp()
-            Log.d(TAG, "Touch UP/CANCEL: $gesture")
+            isTouching = false
             
-            // Process completed gesture
-            if (gesture.isSignificant) {
-                processGesture(gesture)
-            }
+            // Perform snap-to-complete animation
+            val velocity = velocityTracker.getVelocity()
+            performSnapAnimation(velocity)
+            
+            Log.d(TAG, "Touch UP, velocity=$velocity")
         }
         
+        // Handle scroll events
         scrollView.addOnScrollChangeListener { _, scrollY, isHumanScroll ->
-            if (!isHumanScroll || targetView !is AppBarLayout) {
+            if (!isHumanScroll) return@addOnScrollChangeListener
+            
+            // Always show toolbar when near top
+            if (scrollY <= NEAR_TOP_THRESHOLD) {
+                setOffset(0)
                 return@addOnScrollChangeListener
             }
             
-            val dy = scrollY - lastScrollY
-            Log.d(TAG, "ScrollEvent: scrollY=$scrollY, dy=$dy, gestureActive=${gestureTracker.isActivelyTracking()}, state=$state")
-            
-            // Update gesture tracker with current touch position if actively tracking
-            if (gestureTracker.isActivelyTracking()) {
-                gestureTracker.onTouchMove(scrollView.lastTouchY)
+            // During touch, update position proportionally
+            if (isTouching && !isAnimating) {
+                val currentTouchY = scrollView.lastTouchY
+                val touchDelta = currentTouchY - lastTouchY
                 
-                // For active gestures, use touch-based detection
-                val currentGesture = gestureTracker.getCurrentGesture()
-                if (currentGesture?.isSignificant == true) {
-                    Log.d(TAG, "Processing active gesture: $currentGesture")
-                    processGesture(currentGesture)
-                }
-                return@addOnScrollChangeListener
+                // Update velocity tracker
+                velocityTracker.addMovement(touchDelta)
+                
+                // Map touch delta to offset change (inverted because finger up = scroll down)
+                val offsetDelta = -touchDelta * SCROLL_TO_OFFSET_RATIO
+                val newOffset = currentOffset + offsetDelta.toInt()
+                
+                // Clamp to valid range
+                val clampedOffset = max(-totalScrollRange, min(0, newOffset))
+                setOffset(clampedOffset)
+                
+                lastTouchY = currentTouchY
+                
+                Log.d(TAG, "Touch move: delta=$touchDelta, newOffset=$clampedOffset")
+            }
+        }
+    }
+    
+    /**
+     * Directly set the toolbar offset
+     */
+    private fun setOffset(offset: Int) {
+        behavior?.let {
+            it.topAndBottomOffset = offset
+            appBarLayout.requestLayout()
+        }
+    }
+    
+    /**
+     * Perform snap animation to nearest state
+     */
+    private fun performSnapAnimation(velocity: Float) {
+        if (totalScrollRange == 0) return
+        
+        // Calculate current visibility percentage
+        val visibilityPercent = 1f - (abs(currentOffset).toFloat() / totalScrollRange)
+        
+        // Determine target based on position and velocity
+        val targetOffset = when {
+            // Strong velocity overrides position
+            velocity > VELOCITY_THRESHOLD -> 0 // Show
+            velocity < -VELOCITY_THRESHOLD -> -totalScrollRange // Hide
+            // Otherwise use position
+            visibilityPercent >= SNAP_THRESHOLD -> 0 // Show if more than 50% visible
+            else -> -totalScrollRange // Hide if less than 50% visible
+        }
+        
+        // Skip if already at target
+        if (currentOffset == targetOffset) return
+        
+        Log.d(TAG, "Snapping from $currentOffset to $targetOffset (visibility=$visibilityPercent, velocity=$velocity)")
+        
+        // Animate to target
+        snapAnimator?.cancel()
+        snapAnimator = ValueAnimator.ofInt(currentOffset, targetOffset).apply {
+            duration = SNAP_ANIMATION_DURATION
+            interpolator = DecelerateInterpolator()
+            
+            addUpdateListener { animation ->
+                val value = animation.animatedValue as Int
+                setOffset(value)
             }
             
-            // CRITICAL: Ignore all scrolls during animation to prevent oscillation
-            if (isReallyAnimating) {
-                Log.d(TAG, "Ignoring scroll during animation")
-                return@addOnScrollChangeListener
+            start()
+        }
+        
+        isAnimating = true
+        snapAnimator?.addListener(object : android.animation.Animator.AnimatorListener {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                isAnimating = false
             }
-            
-            // Position-aware behavior: always show at absolute top
-            if (scrollY <= ABSOLUTE_TOP_THRESHOLD) {
-                if (state == State.COLLAPSED) {
-                    expandToolbar()
-                }
-                return@addOnScrollChangeListener
+            override fun onAnimationStart(animation: android.animation.Animator) {}
+            override fun onAnimationCancel(animation: android.animation.Animator) {
+                isAnimating = false
             }
-
-            val currentTime = System.currentTimeMillis()
+            override fun onAnimationRepeat(animation: android.animation.Animator) {}
+        })
+    }
+    
+    /**
+     * Simple velocity tracker for gesture detection
+     */
+    private class VelocityTracker {
+        private val movements = mutableListOf<Movement>()
+        
+        data class Movement(val delta: Float, val timestamp: Long)
+        
+        fun clear() {
+            movements.clear()
+        }
+        
+        fun addMovement(delta: Float) {
+            movements.add(Movement(delta, System.currentTimeMillis()))
             
-            // Skip if scroll hasn't actually changed
-            if (dy == 0) {
-                Log.d(TAG, "Skipping: dy=0 (no actual scroll change)")
-                return@addOnScrollChangeListener
-            }
+            // Keep only recent movements
+            val cutoff = System.currentTimeMillis() - VELOCITY_WINDOW
+            movements.removeAll { it.timestamp < cutoff }
+        }
+        
+        fun getVelocity(): Float {
+            if (movements.size < 2) return 0f
             
-            // Detect phantom scroll events (characteristic patterns)
-            val isPhantomEvent = detectPhantomScrollEvent(dy, currentTime)
-            if (isPhantomEvent) {
-                Log.d(TAG, "Phantom scroll detected - ignoring")
-                return@addOnScrollChangeListener
-            }
+            val recent = movements.takeLast(VELOCITY_SAMPLE_SIZE)
+            if (recent.size < 2) return 0f
             
-            // Skip tiny scroll changes that are likely noise
-            if (abs(dy) < MIN_SCROLL_THRESHOLD) {
-                Log.d(TAG, "Skipping: abs(dy)=${abs(dy)} < threshold=$MIN_SCROLL_THRESHOLD")
-                return@addOnScrollChangeListener
-            }
+            val totalDelta = recent.sumOf { it.delta.toDouble() }.toFloat()
+            val timeDelta = recent.last().timestamp - recent.first().timestamp
             
-            // Update scroll history for momentum detection
-            scrollHistory.addLast(ScrollEvent(dy, currentTime))
-            if (scrollHistory.size > MOMENTUM_SAMPLE_SIZE) {
-                scrollHistory.removeFirst()
-            }
-            
-            // Validate scroll velocity pattern
-            if (!isScrollVelocityValid()) {
-                // Erratic velocity pattern suggests layout-induced scrolls
-                Log.d(TAG, "Skipping: invalid scroll velocity pattern detected")
-                return@addOnScrollChangeListener
-            }
-            
-            lastScrollY = scrollY
-            
-            // Determine if we have consistent scroll direction
-            val isConsistentScroll = isScrollDirectionConsistent()
-            
-            // Choose threshold based on scroll consistency (fallback scroll-based detection)
-            val threshold = if (isConsistentScroll) {
-                CONSISTENT_SCROLL_THRESHOLD
+            return if (timeDelta > 0) {
+                (totalDelta / timeDelta) * 1000f // pixels per second
             } else {
-                ERRATIC_SCROLL_THRESHOLD
-            }
-            Log.d(TAG, "Fallback scroll detection - threshold: $threshold (consistent=$isConsistentScroll)")
-            
-            // Apply hide/show logic with dynamic threshold
-            when (state) {
-                State.EXPANDED -> {
-                    if (dy > threshold) {
-                        // Scrolling down consistently enough to hide
-                        Log.d(TAG, "ACTION: Collapsing toolbar (dy=$dy > threshold=$threshold)")
-                        collapseToolbar()
-                    } else {
-                        Log.d(TAG, "No action: dy=$dy <= threshold=$threshold")
-                    }
-                }
-                
-                State.COLLAPSED -> {
-                    if (dy < -threshold) {
-                        // Scrolling up consistently enough to show
-                        Log.d(TAG, "ACTION: Expanding toolbar (dy=$dy < -threshold=$-threshold)")
-                        expandToolbar()
-                    } else {
-                        Log.d(TAG, "No action: dy=$dy >= -threshold=$-threshold")
-                    }
-                }
-                
+                0f
             }
         }
     }
     
-    /**
-     * Validates that scroll velocity follows a reasonable pattern.
-     * Animation-induced scrolls tend to have sudden velocity changes.
-     */
-    private fun isScrollVelocityValid(): Boolean {
-        if (scrollHistory.size < 2) return true
-        
-        val recentEvents = scrollHistory.takeLast(2)
-        val timeDelta = recentEvents[1].timestamp - recentEvents[0].timestamp
-        
-        if (timeDelta == 0L) return false
-        
-        // Check for sudden direction reversal with high velocity
-        val prevDelta = recentEvents[0].delta
-        val currDelta = recentEvents[1].delta
-        
-        // Sudden reversal suggests animation-induced adjustment
-        if (prevDelta > 5 && currDelta < -5 || prevDelta < -5 && currDelta > 5) {
-            Log.d(TAG, "Velocity validation failed: sudden reversal (prev=$prevDelta, curr=$currDelta)")
-            return false
-        }
-        
-        return true
-    }
-    
-    /**
-     * Checks if recent scroll events show consistent direction.
-     * Consistent scrolling gets lower thresholds for better responsiveness.
-     */
-    private fun isScrollDirectionConsistent(): Boolean {
-        if (scrollHistory.size < MOMENTUM_SAMPLE_SIZE) {
-            return false
-        }
-        
-        val signs = scrollHistory.map { 
-            when {
-                it.delta > 0 -> 1
-                it.delta < 0 -> -1
-                else -> 0
-            }
-        }
-        
-        val positiveCount = signs.count { it > 0 }
-        val negativeCount = signs.count { it < 0 }
-        
-        // Consistent if 80% or more of recent scrolls are in the same direction
-        val consistencyThreshold = (MOMENTUM_SAMPLE_SIZE * 0.8).toInt()
-        return positiveCount >= consistencyThreshold || negativeCount >= consistencyThreshold
-    }
-    
-    private fun collapseToolbar() {
-        if (isReallyAnimating) {
-            Log.d(TAG, "collapseToolbar: Already animating, skipping")
-            return
-        }
-        
-        Log.d(TAG, "Starting collapse animation")
-        (targetView as AppBarLayout).setExpanded(false, true)
-        
-        // Clear scroll history to prevent carryover
-        scrollHistory.clear()
-    }
-    
-    private fun expandToolbar() {
-        if (isReallyAnimating) {
-            Log.d(TAG, "expandToolbar: Already animating, skipping")
-            return
-        }
-        
-        Log.d(TAG, "Starting expand animation")
-        (targetView as AppBarLayout).setExpanded(true, true)
-        
-        // Clear scroll history to prevent carryover
-        scrollHistory.clear()
-    }
-
-    /**
-     * Process a completed touch gesture to determine toolbar action
-     */
-    private fun processGesture(gesture: TouchGestureTracker.GestureResult) {
-        Log.d(TAG, "Processing gesture: $gesture")
-        
-        when (gesture.direction) {
-            TouchGestureTracker.Direction.DOWN -> {
-                // Finger DOWN = Scroll UP = Show toolbar
-                if (state == State.COLLAPSED && gesture.totalDistance >= GESTURE_SHOW_THRESHOLD) {
-                    Log.d(TAG, "Gesture: Showing toolbar (${gesture.totalDistance}px finger down = scroll up)")
-                    expandToolbar()
-                }
-            }
-            TouchGestureTracker.Direction.UP -> {
-                // Finger UP = Scroll DOWN = Hide toolbar
-                if (state == State.EXPANDED && gesture.totalDistance >= GESTURE_HIDE_THRESHOLD) {
-                    Log.d(TAG, "Gesture: Hiding toolbar (${gesture.totalDistance}px finger up = scroll down)")
-                    collapseToolbar()
-                }
-            }
-            TouchGestureTracker.Direction.NONE -> {
-                Log.d(TAG, "Gesture: No clear direction - ignoring")
-            }
-        }
-    }
-    
-    /**
-     * Detect scroll events that are likely phantom events from layout changes
-     */
-    private fun detectPhantomScrollEvent(dy: Int, currentTime: Long): Boolean {
-        // Large sudden scroll changes are suspicious
-        if (abs(dy) > PHANTOM_EVENT_THRESHOLD) {
-            Log.d(TAG, "Phantom detection: Large dy=$dy")
-            return true
-        }
-        
-        // TODO: Add more sophisticated phantom detection based on timing patterns
-        
-        return false
-    }
-
     companion object {
         private const val TAG = "ViewHideHandler"
         
-        // Threshold values for fallback scroll detection
-        private const val CONSISTENT_SCROLL_THRESHOLD = 15      // For intentional scrolling (fallback)
-        private const val ERRATIC_SCROLL_THRESHOLD = 30         // For erratic scrolling (fallback)
-        private const val MIN_SCROLL_THRESHOLD = 5              // Ignore tiny scroll changes
-        private const val ABSOLUTE_TOP_THRESHOLD = 50          // Auto-show within 50px of top
+        // Constants
+        private const val NEAR_TOP_THRESHOLD = 50 // Always show toolbar within 50px of top
+        private const val SCROLL_TO_OFFSET_RATIO = 1.0f // 1:1 mapping of scroll to toolbar movement
+        private const val SNAP_THRESHOLD = 0.5f // Snap to show if >50% visible
+        private const val SNAP_ANIMATION_DURATION = 200L // Duration of snap animation
+        private const val VELOCITY_THRESHOLD = 500f // Velocity (px/s) to override position-based snap
         
-        // Phantom event detection
-        private const val PHANTOM_EVENT_THRESHOLD = 80         // Large sudden changes likely phantom
-        private const val PHANTOM_TIME_WINDOW = 500L           // Time window after state change
-        
-        // Touch gesture thresholds
-        private const val GESTURE_HIDE_THRESHOLD = 1f          // Immediate response (was 100f)
-        private const val GESTURE_SHOW_THRESHOLD = 1f          // Immediate response (was 100f)
-        
-        // Momentum detection (fallback)
-        private const val MOMENTUM_SAMPLE_SIZE = 4              // Number of recent scrolls to analyze
+        // Velocity tracking
+        private const val VELOCITY_WINDOW = 100L // Time window for velocity calculation
+        private const val VELOCITY_SAMPLE_SIZE = 5 // Number of recent movements to consider
     }
 }
