@@ -161,8 +161,8 @@ class TouchGestureTracker {
         private const val TAG = "TouchGestureTracker"
         
         // Gesture detection thresholds
-        private const val DIRECTION_THRESHOLD = 20f        // Minimum movement to determine direction
-        private const val MIN_GESTURE_DISTANCE = 50f       // Minimum total distance for significant gesture
+        private const val DIRECTION_THRESHOLD = 5f         // Minimum movement to determine direction (reduced from 20f)
+        private const val MIN_GESTURE_DISTANCE = 1f        // Immediate response for significant gesture (was 50f)
         private const val MIN_GESTURE_VELOCITY = 200f      // Minimum velocity (pixels/second) for significant gesture
         
         // Movement tracking
