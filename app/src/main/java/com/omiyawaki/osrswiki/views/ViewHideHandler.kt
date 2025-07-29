@@ -27,20 +27,15 @@ class ViewHideHandler(
     private var totalScrollRange = 0
     private var currentOffset = 0
     
+    // Touch-based gesture tracking (primary input source)
+    private val gestureTracker = TouchGestureTracker()
+    
+    // Touch state tracking
+    private var isTouchActive = false
+    
     // Simple state tracking for immediate response
     private var isNearTop = true
     private var lastScrollY = 0
-    private var scrollDirection = 0 // -1 up, 0 none, 1 down
-    
-    // Enhanced anti-jitter: prevent oscillations without delays
-    private var cumulativeDelta = 0
-    private var lastAppliedDirection = 0
-    private var lastDirectionChangeTime = 0L
-    private var sustainedDirectionTime = 0L
-    
-    // Oscillation pattern detection
-    private val recentDeltas = ArrayDeque<Int>(8) // Track last 8 scroll deltas
-    private var oscillationDetected = false
     
     // Scroll-end detection for snapping
     private val scrollEndHandler = Handler(Looper.getMainLooper())
@@ -54,24 +49,14 @@ class ViewHideHandler(
     private var currentSnapAnimator: ValueAnimator? = null
     private var snapDirection = 0 // Direction of current snap: 1 for hiding, -1 for showing
     
-    // Momentum/velocity tracking for gesture completion detection
+    // Momentum/velocity tracking for gesture completion detection (fallback for non-touch scrolling)
     private val recentScrollEvents = ArrayDeque<ScrollEvent>(10) // Track last 10 scroll events
     private var currentVelocity = 0f // pixels/ms
     private var lastScrollEventTime = 0L
     
-    // Stationary touch detection for feedback loop prevention
-    private var isTouchActive = false
-    private var touchStartTime = 0L
-    private var lastTouchPosition = 0f
-    private var touchMovementAccumulated = 0f
-    private var isStationaryTouch = false
-    private var feedbackLoopDetected = false
-    private val recentToolbarMovements = ArrayDeque<Int>(5) // Track toolbar movements for feedback detection
-    
     private data class ScrollEvent(
         val delta: Int,
-        val timestamp: Long,
-        val touchMovement: Float = 0f // How much the finger actually moved
+        val timestamp: Long
     )
     
     init {
@@ -109,7 +94,7 @@ class ViewHideHandler(
     }
     
     private fun setupNativeScrollBehavior(scrollView: ObservableWebView) {
-        // Add touch start listener to track touch state
+        // Setup touch-based gesture tracking (primary input source)
         scrollView.addOnDownMotionEventListener {
             handleTouchStart(scrollView)
         }
@@ -136,36 +121,23 @@ class ViewHideHandler(
             // Update last scroll time for scroll-end detection
             lastScrollTime = System.currentTimeMillis()
             
-            // Calculate actual finger movement if touch is active
-            val fingerMovement = if (isTouchActive) {
-                val currentTouchY = scrollView.lastTouchY
-                val movement = kotlin.math.abs(currentTouchY - lastTouchPosition)
-                lastTouchPosition = currentTouchY
-                touchMovementAccumulated += movement
-                movement
-            } else {
-                0f
-            }
-            
-            // Check for stationary touch and feedback loops
-            updateStationaryTouchState(scrollDelta, fingerMovement)
-            
-            // Immediate response - no filtering, no delays
+            // Always show when near page top
             if (scrollY <= NEAR_TOP_THRESHOLD) {
-                // Always show when near top
                 isNearTop = true
                 showToolbarImmediate()
                 cancelScrollEndDetection() // No snapping needed near top
             } else {
                 isNearTop = false
-                // Apply feedback loop suppression if detected
-                if (feedbackLoopDetected) {
-                    if (BuildConfig.DEBUG) Log.d(TAG, "Feedback loop detected - suppressing scroll delta=$scrollDelta")
-                    return@addOnScrollChangeListener
-                }
                 
-                // Direct translation - immediate response like iOS
-                handleImmediateScroll(scrollDelta, fingerMovement)
+                // PRIMARY: Use touch-based proportional positioning if gesture is active
+                if (gestureTracker.isActivelyTracking()) {
+                    val currentTouchY = scrollView.lastTouchY
+                    val continuousState = gestureTracker.onTouchMove(currentTouchY)
+                    handleTouchBasedPositioning(continuousState)
+                } else {
+                    // FALLBACK: Use scroll events for non-touch input (keyboard, mouse wheel, etc.)
+                    handleScrollBasedPositioning(scrollDelta)
+                }
                 
                 // Schedule scroll-end detection for snapping
                 scheduleScrollEndDetection()
@@ -174,40 +146,32 @@ class ViewHideHandler(
             lastScrollY = scrollY
             
             if (BuildConfig.DEBUG && scrollDelta != 0) {
-                Log.d(TAG, "Immediate scroll: delta=$scrollDelta, scrollY=$scrollY, offset=$currentOffset")
+                Log.d(TAG, "Scroll event: delta=$scrollDelta, scrollY=$scrollY, gestureActive=${gestureTracker.isActivelyTracking()}")
             }
         }
     }
     
     /**
-     * Handle touch start to track touch state
+     * Handle touch start to track touch state and start gesture tracking
      */
     private fun handleTouchStart(scrollView: ObservableWebView) {
+        val touchY = scrollView.lastTouchY
+        gestureTracker.onTouchDown(touchY)
         isTouchActive = true
-        touchStartTime = System.currentTimeMillis()
-        lastTouchPosition = scrollView.lastTouchY
-        touchMovementAccumulated = 0f
-        isStationaryTouch = false
-        feedbackLoopDetected = false
-        recentToolbarMovements.clear()
         
-        if (BuildConfig.DEBUG) Log.d(TAG, "Touch start detected - tracking touch state")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Touch start detected - gesture tracking started at y=$touchY")
     }
     
     /**
-     * Handle touch end to prevent intermediate states
+     * Handle touch end to complete gesture and trigger snapping
      */
     private fun handleTouchEnd() {
+        val gestureResult = gestureTracker.onTouchUp()
         isTouchActive = false
         
         if (BuildConfig.DEBUG) {
-            val touchDuration = System.currentTimeMillis() - touchStartTime
-            Log.d(TAG, "Touch end detected - duration=${touchDuration}ms, movement=${String.format("%.1f", touchMovementAccumulated)}px, stationary=$isStationaryTouch")
+            Log.d(TAG, "Touch end detected - gesture: $gestureResult")
         }
-        
-        // Clear feedback loop detection
-        feedbackLoopDetected = false
-        recentToolbarMovements.clear()
         
         // Don't snap immediately if there's significant momentum - let scroll_end handle it
         if (hasSignificantMomentum()) {
@@ -280,184 +244,93 @@ class ViewHideHandler(
     }
     
     /**
-     * Handle scroll with anti-jitter deadband - immediate for real movement, dampened for oscillations
+     * Handle touch-based proportional positioning (primary input method)
+     * Now provides immediate response for smooth browser-like behavior
      */
-    private fun handleImmediateScroll(scrollDelta: Int, fingerMovement: Float = 0f) {
+    private fun handleTouchBasedPositioning(continuousState: TouchGestureTracker.ContinuousState) {
+        if (!continuousState.isActive) return
+        
+        // Calculate proposed target offset based on finger movement
+        val proposedTargetOffset = (-continuousState.totalDelta).toInt().coerceIn(-totalScrollRange, 0)
+        
+        // Smart direction logic: prevent hiding when already visible and scrolling up to see content above
+        val scrollDirection = if (continuousState.instantDelta > 0) 1 else -1 // 1 = down/hide, -1 = up/show
+        val isAlreadyVisible = currentOffset >= -VISIBILITY_THRESHOLD
+        val isScrollingUp = scrollDirection == -1
+        
+        val targetOffset = if (isAlreadyVisible && isScrollingUp) {
+            // Keep toolbar visible when already visible and scrolling up to see content above
+            max(0, proposedTargetOffset)
+        } else {
+            proposedTargetOffset
+        }
+        
+        if (targetOffset != currentOffset) {
+            // Always apply immediately for browser-like responsiveness
+            setOffsetImmediate(targetOffset)
+            
+            if (BuildConfig.DEBUG) {
+                val preventedHiding = isAlreadyVisible && isScrollingUp && targetOffset != proposedTargetOffset
+                Log.d(TAG, "Touch positioning: fingerDelta=${String.format("%.1f", continuousState.totalDelta)}, offset=$currentOffset→$targetOffset, velocity=${String.format("%.1f", continuousState.velocity)}${if (preventedHiding) " [prevented hiding]" else ""}")
+            }
+        }
+        
+        // Update momentum tracking with finger-based velocity
+        updateMomentumFromTouch(continuousState)
+    }
+    
+    /**
+     * Handle scroll-based positioning (fallback for non-touch input)
+     * Simplified version without complex anti-jitter since feedback loops are eliminated
+     */
+    private fun handleScrollBasedPositioning(scrollDelta: Int) {
         if (scrollDelta == 0) return
         
-        // Update momentum tracking with finger movement info
-        updateMomentumTracking(scrollDelta, fingerMovement)
+        // Simple direct translation for non-touch input (keyboard, mouse wheel, etc.)
+        val movement = -scrollDelta // Invert for toolbar movement
+        updateToolbarPositionImmediate(movement)
         
-        // Update scroll direction immediately
-        scrollDirection = when {
-            scrollDelta > 0 -> 1  // Scrolling down
-            scrollDelta < 0 -> -1 // Scrolling up
-            else -> 0
-        }
+        // Update momentum tracking for scroll-based input
+        updateMomentumFromScroll(scrollDelta)
         
-        // Apply stationary touch damping if needed
-        val effectiveDelta = if (isStationaryTouch && kotlin.math.abs(scrollDelta) > STATIONARY_FEEDBACK_THRESHOLD) {
-            // Heavy damping for large deltas during stationary touch (likely feedback)
-            val dampedDelta = scrollDelta / STATIONARY_DAMPING_FACTOR
-            if (BuildConfig.DEBUG) {
-                Log.d(TAG, "Stationary touch damping: $scrollDelta → $dampedDelta")
-            }
-            dampedDelta
-        } else {
-            scrollDelta
-        }
-        
-        // Anti-jitter logic: accumulate small opposing movements
-        val movement = calculateAntiJitterMovement(effectiveDelta)
-        
-        if (movement != 0) {
-            // Track toolbar movements for feedback detection
-            recentToolbarMovements.add(movement)
-            if (recentToolbarMovements.size > 5) {
-                recentToolbarMovements.removeFirst()
-            }
-            
-            updateToolbarPositionImmediate(movement)
-        }
-        
-        if (BuildConfig.DEBUG && scrollDelta != 0) {
-            Log.d(TAG, "Scroll: delta=$scrollDelta, effective=$effectiveDelta, cumulative=$cumulativeDelta, movement=$movement, lastDir=$lastAppliedDirection, oscillation=$oscillationDetected, velocity=${String.format("%.1f", currentVelocity)}, finger=${String.format("%.1f", fingerMovement)}")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Scroll positioning: delta=$scrollDelta, movement=$movement, offset=$currentOffset")
         }
     }
     
-    /**
-     * Enhanced anti-jitter calculation: prevent oscillations while maintaining immediate response
-     */
-    private fun calculateAntiJitterMovement(scrollDelta: Int): Int {
-        val currentDirection = if (scrollDelta > 0) 1 else -1
-        val currentTime = System.currentTimeMillis()
-        
-        // Add to recent deltas for oscillation detection
-        recentDeltas.add(scrollDelta)
-        if (recentDeltas.size > OSCILLATION_WINDOW) {
-            recentDeltas.removeFirst()
-        }
-        
-        // Detect oscillation pattern
-        oscillationDetected = detectOscillation()
-        
-        // Track sustained scrolling time for smoother direction changes
-        if (lastAppliedDirection == currentDirection) {
-            sustainedDirectionTime = currentTime - lastDirectionChangeTime
-        } else if (lastAppliedDirection != 0) {
-            // Direction is changing, record the time
-            lastDirectionChangeTime = currentTime
-            sustainedDirectionTime = 0L
-        }
-        
-        // If direction changed, check if this is oscillation or jitter
-        if (lastAppliedDirection != 0 && lastAppliedDirection != currentDirection) {
-            // Check if this is oscillation or small opposing movement (potential jitter)
-            if (kotlin.math.abs(scrollDelta) <= JITTER_THRESHOLD || oscillationDetected) {
-                // Accumulate opposing movements
-                cumulativeDelta += scrollDelta
-                
-                // Calculate adaptive threshold based on context
-                val baseThreshold = if (oscillationDetected) {
-                    DIRECTION_CHANGE_THRESHOLD * 2 // Strong damping for oscillation
-                } else {
-                    // Reduce threshold for sustained scrolling to make direction changes smoother
-                    val sustainedBonus = min(4, (sustainedDirectionTime / 200L).toInt()) // Max 4px reduction after 800ms
-                    max(DIRECTION_CHANGE_THRESHOLD_MIN, DIRECTION_CHANGE_THRESHOLD - sustainedBonus)
-                }
-                
-                // Only apply if accumulated movement overcomes threshold
-                if (kotlin.math.abs(cumulativeDelta) > baseThreshold) {
-                    // Graduated release: don't release all at once to prevent stuttering
-                    val maxRelease = max(DIRECTION_CHANGE_THRESHOLD_MIN, baseThreshold / 2)
-                    val releaseAmount = if (kotlin.math.abs(cumulativeDelta) <= maxRelease) {
-                        -cumulativeDelta // Release all if small enough
-                    } else {
-                        // Release partial amount to prevent large jumps
-                        if (cumulativeDelta > 0) maxRelease else -maxRelease
-                    }
-                    
-                    cumulativeDelta -= releaseAmount // Subtract what we're releasing
-                    lastAppliedDirection = currentDirection
-                    
-                    // Only clear oscillation history if we've released all accumulated movement
-                    if (cumulativeDelta == 0) {
-                        clearOscillationHistory()
-                    }
-                    
-                    return releaseAmount
-                }
-                
-                // Not enough to overcome - ignore this micro-movement/oscillation
-                return 0
-            }
-        }
-        
-        // Normal movement or large direction change - apply immediately
-        cumulativeDelta = 0 // Reset accumulator
-        lastAppliedDirection = currentDirection
-        clearOscillationHistory() // Reset pattern detection on legitimate movement
-        return -scrollDelta
-    }
+    
     
     /**
-     * Detect oscillation pattern in recent scroll deltas
+     * Update momentum tracking from touch gesture
      */
-    private fun detectOscillation(): Boolean {
-        if (recentDeltas.size < 4) return false // Need at least 4 samples
-        
-        val deltas = recentDeltas.toList()
-        var alternatingCount = 0
-        var similarMagnitudeCount = 0
-        
-        // Check for alternating directions
-        for (i in 1 until deltas.size) {
-            val current = deltas[i]
-            val previous = deltas[i - 1]
-            
-            // Check if direction alternated
-            if ((current > 0) != (previous > 0)) {
-                alternatingCount++
-                
-                // Check if magnitudes are similar (potential oscillation)
-                val ratio = kotlin.math.abs(current).toFloat() / kotlin.math.abs(previous).toFloat()
-                if (ratio >= OSCILLATION_SIMILARITY_THRESHOLD && ratio <= (1f / OSCILLATION_SIMILARITY_THRESHOLD)) {
-                    similarMagnitudeCount++
-                }
-            }
-        }
-        
-        // Oscillation detected if most recent movements alternate with similar magnitudes
-        val alternationRatio = alternatingCount.toFloat() / (deltas.size - 1)
-        val similarityRatio = similarMagnitudeCount.toFloat() / alternatingCount.coerceAtLeast(1)
-        
-        val isOscillating = alternationRatio >= 0.7f && similarityRatio >= 0.5f
-        
-        // Enhanced debugging for oscillation detection
-        if (BuildConfig.DEBUG && recentDeltas.size >= 4) {
-            Log.d(TAG, "Oscillation check: deltas=$deltas, alt=$alternatingCount/${deltas.size-1} (${String.format("%.2f", alternationRatio)}), similar=$similarMagnitudeCount/$alternatingCount (${String.format("%.2f", similarityRatio)}), result=$isOscillating")
-        }
-        
-        return isOscillating
-    }
-    
-    /**
-     * Clear oscillation detection history
-     */
-    private fun clearOscillationHistory() {
-        recentDeltas.clear()
-        oscillationDetected = false
-    }
-    
-    /**
-     * Update momentum/velocity tracking from scroll events
-     */
-    private fun updateMomentumTracking(scrollDelta: Int, fingerMovement: Float = 0f) {
+    private fun updateMomentumFromTouch(continuousState: TouchGestureTracker.ContinuousState) {
         val currentTime = System.currentTimeMillis()
         lastScrollEventTime = currentTime
         
-        // Add new scroll event with finger movement info
-        recentScrollEvents.add(ScrollEvent(scrollDelta, currentTime, fingerMovement))
+        // Convert touch velocity (px/s) to momentum velocity (px/ms) and use instant delta as scroll equivalent
+        val scrollEquivalent = (-continuousState.instantDelta).toInt() // Convert finger movement to scroll equivalent
+        currentVelocity = continuousState.velocity / 1000f // Convert px/s to px/ms
+        
+        // Add to scroll events for momentum tracking consistency
+        recentScrollEvents.add(ScrollEvent(scrollEquivalent, currentTime))
+        if (recentScrollEvents.size > MOMENTUM_WINDOW) {
+            recentScrollEvents.removeFirst()
+        }
+        
+        if (BuildConfig.DEBUG && continuousState.velocity > 50f) {
+            Log.d(TAG, "Touch momentum: velocity=${String.format("%.1f", currentVelocity)} px/ms (${String.format("%.0f", continuousState.velocity)} px/s)")
+        }
+    }
+    
+    /**
+     * Update momentum tracking from scroll events (fallback)
+     */
+    private fun updateMomentumFromScroll(scrollDelta: Int) {
+        val currentTime = System.currentTimeMillis()
+        lastScrollEventTime = currentTime
+        
+        // Add new scroll event
+        recentScrollEvents.add(ScrollEvent(scrollDelta, currentTime))
         if (recentScrollEvents.size > MOMENTUM_WINDOW) {
             recentScrollEvents.removeFirst()
         }
@@ -466,7 +339,29 @@ class ViewHideHandler(
         currentVelocity = calculateCurrentVelocity()
         
         if (BuildConfig.DEBUG && recentScrollEvents.size >= 3) {
-            Log.d(TAG, "Momentum: velocity=${String.format("%.1f", currentVelocity)} px/ms, events=${recentScrollEvents.size}")
+            Log.d(TAG, "Scroll momentum: velocity=${String.format("%.1f", currentVelocity)} px/ms, events=${recentScrollEvents.size}")
+        }
+    }
+    
+    /**
+     * Update momentum/velocity tracking from scroll events
+     * DEPRECATED: Legacy method, replaced by updateMomentumFromTouch and updateMomentumFromScroll
+     */
+    private fun updateMomentumTracking(scrollDelta: Int, fingerMovement: Float = 0f) {
+        val currentTime = System.currentTimeMillis()
+        lastScrollEventTime = currentTime
+        
+        // Add new scroll event
+        recentScrollEvents.add(ScrollEvent(scrollDelta, currentTime))
+        if (recentScrollEvents.size > MOMENTUM_WINDOW) {
+            recentScrollEvents.removeFirst()
+        }
+        
+        // Calculate velocity from recent events
+        currentVelocity = calculateCurrentVelocity()
+        
+        if (BuildConfig.DEBUG && recentScrollEvents.size >= 3) {
+            Log.d(TAG, "Legacy momentum: velocity=${String.format("%.1f", currentVelocity)} px/ms, events=${recentScrollEvents.size}")
         }
     }
     
@@ -657,9 +552,18 @@ class ViewHideHandler(
             return null // Not enough momentum to make a prediction
         }
         
+        // Determine momentum direction from recent scroll events
+        val momentumDirection = if (recentScrollEvents.isNotEmpty()) {
+            val recentDelta = recentScrollEvents.takeLast(3).sumOf { it.delta }
+            if (recentDelta > 0) -1 else 1 // Positive scroll delta (down) hides toolbar (negative offset)
+        } else {
+            0 // No clear direction
+        }
+        
+        if (momentumDirection == 0) return null
+        
         // Estimate how much further the toolbar will move based on velocity
         // Using simplified physics: distance = velocity * time * deceleration_factor
-        val momentumDirection = if (scrollDirection > 0) -1 else 1 // Scroll down hides toolbar (negative offset)
         val estimatedAdditionalMovement = (currentVelocity * MOMENTUM_PREDICTION_TIME * MOMENTUM_DECELERATION_FACTOR).toInt()
         
         val predictedOffset = currentOffset + (momentumDirection * estimatedAdditionalMovement)
@@ -672,61 +576,6 @@ class ViewHideHandler(
         return clampedPrediction
     }
     
-    /**
-     * Update stationary touch state and detect feedback loops
-     */
-    private fun updateStationaryTouchState(scrollDelta: Int, fingerMovement: Float) {
-        if (!isTouchActive) {
-            isStationaryTouch = false
-            feedbackLoopDetected = false
-            return
-        }
-        
-        val touchDuration = System.currentTimeMillis() - touchStartTime
-        val avgFingerMovement = if (touchDuration > 0) {
-            touchMovementAccumulated / touchDuration * 1000f // px per second
-        } else {
-            0f
-        }
-        
-        // Check if touch is stationary
-        isStationaryTouch = touchDuration >= STATIONARY_TOUCH_TIME && 
-                           avgFingerMovement < STATIONARY_TOUCH_THRESHOLD
-        
-        // Detect feedback loop pattern: large scroll deltas with minimal finger movement
-        if (isStationaryTouch && kotlin.math.abs(scrollDelta) >= STATIONARY_FEEDBACK_THRESHOLD) {
-            // Check for the characteristic ±77px pattern
-            val isFeedbackPattern = kotlin.math.abs(scrollDelta) == FEEDBACK_LOOP_PATTERN_SIZE ||
-                                   kotlin.math.abs(scrollDelta) > STATIONARY_FEEDBACK_THRESHOLD * 2
-            
-            if (isFeedbackPattern && fingerMovement < 2f) {
-                feedbackLoopDetected = true
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "Feedback loop pattern detected: delta=$scrollDelta, finger=$fingerMovement, avgMovement=${String.format("%.1f", avgFingerMovement)}")
-                }
-            }
-        }
-        
-        // Check toolbar movement pattern for oscillation
-        if (recentToolbarMovements.size >= 4) {
-            val movements = recentToolbarMovements.toList()
-            var opposingCount = 0
-            for (i in 1 until movements.size) {
-                if (movements[i] * movements[i-1] < 0 && 
-                    kotlin.math.abs(movements[i]) > 50 && 
-                    kotlin.math.abs(movements[i-1]) > 50) {
-                    opposingCount++
-                }
-            }
-            
-            if (opposingCount >= 2 && isStationaryTouch) {
-                feedbackLoopDetected = true
-                if (BuildConfig.DEBUG) {
-                    Log.d(TAG, "Toolbar oscillation detected during stationary touch: movements=$movements")
-                }
-            }
-        }
-    }
     
     /**
      * Schedule scroll-end detection for snapping
@@ -880,6 +729,9 @@ class ViewHideHandler(
         private const val SCROLL_END_TIMEOUT = 100L // Milliseconds to wait before considering scroll ended
         private const val SNAP_ANIMATION_DURATION = 150L // Duration for smooth snap animations (reduced for responsiveness)
         private const val SNAP_DEBOUNCE_DELAY = 100L // Prevent multiple snaps within this time window
+        
+        // Smart behavior constants
+        private const val VISIBILITY_THRESHOLD = 10 // px - consider toolbar "visible" when within this offset from 0
         
         // Momentum detection constants
         private const val MOMENTUM_WINDOW = 8 // Number of recent scroll events to track
