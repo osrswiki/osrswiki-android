@@ -12,9 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/page_appbar_layout"
-            style="@style/Widget.App.AppBarLayout.WithShadow"
+        <com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar
+            android:id="@+id/page_toolbar_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/colorSurface"
@@ -24,8 +23,7 @@
                 android:id="@+id/page_toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                app:contentInsetStartWithNavigation="0dp"
-                app:layout_scrollFlags="scroll|enterAlways">
+                app:contentInsetStartWithNavigation="0dp">
 
                 <include layout="@layout/view_unified_toolbar" />
 
@@ -35,6 +33,7 @@
                 android:id="@+id/page_offline_banner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="?attr/actionBarSize"
                 android:background="?attr/colorSecondaryContainer"
                 android:text="@string/offline_content_banner"
                 android:textColor="?attr/colorOnSecondaryContainer"
@@ -46,7 +45,7 @@
                 android:drawablePadding="8dp"
                 tools:visibility="visible" />
 
-        </com.google.android.material.appbar.AppBarLayout>
+        </com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar>
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/page_fragment_container"
@@ -54,7 +53,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:paddingBottom="@dimen/nav_bar_height"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            android:layout_marginTop="?attr/actionBarSize"
             tools:layout="@layout/fragment_page" />
 
         <include 
