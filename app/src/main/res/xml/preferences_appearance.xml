@@ -1,0 +1,41 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ListPreference
+        app:key="app_theme_mode"
+        app:title="App theme"
+        app:summary="%s"
+        app:defaultValue="auto"
+        app:entries="@array/app_theme_mode_entries"
+        app:entryValues="@array/app_theme_mode_values"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        app:key="light_theme_choice"
+        app:title="Light theme"
+        app:summary="%s"
+        app:defaultValue="osrs_light"
+        app:entries="@array/light_theme_choice_entries"
+        app:entryValues="@array/light_theme_choice_values"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        app:key="dark_theme_choice"
+        app:title="Dark theme"
+        app:summary="%s"
+        app:defaultValue="osrs_dark"
+        app:entries="@array/dark_theme_choice_entries"
+        app:entryValues="@array/dark_theme_choice_values"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        app:key="collapseTables"
+        app:title="Collapse tables"
+        app:summary="Collapses infoboxes by default in articles"
+        app:defaultValue="true"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>

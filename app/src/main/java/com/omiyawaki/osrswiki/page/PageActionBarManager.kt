@@ -9,7 +9,7 @@ import androidx.core.widget.TextViewCompat
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
-import com.omiyawaki.osrswiki.settings.SettingsActivity
+import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 
 class PageActionBarManager(
     private val binding: ActivityPageBinding
@@ -29,7 +29,7 @@ class PageActionBarManager(
         
         val themeButton = binding.root.findViewById<View>(R.id.page_action_theme)
         themeButton.setOnClickListener {
-            fragment.startActivity(Intent(fragment.requireContext(), SettingsActivity::class.java))
+            fragment.startActivity(AppearanceSettingsActivity.newIntent(fragment.requireContext()))
         }
         
         val contentsButton = binding.root.findViewById<View>(R.id.page_action_contents)

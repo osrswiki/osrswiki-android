@@ -75,5 +75,17 @@
             android:exported="false"
             android:label="@string/menu_title_settings"
             android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".settings.AppearanceSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/settings_category_appearance"
+            android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".settings.OfflineSettingsActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/settings_category_offline_storage"
+            android:theme="@style/Theme.OSRSWiki" />
     </application>
 </manifest>
