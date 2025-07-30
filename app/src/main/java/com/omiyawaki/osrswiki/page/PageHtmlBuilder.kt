@@ -30,7 +30,9 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
         "web/horizontal_scroll_interceptor.js",
-        "web/responsive_videos.js" // Make video embeds responsive
+        "web/responsive_videos.js", // Make video embeds responsive
+        "web/clipboard_bridge.js", // Android clipboard bridge for iframe support
+        "web/clipboard_debug.js" // Debug clipboard API availability
     )
 
     private val timelineLoggerScript = """

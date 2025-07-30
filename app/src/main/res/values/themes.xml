@@ -177,7 +177,7 @@
         <item name="colorSurfaceVariant">#2A2A2A</item>
         <item name="colorOnSurfaceVariant">@color/wiki_text_near_white</item>
         <item name="android:statusBarColor">@color/wiki_surface_dark</item>
-        <item name="colorControlNormal">@color/wiki_text_near_white</item>
+    <item name="colorControlNormal">@color/wiki_text_near_white</item>
 
         <item name="paper_color">@color/wiki_surface_dark</item>
         <item name="placeholder_color">#BDBDBD</item>
