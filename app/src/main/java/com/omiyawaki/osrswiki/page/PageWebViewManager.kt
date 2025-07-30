@@ -1,6 +1,8 @@
 package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.Color
@@ -9,11 +11,14 @@ import android.util.TypedValue
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
+import android.net.Uri
+import android.os.Message
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
 
@@ -59,6 +64,41 @@ class PageWebViewManager(
         }
     }
 
+    private inner class ClipboardBridge {
+        @JavascriptInterface
+        fun writeText(text: String): Boolean {
+            return try {
+                val clipboardManager = webView.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipData = ClipData.newPlainText("OSRS Wiki", text)
+                clipboardManager.setPrimaryClip(clipData)
+                Log.d("$consoleTag-CLIPBOARD", "Successfully copied text via Android bridge: $text")
+                true
+            } catch (e: Exception) {
+                Log.e("$consoleTag-CLIPBOARD", "Failed to copy text via Android bridge: ${e.message}")
+                false
+            }
+        }
+        
+        @JavascriptInterface
+        fun readText(): String {
+            return try {
+                val clipboardManager = webView.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clipData = clipboardManager.primaryClip
+                if (clipData != null && clipData.itemCount > 0) {
+                    val text = clipData.getItemAt(0).text?.toString() ?: ""
+                    Log.d("$consoleTag-CLIPBOARD", "Successfully read text via Android bridge")
+                    text
+                } else {
+                    Log.d("$consoleTag-CLIPBOARD", "No text available in clipboard")
+                    ""
+                }
+            } catch (e: Exception) {
+                Log.e("$consoleTag-CLIPBOARD", "Failed to read text via Android bridge: ${e.message}")
+                ""
+            }
+        }
+    }
+
     init {
         setupWebView()
     }
@@ -69,6 +109,7 @@ class PageWebViewManager(
             webView.addJavascriptInterface(jsInterface, jsInterfaceName)
         }
         webView.addJavascriptInterface(RenderTimelineLogger(), "RenderTimeline")
+        webView.addJavascriptInterface(ClipboardBridge(), "ClipboardBridge")
 
 
         webView.settings.apply {
@@ -77,6 +118,14 @@ class PageWebViewManager(
             allowFileAccess = false
             allowContentAccess = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            // Enable necessary permissions for iframe clipboard access
+            allowUniversalAccessFromFileURLs = true
+            allowFileAccessFromFileURLs = true
+            // Allow popups and new windows for share functionality
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
+            // Enable focus management for better iframe interaction
+            setNeedInitialFocus(true)
         }
 
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
@@ -129,6 +178,14 @@ class PageWebViewManager(
             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                 consoleMessage?.let {
                     val message = "[${consoleMessage.sourceId()}:${consoleMessage.lineNumber()}] ${consoleMessage.message()}"
+                    
+                    // Log clipboard-related errors with higher visibility
+                    if (message.contains("clipboard", ignoreCase = true) || 
+                        message.contains("copy", ignoreCase = true) ||
+                        message.contains("navigator.clipboard", ignoreCase = true)) {
+                        Log.e("$consoleTag-CLIPBOARD", "CLIPBOARD ERROR: $message")
+                    }
+                    
                     when (consoleMessage.messageLevel()) {
                         ConsoleMessage.MessageLevel.ERROR -> Log.e(consoleTag, message)
                         ConsoleMessage.MessageLevel.WARNING -> Log.w(consoleTag, message)
@@ -137,7 +194,60 @@ class PageWebViewManager(
                 }
                 return true
             }
+
+            /**
+             * Intercepts window.open() calls from cross-origin iframes, including
+             * the "Watch on YouTube" button in YouTube embedded videos.
+             */
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                Log.d(managerTag, "onCreateWindow called - intercepting new window request")
+                
+                // Create a temporary WebView to receive the URL from the window.open() request
+                val tempWebView = WebView(view!!.context)
+                
+                // Set a WebViewClient on the temporary WebView to intercept the navigation
+                tempWebView.webViewClient = object : WebViewClient() {
+                    @Suppress("DEPRECATION") // For older Android versions
+                    override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                        Log.d(managerTag, "Intercepted new window URL: $url")
+                        // Pass the URL to our existing link handler to open externally
+                        linkHandler.processUri(Uri.parse(url))
+                        // Clean up the temporary WebView
+                        view.destroy()
+                        return true
+                    }
+
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): Boolean {
+                        Log.d(managerTag, "Intercepted new window URL: ${request.url}")
+                        // Pass the URL to our existing link handler to open externally
+                        linkHandler.processUri(request.url)
+                        // Clean up the temporary WebView
+                        view.destroy()
+                        return true
+                    }
+                }
+
+                // The transport mechanism needs a WebView to be sent back
+                val transport = resultMsg?.obj as? WebView.WebViewTransport
+                transport?.webView = tempWebView
+                resultMsg?.sendToTarget()
+
+                // Return true to indicate we have handled the new window creation
+                return true
+            }
         }
+        
+        // Enable focus management for iframe interactions
+        webView.isFocusable = true
+        webView.isFocusableInTouchMode = true
         webView.setBackgroundColor(Color.TRANSPARENT)
     }
 

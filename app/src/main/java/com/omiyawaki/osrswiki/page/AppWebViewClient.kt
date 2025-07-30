@@ -17,6 +17,12 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
         Log.d(logTag, "AppWebViewClient.shouldOverrideUrlLoading: ${uri}")
+        
+        // Add specific logging for YouTube URLs to debug the "Watch on YouTube" button
+        if (uri.toString().contains("youtube.com", ignoreCase = true)) {
+            Log.i(logTag, "YOUTUBE URL DETECTED: $uri - attempting to process as external link")
+        }
+        
         // Pass the URI to the LinkHandler for processing. The LinkHandler
         // will determine if it's an internal or external link and then
         // call the appropriate method.
