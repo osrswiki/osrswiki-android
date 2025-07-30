@@ -217,13 +217,18 @@ class PageFragment : Fragment(), RenderCallback {
                 val dy = e2.y - e1.y
                 var result = false
                 try {
+                    L.d("Gesture: dx=${dx.toInt()}, dy=${dy.toInt()}, velX=${velocityX.toInt()}, mapScrolling=${nativeMapHandler.isHorizontalScrollInProgress}")
+                    
                     if (nativeMapHandler.isHorizontalScrollInProgress) {
+                        L.d("Gesture: Blocked by map horizontal scroll")
                         return false
                     }
                     if (abs(dx) > abs(dy) &&
                         abs(dx) > swipeThreshold &&
                         abs(velocityX) > swipeVelocityThreshold
                     ) {
+                        val direction = if (dx > 0) "START" else "END"
+                        L.d("Gesture: Valid swipe detected, direction=$direction")
 
                         if (dx > 0) {
                             callback?.onPageSwipe(Gravity.START)
@@ -231,6 +236,8 @@ class PageFragment : Fragment(), RenderCallback {
                             callback?.onPageSwipe(Gravity.END)
                         }
                         result = true
+                    } else {
+                        L.d("Gesture: Failed thresholds - dx_vs_dy=${abs(dx) > abs(dy)}, dx_threshold=${abs(dx) > swipeThreshold}, vel_threshold=${abs(velocityX) > swipeVelocityThreshold}")
                     }
                 } catch (exception: Exception) {
                     L.e("Error during swipe detection.", exception)
@@ -370,6 +377,10 @@ class PageFragment : Fragment(), RenderCallback {
         super.onDestroyView()
         callback?.onPageFinishActionMode()
         pageReadingListManager.cancelObserving()
+        // Clean up any maps created in this page to prevent bleed-through
+        if (::nativeMapHandler.isInitialized) {
+            nativeMapHandler.cleanup()
+        }
         _binding?.pageWebView?.destroy()
         _binding = null
     }

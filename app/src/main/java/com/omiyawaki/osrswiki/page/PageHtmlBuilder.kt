@@ -29,7 +29,8 @@ class PageHtmlBuilder(private val context: Context) {
         "web/collapsible_content.js",
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
-        "web/horizontal_scroll_interceptor.js"
+        "web/horizontal_scroll_interceptor.js",
+        "web/responsive_videos.js" // Make video embeds responsive
     )
 
     private val timelineLoggerScript = """
