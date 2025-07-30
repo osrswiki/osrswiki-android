@@ -47,6 +47,9 @@ androidxPreferenceKtx = "1.2.1"
 
 moshi = "1.15.1"
 
+# Google Pay
+googlePayWallet = "19.2.1"
+
 [libraries]
 # MapLibre
 maplibre-native = { group = "org.maplibre.gl", name = "android-sdk", version.ref = "maplibre" }
@@ -100,6 +103,9 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
+
+# Google Pay
+google-pay-wallet = { group = "com.google.android.gms", name = "play-services-wallet", version.ref = "googlePayWallet" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

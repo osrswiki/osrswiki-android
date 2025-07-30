@@ -87,5 +87,11 @@
             android:exported="false"
             android:label="@string/settings_category_offline_storage"
             android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".donate.DonateActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/menu_title_donate"
+            android:theme="@style/Theme.OSRSWiki" />
     </application>
 </manifest>
