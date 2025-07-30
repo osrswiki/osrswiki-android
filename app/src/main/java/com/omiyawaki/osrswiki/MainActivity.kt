@@ -13,6 +13,7 @@ import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.search.SearchFragment
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.map.MapFragment
+import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import com.omiyawaki.osrswiki.util.log.L
 
 class MainActivity : BaseActivity() {
@@ -23,6 +24,7 @@ class MainActivity : BaseActivity() {
     private val mapFragment: MapFragment by lazy { MapFragment() }
     private val historyFragment: HistoryFragment by lazy { HistoryFragment.newInstance() }
     private val savedPagesFragment: SavedPagesFragment by lazy { SavedPagesFragment() }
+    private val moreFragment: MoreFragment by lazy { MoreFragment.newInstance() }
     private lateinit var activeFragment: Fragment
 
     companion object {
@@ -31,6 +33,7 @@ class MainActivity : BaseActivity() {
         private const val MAP_FRAGMENT_TAG = "map_fragment"
         private const val HISTORY_FRAGMENT_TAG = "history_fragment"
         private const val SAVED_PAGES_FRAGMENT_TAG = "saved_pages_fragment"
+        private const val MORE_FRAGMENT_TAG = "more_fragment"
         private const val ACTIVE_FRAGMENT_TAG = "active_fragment_tag"
     }
 
@@ -50,11 +53,13 @@ class MainActivity : BaseActivity() {
                 .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, historyFragment, HISTORY_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, savedPagesFragment, SAVED_PAGES_FRAGMENT_TAG)
+                .add(R.id.nav_host_container, moreFragment, MORE_FRAGMENT_TAG)
                 .runOnCommit {
                     // Ensure only mainFragment is visible on startup
                     mapFragment.view?.alpha = 0.0f
                     historyFragment.view?.alpha = 0.0f
                     savedPagesFragment.view?.alpha = 0.0f
+                    moreFragment.view?.alpha = 0.0f
                     mainFragment.view?.alpha = 1.0f
                     
                     // FIX: Bring mainFragment to front so it can receive touches
@@ -71,6 +76,7 @@ class MainActivity : BaseActivity() {
                 MAP_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
                 HISTORY_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(HISTORY_FRAGMENT_TAG)!!
                 SAVED_PAGES_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(SAVED_PAGES_FRAGMENT_TAG)!!
+                MORE_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(MORE_FRAGMENT_TAG)!!
                 else -> supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
             }
             L.d("MainActivity: onCreate: Active fragment is ${activeFragment.javaClass.simpleName}")
@@ -107,6 +113,10 @@ class MainActivity : BaseActivity() {
                     }
                     Log.d("MainActivity", "Navigating to History/Search")
                     historyFragment
+                }
+                R.id.nav_more -> {
+                    Log.d("MainActivity", "Navigating to More")
+                    moreFragment
                 }
                 else -> {
                     Log.w("MainActivity", "Unknown navigation item: ${item.itemId}")
@@ -159,6 +169,7 @@ class MainActivity : BaseActivity() {
             mapFragment -> MAP_FRAGMENT_TAG
             historyFragment -> HISTORY_FRAGMENT_TAG
             savedPagesFragment -> SAVED_PAGES_FRAGMENT_TAG
+            moreFragment -> MORE_FRAGMENT_TAG
             else -> MAIN_FRAGMENT_TAG
         }
         outState.putString(ACTIVE_FRAGMENT_TAG, activeTag)
