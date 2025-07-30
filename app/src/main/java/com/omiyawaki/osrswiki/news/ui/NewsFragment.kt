@@ -141,9 +141,22 @@ class NewsFragment : Fragment() {
     private fun setupRecyclerView(view: View) {
         newsFeedAdapter = NewsFeedAdapter(
             onUpdateItemClicked = { updateItem ->
-                startActivity(
-                    PageActivity.newIntent(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
-                )
+                L.d("NewsFragment: UpdateItem clicked!")
+                L.d("  updateItem.title: '${updateItem.title}'")
+                L.d("  updateItem.articleUrl: '${updateItem.articleUrl}'")
+                L.d("  updateItem.snippet: '${updateItem.snippet}'")
+                L.d("  updateItem.imageUrl: '${updateItem.imageUrl}'")
+                L.d("NewsFragment: About to call PageActivity.newIntent()")
+                
+                try {
+                    val intent = PageActivity.newIntent(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
+                    L.d("NewsFragment: PageActivity intent created successfully")
+                    L.d("NewsFragment: Starting PageActivity...")
+                    startActivity(intent)
+                    L.d("NewsFragment: PageActivity started successfully")
+                } catch (e: Exception) {
+                    L.e("NewsFragment: Exception when starting PageActivity", e)
+                }
             },
             onLinkClicked = { url ->
                 handleLinkClick(url)

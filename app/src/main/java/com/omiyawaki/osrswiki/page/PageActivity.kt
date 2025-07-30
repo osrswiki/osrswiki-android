@@ -49,6 +49,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        L.d("PageActivity.onCreate() called")
         binding = ActivityPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.pageToolbar)
@@ -65,6 +66,13 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         navigationSourceArg = intent.getIntExtra(EXTRA_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
         snippetArg = intent.getStringExtra(EXTRA_PAGE_SNIPPET)
         thumbnailUrlArg = intent.getStringExtra(EXTRA_PAGE_THUMBNAIL)
+        
+        L.d("PageActivity.onCreate() - Extracted intent extras:")
+        L.d("  pageTitleArg: '$pageTitleArg'")
+        L.d("  pageIdArg: '$pageIdArg'")
+        L.d("  navigationSourceArg: $navigationSourceArg")
+        L.d("  snippetArg: '$snippetArg'")
+        L.d("  thumbnailUrlArg: '$thumbnailUrlArg'")
 
         if (savedInstanceState == null) {
             val fragment = PageFragment.newInstance(
@@ -237,21 +245,75 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         const val FRAGMENT_TAG = "PageFragmentTag"
 
         fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
-            val canonicalTitle = getPageTitleFromUrl(updateItem.articleUrl)
-            return newIntent(
-                context = context,
-                pageTitle = canonicalTitle, 
-                pageId = null, 
-                source = source,
-                snippet = updateItem.snippet,
-                thumbnailUrl = updateItem.imageUrl
-            )
+            L.d("PageActivity: Creating intent for UpdateItem")
+            L.d("  UpdateItem.title: '${updateItem.title}'")
+            L.d("  UpdateItem.articleUrl: '${updateItem.articleUrl}'")
+            L.d("  UpdateItem.snippet: '${updateItem.snippet}'")
+            L.d("  UpdateItem.imageUrl: '${updateItem.imageUrl}'")
+            L.d("  source: $source")
+            
+            try {
+                L.d("PageActivity: About to parse URL to extract title...")
+                val canonicalTitle = getPageTitleFromUrl(updateItem.articleUrl)
+                L.d("PageActivity: Successfully extracted canonical title: '$canonicalTitle' from URL: ${updateItem.articleUrl}")
+                
+                L.d("PageActivity: About to create intent with extracted title...")
+                val intent = newIntent(
+                    context = context,
+                    pageTitle = canonicalTitle, 
+                    pageId = null, 
+                    source = source,
+                    snippet = updateItem.snippet,
+                    thumbnailUrl = updateItem.imageUrl
+                )
+                L.d("PageActivity: Intent created successfully for UpdateItem")
+                return intent
+            } catch (e: Exception) {
+                L.e("PageActivity: Failed to create intent for UpdateItem", e)
+                L.e("  Failing UpdateItem details:")
+                L.e("    title: '${updateItem.title}'")
+                L.e("    articleUrl: '${updateItem.articleUrl}'")
+                L.e("    snippet: '${updateItem.snippet}'")
+                L.e("    imageUrl: '${updateItem.imageUrl}'")
+                throw e
+            }
         }
 
         private fun getPageTitleFromUrl(url: String): String {
-            val pathSegment = url.substringAfterLast('/')
-            val withSpaces = pathSegment.replace('_', ' ')
-            return java.net.URLDecoder.decode(withSpaces, "UTF-8")
+            L.d("PageActivity: Parsing URL: $url")
+            
+            try {
+                // Validate URL format
+                if (url.isBlank()) {
+                    throw IllegalArgumentException("URL is blank")
+                }
+                
+                if (!url.startsWith("http")) {
+                    L.w("PageActivity: URL doesn't start with http: $url")
+                }
+                
+                val pathSegment = url.substringAfterLast('/')
+                L.d("PageActivity: Path segment: '$pathSegment'")
+                
+                if (pathSegment.isBlank()) {
+                    throw IllegalArgumentException("Path segment is blank from URL: $url")
+                }
+                
+                val withSpaces = pathSegment.replace('_', ' ')
+                L.d("PageActivity: With spaces: '$withSpaces'")
+                
+                val decoded = java.net.URLDecoder.decode(withSpaces, "UTF-8")
+                L.d("PageActivity: Final decoded title: '$decoded'")
+                
+                if (decoded.isBlank()) {
+                    throw IllegalArgumentException("Decoded title is blank from URL: $url")
+                }
+                
+                return decoded
+            } catch (e: Exception) {
+                L.e("PageActivity: Error parsing URL '$url'", e)
+                throw e
+            }
         }
 
         fun newIntent(
@@ -262,6 +324,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             snippet: String? = null,
             thumbnailUrl: String? = null
         ): Intent {
+            L.d("PageActivity: Creating intent with - pageTitle: '$pageTitle', pageId: '$pageId', source: $source")
             return Intent(context, PageActivity::class.java).apply {
                 putExtra(EXTRA_PAGE_TITLE, pageTitle)
                 putExtra(EXTRA_PAGE_ID, pageId)

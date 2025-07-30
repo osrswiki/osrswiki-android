@@ -19,9 +19,12 @@ class PageContentLoader(
     private val onStateUpdated: () -> Unit
 ) {
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
+        L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
+        val mobileUrl = WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)
+        L.d("PageContentLoader: Generated mobile URL: $mobileUrl")
         coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
-            pageAssetDownloader.downloadPriorityAssetsByTitle(articleQueryTitle, WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)).collect { progress ->
+            pageAssetDownloader.downloadPriorityAssetsByTitle(articleQueryTitle, mobileUrl).collect { progress ->
                 handleDownloadProgress(progress, theme)
             }
         }
@@ -29,9 +32,12 @@ class PageContentLoader(
 
 
     fun loadPageById(pageId: Int, initialDisplayTitle: String?, theme: Theme, forceNetwork: Boolean = false) {
+        L.d("PageContentLoader: Loading page by ID: $pageId, displayTitle: '$initialDisplayTitle', theme: $theme, forceNetwork: $forceNetwork")
+        val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
+        L.d("PageContentLoader: Generated page URL: $pageUrl")
         coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
-            pageAssetDownloader.downloadPriorityAssets(pageId, "https://oldschool.runescape.wiki/?curid=$pageId").collect { progress ->
+            pageAssetDownloader.downloadPriorityAssets(pageId, pageUrl).collect { progress ->
                 handleDownloadProgress(progress, theme)
             }
         }
@@ -63,19 +69,26 @@ class PageContentLoader(
             }
             is DownloadProgress.Success -> {
                 val result = progress.result
+                L.d("handleDownloadProgress: Received Success - PageID: ${result.parseResult.pageid}, Title: '${result.parseResult.title}', DisplayTitle: '${result.parseResult.displaytitle}'")
+                L.d("handleDownloadProgress: HTML content length: ${result.processedHtml.length} characters")
+                
                 // Perform CPU-intensive HTML string building on a background thread.
                 val finalHtml = withContext(Dispatchers.Default) {
                     L.d("handleDownloadProgress: Building final HTML on background thread.")
                     pageHtmlBuilder.buildFullHtmlDocument(result.parseResult.displaytitle ?: "", result.processedHtml, theme)
                 }
+                L.d("handleDownloadProgress: Final HTML length: ${finalHtml.length} characters")
+                
                 // Switch back to the main thread to update the UI and state.
                 withContext(Dispatchers.Main) {
                     L.d("handleDownloadProgress: Received Success. Setting progress to 50%.")
+                    val wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(result.parseResult.title ?: "")
+                    L.d("handleDownloadProgress: Generated wiki URL: $wikiUrl")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         isLoading = true, error = null, pageId = result.parseResult.pageid,
                         title = result.parseResult.displaytitle ?: result.parseResult.title,
                         plainTextTitle = result.parseResult.title, htmlContent = finalHtml,
-                        wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(result.parseResult.title ?: ""),
+                        wikiUrl = wikiUrl,
                         revisionId = result.parseResult.revid, lastFetchedTimestamp = System.currentTimeMillis(),
                         isCurrentlyOffline = false, progress = 50, progressText = "Rendering page..."
                     )
@@ -85,9 +98,16 @@ class PageContentLoader(
             }
             is DownloadProgress.Failure -> {
                 withContext(Dispatchers.Main) {
-                    L.w("handleDownloadProgress: Received Failure: ${progress.error.message}.")
+                    L.e("handleDownloadProgress: Received Failure - Error type: ${progress.error::class.simpleName}, Message: ${progress.error.message}", progress.error)
+                    val errorMessage = when (progress.error) {
+                        is java.net.UnknownHostException -> "No internet connection available"
+                        is java.net.SocketTimeoutException -> "Request timed out"
+                        is java.net.ConnectException -> "Unable to connect to server"
+                        else -> "Failed to load page: ${progress.error.message}"
+                    }
+                    L.w("handleDownloadProgress: Setting error message: $errorMessage")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
-                        isLoading = false, error = "Failed to load page: ${progress.error.message}"
+                        isLoading = false, error = errorMessage
                     )
                     onStateUpdated()
                 }

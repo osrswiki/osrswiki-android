@@ -61,7 +61,9 @@ class PageAssetDownloader(
             }
         }
         
-        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&page=$title"
+        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
+        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&page=$encodedTitle"
+        L.d("downloadPriorityAssetsByTitle: Constructed API URL: $apiUrl")
         val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
         L.d("downloadPriorityAssetsByTitle: Finished HTML download, processing assets.")
@@ -92,6 +94,7 @@ class PageAssetDownloader(
         }
         
         val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&pageid=$pageId"
+        L.d("downloadPriorityAssets: Constructed API URL: $apiUrl")
         val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
 
         L.d("downloadPriorityAssets: Finished HTML download, processing assets.")
@@ -102,12 +105,26 @@ class PageAssetDownloader(
         try {
             L.d("fetchParseResultWithProgress: Starting HTML download for URL: $url")
             val request = Request.Builder().url(url).build()
+            L.d("fetchParseResultWithProgress: Making network request...")
+            
             val response = okHttpClient.newCall(request).execute()
+            L.d("fetchParseResultWithProgress: Received response - Code: ${response.code}, Success: ${response.isSuccessful}")
 
-            if (!response.isSuccessful) throw IOException("Unexpected response code: ${response.code}")
+            if (!response.isSuccessful) {
+                val errorMessage = "HTTP ${response.code}: ${response.message}"
+                L.e("fetchParseResultWithProgress: HTTP error - $errorMessage")
+                when (response.code) {
+                    404 -> throw IOException("Page not found (404): The requested page does not exist")
+                    500 -> throw IOException("Server error (500): Wiki server is experiencing issues")
+                    503 -> throw IOException("Service unavailable (503): Wiki server is temporarily unavailable")
+                    else -> throw IOException("Network error: $errorMessage")
+                }
+            }
 
             val body = response.body ?: throw IOException("Response body is null")
             val totalBytes = body.contentLength()
+            L.d("fetchParseResultWithProgress: Response body size: $totalBytes bytes")
+            
             val source = body.source()
             val buffer = Buffer()
             val outputStream = ByteArrayOutputStream()
@@ -132,16 +149,39 @@ class PageAssetDownloader(
             }
 
             val responseJson = outputStream.toString()
+            L.d("fetchParseResultWithProgress: Downloaded ${responseJson.length} characters of JSON")
+            L.d("fetchParseResultWithProgress: JSON preview (first 200 chars): ${responseJson.take(200)}...")
+            
             val apiResponseContainer = jsonParser.decodeFromString<ArticleParseApiResponse>(responseJson)
+            L.d("fetchParseResultWithProgress: Successfully parsed JSON response")
 
             if (apiResponseContainer.parse == null) {
-                throw IOException("Failed to parse API response.")
+                L.e("fetchParseResultWithProgress: API response parse object is null - possible API error")
+                throw IOException("API returned empty parse result - page may not exist or be accessible")
             }
+            
+            L.d("fetchParseResultWithProgress: Parse result - PageID: ${apiResponseContainer.parse.pageid}, Title: '${apiResponseContainer.parse.title}'")
             flow.send(DownloadProgress.FetchingHtml(100))
             return apiResponseContainer.parse
 
+        } catch (e: java.net.UnknownHostException) {
+            L.e("fetchParseResultWithProgress: DNS/Network error - could not resolve host for $url", e)
+            flow.send(DownloadProgress.Failure(e))
+            return null
+        } catch (e: java.net.SocketTimeoutException) {
+            L.e("fetchParseResultWithProgress: Request timeout for $url", e)
+            flow.send(DownloadProgress.Failure(e))
+            return null
+        } catch (e: java.net.ConnectException) {
+            L.e("fetchParseResultWithProgress: Connection failed for $url", e)
+            flow.send(DownloadProgress.Failure(e))
+            return null
+        } catch (e: kotlinx.serialization.SerializationException) {
+            L.e("fetchParseResultWithProgress: JSON parsing failed for $url - invalid API response format", e)
+            flow.send(DownloadProgress.Failure(IOException("Invalid API response format", e)))
+            return null
         } catch (e: Exception) {
-            L.e("fetchParseResultWithProgress: Download or parse failed for $url", e)
+            L.e("fetchParseResultWithProgress: Unexpected error during download/parse for $url - Error type: ${e::class.simpleName}", e)
             flow.send(DownloadProgress.Failure(e))
             return null
         }
