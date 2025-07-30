@@ -118,6 +118,69 @@
         setupCollapsible(header, container, titleWrapper, captionText);
     }
 
+    function transformSections() {
+        document.querySelectorAll('div.mw-collapsible').forEach(function(collapsibleDiv, index) {
+            // Skip if already transformed
+            if (collapsibleDiv.closest('.collapsible-container')) {
+                return;
+            }
+
+            const triggerSpan = collapsibleDiv.querySelector('.collapsed-sec');
+            if (!triggerSpan) {
+                return;
+            }
+
+            // Find the content div
+            const originalContent = collapsibleDiv.querySelector('.mw-collapsible-content');
+            if (!originalContent) {
+                return;
+            }
+
+            // Determine initial state
+            const shouldStartCollapsed = collapsibleDiv.classList.contains('mw-collapsed');
+
+            // Create container structure
+            var container = document.createElement('div');
+            container.className = shouldStartCollapsed ? 'collapsible-container collapsed' : 'collapsible-container';
+            var header = document.createElement('div');
+            header.className = 'collapsible-header';
+            var titleWrapper = document.createElement('div');
+            titleWrapper.className = 'title-wrapper';
+            
+            // Try to determine a good title
+            var captionText = 'Section';
+            // Look for preceding heading or other context clues
+            const prevHeading = collapsibleDiv.previousElementSibling;
+            if (prevHeading && (prevHeading.tagName.match(/^H[1-6]$/))) {
+                captionText = prevHeading.textContent.trim();
+            }
+
+            var icon = document.createElement('span');
+            icon.className = 'icon';
+            header.appendChild(titleWrapper);
+            header.appendChild(icon);
+
+            // Create content container and move content
+            var content = document.createElement('div');
+            content.className = 'collapsible-content';
+            while (originalContent.firstChild) {
+                content.appendChild(originalContent.firstChild);
+            }
+
+            // Assemble the new structure
+            container.appendChild(header);
+            container.appendChild(content);
+
+            // Replace the original element
+            collapsibleDiv.parentNode.insertBefore(container, collapsibleDiv);
+            collapsibleDiv.parentNode.removeChild(collapsibleDiv);
+
+            // Set up header text and behavior
+            updateHeaderText(container, titleWrapper, captionText);
+            setupCollapsible(header, container, titleWrapper, captionText);
+        });
+    }
+
     function preloadCollapsibleImages() {
         const imageUrlsToPreload = new Set();
         const containers = document.querySelectorAll('.collapsible-container');
@@ -151,6 +214,8 @@
 
         document.querySelectorAll('table.wikitable').forEach((el, i) => transformElement('table.wikitable', 'Table', i, el, el));
         document.querySelectorAll('table.navbox').forEach((el, i) => transformElement('table.navbox', 'Navigation', i, el, el));
+        
+        transformSections();
         
         tryInitializeSwitcher();
     }
