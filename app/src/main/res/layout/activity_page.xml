@@ -12,8 +12,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar
-            android:id="@+id/page_toolbar_container"
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/page_appbar_layout"
             style="@style/Widget.App.AppBarLayout.WithShadow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -34,7 +34,6 @@
                 android:id="@+id/page_offline_banner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="?attr/actionBarSize"
                 android:background="?attr/colorSecondaryContainer"
                 android:text="@string/offline_content_banner"
                 android:textColor="?attr/colorOnSecondaryContainer"
@@ -46,7 +45,7 @@
                 android:drawablePadding="8dp"
                 tools:visibility="visible" />
 
-        </com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar>
+        </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/page_fragment_container"
@@ -54,6 +53,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:paddingBottom="@dimen/nav_bar_height"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
             tools:layout="@layout/fragment_page" />
 
         <include 
