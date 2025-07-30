@@ -6,7 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
+import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.util.log.L
 
 class MoreFragment : Fragment() {
@@ -38,8 +40,16 @@ class MoreFragment : Fragment() {
     }
     
     private fun setupRecyclerView() {
+        val moreItems = listOf(
+            MoreItem(
+                titleRes = R.string.menu_title_settings,
+                iconRes = R.drawable.ic_settings_24,
+                action = MoreAction.SETTINGS
+            )
+        )
+        
         adapter = MoreAdapter(
-            items = emptyList(),
+            items = moreItems,
             onItemClick = { action ->
                 handleMoreItemClick(action)
             }
@@ -53,7 +63,15 @@ class MoreFragment : Fragment() {
     
     private fun handleMoreItemClick(action: MoreAction) {
         L.d("MoreFragment: More item clicked: $action")
-        // TODO: Implement individual item actions in future phases
+        when (action) {
+            MoreAction.SETTINGS -> {
+                val intent = SettingsActivity.newIntent(requireContext())
+                startActivity(intent)
+            }
+            else -> {
+                L.d("MoreFragment: Action not yet implemented: $action")
+            }
+        }
     }
 
     override fun onDestroyView() {
