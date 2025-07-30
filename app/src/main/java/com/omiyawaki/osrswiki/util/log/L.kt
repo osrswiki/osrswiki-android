@@ -14,7 +14,7 @@ object L {
     private val sdf = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     fun d(message: String) {
-        Log.d(TAG, "${sdf.format(Date())} - $message")
+        Log.e(TAG, "${sdf.format(Date())} - DEBUG: $message")
     }
 
     fun w(message: String) {

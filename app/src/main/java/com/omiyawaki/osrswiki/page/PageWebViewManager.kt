@@ -129,6 +129,11 @@ class PageWebViewManager(
         }
 
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
+                Log.d(logTag, "--> WebView Event: onPageStarted() called. URL: $url")
+                super.onPageStarted(view, url, favicon)
+            }
+            
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
@@ -145,6 +150,16 @@ class PageWebViewManager(
             override fun onPageFinished(view: WebView?, url: String?) {
                 val elapsedTime = System.currentTimeMillis() - renderStartTime
                 Log.d(logTag, "--> WebView Event: onPageFinished() called. Elapsed: ${elapsedTime}ms. URL: $url")
+                Log.d(logTag, "--> WebView Content Info: Title: '${view?.title}', Progress: ${view?.progress}%")
+                
+                // Check if page content is actually loaded
+                view?.evaluateJavascript("document.body ? document.body.innerHTML.length : 0") { result ->
+                    Log.d(logTag, "--> WebView Content Length: $result characters")
+                    if (result == "0") {
+                        Log.w(logTag, "--> WARNING: WebView finished loading but body content is empty!")
+                    }
+                }
+                
                 pageLoaded = true
                 renderCallback.onWebViewLoadFinished()
                 super.onPageFinished(view, url)
@@ -158,6 +173,7 @@ class PageWebViewManager(
                 return true
             }
         }
+        
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                 super.onProgressChanged(view, newProgress)
@@ -313,8 +329,14 @@ class PageWebViewManager(
         pageLoaded = false
         renderStartTime = System.currentTimeMillis()
         Log.d(logTag, "==> Event: render() called. Starting timer.")
+        Log.d(logTag, "==> HTML Preview (first 200 chars): ${fullHtml.take(200)}...")
+        Log.d(logTag, "==> HTML contains <body>: ${fullHtml.contains("<body")}")
+        Log.d(logTag, "==> HTML contains content: ${fullHtml.contains("content", ignoreCase = true)}")
+        
         val baseUrl = "https://$localAssetDomain/"
-        Log.d(logTag, ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars)")
+        Log.d(logTag, ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars, BaseURL: $baseUrl)")
+        
+        
         webView.loadDataWithBaseURL(
             baseUrl,
             fullHtml,
