@@ -96,6 +96,9 @@ dependencies {
     implementation(libs.glide.core)
     ksp(libs.glide.ksp)
 
+    // Google Pay
+    implementation(libs.google.pay.wallet)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)

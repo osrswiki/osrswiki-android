@@ -39,6 +39,23 @@
     <string name="menu_title_settings">Settings</string>
     <string name="menu_title_donate">Donate</string>
     
+    <!-- Donation screen -->
+    <string name="donate_title">Support OSRS Wiki</string>
+    <string name="donate_description">Help keep the OSRS Wiki running with a donation. Your support helps us maintain and improve the app.</string>
+    <string name="donate_amount_1">$1</string>
+    <string name="donate_amount_5">$5</string>
+    <string name="donate_amount_10">$10</string>
+    <string name="donate_amount_25">$25</string>
+    <string name="donate_amount_custom">Custom</string>
+    <string name="donate_custom_amount_hint">Enter amount</string>
+    <string name="donate_button_text">Donate with Google Pay</string>
+    <string name="donate_success_title">Thank You!</string>
+    <string name="donate_success_message">Your donation helps keep the OSRS Wiki free and accessible to everyone.</string>
+    <string name="donate_error_title">Payment Error</string>
+    <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
+    <string name="donate_google_pay_unavailable">Google Pay is not available on this device</string>
+    <string name="donate_processing">Processing payment…</string>
+    
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_appearance_description">Themes, colors, and display options</string>
     <string name="settings_category_offline_storage">Offline &amp; Storage</string>
