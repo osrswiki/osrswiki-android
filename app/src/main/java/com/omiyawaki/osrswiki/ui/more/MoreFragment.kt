@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
-import com.omiyawaki.osrswiki.settings.SettingsActivity
+import com.omiyawaki.osrswiki.settings.SettingsCategoriesActivity
 import com.omiyawaki.osrswiki.util.log.L
 
 class MoreFragment : Fragment() {
@@ -65,7 +65,7 @@ class MoreFragment : Fragment() {
         L.d("MoreFragment: More item clicked: $action")
         when (action) {
             MoreAction.SETTINGS -> {
-                val intent = SettingsActivity.newIntent(requireContext())
+                val intent = SettingsCategoriesActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             else -> {
