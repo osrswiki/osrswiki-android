@@ -24,6 +24,7 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.views.ModernToolbarController
 import com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar
@@ -90,11 +91,16 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
 
     override fun onPageSwipe(gravity: Int) {
+        val direction = if (gravity == Gravity.START) "START (back)" else if (gravity == Gravity.END) "END (ToC)" else "UNKNOWN($gravity)"
+        L.d("PageActivity: Received swipe, direction=$direction")
+        
         if (gravity == Gravity.END) {
             // A swipe from right-to-left opens the ToC drawer.
+            L.d("PageActivity: Opening ToC drawer")
             binding.pageDrawerLayout.openDrawer(GravityCompat.END)
         } else if (gravity == Gravity.START) {
             // A swipe from left-to-right triggers the back action.
+            L.d("PageActivity: Triggering back action")
             onBackPressedDispatcher.onBackPressed()
         }
     }

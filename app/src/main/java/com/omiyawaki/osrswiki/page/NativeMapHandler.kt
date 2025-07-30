@@ -64,7 +64,13 @@ class NativeMapHandler(
 
         @JavascriptInterface
         fun setHorizontalScroll(inProgress: Boolean) {
+            L.d("NativeMapHandler: setHorizontalScroll called, inProgress=$inProgress")
             isHorizontalScrollInProgress = inProgress
+        }
+        
+        @JavascriptInterface
+        fun log(message: String) {
+            L.d("JS: $message")
         }
     }
 
@@ -112,5 +118,24 @@ class NativeMapHandler(
         binding.pageWebView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             mapContainers.values.forEach { it.translationY = -scrollY.toFloat() }
         }
+    }
+    
+    /**
+     * Cleans up all map containers when the page is destroyed.
+     * This prevents map views from bleeding through to other screens.
+     */
+    fun cleanup() {
+        L.d("NativeMapHandler: Cleaning up ${mapContainers.size} map containers")
+        
+        // Remove all map containers from the view hierarchy
+        mapContainers.values.forEach { container ->
+            binding.root.removeView(container)
+        }
+        
+        // Clear the map to release references
+        mapContainers.clear()
+        
+        // Reset horizontal scroll state
+        isHorizontalScrollInProgress = false
     }
 }
