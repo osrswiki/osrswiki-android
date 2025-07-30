@@ -19,6 +19,7 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/components.css",
         "styles/navbox_styles.css",
         "web/collapsible_tables.css",
+        "web/collapsible_sections.css",
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(),
         "styles/fixes.css"
     )
