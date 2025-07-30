@@ -72,15 +72,11 @@ class SettingsCategoriesFragment : Fragment() {
         L.d("SettingsCategoriesFragment: Category clicked: $action")
         when (action) {
             SettingsCategoryAction.APPEARANCE -> {
-                // For now, launch the existing SettingsActivity
-                // In Phase 2, this will launch AppearanceSettingsActivity
-                val intent = SettingsActivity.newIntent(requireContext())
+                val intent = AppearanceSettingsActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             SettingsCategoryAction.OFFLINE_STORAGE -> {
-                // For now, launch the existing SettingsActivity
-                // In Phase 2, this will launch OfflineSettingsActivity
-                val intent = SettingsActivity.newIntent(requireContext())
+                val intent = OfflineSettingsActivity.newIntent(requireContext())
                 startActivity(intent)
             }
         }
