@@ -26,8 +26,6 @@ import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.views.ObservableWebView
-import com.omiyawaki.osrswiki.views.ModernToolbarController
-import com.omiyawaki.osrswiki.views.GpuAcceleratedToolbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,7 +40,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var thumbnailUrlArg: String? = null
     private var currentActionMode: ActionMode? = null
 
-    private lateinit var modernToolbarController: ModernToolbarController
     private lateinit var pageActionBarManager: PageActionBarManager
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
@@ -57,12 +54,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         setSupportActionBar(binding.pageToolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // Initialize the modern GPU-accelerated toolbar system
-        modernToolbarController = ModernToolbarController(
-            toolbarContainer = binding.pageToolbarContainer,
-            contentView = binding.pageFragmentContainer,
-            shadowView = null // GpuAcceleratedToolbar handles its own shadows
-        )
+        // Forcefully set the elevation and disable the StateListAnimator to
+        // prevent the theme from overwriting the elevation value.
+        binding.pageAppbarLayout.stateListAnimator = null
+        val elevationInDp = 9.75f
+        binding.pageAppbarLayout.elevation = elevationInDp * resources.displayMetrics.density
 
         pageTitleArg = intent.getStringExtra(EXTRA_PAGE_TITLE)
         pageIdArg = intent.getStringExtra(EXTRA_PAGE_ID)
@@ -87,7 +83,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
 
     override fun onWebViewReady(webView: ObservableWebView) {
-        modernToolbarController.attachToScrollView(webView)
+        // Static toolbar - no scroll attachment needed
     }
 
     override fun onPageSwipe(gravity: Int) {
@@ -152,7 +148,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onPageStartActionMode(callback: ActionMode.Callback) {
         if (currentActionMode != null) { return }
-        modernToolbarController.expandToolbar(animated = true)
+        // Static toolbar - no expansion needed
         currentActionMode = startActionMode(callback)
     }
 
@@ -164,7 +160,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         currentActionMode?.finish()
     }
 
-    override fun getPageToolbarContainer(): View = binding.pageToolbarContainer
+    override fun getPageToolbarContainer(): View = binding.pageAppbarLayout
 
     override fun getPageActionBarManager(): PageActionBarManager {
         if (!::pageActionBarManager.isInitialized) {
