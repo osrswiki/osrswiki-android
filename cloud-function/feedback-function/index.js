@@ -29,7 +29,10 @@ exports.createGithubIssue = async (req, res) => {
     return;
   }
   
-  const { title, body } = req.body;
+  const { title, body, labels } = req.body;
+  
+  // Debug logging
+  console.log('Received request:', { title, body, labels });
 
   // Validate that title and body are present in the request.
   if (!title || !body) {
@@ -43,11 +46,24 @@ exports.createGithubIssue = async (req, res) => {
   const githubApiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/issues`;
 
   try {
-    // Make the authenticated API call to GitHub to create the issue.
-    await axios.post(githubApiUrl, {
+    // Prepare the issue data with optional labels
+    const issueData = {
       title: title,
       body: body
-    }, {
+    };
+    
+    // Add labels if provided
+    if (labels && Array.isArray(labels) && labels.length > 0) {
+      issueData.labels = labels;
+      console.log('Adding labels to issue:', labels);
+    } else {
+      console.log('No labels provided or invalid labels format');
+    }
+    
+    console.log('Issue data being sent to GitHub:', issueData);
+    
+    // Make the authenticated API call to GitHub to create the issue.
+    await axios.post(githubApiUrl, issueData, {
       headers: {
         'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json',

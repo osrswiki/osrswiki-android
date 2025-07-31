@@ -19,7 +19,8 @@ interface CloudFunctionApiService {
 @Serializable
 data class CloudFunctionIssueRequest(
     val title: String,
-    val body: String
+    val body: String,
+    val labels: List<String>? = null
 )
 
 @Serializable
