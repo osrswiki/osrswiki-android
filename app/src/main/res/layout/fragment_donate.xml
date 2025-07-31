@@ -41,6 +41,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
+            android:gravity="center"
             app:singleSelection="true"
             app:selectionRequired="false"
             app:chipSpacingHorizontal="8dp"
