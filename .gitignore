@@ -89,3 +89,4 @@ tools/map-dumper/output/
 
 # Cloud Function dependencies
 cloud-function/feedback-function/node_modules/
+cloud-function/feedback-function/.gcloudignore
