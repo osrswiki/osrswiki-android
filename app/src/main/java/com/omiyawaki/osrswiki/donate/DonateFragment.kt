@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.donate
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -45,6 +46,9 @@ class DonateFragment : Fragment() {
         // Google Pay constants
         private const val LOAD_PAYMENT_DATA_REQUEST_CODE = 991
         private const val GOOGLE_PAY_ENVIRONMENT = WalletConstants.ENVIRONMENT_TEST // Change to PRODUCTION for live
+        
+        // Wiki donation URL
+        private const val WIKI_PATREON_URL = "https://www.patreon.com/runescapewiki"
     }
 
     override fun onCreateView(
@@ -65,6 +69,7 @@ class DonateFragment : Fragment() {
         setupAmountSelection()
         setupDonateButton()
         setupCustomAmountInput()
+        setupWikiDonateButton()
     }
     
     private fun setupAmountSelection() {
@@ -366,6 +371,19 @@ class DonateFragment : Fragment() {
         binding.customAmountInput.text?.clear()
         hideStatusText()
         updateDonateButtonState()
+    }
+    
+    private fun setupWikiDonateButton() {
+        binding.wikiDonateButton.setOnClickListener {
+            L.d("DonateFragment: Wiki donate button clicked")
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WIKI_PATREON_URL))
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                L.e("DonateFragment: Error opening Patreon URL", e)
+                setStatusText("Unable to open browser")
+            }
+        }
     }
 
     override fun onDestroyView() {
