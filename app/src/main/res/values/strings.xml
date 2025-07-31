@@ -76,6 +76,42 @@
     <string name="about_wikipedia_title">Wikipedia</string>
     <string name="about_wikipedia_description">This app\'s design and architecture were influenced by the Wikipedia Android app. In the spirit of both Oldschool Runescape Wiki and Wikipedia\'s free and open source principles, the OSRS Wiki app is and will always be free.</string>
     
+    <!-- Help & Feedback screen -->
+    <string name="menu_title_feedback">Help &amp; Feedback</string>
+    <string name="feedback_title">Help &amp; Feedback</string>
+    
+    <string name="feedback_rate_app_title">Enjoying the app?</string>
+    <string name="feedback_rate_app_description">Your rating helps others discover OSRS Wiki App</string>
+    <string name="feedback_rate_app_button">Rate on Google Play</string>
+    
+    <string name="feedback_report_issue_title">Found a bug?</string>
+    <string name="feedback_report_issue_description">Help us fix issues to improve your experience</string>
+    <string name="feedback_report_issue_button">Report Issue</string>
+    
+    <string name="feedback_request_feature_title">Have an idea?</string>
+    <string name="feedback_request_feature_description">Suggest new features to make the app better</string>
+    <string name="feedback_request_feature_button">Request Feature</string>
+    
+    <string name="feedback_issue_title_hint">Brief description of the issue</string>
+    <string name="feedback_issue_description_hint">Please describe what happened, what you expected, and steps to reproduce the issue</string>
+    <string name="feedback_feature_title_hint">Brief description of the feature</string>
+    <string name="feedback_feature_description_hint">Please describe the feature you\'d like to see and how it would be useful</string>
+    
+    <string name="feedback_submit_issue">Submit Issue</string>
+    <string name="feedback_submit_feature">Submit Feature Request</string>
+    <string name="feedback_submitting">Submitting...</string>
+    
+    <string name="feedback_success_title">Submitted Successfully!</string>
+    <string name="feedback_success_message">Thank you for your feedback. You can track the status using the link below:</string>
+    <string name="feedback_success_view_button">View on GitHub</string>
+    
+    <string name="feedback_error_title">Submission Failed</string>
+    <string name="feedback_error_message">There was an error submitting your feedback. Please check your internet connection and try again.</string>
+    <string name="feedback_error_retry">Retry</string>
+    
+    <string name="feedback_validation_title_required">Please enter a title</string>
+    <string name="feedback_validation_description_required">Please enter a description</string>
+    
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_appearance_description">Themes, colors, and display options</string>
     <string name="settings_category_offline_storage">Offline &amp; Storage</string>

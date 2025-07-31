@@ -105,5 +105,11 @@
             android:exported="false"
             android:label="@string/menu_title_about"
             android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".feedback.FeedbackActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/menu_title_feedback"
+            android:theme="@style/Theme.OSRSWiki" />
     </application>
 </manifest>

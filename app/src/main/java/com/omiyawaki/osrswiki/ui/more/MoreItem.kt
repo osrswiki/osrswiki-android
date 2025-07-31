@@ -13,6 +13,5 @@ enum class MoreAction {
     SETTINGS,
     DONATE,
     ABOUT,
-    FEEDBACK,
-    RATE_APP
+    FEEDBACK
 }
