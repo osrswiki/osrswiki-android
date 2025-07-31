@@ -56,13 +56,12 @@ class SecureFeedbackRepository {
                 appendLine("---")
                 appendLine("**Device Information:**")
                 appendLine(deviceInfo)
-                appendLine()
-                appendLine("**Label:** $label")
             }
             
             val request = CloudFunctionIssueRequest(
                 title = title,
-                body = fullBody
+                body = fullBody,
+                labels = listOf(label)
             )
             
             L.d("SecureFeedbackRepository: Submitting feedback via Cloud Function")
