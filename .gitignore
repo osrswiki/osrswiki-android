@@ -86,3 +86,6 @@ tools/map-dumper/output/
 
 # Ignore gemini config
 /GEMINI.md
+
+# Cloud Function dependencies
+cloud-function/feedback-function/node_modules/

@@ -10,6 +10,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.about.AboutActivity
 import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
 import com.omiyawaki.osrswiki.donate.DonateActivity
+import com.omiyawaki.osrswiki.feedback.FeedbackActivity
 import com.omiyawaki.osrswiki.settings.SettingsCategoriesActivity
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -57,6 +58,11 @@ class MoreFragment : Fragment() {
                 titleRes = R.string.menu_title_about,
                 iconRes = R.drawable.ic_about_24,
                 action = MoreAction.ABOUT
+            ),
+            MoreItem(
+                titleRes = R.string.menu_title_feedback,
+                iconRes = R.drawable.ic_feedback_24,
+                action = MoreAction.FEEDBACK
             )
         )
         
@@ -86,6 +92,10 @@ class MoreFragment : Fragment() {
             }
             MoreAction.ABOUT -> {
                 val intent = AboutActivity.newIntent(requireContext())
+                startActivity(intent)
+            }
+            MoreAction.FEEDBACK -> {
+                val intent = FeedbackActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             else -> {
