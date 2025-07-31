@@ -62,21 +62,19 @@
     
     <!-- About screen -->
     <string name="about_title">About OSRS Wiki App</string>
-    <string name="about_app_info_title">App Information</string>
     <string name="about_app_version">Version %1$s (%2$d)</string>
-    <string name="about_app_description">A mobile companion for the Old School RuneScape Wiki, providing offline access to game information and guides.</string>
     
     <string name="about_credits_title">Credits &amp; Acknowledgments</string>
     
     <string name="about_jagex_title">Old School RuneScape</string>
     <string name="about_jagex_description">Jagex ®, RuneScape ®, and Old School RuneScape ® are registered and/or unregistered trademarks of Jagex in the United Kingdom, the United States, the European Union and other territories.</string>
     
-    <string name="about_wiki_title">OSRS Wiki Content</string>
-    <string name="about_wiki_description">All game content and information is provided by the Old School RuneScape Wiki community. This app would not be possible without their dedication to maintaining comprehensive game documentation.</string>
+    <string name="about_wiki_title">OSRS Wiki</string>
+    <string name="about_wiki_description">All information and game content fetched by this app is provided by the Old School Runescape Wiki. This app would not be possible without the wiki itself.</string>
     <string name="about_wiki_button">Visit OSRS Wiki</string>
     
-    <string name="about_wikipedia_title">Design Inspiration</string>
-    <string name="about_wikipedia_description">This app\'s design and architecture were influenced by the Wikipedia Android app, an excellent example of open-source mobile development.</string>
+    <string name="about_wikipedia_title">Wikipedia</string>
+    <string name="about_wikipedia_description">This app\'s design and architecture were influenced by the Wikipedia Android app. In the spirit of both Oldschool Runescape Wiki and Wikipedia\'s free and open source principles, the OSRS Wiki app is and will always be free.</string>
     
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_appearance_description">Themes, colors, and display options</string>
