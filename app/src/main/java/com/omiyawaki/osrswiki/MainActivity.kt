@@ -3,6 +3,9 @@ package com.omiyawaki.osrswiki
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
@@ -38,10 +41,20 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         L.d("MainActivity: onCreate: ContentView set.")
+
+        // Handle system window insets to avoid content overlapping with status bar
+        ViewCompat.setOnApplyWindowInsetsListener(binding.navHostContainer) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Only apply top and side padding to avoid overlapping with status bar
+            // Bottom padding is handled by the constraint layout (bottom nav creates the gap)
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            insets
+        }
 
         appRouter = AppRouterImpl(supportFragmentManager, R.id.nav_host_container)
         L.d("MainActivity: onCreate: AppRouter initialized.")
