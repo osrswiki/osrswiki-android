@@ -47,7 +47,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Suggest a new feature"
+                        android:text="Request a Feature"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
@@ -55,7 +55,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Help us improve the app by describing a feature you'd like to see. Please be specific about what it should do and why it would be useful."
+                        android:text="Help us improve the app by suggesting new functionality. Great feature requests include:\n• Clear description of what you want\n• How the feature should work\n• Why it would be valuable\n• Real-world examples of when you'd use it"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -69,7 +69,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="@string/feedback_feature_title_hint"
+                android:hint="Feature Summary"
+                app:helperText="Brief description of the feature you'd like to see"
                 app:boxBackgroundMode="outline"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:counterEnabled="true"
@@ -91,7 +92,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="@string/feedback_feature_description_hint"
+                android:hint="Detailed Description"
+                app:helperText="Describe exactly what the feature should do and how it should work"
+                app:placeholderText="Example: Add a dark mode toggle in settings that changes the app theme to dark colors. It should remember my preference between app restarts."
                 app:boxBackgroundMode="outline"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:counterEnabled="true"
@@ -116,7 +119,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="Why would this feature be useful? (Optional)"
+                android:hint="Use Case (Optional)"
+                app:helperText="Explain why this feature would be valuable and how you'd use it"
+                app:placeholderText="Example: I often use the app at night and the bright screen hurts my eyes. Dark mode would make it more comfortable to read."
                 app:boxBackgroundMode="outline"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:counterEnabled="true"
