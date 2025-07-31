@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.about.AboutActivity
 import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
 import com.omiyawaki.osrswiki.donate.DonateActivity
 import com.omiyawaki.osrswiki.settings.SettingsCategoriesActivity
@@ -51,6 +52,11 @@ class MoreFragment : Fragment() {
                 titleRes = R.string.menu_title_donate,
                 iconRes = R.drawable.ic_donate_24,
                 action = MoreAction.DONATE
+            ),
+            MoreItem(
+                titleRes = R.string.menu_title_about,
+                iconRes = R.drawable.ic_about_24,
+                action = MoreAction.ABOUT
             )
         )
         
@@ -76,6 +82,10 @@ class MoreFragment : Fragment() {
             }
             MoreAction.DONATE -> {
                 val intent = DonateActivity.newIntent(requireContext())
+                startActivity(intent)
+            }
+            MoreAction.ABOUT -> {
+                val intent = AboutActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             else -> {
