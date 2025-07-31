@@ -111,5 +111,21 @@
             android:exported="false"
             android:label="@string/menu_title_feedback"
             android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".feedback.ReportIssueActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/feedback_report_issue_title"
+            android:theme="@style/Theme.OSRSWiki"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".feedback.FeedbackActivity" />
+        <activity
+            android:name=".feedback.RequestFeatureActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/feedback_request_feature_title"
+            android:theme="@style/Theme.OSRSWiki"
+            android:windowSoftInputMode="adjustResize"
+            android:parentActivityName=".feedback.FeedbackActivity" />
     </application>
 </manifest>
