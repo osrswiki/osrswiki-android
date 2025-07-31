@@ -89,7 +89,7 @@
         <item name="colorOnBackground">@color/osrs_text_dark</item>
         <item name="colorSurface">@color/osrs_parchment_light</item>
         <item name="colorOnSurface">@color/osrs_text_dark</item>
-        <item name="colorSurfaceVariant">#d8ccb4</item>
+        <item name="colorSurfaceVariant">@color/osrs_parchment_surface_light</item>
         <item name="colorOnSurfaceVariant">@color/osrs_text_dark</item>
         <item name="android:statusBarColor">@color/osrs_parchment_light</item>
 
@@ -99,7 +99,7 @@
         <item name="linkColor">@color/link_color_osrs_light</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/osrs_parchment_light</item>
-        <item name="secondary_text_color">#8B7355</item>
+        <item name="secondary_text_color">@color/osrs_text_secondary_light</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.OSRSWiki.Base.Light">
@@ -139,14 +139,14 @@
         <item name="colorSecondary">@color/osrs_text_light_alt</item>
         <item name="colorOnSecondary">@color/osrs_brown_deep</item>
         <item name="colorSecondaryContainer">@color/osrs_parchment_dark</item>
-        <item name="colorOnSecondaryContainer">@color/osrs_gold</item>
+        <item name="colorOnSecondaryContainer">@color/osrs_gold_muted</item>
         <item name="colorError">@color/color_error</item>
         <item name="colorOnError">@color/white</item>
         <item name="android:colorBackground">@color/osrs_parchment_dark</item>
         <item name="colorOnBackground">@color/osrs_text_light_alt</item>
         <item name="colorSurface">@color/osrs_parchment_dark</item>
         <item name="colorOnSurface">@color/osrs_text_light_alt</item>
-        <item name="colorSurfaceVariant">#312a25</item>
+        <item name="colorSurfaceVariant">@color/osrs_interface_grey_dark</item>
         <item name="colorOnSurfaceVariant">@color/osrs_text_light_alt</item>
         <item name="android:statusBarColor">@color/osrs_parchment_dark</item>
 
