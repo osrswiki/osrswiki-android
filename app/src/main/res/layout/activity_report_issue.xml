@@ -47,7 +47,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Help us fix the issue"
+                        android:text="Report a Bug"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
@@ -55,7 +55,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Please provide a clear title and detailed description of the problem. Device information will be included automatically."
+                        android:text="Help us fix the issue by providing specific details. Good bug reports include:\n• What you were trying to do\n• What actually happened\n• Steps to reproduce the problem\n• What you expected to happen instead"
                         android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -69,7 +69,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="@string/feedback_issue_title_hint"
+                android:hint="Issue Summary"
+                app:helperText="Brief description of the problem you encountered"
                 app:boxBackgroundMode="outline"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:counterEnabled="true"
@@ -91,7 +92,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:hint="@string/feedback_issue_description_hint"
+                android:hint="Detailed Description"
+                app:helperText="Describe what happened, what you expected to happen, and the steps to reproduce this issue"
+                app:placeholderText="Example: When I tap the search button, the app crashes instead of opening the search screen. I expected it to show the search interface."
                 app:boxBackgroundMode="outline"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 app:counterEnabled="true"
