@@ -135,7 +135,7 @@ class SavedPagesFragment : Fragment() {
         binding.root.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
         
         // Apply font to empty state message
-        binding.emptyStateTextView.applyRubikUIHint()
+        binding.emptyStateTextViewText.applyRubikUIHint()
         
         L.d("SavedPagesFragment: Fonts applied to header elements and empty state")
     }
