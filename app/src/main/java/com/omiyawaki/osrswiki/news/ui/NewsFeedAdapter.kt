@@ -156,7 +156,7 @@ class NewsFeedAdapter(
         
         fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
             title.text = item.title
-            val htmlContent = item.events.joinToString("<br>") { "• $it" }
+            val htmlContent = "• ${item.events.firstOrNull() ?: ""}"
             Log.d(TAG, "OnThisDay content to parse: $htmlContent")
             content.setTextWithClickableLinks(htmlContent, onLinkClick)
         }
