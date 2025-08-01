@@ -11,7 +11,7 @@ import com.omiyawaki.osrswiki.about.AboutActivity
 import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
 import com.omiyawaki.osrswiki.donate.DonateActivity
 import com.omiyawaki.osrswiki.feedback.FeedbackActivity
-import com.omiyawaki.osrswiki.settings.SettingsCategoriesActivity
+import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 import com.omiyawaki.osrswiki.util.log.L
 
 class MoreFragment : Fragment() {
@@ -45,9 +45,9 @@ class MoreFragment : Fragment() {
     private fun setupRecyclerView() {
         val moreItems = listOf(
             MoreItem(
-                titleRes = R.string.menu_title_settings,
+                titleRes = R.string.settings_category_appearance,
                 iconRes = R.drawable.ic_settings_24,
-                action = MoreAction.SETTINGS
+                action = MoreAction.APPEARANCE
             ),
             MoreItem(
                 titleRes = R.string.menu_title_donate,
@@ -82,8 +82,8 @@ class MoreFragment : Fragment() {
     private fun handleMoreItemClick(action: MoreAction) {
         L.d("MoreFragment: More item clicked: $action")
         when (action) {
-            MoreAction.SETTINGS -> {
-                val intent = SettingsCategoriesActivity.newIntent(requireContext())
+            MoreAction.APPEARANCE -> {
+                val intent = AppearanceSettingsActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             MoreAction.DONATE -> {

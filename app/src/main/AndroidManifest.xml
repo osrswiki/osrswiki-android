@@ -77,12 +77,6 @@
             android:label="@string/menu_title_settings"
             android:theme="@style/Theme.OSRSWiki" />
         <activity
-            android:name=".settings.SettingsCategoriesActivity"
-            android:configChanges="uiMode"
-            android:exported="false"
-            android:label="@string/menu_title_settings"
-            android:theme="@style/Theme.OSRSWiki" />
-        <activity
             android:name=".settings.AppearanceSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"
