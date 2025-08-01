@@ -1,10 +1,13 @@
 package com.omiyawaki.osrswiki.news.ui
 
+import android.graphics.Typeface
 import android.os.Build
 import android.text.Layout
 import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
+import android.text.style.TypefaceSpan
 import android.text.style.URLSpan
 import android.util.Log
 import android.util.TypedValue
@@ -13,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
@@ -40,6 +44,59 @@ private fun TextView.setTextWithClickableLinks(html: String, onLinkClick: (url: 
         strBuilder.setSpan(clickable, start, end, flags)
         strBuilder.removeSpan(span)
     }
+    text = strBuilder
+    movementMethod = LinkMovementMethod.getInstance()
+}
+
+// Helper function to set text with mixed fonts - monospace for year/dash, regular for the rest
+private fun TextView.setTextWithMixedFonts(html: String, onLinkClick: (url: String) -> Unit) {
+    val sequence = HtmlCompat.fromHtml(html, HtmlCompat.FROM_HTML_MODE_LEGACY)
+    val strBuilder = SpannableStringBuilder(sequence)
+    
+    // Handle clickable links first
+    val urls = strBuilder.getSpans(0, sequence.length, URLSpan::class.java)
+    for (span in urls) {
+        val start = strBuilder.getSpanStart(span)
+        val end = strBuilder.getSpanEnd(span)
+        val flags = strBuilder.getSpanFlags(span)
+        val clickable = object : ClickableSpan() {
+            override fun onClick(view: View) {
+                onLinkClick(span.url)
+            }
+        }
+        strBuilder.setSpan(clickable, start, end, flags)
+        strBuilder.removeSpan(span)
+    }
+    
+    // Apply Cascadia Code to year and dash pattern (e.g., "• 2024 – " or "• 2006 – ")
+    val yearDashPattern = Regex("^(• \\d{4} – )")
+    val match = yearDashPattern.find(strBuilder.toString())
+    if (match != null) {
+        val start = match.range.first
+        val end = match.range.last + 1
+        
+        // Get Cascadia Code typeface
+        val cascadiaTypeface = ResourcesCompat.getFont(context, R.font.cascadia_code)
+        if (cascadiaTypeface != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                strBuilder.setSpan(
+                    TypefaceSpan(cascadiaTypeface),
+                    start,
+                    end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            } else {
+                // Fallback for older APIs - use "monospace" family name
+                strBuilder.setSpan(
+                    TypefaceSpan("monospace"),
+                    start,
+                    end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+    }
+    
     text = strBuilder
     movementMethod = LinkMovementMethod.getInstance()
 }
@@ -184,9 +241,9 @@ class NewsFeedAdapter(
                         breakStrategy = Layout.BREAK_STRATEGY_SIMPLE
                     }
                     
-                    // Set the content with bullet point
+                    // Set the content with bullet point and mixed fonts
                     val htmlContent = "• $event"
-                    setTextWithClickableLinks(htmlContent, onLinkClick)
+                    setTextWithMixedFonts(htmlContent, onLinkClick)
                     
                     // Set layout params
                     layoutParams = LinearLayout.LayoutParams(
