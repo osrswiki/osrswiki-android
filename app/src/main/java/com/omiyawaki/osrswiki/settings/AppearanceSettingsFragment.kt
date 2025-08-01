@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.applyRubikUILabel
+import com.omiyawaki.osrswiki.util.applyRubikUILabelMedium
 import com.omiyawaki.osrswiki.util.applyInterBody
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -90,7 +91,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         val title = itemView.findViewById<TextView>(android.R.id.title)
         val summary = itemView.findViewById<TextView>(android.R.id.summary)
         
-        title?.applyInterBody()
+        title?.applyRubikUILabelMedium()
         summary?.applyRubikUILabel()
     }
 
