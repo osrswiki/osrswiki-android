@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -99,6 +100,7 @@ class MainActivity : BaseActivity() {
 
         setupBottomNav()
         setupFonts()
+        setupBackNavigation()
         handleIntentExtras(intent)
     }
     
@@ -248,11 +250,26 @@ class MainActivity : BaseActivity() {
         L.d("MainActivity: onSaveInstanceState: Saved active fragment tag: $activeTag")
     }
 
-    @Deprecated(message = "Override of a deprecated Activity.onBackPressed(). Consider migrating to OnBackPressedDispatcher.")
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        if (!appRouter.goBack()) {
-            super.onBackPressed()
+    private fun setupBackNavigation() {
+        val backCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                L.d("MainActivity: Back pressed, current fragment: ${activeFragment.javaClass.simpleName}")
+                
+                // If not on main fragment (Home), navigate to Home
+                if (activeFragment !== mainFragment) {
+                    L.d("MainActivity: Not on Home fragment, navigating to Home")
+                    binding.bottomNav.selectedItemId = R.id.nav_news
+                    return
+                }
+                
+                // If on Home fragment, check appRouter first, then exit app
+                L.d("MainActivity: On Home fragment, checking appRouter")
+                if (!appRouter.goBack()) {
+                    L.d("MainActivity: AppRouter returned false, exiting app")
+                    finish()
+                }
+            }
         }
+        onBackPressedDispatcher.addCallback(this, backCallback)
     }
 }
