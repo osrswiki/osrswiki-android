@@ -18,7 +18,8 @@ body {
     padding: 0;
     background-color: var(--body-main);
     color: var(--text-color);
-    font-family: 'Alegreya Sans', 'Helvetica Neue', 'Arial', sans-serif;
+    font-family: 'Vollkorn', 'Georgia', 'Times New Roman', serif;
+    font-size: 18px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
@@ -52,9 +53,9 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid var(--sidebar-color);
     padding-bottom: 0.2em;
 }
-h1 { font-size: 1.8em; }
-h2 { font-size: 1.5em; }
-h3 { font-size: 1.3em; }
+h1 { font-size: 2em; }
+h2 { font-size: 1.7em; }
+h3 { font-size: 1.5em; }
 
 p {
     margin-bottom: 1em;

@@ -19,7 +19,8 @@ object FontUtil {
         ALEGREYA,
         ALEGREYA_SANS,
         ALEGREYA_SC,
-        CASCADIA_CODE
+        CASCADIA_CODE,
+        VOLLKORN
     }
     
     // Font weight enums
@@ -108,12 +109,27 @@ object FontUtil {
         applyFont(textView, FontFamily.CASCADIA_CODE, FontWeight.NORMAL)
     }
     
+    /**
+     * Apply Vollkorn Title font (bold) for card titles and list items
+     */
+    fun applyVollkornTitle(textView: TextView) {
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.BOLD)
+    }
+    
+    /**
+     * Apply Vollkorn Body font (normal) for body text and content
+     */
+    fun applyVollkornBody(textView: TextView) {
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.NORMAL)
+    }
+    
     private fun getBaseTypeface(context: Context, fontFamily: FontFamily): Typeface? {
         val fontResource = when (fontFamily) {
             FontFamily.ALEGREYA -> R.font.alegreya
             FontFamily.ALEGREYA_SANS -> R.font.alegreya_sans
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
             FontFamily.CASCADIA_CODE -> R.font.cascadia_code
+            FontFamily.VOLLKORN -> R.font.vollkorn
         }
         
         return try {
@@ -151,3 +167,5 @@ fun TextView.applyAlegreyaSansLabel() = FontUtil.applyAlegreyaSansLabel(this)
 fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.FontWeight.BOLD) = 
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
 fun TextView.applyCascadiaCode() = FontUtil.applyCascadiaCode(this)
+fun TextView.applyVollkornTitle() = FontUtil.applyVollkornTitle(this)
+fun TextView.applyVollkornBody() = FontUtil.applyVollkornBody(this)
