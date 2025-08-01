@@ -119,6 +119,14 @@ object FontUtil {
     }
     
     /**
+     * Apply Rubik UI Label font (normal weight) with small size for compact labels
+     */
+    fun applyRubikUILabelSmall(textView: TextView) {
+        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
+        textView.textSize = 14f // 14sp
+    }
+    
+    /**
      * Apply Rubik UI Button font (normal) for button text
      */
     fun applyRubikUIButton(textView: TextView) {
@@ -206,6 +214,7 @@ fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.F
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
 fun TextView.applyRubikUILabel() = FontUtil.applyRubikUILabel(this)
 fun TextView.applyRubikUILabelMedium() = FontUtil.applyRubikUILabelMedium(this)
+fun TextView.applyRubikUILabelSmall() = FontUtil.applyRubikUILabelSmall(this)
 fun TextView.applyRubikUIButton() = FontUtil.applyRubikUIButton(this)
 fun TextView.applyRubikUIHint() = FontUtil.applyRubikUIHint(this)
 fun TextView.applyRubikUICaption() = FontUtil.applyRubikUICaption(this)
