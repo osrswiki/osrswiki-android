@@ -27,6 +27,17 @@
             tools:text="History" />
 
         <ImageButton
+            android:id="@+id/random_page_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/action_random_page"
+            android:src="@drawable/ic_shuffle_24"
+            android:tint="?attr/secondary_text_color"
+            android:visibility="gone"
+            app:tint="?attr/secondary_text_color" />
+
+        <ImageButton
             android:id="@+id/clear_all_button"
             android:layout_width="48dp"
             android:layout_height="48dp"
