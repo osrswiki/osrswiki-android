@@ -116,10 +116,9 @@ class MainActivity : BaseActivity() {
         L.d("MainActivity: Navigation fonts setup complete")
     }
     
-    private fun applyFontsToBottomNavigation(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView) {
+    private fun applyFontsToBottomNavigation(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView, selectedItemId: Int = bottomNav.selectedItemId) {
         // Access the BottomNavigationMenuView which contains the individual tabs
         val menuView = bottomNav.getChildAt(0) as com.google.android.material.bottomnavigation.BottomNavigationMenuView
-        val selectedItemId = bottomNav.selectedItemId
         
         for (i in 0 until menuView.childCount) {
             val item = menuView.getChildAt(i)
@@ -200,7 +199,7 @@ class MainActivity : BaseActivity() {
                 
                 // Refresh fonts to update active/inactive styling
                 try {
-                    applyFontsToBottomNavigation(binding.bottomNav)
+                    applyFontsToBottomNavigation(binding.bottomNav, item.itemId)
                 } catch (e: Exception) {
                     L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
                 }
