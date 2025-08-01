@@ -119,25 +119,33 @@ class MainActivity : BaseActivity() {
     private fun applyFontsToBottomNavigation(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView) {
         // Access the BottomNavigationMenuView which contains the individual tabs
         val menuView = bottomNav.getChildAt(0) as com.google.android.material.bottomnavigation.BottomNavigationMenuView
+        val selectedItemId = bottomNav.selectedItemId
         
         for (i in 0 until menuView.childCount) {
             val item = menuView.getChildAt(i)
+            val menuItem = bottomNav.menu.getItem(i)
+            val isActive = menuItem.itemId == selectedItemId
             
-            // Find TextView children and apply font
-            applyFontsToViewGroup(item as android.view.ViewGroup)
+            // Find TextView children and apply font based on active state
+            applyFontsToViewGroup(item as android.view.ViewGroup, isActive)
         }
     }
     
-    private fun applyFontsToViewGroup(viewGroup: android.view.ViewGroup) {
+    private fun applyFontsToViewGroup(viewGroup: android.view.ViewGroup, isActive: Boolean = false) {
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
             when (child) {
                 is TextView -> {
-                    FontUtil.applyRubikUILabel(child)
-                    L.d("MainActivity: Applied font to navigation label: ${child.text}")
+                    if (isActive) {
+                        FontUtil.applyRubikUILabelMedium(child)
+                        L.d("MainActivity: Applied MEDIUM font to ACTIVE navigation label: ${child.text}")
+                    } else {
+                        FontUtil.applyRubikUILabel(child)
+                        L.d("MainActivity: Applied NORMAL font to navigation label: ${child.text}")
+                    }
                 }
                 is android.view.ViewGroup -> {
-                    applyFontsToViewGroup(child)
+                    applyFontsToViewGroup(child, isActive)
                 }
             }
         }
@@ -189,6 +197,14 @@ class MainActivity : BaseActivity() {
                 selectedFragment.view?.bringToFront()
 
                 activeFragment = selectedFragment
+                
+                // Refresh fonts to update active/inactive styling
+                try {
+                    applyFontsToBottomNavigation(binding.bottomNav)
+                } catch (e: Exception) {
+                    L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
+                }
+                
                 true
             } else {
                 false
