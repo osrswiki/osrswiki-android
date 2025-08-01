@@ -98,6 +98,8 @@ class DonateFragment : Fragment() {
         binding.customAmountLayout.visibility = View.GONE
         binding.customAmountInput.text?.clear()
         
+        // Update button selection states
+        updateButtonSelectionStates()
         updateDonateButtonState()
     }
     
@@ -110,7 +112,37 @@ class DonateFragment : Fragment() {
         binding.customAmountLayout.visibility = View.VISIBLE
         binding.customAmountInput.requestFocus()
         
+        // Update button selection states
+        updateButtonSelectionStates()
         updateDonateButtonState()
+    }
+    
+    private fun updateButtonSelectionStates() {
+        // Clear all button selections first
+        clearAllButtonSelections()
+        
+        // Set selected state based on current selection
+        when {
+            isCustomAmountSelected -> {
+                binding.chipAmountCustom.isSelected = true
+            }
+            selectedAmount != null -> {
+                when (selectedAmount) {
+                    BigDecimal("1.00") -> binding.chipAmount1.isSelected = true
+                    BigDecimal("5.00") -> binding.chipAmount5.isSelected = true
+                    BigDecimal("10.00") -> binding.chipAmount10.isSelected = true
+                    BigDecimal("25.00") -> binding.chipAmount25.isSelected = true
+                }
+            }
+        }
+    }
+    
+    private fun clearAllButtonSelections() {
+        binding.chipAmount1.isSelected = false
+        binding.chipAmount5.isSelected = false
+        binding.chipAmount10.isSelected = false
+        binding.chipAmount25.isSelected = false
+        binding.chipAmountCustom.isSelected = false
     }
     
     private fun setupCustomAmountInput() {
@@ -370,7 +402,7 @@ class DonateFragment : Fragment() {
     private fun resetForm() {
         selectedAmount = null
         isCustomAmountSelected = false
-        binding.amountChipGroup.clearCheck()
+        clearAllButtonSelections()
         binding.customAmountLayout.visibility = View.GONE
         binding.customAmountInput.text?.clear()
         hideStatusText()

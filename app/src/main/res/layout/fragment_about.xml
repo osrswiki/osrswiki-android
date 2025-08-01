@@ -97,7 +97,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/about_wiki_button"
-            style="?attr/materialButtonOutlinedStyle"
             app:icon="@drawable/ic_open_in_new_24"
             app:iconGravity="textEnd"
             android:layout_marginBottom="32dp"

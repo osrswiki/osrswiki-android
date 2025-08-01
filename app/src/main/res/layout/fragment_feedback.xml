@@ -61,7 +61,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/feedback_rate_app_button"
-                    style="?attr/materialButtonOutlinedStyle"
                     app:icon="@drawable/ic_open_in_new_24"
                     app:iconGravity="textEnd" />
 
@@ -108,8 +107,7 @@
                     android:id="@+id/report_issue_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/feedback_report_issue_button"
-                    style="?attr/materialButtonOutlinedStyle" />
+                    android:text="@string/feedback_report_issue_button" />
 
             </LinearLayout>
 
@@ -154,8 +152,7 @@
                     android:id="@+id/request_feature_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/feedback_request_feature_button"
-                    style="?attr/materialButtonOutlinedStyle" />
+                    android:text="@string/feedback_request_feature_button" />
 
             </LinearLayout>
 
