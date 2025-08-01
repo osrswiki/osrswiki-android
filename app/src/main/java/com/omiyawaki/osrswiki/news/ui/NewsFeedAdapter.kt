@@ -156,7 +156,16 @@ class NewsFeedAdapter(
         
         fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
             title.text = item.title
-            val htmlContent = item.events.joinToString("<br>") { "• $it" }
+            // Truncate individual events to a reasonable length (approx 80 chars to fit most screens)
+            val maxEventLength = 80
+            val htmlContent = item.events.joinToString("<br>") { event ->
+                val truncatedEvent = if (event.length > maxEventLength) {
+                    "${event.take(maxEventLength - 3)}..."
+                } else {
+                    event
+                }
+                "• $truncatedEvent"
+            }
             Log.d(TAG, "OnThisDay content to parse: $htmlContent")
             content.setTextWithClickableLinks(htmlContent, onLinkClick)
         }
