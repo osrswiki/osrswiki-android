@@ -8,6 +8,7 @@
         <item name="android:textStyle">bold</item>
         <item name="android:textSize">32sp</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
     
     <!-- Headlines - Section headers, major navigation -->
