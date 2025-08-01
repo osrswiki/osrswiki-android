@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemRecentSearchBinding
 import com.omiyawaki.osrswiki.search.db.RecentSearch
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
 
 class RecentSearchAdapter(
     private val onItemClicked: (RecentSearch) -> Unit
@@ -30,6 +31,7 @@ class RecentSearchAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: RecentSearch, onItemClicked: (RecentSearch) -> Unit) {
             binding.textViewRecentSearchQuery.text = item.query
+            binding.textViewRecentSearchQuery.applyRubikUILabel()
             binding.root.setOnClickListener { onItemClicked(item) }
         }
     }

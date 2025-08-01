@@ -3,8 +3,10 @@ package com.omiyawaki.osrswiki.donate
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 /**
  * Activity to host the DonateFragment for Google Pay donation functionality.
@@ -38,6 +40,7 @@ class DonateActivity : BaseActivity() {
         }
 
         setupToolbar()
+        setupFonts()
     }
 
     private fun setupToolbar() {
@@ -45,6 +48,17 @@ class DonateActivity : BaseActivity() {
             title = getString(R.string.menu_title_donate)
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
+        }
+    }
+
+    private fun setupFonts() {
+        // Apply fonts to action bar title
+        supportActionBar?.let { actionBar ->
+            // Find the action bar title TextView and apply font
+            val titleId = resources.getIdentifier("action_bar_title", "id", "android")
+            if (titleId > 0) {
+                findViewById<TextView>(titleId)?.applyAlegreyaHeadline()
+            }
         }
     }
 

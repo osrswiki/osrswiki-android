@@ -45,6 +45,7 @@
     text-align: center;
     padding: 0.4em 1em;
     border-bottom: 1px solid var(--navbox-border);
+    font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
     font-weight: bold;
 }
 
@@ -55,6 +56,7 @@
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
+    font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
     font-weight: 600;
 }
 
@@ -117,5 +119,6 @@
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
+    font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
     font-weight: 600;
 }

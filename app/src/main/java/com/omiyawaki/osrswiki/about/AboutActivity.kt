@@ -3,8 +3,10 @@ package com.omiyawaki.osrswiki.about
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 class AboutActivity : BaseActivity() {
 
@@ -37,6 +39,17 @@ class AboutActivity : BaseActivity() {
             title = getString(R.string.menu_title_about)
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
+        }
+    }
+
+    private fun setupFonts() {
+        // Apply fonts to action bar title
+        supportActionBar?.let { actionBar ->
+            // Find the action bar title TextView and apply font
+            val titleId = resources.getIdentifier("action_bar_title", "id", "android")
+            if (titleId > 0) {
+                findViewById<TextView>(titleId)?.applyAlegreyaHeadline()
+            }
         }
     }
 

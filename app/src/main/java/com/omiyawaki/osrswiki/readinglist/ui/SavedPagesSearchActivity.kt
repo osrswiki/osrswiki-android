@@ -27,6 +27,8 @@ import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModel
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.FontUtil
+import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 
 class SavedPagesSearchActivity : BaseActivity() {
@@ -53,6 +55,7 @@ class SavedPagesSearchActivity : BaseActivity() {
 
         setupToolbar()
         setupRecyclerView()
+        setupFonts()
         setupSearchField()
         setupVoiceSearch()
         observeSearchResults()
@@ -87,6 +90,15 @@ class SavedPagesSearchActivity : BaseActivity() {
         }
     }
 
+    private fun setupFonts() {
+        L.d("SavedPagesSearchActivity: Setting up fonts...")
+        
+        // Apply font to search input field
+        FontUtil.applyRubikUIHint(binding.searchEditText)
+        
+        L.d("SavedPagesSearchActivity: Fonts applied to UI elements")
+    }
+    
     private fun setupSearchField() {
         binding.searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}

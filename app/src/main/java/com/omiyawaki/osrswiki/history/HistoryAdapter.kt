@@ -14,6 +14,9 @@ import com.omiyawaki.osrswiki.databinding.ViewHistoryDateHeaderBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
+import com.omiyawaki.osrswiki.util.applyVollkornBody
 
 class HistoryAdapter(
     private val onItemClick: (HistoryEntry) -> Unit
@@ -63,6 +66,7 @@ class HistoryAdapter(
 
         fun bind(dateString: String) {
             binding.dateHeaderText.text = dateString
+            binding.dateHeaderText.applyAlegreyaHeadline()
         }
     }
 
@@ -74,11 +78,13 @@ class HistoryAdapter(
             binding.apply {
                 // Set page title - extract main title from displayText
                 pageTitleText.text = StringUtil.extractMainTitle(historyEntry.pageTitle.displayText)
+                pageTitleText.applyAlegreyaTitle()
 
                 // Set snippet text from history entry or hide if empty
                 if (!historyEntry.snippet.isNullOrBlank()) {
                     pageSnippetText.text = historyEntry.snippet
                     pageSnippetText.visibility = View.VISIBLE
+                    pageSnippetText.applyVollkornBody()
                 } else {
                     pageSnippetText.visibility = View.GONE
                 }

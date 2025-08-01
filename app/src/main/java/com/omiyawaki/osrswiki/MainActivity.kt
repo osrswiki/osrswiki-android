@@ -133,7 +133,7 @@ class MainActivity : BaseActivity() {
             val child = viewGroup.getChildAt(i)
             when (child) {
                 is TextView -> {
-                    FontUtil.applyVollkornSansLabel(child)
+                    FontUtil.applyRubikUILabel(child)
                     L.d("MainActivity: Applied font to navigation label: ${child.text}")
                 }
                 is android.view.ViewGroup -> {

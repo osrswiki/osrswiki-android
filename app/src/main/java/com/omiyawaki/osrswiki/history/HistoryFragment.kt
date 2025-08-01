@@ -26,6 +26,9 @@ import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyRubikUIHint
+import com.omiyawaki.osrswiki.util.log.L
 
 class HistoryFragment : Fragment() {
 
@@ -54,6 +57,7 @@ class HistoryFragment : Fragment() {
         
         setupHeader()
         setupSearch()
+        setupFonts()
         setupRecyclerView()
         observeViewModel()
 
@@ -111,6 +115,23 @@ class HistoryFragment : Fragment() {
         binding.root.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
             voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
         }
+    }
+    
+    private fun setupFonts() {
+        L.d("HistoryFragment: Setting up fonts...")
+        
+        // Apply fonts to header elements
+        binding.root.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
+        binding.root.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
+        
+        // Apply font to empty state text
+        val emptyStateTextView = binding.emptyStateContainer.getChildAt(1) as? TextView
+        emptyStateTextView?.let { 
+            it.applyRubikUIHint()
+            L.d("HistoryFragment: Applied Rubik font to empty state text")
+        }
+        
+        L.d("HistoryFragment: Fonts applied to header elements and empty state")
     }
 
     private fun setupRecyclerView() {

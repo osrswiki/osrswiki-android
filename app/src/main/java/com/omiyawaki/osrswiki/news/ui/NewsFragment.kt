@@ -24,7 +24,7 @@ import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.applyRubikUIHint
 import java.net.URLDecoder
 
 /**
@@ -83,7 +83,7 @@ class NewsFragment : Fragment() {
         
         // Apply fonts to header elements
         view.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
-        view.findViewById<TextView>(R.id.search_text)?.applyVollkornBody()
+        view.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
         
         L.d("NewsFragment: Fonts applied to header elements")
     }

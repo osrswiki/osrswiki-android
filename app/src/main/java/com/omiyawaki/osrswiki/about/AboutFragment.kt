@@ -12,6 +12,8 @@ import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentAboutBinding
 import com.omiyawaki.osrswiki.util.FontUtil
+import com.omiyawaki.osrswiki.util.applyRubikUIButton
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
 import com.omiyawaki.osrswiki.util.log.L
 
 class AboutFragment : Fragment() {
@@ -75,16 +77,17 @@ class AboutFragment : Fragment() {
         
         // Apply fonts using utility to bypass Huawei font system
         FontUtil.applyAlegreyaDisplay(binding.aboutTitle)
-        FontUtil.applyVollkornBody(binding.appVersionText)
+        binding.appVersionText.applyRubikUILabel()
         FontUtil.applyAlegreyaHeadline(binding.creditsTitle)
         FontUtil.applyAlegreyaTitle(binding.jagexTitle)
-        FontUtil.applyVollkornBody(binding.jagexDescription)
+        binding.jagexDescription.applyRubikUILabel()
         FontUtil.applyAlegreyaTitle(binding.wikiTitle)
-        FontUtil.applyVollkornBody(binding.wikiDescription)
+        binding.wikiDescription.applyRubikUILabel()
+        binding.wikiButton.applyRubikUIButton()
         FontUtil.applyAlegreyaTitle(binding.wikipediaTitle)
-        FontUtil.applyVollkornBody(binding.wikipediaDescription)
+        binding.wikipediaDescription.applyRubikUILabel()
         
-        L.d("AboutFragment: Fonts applied to all TextViews")
+        L.d("AboutFragment: Fonts applied to all TextViews and buttons")
     }
     
     private fun debugFontLoading() {

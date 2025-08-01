@@ -12,6 +12,9 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ItemSavedPageBinding
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.util.StringUtil
+import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
+import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.FontUtil
 import java.text.DateFormat
 import java.util.Date
 
@@ -27,6 +30,7 @@ class SavedPageViewHolder(
         
         // Set title - extract main title from displayTitle
         binding.itemSavedPageTitle.text = StringUtil.extractMainTitle(savedPage.displayTitle)
+        binding.itemSavedPageTitle.applyAlegreyaTitle()
         
         // Set description snippet (prioritize description over access time)
         if (!savedPage.description.isNullOrBlank()) {
@@ -38,6 +42,7 @@ class SavedPageViewHolder(
             if (cleanDescription.isNotBlank()) {
                 binding.itemSavedPageSnippet.text = cleanDescription
                 binding.itemSavedPageSnippet.visibility = View.VISIBLE
+                binding.itemSavedPageSnippet.applyVollkornBody()
             } else {
                 binding.itemSavedPageSnippet.visibility = View.GONE
             }
@@ -84,6 +89,7 @@ class SavedPageViewHolder(
         if (infoText.isNotEmpty()) {
             binding.itemSavedPageInfo.text = infoText
             binding.itemSavedPageInfo.visibility = View.VISIBLE
+            FontUtil.applyRubikUICaption(binding.itemSavedPageInfo)
         } else {
             binding.itemSavedPageInfo.visibility = View.GONE
         }

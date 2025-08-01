@@ -10,6 +10,9 @@ import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentFeedbackBinding
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
+import com.omiyawaki.osrswiki.util.applyRubikUIButton
 
 /**
  * Secure version of FeedbackFragment that uses Cloud Function for GitHub integration.
@@ -42,6 +45,7 @@ class FeedbackFragmentSecure : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("FeedbackFragmentSecure: onViewCreated called.")
         
+        setupFonts()
         setupClickListeners()
     }
     
@@ -97,6 +101,32 @@ class FeedbackFragmentSecure : Fragment() {
         L.d("FeedbackFragmentSecure: Request feature clicked - opening RequestFeatureActivity")
         val intent = RequestFeatureActivity.newIntent(requireContext())
         startActivity(intent)
+    }
+    
+    private fun setupFonts() {
+        L.d("FeedbackFragmentSecure: Setting up fonts...")
+        
+        // Apply fonts to all TextViews
+        binding.feedbackTitle.applyAlegreyaHeadline()
+        
+        // Rate app card
+        binding.rateAppTitle.applyAlegreyaHeadline()
+        binding.rateAppDescription.applyRubikUILabel()
+        
+        // Report issue card
+        binding.reportIssueTitle.applyAlegreyaHeadline()
+        binding.reportIssueDescription.applyRubikUILabel()
+        
+        // Request feature card
+        binding.requestFeatureTitle.applyAlegreyaHeadline()
+        binding.requestFeatureDescription.applyRubikUILabel()
+        
+        // Apply fonts to buttons
+        binding.rateAppButton.applyRubikUIButton()
+        binding.reportIssueButton.applyRubikUIButton()
+        binding.requestFeatureButton.applyRubikUIButton()
+        
+        L.d("FeedbackFragmentSecure: Fonts applied to all TextViews and buttons")
     }
 
     override fun onDestroyView() {

@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -214,6 +215,10 @@ class MapFragment : Fragment() {
         }
         if (maxFloor > 0) {
             binding.floorControls.visibility = View.VISIBLE
+            
+            // Apply font to floor control text
+            binding.floorControlText.applyRubikUILabel()
+            
             updateFloorControlStates()
             binding.floorControlUp.setOnClickListener {
                 if (currentFloor < maxFloor) showFloor(currentFloor + 1)

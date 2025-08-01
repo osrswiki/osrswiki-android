@@ -81,6 +81,63 @@
   src: url('https://appassets.androidplatform.net/res/font/alegreya_black_italic.ttf');
 }
 
+/* Rubik Font Family - Sans-serif for UI elements */
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 400;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 500;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_medium.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 500;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_medium_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 600;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_semibold.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 600;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_semibold_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_bold.ttf');
+}
+
+@font-face {
+  font-family: 'Rubik';
+  font-weight: 700;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/rubik_bold_italic.ttf');
+}
+
 /* Vollkorn Font Family - Serif for body/reading content */
 @font-face {
   font-family: 'Vollkorn';

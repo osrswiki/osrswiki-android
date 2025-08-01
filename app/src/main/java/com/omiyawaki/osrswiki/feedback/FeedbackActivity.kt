@@ -3,8 +3,10 @@ package com.omiyawaki.osrswiki.feedback
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 /**
  * Activity to host the FeedbackFragmentSecure for secure Help & Feedback functionality.
@@ -39,6 +41,7 @@ class FeedbackActivity : BaseActivity() {
         }
 
         setupToolbar()
+        setupFonts()
     }
 
     private fun setupToolbar() {
@@ -46,6 +49,17 @@ class FeedbackActivity : BaseActivity() {
             title = getString(R.string.menu_title_feedback)
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
+        }
+    }
+
+    private fun setupFonts() {
+        // Apply fonts to action bar title
+        supportActionBar?.let { actionBar ->
+            // Find the action bar title TextView and apply font
+            val titleId = resources.getIdentifier("action_bar_title", "id", "android")
+            if (titleId > 0) {
+                findViewById<TextView>(titleId)?.applyAlegreyaHeadline()
+            }
         }
     }
 
