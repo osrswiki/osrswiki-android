@@ -109,6 +109,10 @@ ul, ol {
     padding-left: 0;
     margin-bottom: 1em;
 }
+/* Remove bottom margin from nested lists */
+li > ul, li > ol {
+    margin-bottom: 0;
+}
 ul {
     list-style-image: var(--ul-list-style-image);
 }

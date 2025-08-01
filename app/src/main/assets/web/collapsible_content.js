@@ -40,7 +40,7 @@
     function updateHeaderText(container, titleWrapper, captionText) {
         var isCollapsed = container.classList.contains('collapsed');
         var stateText = isCollapsed ? ': Tap to expand' : ': Tap to collapse';
-        titleWrapper.innerHTML = '<strong>' + captionText + '</strong>' + stateText;
+        titleWrapper.innerHTML = '<strong>' + captionText + '</strong><span style="font-weight: normal;">' + stateText + '</span>';
     }
 
     function setupCollapsible(header, container, titleWrapper, captionText) {
