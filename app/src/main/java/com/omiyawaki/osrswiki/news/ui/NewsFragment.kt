@@ -74,7 +74,7 @@ class NewsFragment : Fragment() {
     }
 
     private fun setupHeader(view: View) {
-        // Set the page title to "News"
+        // Set the page title to "Home"
         view.findViewById<TextView>(R.id.page_title)?.text = getString(R.string.nav_news)
     }
     
