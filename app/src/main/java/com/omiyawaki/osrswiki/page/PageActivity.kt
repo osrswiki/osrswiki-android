@@ -134,7 +134,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         
         // Set up voice search button
         binding.pageToolbar.findViewById<ImageView>(R.id.toolbar_voice_search_button)?.setOnClickListener {
-            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+            voiceRecognitionManager.startVoiceRecognition()
         }
 
         binding.pageToolbar.findViewById<View>(R.id.toolbar_overflow_menu_button).setOnClickListener { anchorView ->
@@ -232,7 +232,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (::voiceRecognitionManager.isInitialized) {
-            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
         }
     }
 

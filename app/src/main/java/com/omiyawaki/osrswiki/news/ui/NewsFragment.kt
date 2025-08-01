@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -13,18 +14,23 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.random.RandomPageRepository
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.VoiceSearchAnimationHelper
+import com.omiyawaki.osrswiki.util.createVoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.applyRubikUIHint
+import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
 /**
@@ -39,6 +45,7 @@ class NewsFragment : Fragment() {
     private val wikiBaseUrl = "https://oldschool.runescape.wiki"
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
+    private lateinit var voiceAnimationHelper: VoiceSearchAnimationHelper
     private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
     }
@@ -76,6 +83,15 @@ class NewsFragment : Fragment() {
     private fun setupHeader(view: View) {
         // Set the page title to "Home"
         view.findViewById<TextView>(R.id.page_title)?.text = getString(R.string.nav_news)
+        
+        // Show and setup the random page button
+        val randomPageButton = view.findViewById<ImageButton>(R.id.random_page_button)
+        randomPageButton?.apply {
+            visibility = View.VISIBLE
+            setOnClickListener {
+                handleRandomPageClick()
+            }
+        }
     }
     
     private fun setupFonts(view: View) {
@@ -89,7 +105,14 @@ class NewsFragment : Fragment() {
     }
 
     private fun setupSearch(view: View) {
-        // Initialize voice recognition manager
+        val voiceSearchButton = view.findViewById<ImageView>(R.id.voice_search_button)
+        
+        // Initialize voice animation helper
+        if (voiceSearchButton != null) {
+            voiceAnimationHelper = voiceSearchButton.createVoiceSearchAnimationHelper()
+        }
+        
+        // Initialize voice recognition manager with fallback support
         voiceRecognitionManager = createVoiceRecognitionManager(
             onResult = { query ->
                 // Open search activity with the voice query
@@ -97,7 +120,32 @@ class NewsFragment : Fragment() {
                     putExtra("query", query)
                 }
                 startActivity(intent)
-            }
+            },
+            onPartialResult = { partialQuery ->
+                // Could show a temporary overlay or hint with partial results
+                // For now, we'll just log it since we navigate to SearchActivity on final result
+                L.d("NewsFragment: Partial result: $partialQuery")
+            },
+            onStateChanged = { state ->
+                // Update UI based on speech recognition state
+                if (::voiceAnimationHelper.isInitialized) {
+                    when (state) {
+                        SpeechRecognitionManager.SpeechState.IDLE -> {
+                            voiceAnimationHelper.setIdleState()
+                        }
+                        SpeechRecognitionManager.SpeechState.LISTENING -> {
+                            voiceAnimationHelper.setListeningState()
+                        }
+                        SpeechRecognitionManager.SpeechState.PROCESSING -> {
+                            voiceAnimationHelper.setProcessingState()
+                        }
+                        SpeechRecognitionManager.SpeechState.ERROR -> {
+                            voiceAnimationHelper.setErrorState()
+                        }
+                    }
+                }
+            },
+            fallbackLauncher = voiceSearchLauncher
         )
         
         // Set a click listener on the search bar view to launch the search activity.
@@ -107,8 +155,8 @@ class NewsFragment : Fragment() {
         }
         
         // Set up voice search button
-        view.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
-            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+        voiceSearchButton?.setOnClickListener {
+            voiceRecognitionManager.startVoiceRecognition()
         }
     }
 
@@ -189,11 +237,57 @@ class NewsFragment : Fragment() {
         }
     }
 
+    private fun handleRandomPageClick() {
+        L.d("NewsFragment: Random page button clicked")
+        
+        lifecycleScope.launch {
+            try {
+                val result = RandomPageRepository.getRandomPage()
+                
+                result.onSuccess { pageTitle ->
+                    L.d("NewsFragment: Random page fetched successfully: $pageTitle")
+                    
+                    val intent = PageActivity.newIntent(
+                        context = requireContext(),
+                        pageTitle = pageTitle,
+                        pageId = null,
+                        source = HistoryEntry.SOURCE_RANDOM
+                    )
+                    startActivity(intent)
+                }.onFailure { exception ->
+                    L.e("NewsFragment: Failed to fetch random page", exception)
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.random_page_error),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } catch (e: Exception) {
+                L.e("NewsFragment: Exception in handleRandomPageClick", e)
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.random_page_error),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (::voiceRecognitionManager.isInitialized) {
-            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
+        }
+    }
+    
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.destroy()
+        }
+        if (::voiceAnimationHelper.isInitialized) {
+            voiceAnimationHelper.cleanup()
         }
     }
 }

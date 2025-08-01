@@ -120,7 +120,7 @@ class SavedPagesFragment : Fragment() {
         
         // Set up voice search button
         binding.root.findViewById<ImageView>(R.id.voice_search_button)?.setOnClickListener {
-            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+            voiceRecognitionManager.startVoiceRecognition()
         }
         
         // Update search hint text for saved pages
@@ -301,7 +301,7 @@ class SavedPagesFragment : Fragment() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (::voiceRecognitionManager.isInitialized) {
-            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
         }
     }
 

@@ -9,6 +9,8 @@ import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivitySearchBinding
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.VoiceSearchAnimationHelper
+import com.omiyawaki.osrswiki.util.createVoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -17,9 +19,7 @@ class SearchActivity : BaseActivity() {
     internal lateinit var binding: ActivitySearchBinding
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
-    private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        voiceRecognitionManager.handleActivityResult(result.resultCode, result.data)
-    }
+    private lateinit var voiceAnimationHelper: VoiceSearchAnimationHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,17 +56,44 @@ class SearchActivity : BaseActivity() {
     }
 
     private fun setupVoiceSearch() {
+        // Initialize voice animation helper
+        voiceAnimationHelper = binding.voiceSearchButton.createVoiceSearchAnimationHelper()
+        
         // Initialize voice recognition manager
         voiceRecognitionManager = createVoiceRecognitionManager(
             onResult = { query ->
                 binding.searchEditText.setText(query)
                 binding.searchEditText.setSelection(query.length)
+            },
+            onPartialResult = { partialQuery ->
+                // Show real-time transcription
+                if (partialQuery.isNotBlank()) {
+                    binding.searchEditText.setText(partialQuery)
+                    binding.searchEditText.setSelection(partialQuery.length)
+                }
+            },
+            onStateChanged = { state ->
+                // Update UI based on speech recognition state
+                when (state) {
+                    SpeechRecognitionManager.SpeechState.IDLE -> {
+                        voiceAnimationHelper.setIdleState()
+                    }
+                    SpeechRecognitionManager.SpeechState.LISTENING -> {
+                        voiceAnimationHelper.setListeningState()
+                    }
+                    SpeechRecognitionManager.SpeechState.PROCESSING -> {
+                        voiceAnimationHelper.setProcessingState()
+                    }
+                    SpeechRecognitionManager.SpeechState.ERROR -> {
+                        voiceAnimationHelper.setErrorState()
+                    }
+                }
             }
         )
         
         // Set up voice search button
         binding.voiceSearchButton.setOnClickListener {
-            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+            voiceRecognitionManager.startVoiceRecognition()
         }
     }
 
@@ -74,7 +101,17 @@ class SearchActivity : BaseActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (::voiceRecognitionManager.isInitialized) {
-            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::voiceRecognitionManager.isInitialized) {
+            voiceRecognitionManager.destroy()
+        }
+        if (::voiceAnimationHelper.isInitialized) {
+            voiceAnimationHelper.cleanup()
         }
     }
 
