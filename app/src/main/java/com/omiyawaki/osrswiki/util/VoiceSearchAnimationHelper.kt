@@ -23,6 +23,9 @@ class VoiceSearchAnimationHelper(private val voiceButton: ImageView) {
     fun setListeningState() {
         stopCurrentAnimation()
         
+        // Clear any tint to show the true red color from animations
+        voiceButton.imageTintList = null
+        
         // Try to use the animated vector drawable first (API 21+)
         try {
             voiceButton.setImageResource(R.drawable.voice_search_pulse_animation)
@@ -47,6 +50,8 @@ class VoiceSearchAnimationHelper(private val voiceButton: ImageView) {
     
     fun setProcessingState() {
         stopCurrentAnimation()
+        // Clear any tint to show the red color
+        voiceButton.imageTintList = null
         voiceButton.setImageResource(R.drawable.ic_voice_search_recording)
     }
     

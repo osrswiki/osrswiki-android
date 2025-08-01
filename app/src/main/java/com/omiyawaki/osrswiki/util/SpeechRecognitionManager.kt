@@ -96,6 +96,12 @@ class SpeechRecognitionManager(
                 return
             }
             
+            currentState == SpeechState.LISTENING -> {
+                L.d("SpeechRecognitionManager: Currently listening, stopping recognition")
+                stopListening()
+                return
+            }
+            
             currentState != SpeechState.IDLE -> {
                 L.d("SpeechRecognitionManager: Already in state $currentState, ignoring request")
                 return
@@ -261,8 +267,21 @@ class SpeechRecognitionManager(
     }
     
     fun stopListening() {
-        speechRecognizer?.stopListening()
-        resetState()
+        L.d("SpeechRecognitionManager: stopListening() called")
+        if (currentState == SpeechState.LISTENING) {
+            try {
+                currentState = SpeechState.PROCESSING
+                speechRecognizer?.stopListening()
+                L.d("SpeechRecognitionManager: Speech recognizer stopped, waiting for results")
+            } catch (e: Exception) {
+                L.e("SpeechRecognitionManager: Exception in stopListening()", e)
+                currentState = SpeechState.ERROR
+                onError("Failed to stop speech recognition: ${e.message ?: "Unknown error"}")
+                resetState()
+            }
+        } else {
+            L.w("SpeechRecognitionManager: stopListening() called but not in LISTENING state (current: $currentState)")
+        }
     }
     
     private fun resetState() {
