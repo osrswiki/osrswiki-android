@@ -4,19 +4,19 @@
     <font
         android:fontStyle="normal"
         android:fontWeight="400"
-        android:font="@font/vollkorn_regular" />
+        android:font="@font/ibm_plex_sans_regular" />
     <font
         android:fontStyle="italic"
         android:fontWeight="400"
-        android:font="@font/vollkorn_italic" />
+        android:font="@font/ibm_plex_sans_italic" />
     
     <!-- Medium -->
     <font
         android:fontStyle="normal"
         android:fontWeight="500"
-        android:font="@font/vollkorn_medium" />
+        android:font="@font/ibm_plex_sans_medium" />
     <font
         android:fontStyle="italic"
         android:fontWeight="500"
-        android:font="@font/vollkorn_medium_italic" />
+        android:font="@font/ibm_plex_sans_medium_italic" />
 </font-family>

@@ -10,7 +10,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
 
 class SearchAdapter(
     private val onItemClickListener: OnItemClickListener
@@ -45,7 +45,7 @@ class SearchAdapter(
 
             if (item.snippet.isNotBlank()) {
                 binding.searchItemSnippet.text = item.snippet
-                binding.searchItemSnippet.applyVollkornBody()
+                binding.searchItemSnippet.applyIBMPlexSansBody()
                 binding.searchItemSnippet.visibility = View.VISIBLE
             } else {
                 binding.searchItemSnippet.visibility = View.GONE

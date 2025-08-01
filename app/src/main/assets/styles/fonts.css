@@ -138,33 +138,33 @@
   src: url('https://appassets.androidplatform.net/res/font/rubik_bold_italic.ttf');
 }
 
-/* Vollkorn Font Family - Serif for body/reading content */
+/* IBM Plex Sans Font Family - Sans-serif for body/reading content */
 @font-face {
-  font-family: 'Vollkorn';
+  font-family: 'IBM Plex Sans';
   font-weight: 400;
   font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_regular.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_regular.ttf');
 }
 
 @font-face {
-  font-family: 'Vollkorn';
+  font-family: 'IBM Plex Sans';
   font-weight: 400;
   font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_italic.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_italic.ttf');
 }
 
 @font-face {
-  font-family: 'Vollkorn';
+  font-family: 'IBM Plex Sans';
   font-weight: 500;
   font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_medium.ttf');
 }
 
 @font-face {
-  font-family: 'Vollkorn';
+  font-family: 'IBM Plex Sans';
   font-weight: 500;
   font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium_italic.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_medium_italic.ttf');
 }
 
 /* Alegreya Sans Font Family - Sans-serif for UI elements */

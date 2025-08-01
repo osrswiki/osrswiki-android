@@ -13,7 +13,7 @@ import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaSmallCaps
-import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
 import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
 import com.omiyawaki.osrswiki.news.model.PopularPageItem
@@ -134,7 +134,7 @@ class NewsFeedAdapter(
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyVollkornBody()
+            content.applyIBMPlexSansBody()
         }
         
         fun bind(item: AnnouncementItem, onLinkClick: (url: String) -> Unit) {
@@ -151,7 +151,7 @@ class NewsFeedAdapter(
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyVollkornBody()
+            content.applyIBMPlexSansBody()
         }
         
         fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
@@ -169,7 +169,7 @@ class NewsFeedAdapter(
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyVollkornBody()
+            content.applyIBMPlexSansBody()
         }
         
         fun bind(items: List<PopularPageItem>, onLinkClick: (url: String) -> Unit) {
