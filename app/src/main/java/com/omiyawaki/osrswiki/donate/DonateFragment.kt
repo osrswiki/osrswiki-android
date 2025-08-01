@@ -22,6 +22,9 @@ import com.google.android.material.chip.Chip
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentDonateBinding
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
+import com.omiyawaki.osrswiki.util.applyRubikUIButton
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -65,6 +68,7 @@ class DonateFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("DonateFragment: onViewCreated called.")
         
+        setupFonts()
         initializeGooglePay()
         setupAmountSelection()
         setupDonateButton()
@@ -384,6 +388,30 @@ class DonateFragment : Fragment() {
                 setStatusText("Unable to open browser")
             }
         }
+    }
+    
+    private fun setupFonts() {
+        L.d("DonateFragment: Setting up fonts...")
+        
+        // Apply fonts to all TextViews
+        binding.donateTitle.applyAlegreyaHeadline()
+        binding.donateDescription.applyRubikUILabel()
+        binding.statusText.applyRubikUILabel()
+        binding.wikiSupportTitle.applyAlegreyaHeadline()
+        binding.wikiSupportDescription.applyRubikUILabel()
+        
+        // Apply fonts to chips (amount selection)
+        binding.chipAmount1.applyRubikUIButton()
+        binding.chipAmount5.applyRubikUIButton()
+        binding.chipAmount10.applyRubikUIButton()
+        binding.chipAmount25.applyRubikUIButton()
+        binding.chipAmountCustom.applyRubikUIButton()
+        
+        // Apply fonts to buttons
+        binding.donateButton.applyRubikUIButton()
+        binding.wikiDonateButton.applyRubikUIButton()
+        
+        L.d("DonateFragment: Fonts applied to all TextViews, chips, and buttons")
     }
 
     override fun onDestroyView() {

@@ -10,32 +10,37 @@ import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
+import com.omiyawaki.osrswiki.util.applyRubikUIButton
 
 class PageActionBarManager(
     private val binding: ActivityPageBinding
 ) {
     
     fun setupActionBar(fragment: PageFragment) {
-        val saveButton = binding.root.findViewById<View>(R.id.page_action_save)
+        val saveButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_save)
         saveButton.setOnClickListener {
             // Save functionality will be connected via callback
             saveClickCallback?.invoke()
         }
+        saveButton.applyRubikUIButton()
         
-        val findButton = binding.root.findViewById<View>(R.id.page_action_find_in_article)
+        val findButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_find_in_article)
         findButton.setOnClickListener {
             fragment.showFindInPage()
         }
+        findButton.applyRubikUIButton()
         
-        val themeButton = binding.root.findViewById<View>(R.id.page_action_theme)
+        val themeButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_theme)
         themeButton.setOnClickListener {
             fragment.startActivity(AppearanceSettingsActivity.newIntent(fragment.requireContext()))
         }
+        themeButton.applyRubikUIButton()
         
-        val contentsButton = binding.root.findViewById<View>(R.id.page_action_contents)
+        val contentsButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_contents)
         contentsButton.setOnClickListener {
             fragment.showContents()
         }
+        contentsButton.applyRubikUIButton()
     }
     
     fun updateSaveIcon(isSaved: Boolean) {

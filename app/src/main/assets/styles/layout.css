@@ -1,6 +1,6 @@
 /* Injected H1 title style */
 h1.page-header {
-    font-family: 'PT Serif', 'Palatino', 'Georgia', serif;
+    font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
     border-bottom: 1px solid var(--sidebar-color);
     padding-bottom: 0.2em;
     margin-top: 0;

@@ -88,6 +88,7 @@
 .infobox .infobox-subheader {
         background-color: var(--wikitable-header-bg);
         color: var(--wikitable-color);
+        font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
         font-weight: bold;
         text-align: center;
 }
@@ -143,7 +144,8 @@
 
 .collapsible-header .title-wrapper {
         flex-grow: 1;
-        font-family: sans-serif;
+        font-family: 'Alegreya', 'Palatino', 'Georgia', serif;
+        font-weight: bold;
 }
 
 .collapsible-header .icon {

@@ -20,6 +20,7 @@ object FontUtil {
         VOLLKORN,
         ALEGREYA,
         ALEGREYA_SC,
+        RUBIK,
         CASCADIA_CODE
     }
     
@@ -83,17 +84,17 @@ object FontUtil {
     }
     
     /**
-     * Apply Vollkorn Body font (medium) for content text - better readability at small sizes
+     * Apply Vollkorn Body font (regular) for content text - better readability at small sizes
      */
     fun applyVollkornBody(textView: TextView) {
-        applyFont(textView, FontFamily.VOLLKORN, FontWeight.MEDIUM)
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.NORMAL)
     }
     
     /**
-     * Apply Vollkorn Sans Label font (medium) for UI elements - better readability at small sizes
+     * Apply Vollkorn Sans Label font (regular) for UI elements - better readability at small sizes
      */
     fun applyVollkornSansLabel(textView: TextView) {
-        applyFont(textView, FontFamily.VOLLKORN, FontWeight.MEDIUM)
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.NORMAL)
     }
     
     /**
@@ -101,6 +102,34 @@ object FontUtil {
      */
     fun applyAlegreyaSmallCaps(textView: TextView, fontWeight: FontWeight = FontWeight.BOLD) {
         applyFont(textView, FontFamily.ALEGREYA_SC, fontWeight)
+    }
+    
+    /**
+     * Apply Rubik UI Label font (medium) for navigation and UI controls
+     */
+    fun applyRubikUILabel(textView: TextView) {
+        applyFont(textView, FontFamily.RUBIK, FontWeight.MEDIUM)
+    }
+    
+    /**
+     * Apply Rubik UI Button font (medium) for button text
+     */
+    fun applyRubikUIButton(textView: TextView) {
+        applyFont(textView, FontFamily.RUBIK, FontWeight.MEDIUM)
+    }
+    
+    /**
+     * Apply Rubik UI Hint font (normal) for form hints and placeholder text
+     */
+    fun applyRubikUIHint(textView: TextView) {
+        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
+    }
+    
+    /**
+     * Apply Rubik UI Caption font (normal) for helper text and captions
+     */
+    fun applyRubikUICaption(textView: TextView) {
+        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
     }
     
     /**
@@ -116,6 +145,7 @@ object FontUtil {
             FontFamily.VOLLKORN -> R.font.vollkorn
             FontFamily.ALEGREYA -> R.font.alegreya
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
+            FontFamily.RUBIK -> R.font.rubik
             FontFamily.CASCADIA_CODE -> R.font.cascadia_code
         }
         
@@ -167,4 +197,8 @@ fun TextView.applyVollkornBody() = FontUtil.applyVollkornBody(this)
 fun TextView.applyVollkornSansLabel() = FontUtil.applyVollkornSansLabel(this)
 fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.FontWeight.BOLD) = 
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
+fun TextView.applyRubikUILabel() = FontUtil.applyRubikUILabel(this)
+fun TextView.applyRubikUIButton() = FontUtil.applyRubikUIButton(this)
+fun TextView.applyRubikUIHint() = FontUtil.applyRubikUIHint(this)
+fun TextView.applyRubikUICaption() = FontUtil.applyRubikUICaption(this)
 fun TextView.applyCascadiaCode() = FontUtil.applyCascadiaCode(this)

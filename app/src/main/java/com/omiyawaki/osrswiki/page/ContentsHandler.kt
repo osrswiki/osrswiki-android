@@ -18,6 +18,7 @@ import com.google.android.material.color.MaterialColors
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.DimenUtil
+import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.view.PageScrollerView
 import com.omiyawaki.osrswiki.views.ObservableWebView
 
@@ -140,21 +141,21 @@ class ContentsHandler(private val fragment: PageFragment) :
 
             textView.text = section.title
 
-            val baseTypeface = Typeface.SERIF
-            val textSize = when {
-                section.isLead -> 24f
-                section.level == 2 -> 18f
-                else -> 14f
+            // Apply consistent font instead of manual typeface creation
+            when {
+                section.isLead -> {
+                    FontUtil.applyAlegreyaDisplay(textView)
+                    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+                }
+                section.level == 2 -> {
+                    FontUtil.applyAlegreyaTitle(textView)
+                    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                }
+                else -> {
+                    FontUtil.applyVollkornBody(textView)
+                    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                }
             }
-            textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSize)
-
-            val style = when {
-                section.isBold && section.isItalic -> Typeface.BOLD_ITALIC
-                section.isBold -> Typeface.BOLD
-                section.isItalic -> Typeface.ITALIC
-                else -> Typeface.NORMAL
-            }
-            textView.typeface = Typeface.create(baseTypeface, style)
 
             val isHighlighted = position == highlightedPosition
             val colorAttr = if (isHighlighted) {

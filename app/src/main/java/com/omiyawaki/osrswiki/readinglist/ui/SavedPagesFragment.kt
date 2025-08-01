@@ -45,6 +45,10 @@ import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory /
 import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyRubikUIHint
+import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.log.L
 // import dagger.hilt.android.AndroidEntryPoint // Removed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,6 +90,7 @@ class SavedPagesFragment : Fragment() {
         
         setupHeader()
         setupSearch()
+        setupFonts()
         setupRecyclerView()
         observeSavedPages()
         setupMenu()
@@ -121,6 +126,19 @@ class SavedPagesFragment : Fragment() {
         
         // Update search hint text for saved pages
         binding.root.findViewById<TextView>(R.id.search_text)?.text = getString(R.string.search_hint_saved_pages)
+    }
+    
+    private fun setupFonts() {
+        L.d("SavedPagesFragment: Setting up fonts...")
+        
+        // Apply fonts to header elements
+        binding.root.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
+        binding.root.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
+        
+        // Apply font to empty state message
+        binding.emptyStateTextView.applyRubikUIHint()
+        
+        L.d("SavedPagesFragment: Fonts applied to header elements and empty state")
     }
 
     private fun setupRecyclerView() {

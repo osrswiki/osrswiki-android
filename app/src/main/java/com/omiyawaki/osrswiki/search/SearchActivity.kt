@@ -9,6 +9,8 @@ import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivitySearchBinding
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
+import com.omiyawaki.osrswiki.util.FontUtil
+import com.omiyawaki.osrswiki.util.log.L
 
 class SearchActivity : BaseActivity() {
 
@@ -30,6 +32,7 @@ class SearchActivity : BaseActivity() {
 
         binding.searchToolbar.setNavigationOnClickListener { finishAfterTransition() }
 
+        setupFonts()
         setupVoiceSearch()
         
         // Handle voice search query if provided
@@ -41,6 +44,15 @@ class SearchActivity : BaseActivity() {
         
         // Set focus to the search field
         binding.searchEditText.requestFocus()
+    }
+    
+    private fun setupFonts() {
+        L.d("SearchActivity: Setting up fonts...")
+        
+        // Apply font to search input field
+        FontUtil.applyRubikUIHint(binding.searchEditText)
+        
+        L.d("SearchActivity: Fonts applied to UI elements")
     }
 
     private fun setupVoiceSearch() {

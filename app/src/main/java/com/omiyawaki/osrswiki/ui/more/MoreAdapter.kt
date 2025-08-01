@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemMoreBinding
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
 
 class MoreAdapter(
     private val items: List<MoreItem> = emptyList(),
@@ -26,6 +27,7 @@ class MoreAdapter(
         fun bind(item: MoreItem) {
             binding.iconMoreItem.setImageResource(item.iconRes)
             binding.textMoreItem.setText(item.titleRes)
+            binding.textMoreItem.applyRubikUILabel()
             
             binding.root.setOnClickListener {
                 onItemClick(item.action)

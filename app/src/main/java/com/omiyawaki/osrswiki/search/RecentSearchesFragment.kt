@@ -14,6 +14,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentRecentSearchesBinding
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyRubikUILabel
+import com.omiyawaki.osrswiki.util.applyRubikUIHint
+import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 
 class RecentSearchesFragment : Fragment() {
@@ -49,6 +53,8 @@ class RecentSearchesFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupFonts()
+        
         val recentSearchAdapter = RecentSearchAdapter { recentSearch ->
             callback?.onRecentSearchClicked(recentSearch.query)
         }
@@ -70,6 +76,19 @@ class RecentSearchesFragment : Fragment() {
                 }
             }
         }
+    }
+    
+    private fun setupFonts() {
+        L.d("RecentSearchesFragment: Setting up fonts...")
+        
+        // Apply fonts to header elements
+        binding.textViewHeaderTitle.applyAlegreyaHeadline()
+        binding.buttonClearAll.applyRubikUILabel()
+        
+        // Apply font to empty state text
+        binding.textViewEmptyState.applyRubikUIHint()
+        
+        L.d("RecentSearchesFragment: Fonts applied to header elements and empty state")
     }
 
     private fun showClearHistoryConfirmationDialog() {

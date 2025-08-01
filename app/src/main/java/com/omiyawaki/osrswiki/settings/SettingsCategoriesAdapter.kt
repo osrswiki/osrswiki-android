@@ -4,6 +4,8 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSettingsCategoryBinding
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyVollkornBody
 
 class SettingsCategoriesAdapter(
     private val categories: List<SettingsCategory>,
@@ -30,7 +32,9 @@ class SettingsCategoriesAdapter(
         fun bind(category: SettingsCategory) {
             binding.iconSettingsCategory.setImageResource(category.iconRes)
             binding.textSettingsCategoryTitle.setText(category.titleRes)
+            binding.textSettingsCategoryTitle.applyAlegreyaHeadline()
             binding.textSettingsCategoryDescription.setText(category.descriptionRes)
+            binding.textSettingsCategoryDescription.applyVollkornBody()
             
             binding.root.setOnClickListener {
                 onCategoryClick(category.action)

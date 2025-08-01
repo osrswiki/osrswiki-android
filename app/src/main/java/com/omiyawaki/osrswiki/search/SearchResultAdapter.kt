@@ -7,6 +7,8 @@ import androidx.paging.PagingDataAdapter // Import PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding class
+import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
+import com.omiyawaki.osrswiki.util.applyVollkornBody
 
 // Ensure CleanedSearchResultItem is accessible (e.g., imported if in its own file)
 // import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
@@ -47,11 +49,13 @@ class SearchResultAdapter(
         fun bind(item: CleanedSearchResultItem) {
             currentItem = item
             binding.searchItemTitle.text = item.title // Corrected ID
+            binding.searchItemTitle.applyAlegreyaTitle()
             if (item.snippet.isEmpty()) {
                 binding.searchItemSnippet.visibility = View.GONE // Corrected ID
             } else {
                 binding.searchItemSnippet.text = item.snippet // Corrected ID
                 binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
+                binding.searchItemSnippet.applyVollkornBody()
             }
         }
     }
