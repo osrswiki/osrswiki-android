@@ -50,14 +50,33 @@
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         tools:listitem="@layout/item_recent_search" />
 
-    <TextView
+    <LinearLayout
         android:id="@+id/textViewEmptyState"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="@string/no_recent_searches"
-        android:textAppearance="?attr/textAppearanceBody1"
+        android:orientation="vertical"
+        android:padding="32dp"
         android:visibility="gone"
-        tools:visibility="visible"/>
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:src="@drawable/ic_baseline_history_24"
+            android:tint="?attr/secondary_text_color"
+            app:tint="?attr/secondary_text_color" />
+
+        <TextView
+            android:id="@+id/textViewEmptyStateText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/no_recent_searches"
+            android:textColor="?attr/secondary_text_color"
+            android:textAppearance="@style/AppTextAppearance.Body" />
+
+    </LinearLayout>
 
 </LinearLayout>

@@ -35,17 +35,37 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:listitem="@layout/item_saved_page" />
 
-    <TextView
+    <LinearLayout
         android:id="@+id/empty_state_text_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/saved_pages_empty_message"
-        android:textAppearance="?attr/textAppearanceSubtitle1"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/saved_pages_app_bar"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:visibility="visible" />
+        tools:visibility="visible">
+
+        <ImageView
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:src="@drawable/ic_bookmark_border_24"
+            android:tint="?attr/secondary_text_color"
+            app:tint="?attr/secondary_text_color" />
+
+        <TextView
+            android:id="@+id/emptyStateTextViewText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/saved_pages_empty_message"
+            android:textColor="?attr/secondary_text_color"
+            android:textAppearance="@style/AppTextAppearance.Body" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

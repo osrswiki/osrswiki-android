@@ -86,7 +86,7 @@ class RecentSearchesFragment : Fragment() {
         binding.buttonClearAll.applyRubikUILabel()
         
         // Apply font to empty state text
-        binding.textViewEmptyState.applyRubikUIHint()
+        binding.textViewEmptyStateText.applyRubikUIHint()
         
         L.d("RecentSearchesFragment: Fonts applied to header elements and empty state")
     }
