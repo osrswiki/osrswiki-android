@@ -148,7 +148,7 @@ class MainActivity : BaseActivity() {
             Log.d("MainActivity", "Bottom nav item selected: ${item.itemId}")
             val selectedFragment = when (item.itemId) {
                 R.id.nav_news -> {
-                    Log.d("MainActivity", "Navigating to News (MainFragment)")
+                    Log.d("MainActivity", "Navigating to Home (MainFragment)")
                     mainFragment
                 }
                 R.id.nav_saved -> {

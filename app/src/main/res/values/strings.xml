@@ -169,14 +169,14 @@
     <string name="voice_search_permission_denied">Microphone permission is required for voice search</string>
     <string name="voice_search_error">Voice recognition error. Please try again.</string>
     <string name="voice_search_no_results">No speech detected. Please try again.</string>
-    <string name="nav_news">News</string>
+    <string name="nav_news">Home</string>
     <string name="nav_map">Map</string>
     <string name="nav_saved">Saved</string>
     <string name="nav_search">Search</string>
     <string name="nav_more">More</string>
     <string name="transition_search_bar" translatable="false">transition_search_bar</string>
 
-    <string name="news_fetch_error">Failed to fetch news.</string>
+    <string name="news_fetch_error">Failed to fetch content.</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     
