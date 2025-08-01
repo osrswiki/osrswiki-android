@@ -105,17 +105,17 @@ object FontUtil {
     }
     
     /**
-     * Apply Rubik UI Label font (medium) for navigation and UI controls
+     * Apply Rubik UI Label font (normal) for navigation and UI controls
      */
     fun applyRubikUILabel(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.MEDIUM)
+        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
     }
     
     /**
-     * Apply Rubik UI Button font (medium) for button text
+     * Apply Rubik UI Button font (normal) for button text
      */
     fun applyRubikUIButton(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.MEDIUM)
+        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
     }
     
     /**
