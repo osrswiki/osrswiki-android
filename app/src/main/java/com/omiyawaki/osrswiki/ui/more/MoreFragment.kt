@@ -46,7 +46,7 @@ class MoreFragment : Fragment() {
         val moreItems = listOf(
             MoreItem(
                 titleRes = R.string.settings_category_appearance,
-                iconRes = R.drawable.ic_settings_24,
+                iconRes = R.drawable.ic_page_action_theme,
                 action = MoreAction.APPEARANCE
             ),
             MoreItem(
