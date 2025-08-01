@@ -9,11 +9,12 @@
         <item name="itemIconTint">@color/bottom_nav_item_color</item>
         <item name="itemTextColor">@color/bottom_nav_item_color</item>
         <item name="itemTextAppearanceInactive">@style/AppTextAppearance.NavigationSmallCaps</item>
-        <item name="itemTextAppearanceActive">@style/AppTextAppearance.NavigationSmallCaps</item>
+        <item name="itemTextAppearanceActive">@style/AppTextAppearance.NavigationSmallCaps.Active</item>
         <item name="android:layout_height">72dp</item>
         <item name="android:background">?attr/colorSurface</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.App.NavTabLayout.Indicator</item>
         <item name="android:elevation">0dp</item>
+        <item name="itemPaddingTop">@dimen/bottom_bar_icon_padding_top</item>
     </style>
 
     <style name="Widget.App.NavTabLayout.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
@@ -39,7 +40,7 @@
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
         <item name="android:paddingHorizontal">2dp</item>
-        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingTop">@dimen/bottom_bar_icon_padding_top</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textAlignment">center</item>
@@ -49,7 +50,7 @@
         <item name="android:focusable">true</item>
         <item name="android:clickable">true</item>
         <item name="android:drawableTint">?attr/colorOnSurface</item>
-        <item name="android:drawablePadding">-4dp</item>
+        <item name="android:drawablePadding">@dimen/bottom_bar_icon_text_spacing</item>
     </style>
 
     <style name="PageTitleInList" parent="AppTextAppearance.ListTitleBold">
