@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Regular -->
     <font
         android:fontStyle="normal"
         android:fontWeight="400"
@@ -8,6 +9,8 @@
         android:fontStyle="italic"
         android:fontWeight="400"
         android:font="@font/vollkorn_italic" />
+    
+    <!-- Medium -->
     <font
         android:fontStyle="normal"
         android:fontWeight="500"
@@ -16,20 +19,4 @@
         android:fontStyle="italic"
         android:fontWeight="500"
         android:font="@font/vollkorn_medium_italic" />
-    <font
-        android:fontStyle="normal"
-        android:fontWeight="600"
-        android:font="@font/vollkorn_semibold" />
-    <font
-        android:fontStyle="italic"
-        android:fontWeight="600"
-        android:font="@font/vollkorn_semibold_italic" />
-    <font
-        android:fontStyle="normal"
-        android:fontWeight="700"
-        android:font="@font/vollkorn_bold" />
-    <font
-        android:fontStyle="italic"
-        android:fontWeight="700"
-        android:font="@font/vollkorn_bold_italic" />
 </font-family>

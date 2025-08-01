@@ -75,14 +75,14 @@ class AboutFragment : Fragment() {
         
         // Apply fonts using utility to bypass Huawei font system
         FontUtil.applyAlegreyaDisplay(binding.aboutTitle)
-        FontUtil.applyAlegreyaBody(binding.appVersionText)
+        FontUtil.applyVollkornBody(binding.appVersionText)
         FontUtil.applyAlegreyaHeadline(binding.creditsTitle)
         FontUtil.applyAlegreyaTitle(binding.jagexTitle)
-        FontUtil.applyAlegreyaBody(binding.jagexDescription)
+        FontUtil.applyVollkornBody(binding.jagexDescription)
         FontUtil.applyAlegreyaTitle(binding.wikiTitle)
-        FontUtil.applyAlegreyaBody(binding.wikiDescription)
+        FontUtil.applyVollkornBody(binding.wikiDescription)
         FontUtil.applyAlegreyaTitle(binding.wikipediaTitle)
-        FontUtil.applyAlegreyaBody(binding.wikipediaDescription)
+        FontUtil.applyVollkornBody(binding.wikipediaDescription)
         
         L.d("AboutFragment: Fonts applied to all TextViews")
     }
