@@ -100,6 +100,23 @@
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/osrs_parchment_light</item>
         <item name="secondary_text_color">@color/osrs_text_secondary_light</item>
+        
+        <!-- Typography overrides for OSRS theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplayMedium">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplaySmall">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineLarge">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineSmall">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleLarge">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/AppTextAppearance.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiLight" parent="Theme.OSRSWiki.Base.Light">
@@ -129,6 +146,16 @@
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/white</item>
         <item name="secondary_text_color">#757575</item>
+        
+        <!-- Typography overrides for Wiki Light theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -157,6 +184,23 @@
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/osrs_parchment_dark</item>
         <item name="secondary_text_color">#B8B8B8</item>
+        
+        <!-- Typography overrides for OSRS Dark theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplayMedium">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplaySmall">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineLarge">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineSmall">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleLarge">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/AppTextAppearance.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiDark" parent="Theme.OSRSWiki.Base.Dark">
@@ -186,6 +230,16 @@
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/wiki_surface_dark</item>
         <item name="secondary_text_color">#BDBDBD</item>
+        
+        <!-- Typography overrides for Wiki Dark theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
     </style>
 
     <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.OSRSWiki.Base.Dark">
@@ -215,6 +269,16 @@
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/black</item>
         <item name="secondary_text_color">#BDBDBD</item>
+        
+        <!-- Typography overrides for Wiki Black theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
     </style>
 
     <style name="Widget.App.ActionMode" parent="Widget.Material3.ActionMode">

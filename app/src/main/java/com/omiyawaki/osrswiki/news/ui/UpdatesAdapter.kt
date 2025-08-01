@@ -10,6 +10,8 @@ import com.bumptech.glide.Glide
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.news.model.UpdateItem
+import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
+import com.omiyawaki.osrswiki.util.applyAlegreyaBody
 
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
@@ -32,6 +34,12 @@ class UpdatesAdapter(
         private val imageView: ImageView = itemView.findViewById(R.id.news_item_image)
         private val titleView: TextView = itemView.findViewById(R.id.news_item_title)
         private val snippetView: TextView = itemView.findViewById(R.id.news_item_snippet)
+
+        init {
+            // Apply fonts on ViewHolder creation
+            titleView.applyAlegreyaTitle()
+            snippetView.applyAlegreyaBody()
+        }
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {
             titleView.text = item.title

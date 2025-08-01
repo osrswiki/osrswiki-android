@@ -18,8 +18,7 @@
             android:id="@+id/on_this_day_card_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textStyle="bold"
+            android:textAppearance="@style/AppTextAppearance.SectionHeaderSmallCaps"
             tools:text="On this day... (1 July)" />
 
         <TextView
@@ -27,7 +26,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textAppearance="@style/AppTextAppearance.BodyMedium"
             android:textColorLink="?attr/linkColor"
             tools:text="• 2019 – Community: Partnerships and Old School" />
     </LinearLayout>

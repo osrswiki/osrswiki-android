@@ -12,6 +12,8 @@ import android.widget.TextView
 import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.util.applyAlegreyaSmallCaps
+import com.omiyawaki.osrswiki.util.applyAlegreyaBody
 import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
 import com.omiyawaki.osrswiki.news.model.PopularPageItem
@@ -112,14 +114,29 @@ class NewsFeedAdapter(
     override fun getItemCount(): Int = items.size
 
     class UpdatesViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val sectionTitle: TextView = itemView.findViewById(R.id.updates_section_title)
         private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.updates_recycler_view)
+        
+        init {
+            // Apply fonts on ViewHolder creation
+            sectionTitle.applyAlegreyaSmallCaps()
+        }
+        
         fun bind(items: List<UpdateItem>, listener: (UpdateItem) -> Unit) {
             nestedRecyclerView.adapter = UpdatesAdapter(items, listener)
         }
     }
 
     class AnnouncementViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val title: TextView = itemView.findViewById(R.id.announcement_card_title)
         private val content: TextView = itemView.findViewById(R.id.announcement_content)
+        
+        init {
+            // Apply fonts on ViewHolder creation
+            title.applyAlegreyaSmallCaps()
+            content.applyAlegreyaBody()
+        }
+        
         fun bind(item: AnnouncementItem, onLinkClick: (url: String) -> Unit) {
             val fullContent = "${item.date}: ${item.content}"
             Log.d(TAG, "Announcement content to parse: $fullContent")
@@ -130,6 +147,13 @@ class NewsFeedAdapter(
     class OnThisDayViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val title: TextView = itemView.findViewById(R.id.on_this_day_card_title)
         private val content: TextView = itemView.findViewById(R.id.on_this_day_content)
+        
+        init {
+            // Apply fonts on ViewHolder creation
+            title.applyAlegreyaSmallCaps()
+            content.applyAlegreyaBody()
+        }
+        
         fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
             title.text = item.title
             val htmlContent = item.events.joinToString("<br>") { "• $it" }
@@ -139,7 +163,15 @@ class NewsFeedAdapter(
     }
 
     class PopularViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val title: TextView = itemView.findViewById(R.id.popular_card_title)
         private val content: TextView = itemView.findViewById(R.id.popular_content)
+        
+        init {
+            // Apply fonts on ViewHolder creation
+            title.applyAlegreyaSmallCaps()
+            content.applyAlegreyaBody()
+        }
+        
         fun bind(items: List<PopularPageItem>, onLinkClick: (url: String) -> Unit) {
             val htmlLinks = items.joinToString("<br>") {
                 "<a href=\"${it.pageUrl}\">${it.title}</a>"

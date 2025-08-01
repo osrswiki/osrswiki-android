@@ -1,3 +1,4 @@
+/* RuneScape Fonts - Custom OSRS themed fonts */
 @font-face {
   font-family: 'runescape_plain';
   /* The URL is the virtual path handled by WebViewAssetLoader. */
@@ -7,4 +8,113 @@
 @font-face {
   font-family: 'runescape_bold';
   src: url('https://appassets.androidplatform.net/res/font/runescape_bold.ttf');
+}
+
+/* Alegreya Font Family - Serif for reading content */
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 400;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_bold.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 700;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_bold_italic.ttf');
+}
+
+/* Alegreya Sans Font Family - Sans-serif for UI elements */
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 400;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_bold.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 700;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_bold_italic.ttf');
+}
+
+/* Alegreya SC Font Family - Small caps for headers and labels */
+@font-face {
+  font-family: 'Alegreya SC';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sc_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya SC';
+  font-weight: 500;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sc_medium.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya SC';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sc_bold.ttf');
+}
+
+/* Cascadia Code Font Family - Monospace for code */
+@font-face {
+  font-family: 'Cascadia Code';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Cascadia Code';
+  font-weight: 400;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Cascadia Code';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_bold.ttf');
+}
+
+@font-face {
+  font-family: 'Cascadia Code';
+  font-weight: 700;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_bold_italic.ttf');
 }
