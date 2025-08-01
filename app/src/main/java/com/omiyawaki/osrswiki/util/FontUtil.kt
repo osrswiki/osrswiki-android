@@ -123,7 +123,7 @@ object FontUtil {
      */
     fun applyRubikUILabelSmall(textView: TextView) {
         applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-        textView.textSize = 14f // 14sp
+        textView.textSize = 16f // 16sp
     }
     
     /**
