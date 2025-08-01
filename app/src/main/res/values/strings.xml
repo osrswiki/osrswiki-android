@@ -56,7 +56,7 @@
     <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
     <string name="donate_google_pay_unavailable">Google Pay is not available on this device</string>
     <string name="donate_processing">Processing payment…</string>
-    <string name="donate_wiki_title">Support OSRS Wiki</string>
+    <string name="donate_wiki_title">Support OSRS Wiki Website</string>
     <string name="donate_wiki_description">The app relies on the OSRS Wiki for all its content. Consider supporting the wiki team who maintain the website and infrastructure.</string>
     <string name="donate_wiki_button">Donate to Wiki on Patreon</string>
     
