@@ -121,6 +121,11 @@
         <item name="android:letterSpacing">0.02</item>
     </style>
     
+    <!-- Navigation Small Caps Active - Bold weight for active bottom nav labels -->
+    <style name="AppTextAppearance.NavigationSmallCaps.Active" parent="AppTextAppearance.NavigationSmallCaps">
+        <item name="android:textStyle">bold</item>
+    </style>
+    
     <!-- Section Headers Small Caps - Category labels, section dividers -->
     <style name="AppTextAppearance.SectionHeaderSmallCaps" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:fontFamily">@font/alegreya_sc</item>
