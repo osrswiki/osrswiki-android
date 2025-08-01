@@ -17,7 +17,7 @@ object FontUtil {
     
     // Font family enums
     enum class FontFamily {
-        IBM_PLEX_SANS,
+        INTER,
         ALEGREYA,
         ALEGREYA_SC,
         RUBIK,
@@ -84,17 +84,17 @@ object FontUtil {
     }
     
     /**
-     * Apply IBM Plex Sans Body font (regular) for content text - better readability at small sizes
+     * Apply Inter Body font (regular) for content text - better readability at small sizes
      */
-    fun applyIBMPlexSansBody(textView: TextView) {
-        applyFont(textView, FontFamily.IBM_PLEX_SANS, FontWeight.NORMAL)
+    fun applyInterBody(textView: TextView) {
+        applyFont(textView, FontFamily.INTER, FontWeight.NORMAL)
     }
     
     /**
-     * Apply IBM Plex Sans Label font (regular) for UI elements - better readability at small sizes
+     * Apply Inter Label font (regular) for UI elements - better readability at small sizes
      */
-    fun applyIBMPlexSansLabel(textView: TextView) {
-        applyFont(textView, FontFamily.IBM_PLEX_SANS, FontWeight.NORMAL)
+    fun applyInterLabel(textView: TextView) {
+        applyFont(textView, FontFamily.INTER, FontWeight.NORMAL)
     }
     
     /**
@@ -142,7 +142,7 @@ object FontUtil {
     
     private fun getBaseTypeface(context: Context, fontFamily: FontFamily): Typeface? {
         val fontResource = when (fontFamily) {
-            FontFamily.IBM_PLEX_SANS -> R.font.ibm_plex_sans
+            FontFamily.INTER -> R.font.inter
             FontFamily.ALEGREYA -> R.font.alegreya
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
             FontFamily.RUBIK -> R.font.rubik
@@ -193,8 +193,8 @@ object FontUtil {
 fun TextView.applyAlegreyaDisplay() = FontUtil.applyAlegreyaDisplay(this)
 fun TextView.applyAlegreyaHeadline() = FontUtil.applyAlegreyaHeadline(this)
 fun TextView.applyAlegreyaTitle() = FontUtil.applyAlegreyaTitle(this)
-fun TextView.applyIBMPlexSansBody() = FontUtil.applyIBMPlexSansBody(this)
-fun TextView.applyIBMPlexSansLabel() = FontUtil.applyIBMPlexSansLabel(this)
+fun TextView.applyInterBody() = FontUtil.applyInterBody(this)
+fun TextView.applyInterLabel() = FontUtil.applyInterLabel(this)
 fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.FontWeight.BOLD) = 
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
 fun TextView.applyRubikUILabel() = FontUtil.applyRubikUILabel(this)

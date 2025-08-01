@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding class
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
+import com.omiyawaki.osrswiki.util.applyInterBody
 
 // Ensure CleanedSearchResultItem is accessible (e.g., imported if in its own file)
 // import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
@@ -55,7 +55,7 @@ class SearchResultAdapter(
             } else {
                 binding.searchItemSnippet.text = item.snippet // Corrected ID
                 binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
-                binding.searchItemSnippet.applyIBMPlexSansBody()
+                binding.searchItemSnippet.applyInterBody()
             }
         }
     }
