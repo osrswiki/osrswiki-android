@@ -21,15 +21,12 @@
             android:textAppearance="@style/AppTextAppearance.SectionHeaderSmallCaps"
             tools:text="On this day... (1 July)" />
 
-        <TextView
-            android:id="@+id/on_this_day_content"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/on_this_day_content_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:ellipsize="end"
-            android:textAppearance="@style/AppTextAppearance.BodyMedium"
-            android:textColorLink="?attr/linkColor"
-            tools:text="• 2019 – Community: Partnerships and Old School" />
+            android:orientation="vertical" />
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

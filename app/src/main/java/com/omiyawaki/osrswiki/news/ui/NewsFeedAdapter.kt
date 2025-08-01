@@ -1,13 +1,17 @@
 package com.omiyawaki.osrswiki.news.ui
 
+import android.os.Build
+import android.text.Layout
 import android.text.SpannableStringBuilder
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -146,28 +150,54 @@ class NewsFeedAdapter(
 
     class OnThisDayViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val title: TextView = itemView.findViewById(R.id.on_this_day_card_title)
-        private val content: TextView = itemView.findViewById(R.id.on_this_day_content)
+        private val contentContainer: LinearLayout = itemView.findViewById(R.id.on_this_day_content_container)
         
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyInterBody()
         }
         
         fun bind(item: OnThisDayItem, onLinkClick: (url: String) -> Unit) {
             title.text = item.title
-            // Truncate individual events to a reasonable length (approx 80 chars to fit most screens)
-            val maxEventLength = 80
-            val htmlContent = item.events.joinToString("<br>") { event ->
-                val truncatedEvent = if (event.length > maxEventLength) {
-                    "${event.take(maxEventLength - 3)}..."
-                } else {
-                    event
+            
+            // Clear any existing TextViews
+            contentContainer.removeAllViews()
+            
+            // Create individual TextView for each event
+            item.events.forEach { event ->
+                val eventTextView = TextView(itemView.context).apply {
+                    // Set appearance and behavior for single-line truncation with consistent widths
+                    setSingleLine(true)  // More aggressive than maxLines = 1, allows mid-word breaks
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    
+                    // Apply proper text appearance matching original XML
+                    setTextAppearance(R.style.AppTextAppearance_BodyMedium)
+                    applyInterBody()  // Additional font consistency
+                    
+                    // Get link color from theme attribute
+                    val typedValue = TypedValue()
+                    context.theme.resolveAttribute(R.attr.linkColor, typedValue, true)
+                    setLinkTextColor(typedValue.data)
+                    
+                    // Add break strategy for API 23+ to allow mid-word breaks
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        breakStrategy = Layout.BREAK_STRATEGY_SIMPLE
+                    }
+                    
+                    // Set the content with bullet point
+                    val htmlContent = "• $event"
+                    setTextWithClickableLinks(htmlContent, onLinkClick)
+                    
+                    // Set layout params
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
                 }
-                "• $truncatedEvent"
+                contentContainer.addView(eventTextView)
             }
-            Log.d(TAG, "OnThisDay content to parse: $htmlContent")
-            content.setTextWithClickableLinks(htmlContent, onLinkClick)
+            
+            Log.d(TAG, "OnThisDay created ${item.events.size} individual TextViews")
         }
     }
 
