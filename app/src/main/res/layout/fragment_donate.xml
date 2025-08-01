@@ -28,63 +28,87 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/donate_description"
-            android:textAppearance="?attr/textAppearanceBody1"
+            android:textAppearance="@style/AppTextAppearance.BodySmall"
             android:textAlignment="center"
             android:layout_marginBottom="32dp"
             app:layout_constraintTop_toBottomOf="@id/donate_title"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Amount Selection Chip Group -->
-        <com.google.android.material.chip.ChipGroup
+        <!-- Amount Selection Button Layout -->
+        <LinearLayout
             android:id="@+id/amount_chip_group"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:singleSelection="true"
-            app:selectionRequired="false"
-            app:chipSpacingHorizontal="8dp"
-            app:chipSpacingVertical="8dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
             app:layout_constraintTop_toBottomOf="@id/donate_description"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_amount_1"
+            <!-- Row 1: $1 and $5 -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/donate_amount_1"
-                style="@style/Widget.Material3.Chip.Filter" />
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="8dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_amount_5"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/chip_amount_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/donate_amount_1"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/chip_amount_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/donate_amount_5" />
+
+            </LinearLayout>
+
+            <!-- Row 2: $10 and $25 -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/donate_amount_5"
-                style="@style/Widget.Material3.Chip.Filter" />
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="8dp">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_amount_10"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/chip_amount_10"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/donate_amount_10"
+                    android:layout_marginEnd="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/chip_amount_25"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/donate_amount_25" />
+
+            </LinearLayout>
+
+            <!-- Row 3: Custom -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/donate_amount_10"
-                style="@style/Widget.Material3.Chip.Filter" />
+                android:orientation="horizontal"
+                android:gravity="center">
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_amount_25"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/donate_amount_25"
-                style="@style/Widget.Material3.Chip.Filter" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/chip_amount_custom"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/donate_amount_custom" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_amount_custom"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/donate_amount_custom"
-                style="@style/Widget.Material3.Chip.Filter" />
+            </LinearLayout>
 
-        </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
 
         <!-- Custom Amount Input -->
         <com.google.android.material.textfield.TextInputLayout
@@ -156,7 +180,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/donate_wiki_description"
-            android:textAppearance="?attr/textAppearanceBody1"
+            android:textAppearance="@style/AppTextAppearance.BodySmall"
             android:textAlignment="center"
             android:layout_marginBottom="16dp"
             app:layout_constraintTop_toBottomOf="@id/wiki_support_title"
@@ -168,7 +192,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/donate_wiki_button"
-            style="?attr/materialButtonOutlinedStyle"
             app:icon="@drawable/ic_open_in_new_24"
             app:iconGravity="textEnd"
             app:layout_constraintTop_toBottomOf="@id/wiki_support_description"
