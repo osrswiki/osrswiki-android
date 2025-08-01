@@ -19,7 +19,8 @@ body {
     background-color: var(--body-main);
     color: var(--text-color);
     font-family: 'Vollkorn', 'Georgia', 'Times New Roman', serif;
-    font-size: 18px;
+    font-weight: 500;
+    font-size: 20px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;

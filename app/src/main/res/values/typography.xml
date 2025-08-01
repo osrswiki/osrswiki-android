@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Typography System using Alegreya fonts -->
+    <!-- Typography System using Vollkorn for body text and Alegreya for large text -->
     
     <!-- Display Text - Major headings, hero text -->
     <style name="AppTextAppearance.Display" parent="TextAppearance.Material3.DisplayLarge">
@@ -30,53 +30,60 @@
         <item name="android:textStyle">bold</item>
     </style>
     
-    <!-- List Titles - Card titles, list item titles using Vollkorn for better readability -->
+    <!-- List Titles - Card titles, list item titles using Alegreya Medium for better readability -->
     <style name="AppTextAppearance.ListTitle" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/alegreya</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:lineSpacingMultiplier">1.3</item>
     </style>
     
     <style name="AppTextAppearance.ListTitleBold" parent="AppTextAppearance.ListTitle">
         <item name="android:textStyle">bold</item>
+        <item name="android:fontWeight">700</item>
     </style>
     
     <!-- Body Text - Article content, descriptions, longer text -->
     <style name="AppTextAppearance.Body" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
     </style>
     
     <style name="AppTextAppearance.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
         <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">18sp</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
     </style>
     
     <!-- UI Labels - Buttons, navigation, short UI text -->
     <style name="AppTextAppearance.Label" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">18sp</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
     
     <style name="AppTextAppearance.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
     
     <!-- Caption Text - Metadata, timestamps, auxiliary info -->
     <style name="AppTextAppearance.Caption" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">16sp</item>
         <item name="android:lineSpacingMultiplier">1.3</item>
     </style>
     
@@ -171,13 +178,15 @@
     <style name="AppTextAppearance.BodySmall" parent="TextAppearance.Material3.BodySmall">
         <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textSize">14sp</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">16sp</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
     </style>
     
     <style name="AppTextAppearance.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:fontFamily">@font/vollkorn</item>
         <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight">500</item>
         <item name="android:textSize">20sp</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
     </style>

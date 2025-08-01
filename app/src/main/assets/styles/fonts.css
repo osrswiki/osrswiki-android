@@ -10,19 +10,33 @@
   src: url('https://appassets.androidplatform.net/res/font/runescape_bold.ttf');
 }
 
-/* Alegreya Font Family - Serif for reading content */
+/* Alegreya Font Family - Serif for large text and headings */
 @font-face {
   font-family: 'Alegreya';
-  font-weight: 400;
+  font-weight: 500;
   font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/alegreya_regular.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_medium.ttf');
 }
 
 @font-face {
   font-family: 'Alegreya';
-  font-weight: 400;
+  font-weight: 500;
   font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/alegreya_italic.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_medium_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 600;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_semibold.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 600;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_semibold_italic.ttf');
 }
 
 @font-face {
@@ -39,6 +53,63 @@
   src: url('https://appassets.androidplatform.net/res/font/alegreya_bold_italic.ttf');
 }
 
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 800;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_extrabold.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 800;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_extrabold_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 900;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_black.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya';
+  font-weight: 900;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_black_italic.ttf');
+}
+
+/* Vollkorn Font Family - Serif for body/reading content */
+@font-face {
+  font-family: 'Vollkorn';
+  font-weight: 400;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/vollkorn_regular.ttf');
+}
+
+@font-face {
+  font-family: 'Vollkorn';
+  font-weight: 400;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/vollkorn_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Vollkorn';
+  font-weight: 500;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium.ttf');
+}
+
+@font-face {
+  font-family: 'Vollkorn';
+  font-weight: 500;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium_italic.ttf');
+}
+
 /* Alegreya Sans Font Family - Sans-serif for UI elements */
 @font-face {
   font-family: 'Alegreya Sans';
@@ -52,6 +123,27 @@
   font-weight: 400;
   font-style: italic;
   src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_italic.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 700;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_bold.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 500;
+  font-style: normal;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_medium.ttf');
+}
+
+@font-face {
+  font-family: 'Alegreya Sans';
+  font-weight: 500;
+  font-style: italic;
+  src: url('https://appassets.androidplatform.net/res/font/alegreya_sans_medium_italic.ttf');
 }
 
 @font-face {
@@ -90,62 +182,6 @@
   src: url('https://appassets.androidplatform.net/res/font/alegreya_sc_bold.ttf');
 }
 
-/* Vollkorn Font Family - Serif for body text */
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 400;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_regular.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 400;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_italic.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 500;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 500;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_medium_italic.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 600;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_semibold.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 600;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_semibold_italic.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 700;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_bold.ttf');
-}
-
-@font-face {
-  font-family: 'Vollkorn';
-  font-weight: 700;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/vollkorn_bold_italic.ttf');
-}
 
 /* Cascadia Code Font Family - Monospace for code */
 @font-face {

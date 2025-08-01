@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.util
 
 import android.content.Context
 import android.graphics.Typeface
+import android.os.Build
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
 import com.omiyawaki.osrswiki.R
@@ -16,16 +17,16 @@ object FontUtil {
     
     // Font family enums
     enum class FontFamily {
+        VOLLKORN,
         ALEGREYA,
-        ALEGREYA_SANS,
         ALEGREYA_SC,
-        CASCADIA_CODE,
-        VOLLKORN
+        CASCADIA_CODE
     }
     
     // Font weight enums
     enum class FontWeight {
         NORMAL,
+        MEDIUM,
         BOLD
     }
     
@@ -82,17 +83,17 @@ object FontUtil {
     }
     
     /**
-     * Apply Alegreya Body font (normal) for content text
+     * Apply Vollkorn Body font (medium) for content text - better readability at small sizes
      */
-    fun applyAlegreyaBody(textView: TextView) {
-        applyFont(textView, FontFamily.ALEGREYA, FontWeight.NORMAL)
+    fun applyVollkornBody(textView: TextView) {
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.MEDIUM)
     }
     
     /**
-     * Apply Alegreya Sans Label font for UI elements
+     * Apply Vollkorn Sans Label font (medium) for UI elements - better readability at small sizes
      */
-    fun applyAlegreyaSansLabel(textView: TextView) {
-        applyFont(textView, FontFamily.ALEGREYA_SANS, FontWeight.NORMAL)
+    fun applyVollkornSansLabel(textView: TextView) {
+        applyFont(textView, FontFamily.VOLLKORN, FontWeight.MEDIUM)
     }
     
     /**
@@ -109,27 +110,13 @@ object FontUtil {
         applyFont(textView, FontFamily.CASCADIA_CODE, FontWeight.NORMAL)
     }
     
-    /**
-     * Apply Vollkorn Title font (bold) for card titles and list items
-     */
-    fun applyVollkornTitle(textView: TextView) {
-        applyFont(textView, FontFamily.VOLLKORN, FontWeight.BOLD)
-    }
-    
-    /**
-     * Apply Vollkorn Body font (normal) for body text and content
-     */
-    fun applyVollkornBody(textView: TextView) {
-        applyFont(textView, FontFamily.VOLLKORN, FontWeight.NORMAL)
-    }
     
     private fun getBaseTypeface(context: Context, fontFamily: FontFamily): Typeface? {
         val fontResource = when (fontFamily) {
+            FontFamily.VOLLKORN -> R.font.vollkorn
             FontFamily.ALEGREYA -> R.font.alegreya
-            FontFamily.ALEGREYA_SANS -> R.font.alegreya_sans
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
             FontFamily.CASCADIA_CODE -> R.font.cascadia_code
-            FontFamily.VOLLKORN -> R.font.vollkorn
         }
         
         return try {
@@ -145,9 +132,23 @@ object FontUtil {
         fontWeight: FontWeight,
         fontStyle: FontStyle
     ): Typeface {
+        // For API 28+ use the more precise weight control
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val weight = when (fontWeight) {
+                FontWeight.NORMAL -> 400
+                FontWeight.MEDIUM -> 500
+                FontWeight.BOLD -> 700
+            }
+            val italic = fontStyle == FontStyle.ITALIC
+            return Typeface.create(baseTypeface, weight, italic)
+        }
+        
+        // Fallback for older APIs - rely on font family definitions
         val androidStyle = when {
             fontWeight == FontWeight.BOLD && fontStyle == FontStyle.ITALIC -> Typeface.BOLD_ITALIC
             fontWeight == FontWeight.BOLD -> Typeface.BOLD
+            fontWeight == FontWeight.MEDIUM && fontStyle == FontStyle.ITALIC -> Typeface.ITALIC
+            fontWeight == FontWeight.MEDIUM -> Typeface.NORMAL // Font family should handle medium weight
             fontStyle == FontStyle.ITALIC -> Typeface.ITALIC
             else -> Typeface.NORMAL
         }
@@ -162,10 +163,8 @@ object FontUtil {
 fun TextView.applyAlegreyaDisplay() = FontUtil.applyAlegreyaDisplay(this)
 fun TextView.applyAlegreyaHeadline() = FontUtil.applyAlegreyaHeadline(this)
 fun TextView.applyAlegreyaTitle() = FontUtil.applyAlegreyaTitle(this)
-fun TextView.applyAlegreyaBody() = FontUtil.applyAlegreyaBody(this)
-fun TextView.applyAlegreyaSansLabel() = FontUtil.applyAlegreyaSansLabel(this)
+fun TextView.applyVollkornBody() = FontUtil.applyVollkornBody(this)
+fun TextView.applyVollkornSansLabel() = FontUtil.applyVollkornSansLabel(this)
 fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.FontWeight.BOLD) = 
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
 fun TextView.applyCascadiaCode() = FontUtil.applyCascadiaCode(this)
-fun TextView.applyVollkornTitle() = FontUtil.applyVollkornTitle(this)
-fun TextView.applyVollkornBody() = FontUtil.applyVollkornBody(this)
