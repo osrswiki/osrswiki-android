@@ -12,12 +12,13 @@ import com.omiyawaki.osrswiki.R
 class VoiceSearchAnimationHelper(private val voiceButton: ImageView) {
     
     private var currentAnimation: Any? = null
+    private val originalTintList = voiceButton.imageTintList // Store the original tint
     
     fun setIdleState() {
         stopCurrentAnimation()
         voiceButton.setImageResource(R.drawable.ic_voice_search_24)
-        // Reset any tint to the default color
-        voiceButton.imageTintList = ContextCompat.getColorStateList(voiceButton.context, android.R.color.tertiary_text_dark)
+        // Restore the original tint that was set in the layout
+        voiceButton.imageTintList = originalTintList
     }
     
     fun setListeningState() {
