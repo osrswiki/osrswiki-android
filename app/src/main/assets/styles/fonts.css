@@ -138,33 +138,33 @@
   src: url('https://appassets.androidplatform.net/res/font/rubik_bold_italic.ttf');
 }
 
-/* IBM Plex Sans Font Family - Sans-serif for body/reading content */
+/* Inter Font Family - Sans-serif for body/reading content */
 @font-face {
-  font-family: 'IBM Plex Sans';
+  font-family: 'Inter';
   font-weight: 400;
   font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_regular.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/inter_regular.ttf');
 }
 
 @font-face {
-  font-family: 'IBM Plex Sans';
+  font-family: 'Inter';
   font-weight: 400;
   font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_italic.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/inter_italic.ttf');
 }
 
 @font-face {
-  font-family: 'IBM Plex Sans';
+  font-family: 'Inter';
   font-weight: 500;
   font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_medium.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/inter_medium.ttf');
 }
 
 @font-face {
-  font-family: 'IBM Plex Sans';
+  font-family: 'Inter';
   font-weight: 500;
   font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/ibm_plex_sans_medium_italic.ttf');
+  src: url('https://appassets.androidplatform.net/res/font/inter_medium_italic.ttf');
 }
 
 /* Alegreya Sans Font Family - Sans-serif for UI elements */

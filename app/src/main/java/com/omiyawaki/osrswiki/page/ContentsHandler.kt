@@ -152,7 +152,7 @@ class ContentsHandler(private val fragment: PageFragment) :
                     textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
                 }
                 else -> {
-                    FontUtil.applyIBMPlexSansBody(textView)
+                    FontUtil.applyInterBody(textView)
                     textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                 }
             }

@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSettingsCategoryBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
+import com.omiyawaki.osrswiki.util.applyInterBody
 
 class SettingsCategoriesAdapter(
     private val categories: List<SettingsCategory>,
@@ -34,7 +34,7 @@ class SettingsCategoriesAdapter(
             binding.textSettingsCategoryTitle.setText(category.titleRes)
             binding.textSettingsCategoryTitle.applyAlegreyaHeadline()
             binding.textSettingsCategoryDescription.setText(category.descriptionRes)
-            binding.textSettingsCategoryDescription.applyIBMPlexSansBody()
+            binding.textSettingsCategoryDescription.applyInterBody()
             
             binding.root.setOnClickListener {
                 onCategoryClick(category.action)
