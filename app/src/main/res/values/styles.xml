@@ -9,7 +9,7 @@
         <item name="itemIconTint">@color/bottom_nav_item_color</item>
         <item name="itemTextColor">@color/bottom_nav_item_color</item>
         <item name="itemTextAppearanceInactive">@style/AppTextAppearance.NavigationSmallCaps</item>
-        <item name="itemTextAppearanceActive">@style/AppTextAppearance.NavigationSmallCaps.Active</item>
+        <item name="itemTextAppearanceActive">@style/AppTextAppearance.NavigationSmallCaps</item>
         <item name="android:layout_height">72dp</item>
         <item name="android:background">?attr/colorSurface</item>
         <item name="itemActiveIndicatorStyle">@style/Widget.App.NavTabLayout.Indicator</item>
