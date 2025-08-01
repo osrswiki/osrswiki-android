@@ -19,15 +19,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Announcements"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textStyle="bold" />
+            android:textAppearance="@style/AppTextAppearance.SectionHeaderSmallCaps" />
 
         <TextView
             android:id="@+id/announcement_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textAppearance="@style/AppTextAppearance.BodyMedium"
             android:textColorLink="?attr/linkColor"
             tools:text="Submissions for the wiki's 2025 Family Photo are now open!" />
     </LinearLayout>

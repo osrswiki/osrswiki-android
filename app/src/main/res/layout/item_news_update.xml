@@ -39,7 +39,7 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
             android:paddingBottom="12dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textAppearance="@style/AppTextAppearance.BodyMedium"
             android:lineHeight="20sp"
             android:lineSpacingExtra="0dp"
             android:lineSpacingMultiplier="1"

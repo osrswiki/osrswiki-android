@@ -18,6 +18,8 @@ import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.map.MapFragment
 import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.util.FontUtil
+import android.widget.TextView
 
 class MainActivity : BaseActivity() {
 
@@ -96,7 +98,49 @@ class MainActivity : BaseActivity() {
         }
 
         setupBottomNav()
+        setupFonts()
         handleIntentExtras(intent)
+    }
+    
+    private fun setupFonts() {
+        L.d("MainActivity: Setting up navigation fonts...")
+        
+        // Apply fonts to bottom navigation labels
+        // The BottomNavigationView creates TextViews internally, we need to traverse and apply fonts
+        try {
+            applyFontsToBottomNavigation(binding.bottomNav)
+        } catch (e: Exception) {
+            L.e("MainActivity: Error applying fonts to navigation: ${e.message}")
+        }
+        
+        L.d("MainActivity: Navigation fonts setup complete")
+    }
+    
+    private fun applyFontsToBottomNavigation(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView) {
+        // Access the BottomNavigationMenuView which contains the individual tabs
+        val menuView = bottomNav.getChildAt(0) as com.google.android.material.bottomnavigation.BottomNavigationMenuView
+        
+        for (i in 0 until menuView.childCount) {
+            val item = menuView.getChildAt(i)
+            
+            // Find TextView children and apply font
+            applyFontsToViewGroup(item as android.view.ViewGroup)
+        }
+    }
+    
+    private fun applyFontsToViewGroup(viewGroup: android.view.ViewGroup) {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            when (child) {
+                is TextView -> {
+                    FontUtil.applyAlegreyaSansLabel(child)
+                    L.d("MainActivity: Applied font to navigation label: ${child.text}")
+                }
+                is android.view.ViewGroup -> {
+                    applyFontsToViewGroup(child)
+                }
+            }
+        }
     }
 
     private fun setupBottomNav() {

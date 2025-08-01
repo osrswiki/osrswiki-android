@@ -23,6 +23,8 @@ import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.util.applyAlegreyaBody
 import java.net.URLDecoder
 
 /**
@@ -54,6 +56,7 @@ class NewsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupHeader(view)
         setupSearch(view)
+        setupFonts(view)
         setupRecyclerView(view)
         observeViewModel()
 
@@ -73,6 +76,16 @@ class NewsFragment : Fragment() {
     private fun setupHeader(view: View) {
         // Set the page title to "News"
         view.findViewById<TextView>(R.id.page_title)?.text = getString(R.string.nav_news)
+    }
+    
+    private fun setupFonts(view: View) {
+        L.d("NewsFragment: Setting up fonts...")
+        
+        // Apply fonts to header elements
+        view.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
+        view.findViewById<TextView>(R.id.search_text)?.applyAlegreyaBody()
+        
+        L.d("NewsFragment: Fonts applied to header elements")
     }
 
     private fun setupSearch(view: View) {

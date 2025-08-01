@@ -37,7 +37,7 @@
                 android:background="?attr/colorSecondaryContainer"
                 android:text="@string/offline_content_banner"
                 android:textColor="?attr/colorOnSecondaryContainer"
-                android:textSize="14sp"
+                android:textAppearance="@style/AppTextAppearance.BodyMedium"
                 android:padding="8dp"
                 android:gravity="center"
                 android:visibility="gone"

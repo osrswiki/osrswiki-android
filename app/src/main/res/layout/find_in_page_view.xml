@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="14sp" />
+        android:textAppearance="@style/AppTextAppearance.BodyMedium" />
 
     <ImageButton
         android:id="@+id/find_in_page_prev"

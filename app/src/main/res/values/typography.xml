@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Typography System using Alegreya fonts -->
+    
+    <!-- Display Text - Major headings, hero text -->
+    <style name="AppTextAppearance.Display" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+    
+    <!-- Headlines - Section headers, major navigation -->
+    <style name="AppTextAppearance.Headline" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+    
+    <!-- Titles - Card titles, page titles, important text -->
+    <style name="AppTextAppearance.Title" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+    
+    <style name="AppTextAppearance.TitleBold" parent="AppTextAppearance.Title">
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <!-- Body Text - Article content, descriptions, longer text -->
+    <style name="AppTextAppearance.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+    
+    <style name="AppTextAppearance.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+    
+    <!-- UI Labels - Buttons, navigation, short UI text -->
+    <style name="AppTextAppearance.Label" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+    
+    <style name="AppTextAppearance.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+    
+    <!-- Caption Text - Metadata, timestamps, auxiliary info -->
+    <style name="AppTextAppearance.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/alegreya_sans</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+    
+    <!-- Monospace - Code, technical text -->
+    <style name="AppTextAppearance.Mono" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/cascadia_code</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+    
+    <style name="AppTextAppearance.MonoBold" parent="AppTextAppearance.Mono">
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <!-- Search Bar Specific -->
+    <style name="AppTextAppearance.SearchBar" parent="AppTextAppearance.Label">
+        <item name="android:textSize">16sp</item>
+    </style>
+    
+    <!-- Navigation Specific -->
+    <style name="AppTextAppearance.Navigation" parent="AppTextAppearance.Label">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">normal</item>
+    </style>
+    
+    <!-- Small Caps Styles -->
+    <!-- Navigation Small Caps - Bottom nav labels, breadcrumbs -->
+    <style name="AppTextAppearance.NavigationSmallCaps" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/alegreya_sc</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    
+    <!-- Section Headers Small Caps - Category labels, section dividers -->
+    <style name="AppTextAppearance.SectionHeaderSmallCaps" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:fontFamily">@font/alegreya_sc</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    
+    <!-- Metadata Small Caps - Timestamps, article info, status labels -->
+    <style name="AppTextAppearance.MetadataSmallCaps" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/alegreya_sc</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+        <item name="android:letterSpacing">0.03</item>
+    </style>
+    
+    <!-- Button Small Caps - Secondary action buttons -->
+    <style name="AppTextAppearance.ButtonSmallCaps" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:fontFamily">@font/alegreya_sc</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:lineSpacingMultiplier">1.1</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+    
+    <!-- Tag Small Caps - Category tags, chips -->
+    <style name="AppTextAppearance.TagSmallCaps" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:fontFamily">@font/alegreya_sc</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+    
+    <!-- Enhanced Monospace Styles -->
+    <style name="AppTextAppearance.MonoSmall" parent="AppTextAppearance.Mono">
+        <item name="android:textSize">12sp</item>
+    </style>
+    
+    <style name="AppTextAppearance.MonoLarge" parent="AppTextAppearance.Mono">
+        <item name="android:textSize">16sp</item>
+    </style>
+    
+    <!-- Enhanced Label Styles with Better Weight Support -->
+    <style name="AppTextAppearance.LabelMedium" parent="AppTextAppearance.Label">
+        <item name="android:textStyle">normal</item>
+    </style>
+    
+    <style name="AppTextAppearance.LabelBold" parent="AppTextAppearance.Label">
+        <item name="android:textStyle">bold</item>
+    </style>
+    
+    <!-- Enhanced Body Styles -->
+    <style name="AppTextAppearance.BodySmall" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+    
+    <style name="AppTextAppearance.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/alegreya</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+    
+</resources>

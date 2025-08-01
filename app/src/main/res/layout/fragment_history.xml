@@ -61,7 +61,7 @@
             android:gravity="center"
             android:text="@string/history_empty_message"
             android:textColor="?attr/secondary_text_color"
-            android:textSize="16sp" />
+            android:textAppearance="@style/AppTextAppearance.Body" />
 
     </LinearLayout>
 

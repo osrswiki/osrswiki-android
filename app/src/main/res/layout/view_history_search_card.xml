@@ -14,8 +14,7 @@
         android:layout_weight="1"
         android:text="@string/nav_search"
         android:textColor="?attr/primary_text_color"
-        android:textSize="20sp"
-        android:textStyle="bold" />
+        android:textAppearance="@style/AppTextAppearance.Headline" />
 
     <ImageButton
         android:id="@+id/history_filter_button"

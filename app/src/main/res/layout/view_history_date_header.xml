@@ -6,6 +6,5 @@
     android:background="?attr/base_color"
     android:padding="16dp"
     android:textColor="?attr/secondary_text_color"
-    android:textSize="14sp"
-    android:textStyle="bold"
+    android:textAppearance="@style/AppTextAppearance.SectionHeaderSmallCaps"
     android:textAllCaps="true" />
