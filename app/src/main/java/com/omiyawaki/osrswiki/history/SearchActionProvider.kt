@@ -42,7 +42,7 @@ class SearchActionProvider(
         val voiceButton = searchView?.findViewById<ImageView>(R.id.voice_search_button)
         if (voiceRecognitionManager != null && voiceSearchLauncher != null) {
             voiceButton?.setOnClickListener {
-                voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+                voiceRecognitionManager.startVoiceRecognition()
             }
         } else {
             // Hide voice button if voice search is not available

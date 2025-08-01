@@ -130,7 +130,7 @@ class SavedPagesSearchActivity : BaseActivity() {
         
         // Set up voice search button
         binding.voiceSearchButton.setOnClickListener {
-            voiceRecognitionManager.startVoiceRecognition(voiceSearchLauncher)
+            voiceRecognitionManager.startVoiceRecognition()
         }
     }
 
@@ -199,7 +199,7 @@ class SavedPagesSearchActivity : BaseActivity() {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (::voiceRecognitionManager.isInitialized) {
-            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults, voiceSearchLauncher)
+            voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
         }
     }
 
