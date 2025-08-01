@@ -11,7 +11,7 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.news.model.UpdateItem
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
 
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
@@ -38,7 +38,7 @@ class UpdatesAdapter(
         init {
             // Apply fonts on ViewHolder creation
             titleView.applyAlegreyaTitle()
-            snippetView.applyVollkornBody()
+            snippetView.applyIBMPlexSansBody()
         }
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {

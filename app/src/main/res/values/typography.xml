@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Typography System using Vollkorn for body text and Alegreya for large text -->
+    <!-- Typography System using IBM Plex Sans for body text and Alegreya for large text -->
     
     <!-- Display Text - Major headings, hero text -->
     <style name="AppTextAppearance.Display" parent="TextAppearance.Material3.DisplayLarge">
@@ -46,7 +46,7 @@
     
     <!-- Body Text - Article content, descriptions, longer text -->
     <style name="AppTextAppearance.Body" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/ibm_plex_sans</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">18sp</item>
@@ -54,7 +54,7 @@
     </style>
     
     <style name="AppTextAppearance.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/ibm_plex_sans</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">16sp</item>
@@ -80,7 +80,7 @@
     
     <!-- Caption Text - Metadata, timestamps, auxiliary info -->
     <style name="AppTextAppearance.Caption" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/ibm_plex_sans</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">14sp</item>
@@ -177,7 +177,7 @@
     
     <!-- Enhanced Body Styles -->
     <style name="AppTextAppearance.BodySmall" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/ibm_plex_sans</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">14sp</item>
@@ -185,7 +185,7 @@
     </style>
     
     <style name="AppTextAppearance.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:fontFamily">@font/vollkorn</item>
+        <item name="android:fontFamily">@font/ibm_plex_sans</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">18sp</item>

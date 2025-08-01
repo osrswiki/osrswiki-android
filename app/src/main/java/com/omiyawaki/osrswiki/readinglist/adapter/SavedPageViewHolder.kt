@@ -13,7 +13,7 @@ import com.omiyawaki.osrswiki.databinding.ItemSavedPageBinding
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyVollkornBody
+import com.omiyawaki.osrswiki.util.applyIBMPlexSansBody
 import com.omiyawaki.osrswiki.util.FontUtil
 import java.text.DateFormat
 import java.util.Date
@@ -42,7 +42,7 @@ class SavedPageViewHolder(
             if (cleanDescription.isNotBlank()) {
                 binding.itemSavedPageSnippet.text = cleanDescription
                 binding.itemSavedPageSnippet.visibility = View.VISIBLE
-                binding.itemSavedPageSnippet.applyVollkornBody()
+                binding.itemSavedPageSnippet.applyIBMPlexSansBody()
             } else {
                 binding.itemSavedPageSnippet.visibility = View.GONE
             }
