@@ -145,7 +145,7 @@
 .collapsible-header .title-wrapper {
         flex-grow: 1;
         font-family: 'Rubik', 'Segoe UI', 'Arial', sans-serif;
-        font-weight: bold;
+        font-weight: 500;
 }
 
 .collapsible-header .icon {
