@@ -14,10 +14,11 @@
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
 }
 
-/* Remove borders from all navbox table cells */
+/* Add consistent borders to all navbox table cells like wikitables */
 .navbox.navbox > * > tr > th,
 .navbox.navbox > * > tr > td {
-    border: none;
+    border: 1px solid var(--navbox-border);
+    padding: 0.3em 0.5em;
 }
 
 /* Target cells containing .navbox-group-title to fix cell-in-cell appearance */
@@ -51,7 +52,7 @@
 .navbox.navbox .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0;
+    padding: 0.3em 0.75em; /* Match standard padding for group titles */
     width: 1%;
     white-space: nowrap;
     border-right: 1px solid var(--navbox-border);
@@ -61,6 +62,7 @@
 .navbox.navbox .navbox-list {
     padding: 0.25em 0.5em;
     line-height: 1.4em;
+    /* Override the default cell padding for list cells */
 }
 
 /* Make list items display inline like the web version */
