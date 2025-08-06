@@ -105,13 +105,6 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("MapFragment: LIFECYCLE: onViewCreated")
         
-        if (savedInstanceState == null) {
-            val isPreloading = arguments?.getBoolean(ARG_IS_PRELOADING, false) ?: false
-            if (!isPreloading) {
-                view.alpha = 0.0f
-            }
-        }
-        
         mapView = binding.mapView
 
         lifecycleScope.launch {
