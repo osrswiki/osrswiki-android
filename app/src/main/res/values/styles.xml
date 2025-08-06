@@ -25,12 +25,6 @@
     <style name="App.TextAppearance.PopupMenu.Item.OSRSLight" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/osrs_text_dark</item></style>
     <style name="App.Style.PopupMenu.OSRSDark" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/osrs_parchment_dark</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.OSRSDark</item></style>
     <style name="App.TextAppearance.PopupMenu.Item.OSRSDark" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/osrs_text_light_alt</item></style>
-    <style name="App.Style.PopupMenu.WikiLight" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/white</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiLight</item></style>
-    <style name="App.TextAppearance.PopupMenu.Item.WikiLight" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_black</item></style>
-    <style name="App.Style.PopupMenu.WikiDark" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/wiki_surface_dark</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiDark</item></style>
-    <style name="App.TextAppearance.PopupMenu.Item.WikiDark" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_white</item></style>
-    <style name="App.Style.PopupMenu.WikiBlack" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">@color/black</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item.WikiBlack</item></style>
-    <style name="App.TextAppearance.PopupMenu.Item.WikiBlack" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">@color/wiki_text_near_white</item></style>
     <style name="App.Style.PopupMenu" parent="Widget.Material3.PopupMenu.ListPopupWindow"><item name="android:popupBackground">?attr/colorSurface</item><item name="textAppearanceListItemSmall">@style/App.TextAppearance.PopupMenu.Item</item></style>
     <style name="App.TextAppearance.PopupMenu.Item" parent="TextAppearance.Material3.BodyLarge"><item name="android:textColor">?attr/colorOnSurface</item></style>
 

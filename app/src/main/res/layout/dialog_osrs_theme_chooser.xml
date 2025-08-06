@@ -36,29 +36,6 @@
             android:layout_marginTop="8dp"
             android:text="OSRS Dark (Parchment)" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_theme_wiki_light"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Wikipedia Light" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_theme_wiki_dark"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Wikipedia Dark" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/button_theme_wiki_black"
-            style="?attr/materialButtonOutlinedStyle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Wikipedia Black" />
 
     </com.google.android.material.button.MaterialButtonToggleGroup>
 

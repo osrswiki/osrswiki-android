@@ -15,23 +15,17 @@
     <!-- Light Theme Choice -->
     <string-array name="light_theme_choice_entries">
         <item>OSRS Light</item>
-        <item>Wikipedia Light</item>
     </string-array>
     <string-array name="light_theme_choice_values">
         <item>osrs_light</item>
-        <item>wiki_light</item>
     </string-array>
 
     <!-- Dark Theme Choice -->
     <string-array name="dark_theme_choice_entries">
         <item>OSRS Dark</item>
-        <item>Wikipedia Dark</item>
-        <item>Wikipedia Black</item>
     </string-array>
     <string-array name="dark_theme_choice_values">
         <item>osrs_dark</item>
-        <item>wiki_dark</item>
-        <item>wiki_black</item>
     </string-array>
 
     <!-- Cache Size Limit -->

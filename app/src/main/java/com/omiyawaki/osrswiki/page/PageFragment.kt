@@ -123,9 +123,6 @@ class PageFragment : Fragment(), RenderCallback {
         val currentTheme = app.getCurrentTheme()
         val backgroundColorRes = when (currentTheme) {
             Theme.OSRS_DARK -> R.color.osrs_parchment_dark
-            Theme.WIKI_LIGHT -> R.color.white
-            Theme.WIKI_DARK -> R.color.page_bg_wiki_dark
-            Theme.WIKI_BLACK -> R.color.black
             else -> R.color.osrs_parchment_light
         }
         view.setBackgroundColor(ContextCompat.getColor(requireContext(), backgroundColorRes))

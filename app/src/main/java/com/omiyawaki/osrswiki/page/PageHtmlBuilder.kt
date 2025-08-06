@@ -63,9 +63,6 @@ class PageHtmlBuilder(private val context: Context) {
             val finalBodyContent = titleHeaderHtml + cleanedBodyContent
             val themeClass = when (theme) {
                 Theme.OSRS_DARK -> "theme-osrs-dark"
-                Theme.WIKI_LIGHT -> "theme-wikipedia-light"
-                Theme.WIKI_DARK -> "theme-wikipedia-dark"
-                Theme.WIKI_BLACK -> "theme-wikipedia-black"
                 else -> "" // OSRS Light is the default theme in CSS, no class needed.
             }
 
