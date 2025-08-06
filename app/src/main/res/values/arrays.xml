@@ -12,21 +12,6 @@
         <item>auto</item>
     </string-array>
 
-    <!-- Light Theme Choice -->
-    <string-array name="light_theme_choice_entries">
-        <item>OSRS Light</item>
-    </string-array>
-    <string-array name="light_theme_choice_values">
-        <item>osrs_light</item>
-    </string-array>
-
-    <!-- Dark Theme Choice -->
-    <string-array name="dark_theme_choice_entries">
-        <item>OSRS Dark</item>
-    </string-array>
-    <string-array name="dark_theme_choice_values">
-        <item>osrs_dark</item>
-    </string-array>
 
     <!-- Cache Size Limit -->
     <string-array name="cache_size_limit_entries">
