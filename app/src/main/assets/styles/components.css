@@ -266,6 +266,15 @@ table.relative-location td {
     line-height: 1.4em;
 }
 
+/*
+ * Hide unnecessary BR elements that cause extra spacing in messageboxes.
+ * These BR elements with "clear: both" style are added by the server HTML
+ * and create unwanted vertical space below the content.
+ */
+.messagebox td > br {
+    display: none;
+}
+
 /* --- In-Game Message Style --- */
 /* Style for text that mimics an in-game message box */
 .font-runescape {
