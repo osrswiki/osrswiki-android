@@ -14,27 +14,18 @@
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0, 0, 0, 0.1);
 }
 
-/* Add consistent borders to all navbox table cells like wikitables */
-.navbox.navbox > * > tr > th,
-.navbox.navbox > * > tr > td {
-    border: 1px solid var(--navbox-border);
-    padding: 0.3em 0.5em;
-}
+/* Remove generic cell borders - use selective borders instead to match web version */
+/* Main navbox cells will get borders through specific selectors below */
 
-/* Add consistent borders to navbox-subgroup table cells */
-.navbox.navbox .navbox-subgroup > * > tr > th,
-.navbox.navbox .navbox-subgroup > * > tr > td {
-    border: 1px solid var(--navbox-border);
-    padding: 0.3em 0.5em;
-}
+/* Remove generic subgroup cell borders - use selective borders instead to match web version */
+/* Subgroup cells will get borders through specific selectors below */
 
 /* Target cells containing .navbox-group-title to fix cell-in-cell appearance */
-/* These cells need transparent backgrounds, zero padding, and no borders so the nested element styling works */
+/* These cells need transparent backgrounds and zero padding so the nested element styling works */
 .navbox.navbox > * > tr > th:has(.navbox-group-title),
 .navbox.navbox > * > tr > td:has(.navbox-group-title) {
     background: transparent !important;
     padding: 0 !important;
-    border: none !important;
 }
 
 /* Comprehensive fallback selectors for browsers without :has() support */
@@ -44,7 +35,6 @@
 .navbox.navbox > * > tr > td.navbox-group {
     background: transparent !important;
     padding: 0 !important;
-    border: none !important;
 }
 
 /* Apply styling directly to table cells to avoid nested background conflicts */
@@ -61,19 +51,18 @@
 .navbox.navbox .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0.3em 0.75em; /* Match standard padding for group titles */
-    width: auto;
-    min-width: 80px; /* Minimum width for readability */
-    max-width: 25%; /* Prevent taking too much space */
-    border-right: 1px solid var(--navbox-border);
+    padding: 0.25em 1em; /* Match web version padding */
+    width: 1%;
+    white-space: nowrap;
+    border: 1px solid var(--navbox-border);
+    border-width: 0 1px 1px 0; /* Right and bottom borders only - matches web version */
     font-weight: 600;
-    word-wrap: break-word; /* Allow text wrapping */
 }
 
 .navbox.navbox .navbox-list {
     padding: 0.25em 0.5em;
     line-height: 1.4em;
-    /* Override the default cell padding for list cells */
+    border-bottom: 1px solid var(--navbox-border); /* Bottom border only - matches web version */
 }
 
 /* Make list items display inline like the web version */
@@ -96,8 +85,8 @@
     margin: 0 0.3em;
 }
 
-/* Add subtle row separators between different content groups */
-.navbox.navbox tr:not(:first-child) .navbox-group-title {
+/* Add row separators like web version - second row and beyond get top borders */
+.navbox.navbox tr:nth-child(n+2) {
     border-top: 1px solid var(--navbox-border);
 }
 
@@ -117,21 +106,29 @@
     box-shadow: none;
 }
 
-/* Cells containing navbox-subgroup tables should have zero padding and no borders to eliminate cell-in-cell effect */
+/* Cells containing navbox-subgroup tables should have zero padding to eliminate cell-in-cell effect */
 .navbox.navbox .navbox-parent {
     padding: 0 !important;
-    border: none !important;
 }
 
-/* Group titles inside navbox-subgroup tables need proper styling */
+/* Group titles inside navbox-subgroup tables use same selective border pattern */
 .navbox.navbox .navbox-subgroup .navbox-group-title {
     background: var(--navbox-group-title-background);
     text-align: left;
-    padding: 0.3em 0.75em; /* Restore padding for nested subgroup titles */
-    width: auto;
-    min-width: 80px; /* Minimum width for readability */
-    max-width: 25%; /* Prevent taking too much space */
-    border-right: 1px solid var(--navbox-border);
+    padding: 0.25em 1em; /* Match web version padding */
+    width: 1%;
+    white-space: nowrap;
+    border: 1px solid var(--navbox-border);
+    border-width: 0 1px 1px 0; /* Right and bottom borders only - matches web version */
     font-weight: 600;
-    word-wrap: break-word; /* Allow text wrapping */
+}
+
+/* List cells inside navbox-subgroup tables get bottom borders only */
+.navbox.navbox .navbox-subgroup .navbox-list {
+    border-bottom: 1px solid var(--navbox-border); /* Bottom border only - matches web version */
+}
+
+/* Row separators for subgroup tables - second row and beyond get top borders */
+.navbox.navbox .navbox-subgroup tr:nth-child(n+2) {
+    border-top: 1px solid var(--navbox-border);
 }
