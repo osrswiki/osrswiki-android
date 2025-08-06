@@ -112,15 +112,28 @@ class MainActivity : BaseActivity() {
                 else -> mainFragment
             }
             
-            // Restore alpha values for all fragments immediately
-            mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
-            mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
-            historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
-            savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
-            moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+            // Execute pending transactions to ensure fragments are attached
+            supportFragmentManager.executePendingTransactions()
             
-            // Bring active fragment to front to ensure it receives touches
-            activeFragment.view?.bringToFront()
+            // Use ViewTreeObserver to set alpha after views are created and laid out
+            binding.navHostContainer.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    // Remove listener to avoid multiple calls
+                    binding.navHostContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    
+                    // Now views should exist, set alpha values
+                    mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
+                    mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
+                    historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
+                    savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
+                    moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+                    
+                    // Bring active fragment to front to ensure it receives touches
+                    activeFragment.view?.bringToFront()
+                    
+                    L.d("MainActivity: Alpha values restored after layout")
+                }
+            })
             
             // Restore bottom navigation selected state
             val selectedItemId = when (activeFragment) {
