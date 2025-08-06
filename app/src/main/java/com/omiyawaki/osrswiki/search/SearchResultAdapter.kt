@@ -8,7 +8,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding // ViewBinding class
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyInterBody
 
 // Ensure CleanedSearchResultItem is accessible (e.g., imported if in its own file)
 // import com.omiyawaki.osrswiki.search.CleanedSearchResultItem

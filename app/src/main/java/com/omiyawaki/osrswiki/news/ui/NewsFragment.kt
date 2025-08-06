@@ -30,7 +30,6 @@ import com.omiyawaki.osrswiki.util.VoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.createVoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUIHint
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 

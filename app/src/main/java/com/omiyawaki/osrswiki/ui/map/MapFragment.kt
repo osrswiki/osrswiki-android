@@ -13,7 +13,6 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

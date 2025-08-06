@@ -13,7 +13,6 @@ import com.omiyawaki.osrswiki.databinding.ItemSavedPageBinding
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyInterBody
 import com.omiyawaki.osrswiki.util.FontUtil
 import java.text.DateFormat
 import java.util.Date

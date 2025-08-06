@@ -11,8 +11,6 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentFeedbackBinding
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
-import com.omiyawaki.osrswiki.util.applyRubikUIButton
 
 /**
  * Secure version of FeedbackFragment that uses Cloud Function for GitHub integration.
