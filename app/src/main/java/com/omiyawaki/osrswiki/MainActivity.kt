@@ -3,10 +3,12 @@ package com.omiyawaki.osrswiki
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
@@ -44,8 +46,12 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        
+        // Enable edge-to-edge but respect the theme's status bar settings
+        enableEdgeToEdge()
+        setupStatusBarTheming()
+        
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         L.d("MainActivity: onCreate: ContentView set.")
@@ -331,6 +337,30 @@ class MainActivity : BaseActivity() {
         binding.root.post {
             notifyFragmentsOfThemeChange()
             L.d("MainActivity: onResume: Notified fragments of theme change (posted)")
+        }
+    }
+    
+    private fun setupStatusBarTheming() {
+        // Get the current theme's windowLightStatusBar setting
+        val typedValue = TypedValue()
+        val theme = this.theme
+        val hasLightStatusBar = theme.resolveAttribute(android.R.attr.windowLightStatusBar, typedValue, true) && typedValue.data != 0
+        
+        // Get the status bar color from theme
+        val statusBarColorTypedValue = TypedValue()
+        val hasStatusBarColor = theme.resolveAttribute(android.R.attr.statusBarColor, statusBarColorTypedValue, true)
+        
+        // Apply the theme's status bar settings
+        val windowInsetsController = ViewCompat.getWindowInsetsController(window.decorView)
+        windowInsetsController?.let { controller ->
+            controller.isAppearanceLightStatusBars = hasLightStatusBar
+            L.d("MainActivity: Set status bar light mode: $hasLightStatusBar")
+        }
+        
+        // Set status bar color from theme if available
+        if (hasStatusBarColor) {
+            window.statusBarColor = statusBarColorTypedValue.data
+            L.d("MainActivity: Applied theme status bar color: ${Integer.toHexString(statusBarColorTypedValue.data)}")
         }
     }
 }
