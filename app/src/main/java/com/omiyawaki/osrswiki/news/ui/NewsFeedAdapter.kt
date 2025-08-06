@@ -68,33 +68,20 @@ private fun TextView.setTextWithMixedFonts(html: String, onLinkClick: (url: Stri
         strBuilder.removeSpan(span)
     }
     
-    // Apply Cascadia Code to year and dash pattern (e.g., "• 2024 – " or "• 2006 – ")
+    // Apply system monospace to year and dash pattern (e.g., "• 2024 – " or "• 2006 – ")
     val yearDashPattern = Regex("^(• \\d{4} – )")
     val match = yearDashPattern.find(strBuilder.toString())
     if (match != null) {
         val start = match.range.first
         val end = match.range.last + 1
         
-        // Get Cascadia Code typeface
-        val cascadiaTypeface = ResourcesCompat.getFont(context, R.font.cascadia_code)
-        if (cascadiaTypeface != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                strBuilder.setSpan(
-                    TypefaceSpan(cascadiaTypeface),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            } else {
-                // Fallback for older APIs - use "monospace" family name
-                strBuilder.setSpan(
-                    TypefaceSpan("monospace"),
-                    start,
-                    end,
-                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                )
-            }
-        }
+        // Use system monospace font
+        strBuilder.setSpan(
+            TypefaceSpan("monospace"),
+            start,
+            end,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
     }
     
     text = strBuilder

@@ -240,31 +240,3 @@
 }
 
 
-/* Cascadia Code Font Family - Monospace for code */
-@font-face {
-  font-family: 'Cascadia Code';
-  font-weight: 400;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_regular.ttf');
-}
-
-@font-face {
-  font-family: 'Cascadia Code';
-  font-weight: 400;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_italic.ttf');
-}
-
-@font-face {
-  font-family: 'Cascadia Code';
-  font-weight: 700;
-  font-style: normal;
-  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_bold.ttf');
-}
-
-@font-face {
-  font-family: 'Cascadia Code';
-  font-weight: 700;
-  font-style: italic;
-  src: url('https://appassets.androidplatform.net/res/font/cascadia_code_bold_italic.ttf');
-}

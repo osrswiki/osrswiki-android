@@ -20,8 +20,7 @@ object FontUtil {
         INTER,
         ALEGREYA,
         ALEGREYA_SC,
-        RUBIK,
-        CASCADIA_CODE
+        RUBIK
     }
     
     // Font weight enums
@@ -147,12 +146,6 @@ object FontUtil {
         applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
     }
     
-    /**
-     * Apply Cascadia Code font for code/monospace text
-     */
-    fun applyCascadiaCode(textView: TextView) {
-        applyFont(textView, FontFamily.CASCADIA_CODE, FontWeight.NORMAL)
-    }
     
     
     private fun getBaseTypeface(context: Context, fontFamily: FontFamily): Typeface? {
@@ -161,7 +154,6 @@ object FontUtil {
             FontFamily.ALEGREYA -> R.font.alegreya
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
             FontFamily.RUBIK -> R.font.rubik
-            FontFamily.CASCADIA_CODE -> R.font.cascadia_code
         }
         
         return try {
@@ -218,4 +210,3 @@ fun TextView.applyRubikUILabelSmall() = FontUtil.applyRubikUILabelSmall(this)
 fun TextView.applyRubikUIButton() = FontUtil.applyRubikUIButton(this)
 fun TextView.applyRubikUIHint() = FontUtil.applyRubikUIHint(this)
 fun TextView.applyRubikUICaption() = FontUtil.applyRubikUICaption(this)
-fun TextView.applyCascadiaCode() = FontUtil.applyCascadiaCode(this)
