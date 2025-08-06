@@ -10,7 +10,6 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyInterBody
 
 class SearchAdapter(
     private val onItemClickListener: OnItemClickListener

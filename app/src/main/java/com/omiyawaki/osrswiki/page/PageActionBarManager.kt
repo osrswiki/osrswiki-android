@@ -10,7 +10,6 @@ import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
-import com.omiyawaki.osrswiki.util.applyRubikUIButton
 
 class PageActionBarManager(
     private val binding: ActivityPageBinding

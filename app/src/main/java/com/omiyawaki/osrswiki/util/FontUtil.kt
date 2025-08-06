@@ -17,10 +17,8 @@ object FontUtil {
     
     // Font family enums
     enum class FontFamily {
-        INTER,
         ALEGREYA,
-        ALEGREYA_SC,
-        RUBIK
+        ALEGREYA_SC
     }
     
     // Font weight enums
@@ -82,19 +80,6 @@ object FontUtil {
         applyFont(textView, FontFamily.ALEGREYA, FontWeight.BOLD)
     }
     
-    /**
-     * Apply Inter Body font (regular) for content text - better readability at small sizes
-     */
-    fun applyInterBody(textView: TextView) {
-        applyFont(textView, FontFamily.INTER, FontWeight.NORMAL)
-    }
-    
-    /**
-     * Apply Inter Label font (regular) for UI elements - better readability at small sizes
-     */
-    fun applyInterLabel(textView: TextView) {
-        applyFont(textView, FontFamily.INTER, FontWeight.NORMAL)
-    }
     
     /**
      * Apply Alegreya Small Caps font for section headers
@@ -103,57 +88,13 @@ object FontUtil {
         applyFont(textView, FontFamily.ALEGREYA_SC, fontWeight)
     }
     
-    /**
-     * Apply Rubik UI Label font (normal) for navigation and UI controls
-     */
-    fun applyRubikUILabel(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-    }
-    
-    /**
-     * Apply Rubik UI Label font (medium weight) for emphasized labels
-     */
-    fun applyRubikUILabelMedium(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.MEDIUM)
-    }
-    
-    /**
-     * Apply Rubik UI Label font (normal weight) with small size for compact labels
-     */
-    fun applyRubikUILabelSmall(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-        textView.textSize = 16f // 16sp
-    }
-    
-    /**
-     * Apply Rubik UI Button font (normal) for button text
-     */
-    fun applyRubikUIButton(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-    }
-    
-    /**
-     * Apply Rubik UI Hint font (normal) for form hints and placeholder text
-     */
-    fun applyRubikUIHint(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-    }
-    
-    /**
-     * Apply Rubik UI Caption font (normal) for helper text and captions
-     */
-    fun applyRubikUICaption(textView: TextView) {
-        applyFont(textView, FontFamily.RUBIK, FontWeight.NORMAL)
-    }
     
     
     
     private fun getBaseTypeface(context: Context, fontFamily: FontFamily): Typeface? {
         val fontResource = when (fontFamily) {
-            FontFamily.INTER -> R.font.inter
             FontFamily.ALEGREYA -> R.font.alegreya
             FontFamily.ALEGREYA_SC -> R.font.alegreya_sc
-            FontFamily.RUBIK -> R.font.rubik
         }
         
         return try {
@@ -200,13 +141,5 @@ object FontUtil {
 fun TextView.applyAlegreyaDisplay() = FontUtil.applyAlegreyaDisplay(this)
 fun TextView.applyAlegreyaHeadline() = FontUtil.applyAlegreyaHeadline(this)
 fun TextView.applyAlegreyaTitle() = FontUtil.applyAlegreyaTitle(this)
-fun TextView.applyInterBody() = FontUtil.applyInterBody(this)
-fun TextView.applyInterLabel() = FontUtil.applyInterLabel(this)
 fun TextView.applyAlegreyaSmallCaps(fontWeight: FontUtil.FontWeight = FontUtil.FontWeight.BOLD) = 
     FontUtil.applyAlegreyaSmallCaps(this, fontWeight)
-fun TextView.applyRubikUILabel() = FontUtil.applyRubikUILabel(this)
-fun TextView.applyRubikUILabelMedium() = FontUtil.applyRubikUILabelMedium(this)
-fun TextView.applyRubikUILabelSmall() = FontUtil.applyRubikUILabelSmall(this)
-fun TextView.applyRubikUIButton() = FontUtil.applyRubikUIButton(this)
-fun TextView.applyRubikUIHint() = FontUtil.applyRubikUIHint(this)
-fun TextView.applyRubikUICaption() = FontUtil.applyRubikUICaption(this)

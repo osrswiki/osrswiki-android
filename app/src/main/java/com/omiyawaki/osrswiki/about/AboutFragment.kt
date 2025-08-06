@@ -12,8 +12,6 @@ import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentAboutBinding
 import com.omiyawaki.osrswiki.util.FontUtil
-import com.omiyawaki.osrswiki.util.applyRubikUIButton
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
 import com.omiyawaki.osrswiki.util.log.L
 
 class AboutFragment : Fragment() {

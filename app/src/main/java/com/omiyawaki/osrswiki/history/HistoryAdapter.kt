@@ -16,7 +16,6 @@ import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyInterBody
 
 class HistoryAdapter(
     private val onItemClick: (HistoryEntry) -> Unit

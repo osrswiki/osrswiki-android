@@ -15,8 +15,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentRecentSearchesBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
-import com.omiyawaki.osrswiki.util.applyRubikUIHint
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 

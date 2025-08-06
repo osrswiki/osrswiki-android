@@ -23,8 +23,6 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentDonateBinding
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
-import com.omiyawaki.osrswiki.util.applyRubikUIButton
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject

@@ -11,7 +11,6 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.news.model.UpdateItem
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
-import com.omiyawaki.osrswiki.util.applyInterBody
 
 class UpdatesAdapter(
     private val items: List<UpdateItem>,

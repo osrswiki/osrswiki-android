@@ -9,10 +9,6 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
-import com.omiyawaki.osrswiki.util.applyRubikUILabelMedium
-import com.omiyawaki.osrswiki.util.applyRubikUILabelSmall
-import com.omiyawaki.osrswiki.util.applyInterBody
 import com.omiyawaki.osrswiki.util.log.L
 
 class AppearanceSettingsFragment : PreferenceFragmentCompat() {
@@ -75,15 +71,8 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
     }
 
     private fun applyFontsToPreferenceItem(itemView: View) {
-        // Find TextViews in the preference item and apply appropriate fonts
-        val title = itemView.findViewById<TextView>(android.R.id.title)
-        val summary = itemView.findViewById<TextView>(android.R.id.summary)
-        
-        // Apply medium weight font to preference titles (like "App theme", "Collapse tables")
-        title?.applyRubikUILabelMedium()
-        
-        // Apply body font to preference summaries
-        summary?.applyInterBody()
+        // Let preference text use system fonts - no custom font application needed
+        // This aligns with the app's migration to system fonts for non-heading text
     }
 
 

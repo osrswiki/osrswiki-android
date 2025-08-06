@@ -28,7 +28,6 @@ import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
-import com.omiyawaki.osrswiki.util.applyRubikUIHint
 import com.omiyawaki.osrswiki.util.log.L
 
 class HistoryFragment : Fragment(), ThemeAware {

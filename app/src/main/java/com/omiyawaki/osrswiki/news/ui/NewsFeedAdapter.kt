@@ -21,7 +21,6 @@ import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaSmallCaps
-import com.omiyawaki.osrswiki.util.applyInterBody
 import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
 import com.omiyawaki.osrswiki.news.model.PopularPageItem
@@ -215,7 +214,7 @@ class NewsFeedAdapter(
                     
                     // Apply proper text appearance matching original XML
                     setTextAppearance(R.style.AppTextAppearance_BodyMedium)
-                    applyInterBody()  // Additional font consistency
+                    // Using system font via text appearance - no custom font needed
                     
                     // Get link color from theme attribute
                     val typedValue = TypedValue()

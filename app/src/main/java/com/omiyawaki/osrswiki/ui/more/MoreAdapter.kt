@@ -4,7 +4,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemMoreBinding
-import com.omiyawaki.osrswiki.util.applyRubikUILabel
 
 class MoreAdapter(
     private val items: List<MoreItem> = emptyList(),
