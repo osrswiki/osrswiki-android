@@ -119,44 +119,6 @@
         <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
     </style>
 
-    <style name="Theme.OSRSWiki.WikiLight" parent="Theme.OSRSWiki.Base.Light">
-        <item name="colorPrimary">@color/wiki_text_near_black</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/white</item>
-        <item name="colorOnPrimaryContainer">@color/wiki_text_near_black</item>
-        <item name="colorSecondary">@color/wiki_text_near_black</item>
-        <item name="colorOnSecondary">@color/white</item>
-        <item name="colorSecondaryContainer">@color/white</item>
-        <item name="colorOnSecondaryContainer">@color/wiki_text_near_black</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/white</item>
-        <item name="colorOnBackground">@color/wiki_text_near_black</item>
-        <item name="colorSurface">@color/white</item>
-        <item name="colorOnSurface">@color/wiki_text_near_black</item>
-        <item name="colorSurfaceVariant">#E0E0E0</item>
-        <item name="colorOnSurfaceVariant">@color/wiki_text_near_black</item>
-        <item name="android:statusBarColor">@color/white</item>
-        <item name="colorControlNormal">@color/wiki_text_near_black</item>
-
-        <item name="paper_color">@color/white</item>
-        <item name="placeholder_color">#757575</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiLight</item>
-        <item name="linkColor">@color/link_color_wiki_light</item>
-        <item name="primary_text_color">?attr/colorOnSurface</item>
-        <item name="base_color">@color/white</item>
-        <item name="secondary_text_color">#757575</item>
-        
-        <!-- Typography overrides for Wiki Light theme -->
-        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
-        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
-        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
-        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
-        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
-        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
-        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
-        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
-    </style>
 
     <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.OSRSWiki.Base.Dark">
         <item name="colorPrimary">@color/osrs_brown_deep</item>
@@ -203,83 +165,7 @@
         <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
     </style>
 
-    <style name="Theme.OSRSWiki.WikiDark" parent="Theme.OSRSWiki.Base.Dark">
-        <item name="colorPrimary">@color/wiki_text_near_white</item>
-        <item name="colorOnPrimary">@color/wiki_surface_dark</item>
-        <item name="colorPrimaryContainer">@color/wiki_surface_dark</item>
-        <item name="colorOnPrimaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorSecondary">@color/wiki_text_near_white</item>
-        <item name="colorOnSecondary">@color/wiki_surface_dark</item>
-        <item name="colorSecondaryContainer">@color/wiki_surface_dark</item>
-        <item name="colorOnSecondaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/wiki_surface_dark</item>
-        <item name="colorOnBackground">@color/wiki_text_near_white</item>
-        <item name="colorSurface">@color/wiki_surface_dark</item>
-        <item name="colorOnSurface">@color/wiki_text_near_white</item>
-        <item name="colorSurfaceVariant">#2A2A2A</item>
-        <item name="colorOnSurfaceVariant">@color/wiki_text_near_white</item>
-        <item name="android:statusBarColor">@color/wiki_surface_dark</item>
-    <item name="colorControlNormal">@color/wiki_text_near_white</item>
 
-        <item name="paper_color">@color/wiki_surface_dark</item>
-        <item name="placeholder_color">#BDBDBD</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiDark</item>
-        <item name="linkColor">@color/link_color_wiki_dark</item>
-        <item name="primary_text_color">?attr/colorOnSurface</item>
-        <item name="base_color">@color/wiki_surface_dark</item>
-        <item name="secondary_text_color">#BDBDBD</item>
-        
-        <!-- Typography overrides for Wiki Dark theme -->
-        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
-        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
-        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
-        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
-        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
-        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
-        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
-        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
-    </style>
-
-    <style name="Theme.OSRSWiki.WikiBlack" parent="Theme.OSRSWiki.Base.Dark">
-        <item name="colorPrimary">@color/wiki_text_near_white</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <item name="colorPrimaryContainer">@color/black</item>
-        <item name="colorOnPrimaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorSecondary">@color/wiki_text_near_white</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <item name="colorSecondaryContainer">@color/black</item>
-        <item name="colorOnSecondaryContainer">@color/wiki_text_near_white</item>
-        <item name="colorError">@color/color_error</item>
-        <item name="colorOnError">@color/white</item>
-        <item name="android:colorBackground">@color/black</item>
-        <item name="colorOnBackground">@color/wiki_text_near_white</item>
-        <item name="colorSurface">@color/black</item>
-        <item name="colorOnSurface">@color/wiki_text_near_white</item>
-        <item name="colorSurfaceVariant">#121212</item>
-        <item name="colorOnSurfaceVariant">@color/wiki_text_near_white</item>
-        <item name="android:statusBarColor">@color/black</item>
-        <item name="colorControlNormal">@color/wiki_text_near_white</item>
-
-        <item name="paper_color">@color/black</item>
-        <item name="placeholder_color">#BDBDBD</item>
-        <item name="popupMenuStyle">@style/App.Style.PopupMenu.WikiBlack</item>
-        <item name="linkColor">@color/link_color_wiki_dark</item>
-        <item name="primary_text_color">?attr/colorOnSurface</item>
-        <item name="base_color">@color/black</item>
-        <item name="secondary_text_color">#BDBDBD</item>
-        
-        <!-- Typography overrides for Wiki Black theme -->
-        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
-        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
-        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
-        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
-        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
-        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
-        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
-        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
-    </style>
 
     <style name="Widget.App.ActionMode" parent="Widget.Material3.ActionMode">
         <item name="background">?attr/colorSurface</item>

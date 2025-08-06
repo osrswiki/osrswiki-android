@@ -152,9 +152,6 @@
 
     <string name="theme_name_osrs_light">OSRS Light (Default)</string>
     <string name="theme_name_osrs_dark">OSRS Dark (Default)</string>
-    <string name="theme_name_wiki_light">Standard Light</string>
-    <string name="theme_name_wiki_dark">Standard Dark</string>
-    <string name="theme_name_wiki_black">True Black</string>
 
     <string name="osrs_settings_category_title_appearance">Appearance</string>
     <string name="osrs_preference_key_theme" translatable="false">osrs_app_theme</string>

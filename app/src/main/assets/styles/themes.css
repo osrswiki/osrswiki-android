@@ -35,40 +35,6 @@
     --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23000'/%3E%3C/svg%3E);
 }
 
-/* Theme: Wikipedia Light */
-body.theme-wikipedia-light {
-    color-scheme: light;
-    --body-background-image: none;
-    --body-background-color: #f6f6f6;
-    --body-main: #ffffff;
-    --body-light: #f8f9fa;
-    --body-mid: #e9ecef;
-    --body-dark-shade: #eaecf0;
-    --body-border: #a2a9b1;
-    --text-color: #202122;
-    --link-color: #3366cc;
-    --link-visited-color: #7a4a9d;
-    --redlink-color: #ba0000;
-    --heading-color: #000000;
-    --byline-color: #54595d;
-    --subtle-color: #54595d;
-    --sidebar-color: var(--body-border);
-    --wikitable-header-bg: var(--body-dark-shade);
-    --wikitable-border: var(--body-border);
-    --wikitable-bg: var(--body-main);
-    --wikitable-alternating-bg: var(--body-light);
-    --wikitable-color: var(--text-color);
-    --navbox-background: var(--wikitable-bg);
-    --navbox-border: var(--wikitable-border);
-    --navbox-title-background: var(--wikitable-header-bg);
-    --navbox-group-title-background: var(--wikitable-header-bg);
-    --ooui-interface: var(--body-light);
-    --ooui-interface-border: var(--body-border);
-    --mw-code-background-color: var(--body-dark-shade);
-    --tap-highlight-color: rgba(0, 0, 0, 0.1);
-    --external-icon: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233366cc' d='M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16L6 1Z M2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E);
-    --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23202122'/%3E%3C/svg%3E);
-}
 
 /* Theme: OSRS Dark */
 body.theme-osrs-dark {
@@ -105,75 +71,7 @@ body.theme-osrs-dark {
     --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23f4eaea'/%3E%3C/svg%3E);
 }
 
-/* Theme: Wikipedia Dark */
-body.theme-wikipedia-dark {
-    color-scheme: dark;
-    --body-background-image: none;
-    --body-background-color: #121212; /* Dark grey page background */
-    --body-main: #1e1e1e;           /* Main content area background */
-    --body-light: #2c2c2c;           /* Lighter shade for infobox body */
-    --body-mid: #252525;
-    --body-dark-shade: #333333;      /* Darker shade for infobox headers */
-    --body-border: #444444;
-    --text-color: #e8eaed;           /* Light grey for text */
-    --link-color: #8ab4f8;           /* A light blue for links */
-    --link-visited-color: #c58af9;
-    --redlink-color: #f28b82;
-    --heading-color: var(--text-color);
-    --byline-color: #9aa0a6;
-    --subtle-color: var(--byline-color);
-    --sidebar-color: var(--body-border);
-    --wikitable-header-bg: var(--body-dark-shade);
-    --wikitable-border: var(--body-border);
-    --wikitable-bg: var(--body-main);
-    --wikitable-alternating-bg: var(--body-light);
-    --wikitable-color: var(--text-color);
-    --navbox-background: var(--wikitable-bg);
-    --navbox-border: var(--wikitable-border);
-    --navbox-title-background: var(--wikitable-header-bg);
-    --navbox-group-title-background: var(--wikitable-header-bg);
-    --ooui-interface: var(--body-light);
-    --ooui-interface-border: var(--body-border);
-    --mw-code-background-color: var(--body-dark-shade);
-    --tap-highlight-color: rgba(255, 255, 255, 0.1);
-    --external-icon: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238ab4f8' d='M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16L6 1Z M2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E);
-    --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23e8eaed'/%3E%3C/svg%3E);
-}
 
-/* Theme: Wikipedia Black (AMOLED) */
-body.theme-wikipedia-black {
-    color-scheme: dark;
-    --body-background-image: none;
-    --body-background-color: #000000;
-    --body-main: #000000;
-    --body-light: #1a1a1a;
-    --body-mid: #1f1f1f;
-    --body-dark-shade: #2c2c2c;
-    --body-border: #3a3a3a;
-    --text-color: #e8eaed;
-    --link-color: #8ab4f8;
-    --link-visited-color: #c58af9;
-    --redlink-color: #f28b82;
-    --heading-color: var(--text-color);
-    --byline-color: #9aa0a6;
-    --subtle-color: var(--byline-color);
-    --sidebar-color: var(--body-border);
-    --wikitable-header-bg: var(--body-dark-shade);
-    --wikitable-border: var(--body-border);
-    --wikitable-bg: var(--body-main);
-    --wikitable-alternating-bg: var(--body-light);
-    --wikitable-color: var(--text-color);
-    --navbox-background: var(--wikitable-bg);
-    --navbox-border: var(--wikitable-border);
-    --navbox-title-background: var(--wikitable-header-bg);
-    --navbox-group-title-background: var(--wikitable-header-bg);
-    --ooui-interface: var(--body-light);
-    --ooui-interface-border: var(--body-border);
-    --mw-code-background-color: var(--body-dark-shade);
-    --tap-highlight-color: rgba(255, 255, 255, 0.15); /* Slightly more visible on pure black */
-    --external-icon: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238ab4f8' d='M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16L6 1Z M2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E);
-    --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23e8eaed'/%3E%3C/svg%3E);
-}
 
 /* --- Global Application --- */
 
