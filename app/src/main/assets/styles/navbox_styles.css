@@ -62,7 +62,7 @@
 .navbox.navbox .navbox-list {
     padding: 0.25em 0.5em;
     line-height: 1.4em;
-    border-bottom: 1px solid var(--navbox-border); /* Bottom border only - matches web version */
+    /* No bottom border to prevent doubling with row separators */
 }
 
 /* Make list items display inline like the web version */
@@ -86,7 +86,8 @@
 }
 
 /* Add row separators like web version - second row and beyond get top borders */
-.navbox.navbox tr:nth-child(n+2) {
+/* But only apply to direct children to avoid conflicts with subgroups */
+.navbox.navbox > tbody > tr:nth-child(n+2) {
     border-top: 1px solid var(--navbox-border);
 }
 
@@ -123,12 +124,24 @@
     font-weight: 600;
 }
 
-/* List cells inside navbox-subgroup tables get bottom borders only */
+/* List cells inside navbox-subgroup tables - no bottom border to prevent doubling */
 .navbox.navbox .navbox-subgroup .navbox-list {
-    border-bottom: 1px solid var(--navbox-border); /* Bottom border only - matches web version */
+    /* No bottom border to prevent doubling with row separators */
 }
 
 /* Row separators for subgroup tables - second row and beyond get top borders */
 .navbox.navbox .navbox-subgroup tr:nth-child(n+2) {
     border-top: 1px solid var(--navbox-border);
+}
+
+/* Remove bottom borders from last row of subgroups to prevent double borders */
+.navbox.navbox .navbox-subgroup > tbody > tr:last-child > th,
+.navbox.navbox .navbox-subgroup > tbody > tr:last-child > td {
+    border-bottom: none;
+}
+
+/* Also remove bottom borders from last row of main navbox */
+.navbox.navbox > tbody > tr:last-child > th,
+.navbox.navbox > tbody > tr:last-child > td {
+    border-bottom: none;
 }
