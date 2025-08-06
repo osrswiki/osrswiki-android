@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:fontFamily="@font/runescape_plain"
-            android:textColor="?attr/primary_text_color"
+            android:textColor="@color/white"
             android:textAppearance="@style/AppTextAppearance.Body"
             tools:text="Loading page..." />
 
