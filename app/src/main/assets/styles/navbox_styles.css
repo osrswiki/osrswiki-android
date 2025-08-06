@@ -29,11 +29,12 @@
 }
 
 /* Target cells containing .navbox-group-title to fix cell-in-cell appearance */
-/* These cells need transparent backgrounds and zero padding so the nested element styling works */
+/* These cells need transparent backgrounds, zero padding, and no borders so the nested element styling works */
 .navbox.navbox > * > tr > th:has(.navbox-group-title),
 .navbox.navbox > * > tr > td:has(.navbox-group-title) {
     background: transparent !important;
     padding: 0 !important;
+    border: none !important;
 }
 
 /* Comprehensive fallback selectors for browsers without :has() support */
@@ -43,6 +44,7 @@
 .navbox.navbox > * > tr > td.navbox-group {
     background: transparent !important;
     padding: 0 !important;
+    border: none !important;
 }
 
 /* Apply styling directly to table cells to avoid nested background conflicts */
