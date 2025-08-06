@@ -195,7 +195,6 @@ class NewsFeedAdapter(
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyInterBody()
         }
         
         fun bind(item: AnnouncementItem, onLinkClick: (url: String) -> Unit) {
@@ -265,7 +264,6 @@ class NewsFeedAdapter(
         init {
             // Apply fonts on ViewHolder creation
             title.applyAlegreyaSmallCaps()
-            content.applyInterBody()
         }
         
         fun bind(items: List<PopularPageItem>, onLinkClick: (url: String) -> Unit) {

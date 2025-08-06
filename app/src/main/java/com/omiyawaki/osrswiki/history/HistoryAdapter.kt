@@ -84,7 +84,6 @@ class HistoryAdapter(
                 if (!historyEntry.snippet.isNullOrBlank()) {
                     pageSnippetText.text = historyEntry.snippet
                     pageSnippetText.visibility = View.VISIBLE
-                    pageSnippetText.applyInterBody()
                 } else {
                     pageSnippetText.visibility = View.GONE
                 }

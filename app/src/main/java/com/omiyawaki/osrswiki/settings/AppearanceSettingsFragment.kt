@@ -79,8 +79,6 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         val title = itemView.findViewById<TextView>(android.R.id.title)
         val summary = itemView.findViewById<TextView>(android.R.id.summary)
         
-        title?.applyRubikUILabelSmall()
-        summary?.applyRubikUILabel()
     }
 
 

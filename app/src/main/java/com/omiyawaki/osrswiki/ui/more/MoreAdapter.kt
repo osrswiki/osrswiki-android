@@ -27,7 +27,6 @@ class MoreAdapter(
         fun bind(item: MoreItem) {
             binding.iconMoreItem.setImageResource(item.iconRes)
             binding.textMoreItem.setText(item.titleRes)
-            binding.textMoreItem.applyRubikUILabel()
             
             binding.root.setOnClickListener {
                 onItemClick(item.action)

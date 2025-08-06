@@ -211,7 +211,6 @@ class MapFragment : Fragment(), ThemeAware {
             binding.floorControls.visibility = View.VISIBLE
             
             // Apply font to floor control text
-            binding.floorControlText.applyRubikUILabel()
             
             updateFloorControlStates()
             binding.floorControlUp.setOnClickListener {

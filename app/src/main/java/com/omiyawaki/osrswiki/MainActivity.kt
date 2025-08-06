@@ -193,13 +193,7 @@ class MainActivity : BaseActivity() {
             val child = viewGroup.getChildAt(i)
             when (child) {
                 is TextView -> {
-                    if (isActive) {
-                        FontUtil.applyRubikUILabelMedium(child)
-                        L.d("MainActivity: Applied MEDIUM font to ACTIVE navigation label: ${child.text}")
-                    } else {
-                        FontUtil.applyRubikUILabel(child)
-                        L.d("MainActivity: Applied NORMAL font to navigation label: ${child.text}")
-                    }
+                    L.d("MainActivity: Navigation label: ${child.text}")
                 }
                 is android.view.ViewGroup -> {
                     applyFontsToViewGroup(child, isActive)

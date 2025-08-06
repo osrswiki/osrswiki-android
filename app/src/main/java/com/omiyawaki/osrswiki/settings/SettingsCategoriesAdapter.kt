@@ -34,7 +34,6 @@ class SettingsCategoriesAdapter(
             binding.textSettingsCategoryTitle.setText(category.titleRes)
             binding.textSettingsCategoryTitle.applyAlegreyaHeadline()
             binding.textSettingsCategoryDescription.setText(category.descriptionRes)
-            binding.textSettingsCategoryDescription.applyInterBody()
             
             binding.root.setOnClickListener {
                 onCategoryClick(category.action)

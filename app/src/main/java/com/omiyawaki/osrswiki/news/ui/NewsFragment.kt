@@ -100,7 +100,6 @@ class NewsFragment : Fragment(), ThemeAware {
         
         // Apply fonts to header elements
         view.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
-        view.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
         
         L.d("NewsFragment: Fonts applied to header elements")
     }

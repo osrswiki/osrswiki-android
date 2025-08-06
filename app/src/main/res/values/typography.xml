@@ -47,7 +47,6 @@
     
     <!-- Body Text - Article content, descriptions, longer text -->
     <style name="AppTextAppearance.Body" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">16sp</item>
@@ -55,7 +54,6 @@
     </style>
     
     <style name="AppTextAppearance.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">14sp</item>
@@ -64,7 +62,6 @@
     
     <!-- UI Labels - Buttons, navigation, short UI text -->
     <style name="AppTextAppearance.Label" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">500</item>
         <item name="android:textSize">14sp</item>
@@ -72,7 +69,6 @@
     </style>
     
     <style name="AppTextAppearance.LabelLarge" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">500</item>
         <item name="android:textSize">18sp</item>
@@ -81,7 +77,6 @@
     
     <!-- Caption Text - Metadata, timestamps, auxiliary info -->
     <style name="AppTextAppearance.Caption" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">12sp</item>
@@ -178,7 +173,6 @@
     
     <!-- Enhanced Body Styles -->
     <style name="AppTextAppearance.BodySmall" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">12sp</item>
@@ -186,17 +180,15 @@
     </style>
     
     <style name="AppTextAppearance.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
-        <item name="android:fontFamily">@font/inter</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">16sp</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
     
-    <!-- Rubik UI Styles - Pure interface elements -->
+    <!-- UI Styles - Pure interface elements -->
     <!-- Navigation Labels - Bottom nav, tabs, menu items -->
     <style name="AppTextAppearance.UINavigation" parent="TextAppearance.Material3.LabelMedium">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">500</item>
         <item name="android:textSize">14sp</item>
@@ -205,7 +197,6 @@
     
     <!-- Button Text - All button labels -->
     <style name="AppTextAppearance.UIButton" parent="TextAppearance.Material3.LabelLarge">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">12sp</item>
@@ -214,7 +205,6 @@
     
     <!-- Form Hints - Placeholder text, input hints -->
     <style name="AppTextAppearance.UIHint" parent="TextAppearance.Material3.BodyMedium">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">16sp</item>
@@ -223,7 +213,6 @@
     
     <!-- Form Labels - TextInputLayout labels -->
     <style name="AppTextAppearance.UIFormLabel" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">500</item>
         <item name="android:textSize">14sp</item>
@@ -232,7 +221,6 @@
     
     <!-- Helper Text - Form helper text, validation messages -->
     <style name="AppTextAppearance.UIHelper" parent="TextAppearance.Material3.BodySmall">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">400</item>
         <item name="android:textSize">12sp</item>
@@ -241,7 +229,6 @@
     
     <!-- Toolbar Titles - App bar titles -->
     <style name="AppTextAppearance.UIToolbar" parent="TextAppearance.Material3.TitleMedium">
-        <item name="android:fontFamily">@font/rubik</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight">500</item>
         <item name="android:textSize">18sp</item>

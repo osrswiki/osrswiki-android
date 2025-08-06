@@ -55,7 +55,6 @@ class SearchResultAdapter(
             } else {
                 binding.searchItemSnippet.text = item.snippet // Corrected ID
                 binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
-                binding.searchItemSnippet.applyInterBody()
             }
         }
     }

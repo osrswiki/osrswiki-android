@@ -111,20 +111,14 @@ class FeedbackFragmentSecure : Fragment() {
         
         // Rate app card
         binding.rateAppTitle.applyAlegreyaHeadline()
-        binding.rateAppDescription.applyRubikUILabel()
         
         // Report issue card
         binding.reportIssueTitle.applyAlegreyaHeadline()
-        binding.reportIssueDescription.applyRubikUILabel()
         
         // Request feature card
         binding.requestFeatureTitle.applyAlegreyaHeadline()
-        binding.requestFeatureDescription.applyRubikUILabel()
         
         // Apply fonts to buttons
-        binding.rateAppButton.applyRubikUIButton()
-        binding.reportIssueButton.applyRubikUIButton()
-        binding.requestFeatureButton.applyRubikUIButton()
         
         L.d("FeedbackFragmentSecure: Fonts applied to all TextViews and buttons")
     }

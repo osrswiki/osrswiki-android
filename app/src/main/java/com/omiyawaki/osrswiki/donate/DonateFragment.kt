@@ -427,21 +427,11 @@ class DonateFragment : Fragment() {
         
         // Apply fonts to all TextViews
         binding.donateTitle.applyAlegreyaHeadline()
-        binding.donateDescription.applyRubikUILabel()
-        binding.statusText.applyRubikUILabel()
         binding.wikiSupportTitle.applyAlegreyaHeadline()
-        binding.wikiSupportDescription.applyRubikUILabel()
         
         // Apply fonts to chips (amount selection)
-        binding.chipAmount1.applyRubikUIButton()
-        binding.chipAmount5.applyRubikUIButton()
-        binding.chipAmount10.applyRubikUIButton()
-        binding.chipAmount25.applyRubikUIButton()
-        binding.chipAmountCustom.applyRubikUIButton()
         
         // Apply fonts to buttons
-        binding.donateButton.applyRubikUIButton()
-        binding.wikiDonateButton.applyRubikUIButton()
         
         L.d("DonateFragment: Fonts applied to all TextViews, chips, and buttons")
     }

@@ -49,8 +49,7 @@ class SearchActivity : BaseActivity() {
     private fun setupFonts() {
         L.d("SearchActivity: Setting up fonts...")
         
-        // Apply font to search input field
-        FontUtil.applyRubikUIHint(binding.searchEditText)
+        // Search input field will use system font
         
         L.d("SearchActivity: Fonts applied to UI elements")
     }

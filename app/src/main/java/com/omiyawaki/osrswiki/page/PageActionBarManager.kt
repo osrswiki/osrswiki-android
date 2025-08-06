@@ -22,25 +22,21 @@ class PageActionBarManager(
             // Save functionality will be connected via callback
             saveClickCallback?.invoke()
         }
-        saveButton.applyRubikUIButton()
         
         val findButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_find_in_article)
         findButton.setOnClickListener {
             fragment.showFindInPage()
         }
-        findButton.applyRubikUIButton()
         
         val themeButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_theme)
         themeButton.setOnClickListener {
             fragment.startActivity(AppearanceSettingsActivity.newIntent(fragment.requireContext()))
         }
-        themeButton.applyRubikUIButton()
         
         val contentsButton = binding.root.findViewById<MaterialTextView>(R.id.page_action_contents)
         contentsButton.setOnClickListener {
             fragment.showContents()
         }
-        contentsButton.applyRubikUIButton()
     }
     
     fun updateSaveIcon(isSaved: Boolean) {

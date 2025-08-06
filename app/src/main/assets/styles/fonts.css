@@ -138,7 +138,7 @@
   src: url('https://appassets.androidplatform.net/res/font/rubik_bold_italic.ttf');
 }
 
-/* Inter Font Family - Sans-serif for body/reading content */
+/* Atkinson Hyperlegible Next Font Family - Sans-serif for body/reading content (replaces Inter) */
 @font-face {
   font-family: 'Inter';
   font-weight: 400;
