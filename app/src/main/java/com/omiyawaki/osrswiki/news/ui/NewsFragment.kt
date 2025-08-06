@@ -23,6 +23,7 @@ import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.random.RandomPageRepository
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.VoiceSearchAnimationHelper
@@ -38,7 +39,7 @@ import java.net.URLDecoder
  * This UI is modeled after the Wikipedia app's "Explore" feed, presenting
  * different types of content in a card-based RecyclerView.
  */
-class NewsFragment : Fragment() {
+class NewsFragment : Fragment(), ThemeAware {
 
     private val viewModel: NewsViewModel by viewModels()
     private lateinit var newsFeedAdapter: NewsFeedAdapter
@@ -288,6 +289,27 @@ class NewsFragment : Fragment() {
         }
         if (::voiceAnimationHelper.isInitialized) {
             voiceAnimationHelper.cleanup()
+        }
+    }
+
+    override fun onThemeChanged() {
+        L.d("NewsFragment: onThemeChanged called")
+        // Re-apply theme attributes to views that use theme attributes
+        refreshThemeAttributes()
+    }
+
+    private fun refreshThemeAttributes() {
+        view?.let { rootView ->
+            // Get the current theme's paper_color attribute
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            
+            // Apply the new background color to the AppBarLayout
+            val appBarLayout = rootView.findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.news_app_bar)
+            appBarLayout?.setBackgroundColor(typedValue.data)
+            
+            L.d("NewsFragment: Theme attributes refreshed")
         }
     }
 }

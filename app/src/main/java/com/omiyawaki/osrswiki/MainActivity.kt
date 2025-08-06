@@ -322,4 +322,15 @@ class MainActivity : BaseActivity() {
         }
         onBackPressedDispatcher.addCallback(this, backCallback)
     }
+
+    override fun onResume() {
+        super.onResume() // This handles theme changes in BaseActivity
+        
+        // Post the theme change notification to ensure fragments are fully restored
+        // and in a proper lifecycle state before receiving the notification
+        binding.root.post {
+            notifyFragmentsOfThemeChange()
+            L.d("MainActivity: onResume: Notified fragments of theme change (posted)")
+        }
+    }
 }

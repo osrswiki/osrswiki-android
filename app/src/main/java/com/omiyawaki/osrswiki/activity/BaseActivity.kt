@@ -3,8 +3,10 @@ package com.omiyawaki.osrswiki.activity
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.theme.ThemeAware
 
 abstract class BaseActivity : AppCompatActivity() {
 
@@ -44,5 +46,22 @@ abstract class BaseActivity : AppCompatActivity() {
         // Cache the ID of the theme being applied to this activity instance.
         currentThemeId = selectedTheme.resourceId
         setTheme(selectedTheme.resourceId)
+    }
+
+    /**
+     * Notifies all ThemeAware fragments that the theme has changed.
+     * Should be called after the activity has been recreated due to a theme change.
+     */
+    protected fun notifyFragmentsOfThemeChange() {
+        supportFragmentManager.fragments.forEach { fragment ->
+            if (fragment is ThemeAware && fragment.isAdded && fragment.view != null) {
+                try {
+                    fragment.onThemeChanged()
+                } catch (e: Exception) {
+                    // Log the error but don't crash - theme changes should be graceful
+                    android.util.Log.e("BaseActivity", "Error notifying fragment ${fragment::class.simpleName} of theme change", e)
+                }
+            }
+        }
     }
 }
