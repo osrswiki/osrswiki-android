@@ -79,6 +79,11 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         val title = itemView.findViewById<TextView>(android.R.id.title)
         val summary = itemView.findViewById<TextView>(android.R.id.summary)
         
+        // Apply medium weight font to preference titles (like "App theme", "Collapse tables")
+        title?.applyRubikUILabelMedium()
+        
+        // Apply body font to preference summaries
+        summary?.applyInterBody()
     }
 
 
