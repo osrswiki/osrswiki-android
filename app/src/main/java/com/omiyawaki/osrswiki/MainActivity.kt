@@ -26,11 +26,11 @@ class MainActivity : BaseActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var appRouter: AppRouterImpl
-    private val mainFragment: MainFragment by lazy { MainFragment.newInstance() }
-    private val mapFragment: MapFragment by lazy { MapFragment() }
-    private val historyFragment: HistoryFragment by lazy { HistoryFragment.newInstance() }
-    private val savedPagesFragment: SavedPagesFragment by lazy { SavedPagesFragment() }
-    private val moreFragment: MoreFragment by lazy { MoreFragment.newInstance() }
+    private lateinit var mainFragment: MainFragment
+    private lateinit var mapFragment: MapFragment
+    private lateinit var historyFragment: HistoryFragment
+    private lateinit var savedPagesFragment: SavedPagesFragment
+    private lateinit var moreFragment: MoreFragment
     private lateinit var activeFragment: Fragment
 
     companion object {
@@ -64,6 +64,14 @@ class MainActivity : BaseActivity() {
 
         if (savedInstanceState == null) {
             L.d("MainActivity: onCreate: savedInstanceState is null, setting up initial fragments.")
+            
+            // Create new fragment instances
+            mainFragment = MainFragment.newInstance()
+            mapFragment = MapFragment()
+            historyFragment = HistoryFragment.newInstance()
+            savedPagesFragment = SavedPagesFragment()
+            moreFragment = MoreFragment.newInstance()
+            
             supportFragmentManager.beginTransaction()
                 .add(R.id.nav_host_container, mainFragment, MAIN_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
@@ -88,13 +96,42 @@ class MainActivity : BaseActivity() {
         } else {
             L.d("MainActivity: onCreate: Restoring state.")
             val savedActiveTag = savedInstanceState.getString(ACTIVE_FRAGMENT_TAG, MAIN_FRAGMENT_TAG)
+            
+            // Restore fragments from FragmentManager and assign to properties
+            mainFragment = supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG) as MainFragment
+            mapFragment = supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG) as MapFragment
+            historyFragment = supportFragmentManager.findFragmentByTag(HISTORY_FRAGMENT_TAG) as HistoryFragment
+            savedPagesFragment = supportFragmentManager.findFragmentByTag(SAVED_PAGES_FRAGMENT_TAG) as SavedPagesFragment
+            moreFragment = supportFragmentManager.findFragmentByTag(MORE_FRAGMENT_TAG) as MoreFragment
+            
             activeFragment = when (savedActiveTag) {
-                MAP_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG)!!
-                HISTORY_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(HISTORY_FRAGMENT_TAG)!!
-                SAVED_PAGES_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(SAVED_PAGES_FRAGMENT_TAG)!!
-                MORE_FRAGMENT_TAG -> supportFragmentManager.findFragmentByTag(MORE_FRAGMENT_TAG)!!
-                else -> supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)!!
+                MAP_FRAGMENT_TAG -> mapFragment
+                HISTORY_FRAGMENT_TAG -> historyFragment
+                SAVED_PAGES_FRAGMENT_TAG -> savedPagesFragment
+                MORE_FRAGMENT_TAG -> moreFragment
+                else -> mainFragment
             }
+            
+            // Restore alpha values for all fragments immediately
+            mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
+            mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
+            historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
+            savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
+            moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+            
+            // Bring active fragment to front to ensure it receives touches
+            activeFragment.view?.bringToFront()
+            
+            // Restore bottom navigation selected state
+            val selectedItemId = when (activeFragment) {
+                mapFragment -> R.id.nav_map
+                historyFragment -> R.id.nav_search
+                savedPagesFragment -> R.id.nav_saved
+                moreFragment -> R.id.nav_more
+                else -> R.id.nav_news
+            }
+            binding.bottomNav.selectedItemId = selectedItemId
+            
             L.d("MainActivity: onCreate: Active fragment is ${activeFragment.javaClass.simpleName}")
         }
 
