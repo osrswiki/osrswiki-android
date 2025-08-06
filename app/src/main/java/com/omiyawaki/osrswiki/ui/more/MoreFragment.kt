@@ -12,9 +12,10 @@ import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
 import com.omiyawaki.osrswiki.donate.DonateActivity
 import com.omiyawaki.osrswiki.feedback.FeedbackActivity
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 
-class MoreFragment : Fragment() {
+class MoreFragment : Fragment(), ThemeAware {
 
     private var _binding: FragmentMoreBinding? = null
     private val binding get() = _binding!!
@@ -108,5 +109,29 @@ class MoreFragment : Fragment() {
         L.d("MoreFragment: onDestroyView called.")
         _binding = null
         super.onDestroyView()
+    }
+
+    override fun onThemeChanged() {
+        L.d("MoreFragment: onThemeChanged called")
+        // Re-apply theme attributes to views that use theme attributes
+        refreshThemeAttributes()
+        // Refresh RecyclerView adapter to apply new theme colors to items
+        if (::adapter.isInitialized) {
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun refreshThemeAttributes() {
+        if (_binding != null) {
+            // Get the current theme's paper_color attribute
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            
+            // Apply the new background color to the root layout
+            binding.root.setBackgroundColor(typedValue.data)
+            
+            L.d("MoreFragment: Theme attributes refreshed")
+        }
     }
 }

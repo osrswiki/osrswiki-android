@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMainBinding
 import com.omiyawaki.osrswiki.news.ui.NewsFragment
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 // Removed SavedPagesFragment and MapFragment imports as they are no longer directly managed here.
 
@@ -15,7 +16,7 @@ import com.omiyawaki.osrswiki.util.log.L
  * The main fragment that now acts as a simple container for the "main" section's content,
  * which appears to be the NewsFragment. The primary navigation is now handled by MainActivity.
  */
-class MainFragment : Fragment() {
+class MainFragment : Fragment(), ThemeAware {
 
     private var _binding: FragmentMainBinding? = null
     private val binding get() = _binding!!
@@ -51,5 +52,37 @@ class MainFragment : Fragment() {
         L.d("MainFragment: onDestroyView called.")
         _binding = null
         super.onDestroyView()
+    }
+
+    override fun onThemeChanged() {
+        L.d("MainFragment: onThemeChanged called")
+        // Re-apply theme attributes to views that use theme attributes
+        refreshThemeAttributes()
+        // Notify child fragments that implement ThemeAware
+        childFragmentManager.fragments.forEach { fragment ->
+            if (fragment is ThemeAware && fragment.isAdded && fragment.view != null) {
+                try {
+                    fragment.onThemeChanged()
+                    L.d("MainFragment: Notified child fragment ${fragment::class.simpleName} of theme change")
+                } catch (e: Exception) {
+                    // Log the error but don't crash - theme changes should be graceful  
+                    L.e("MainFragment: Error notifying child fragment ${fragment::class.simpleName} of theme change", e)
+                }
+            }
+        }
+    }
+
+    private fun refreshThemeAttributes() {
+        if (_binding != null) {
+            // Get the current theme's paper_color attribute
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            
+            // Apply the new background color to the root layout
+            binding.root.setBackgroundColor(typedValue.data)
+            
+            L.d("MainFragment: Theme attributes refreshed")
+        }
     }
 }

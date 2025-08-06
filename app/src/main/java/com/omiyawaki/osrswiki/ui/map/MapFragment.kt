@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.applyRubikUILabel
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-class MapFragment : Fragment() {
+class MapFragment : Fragment(), ThemeAware {
 
     private var _binding: FragmentMapBinding? = null
     private val binding get() = _binding!!
@@ -258,6 +259,34 @@ class MapFragment : Fragment() {
         mapView?.onDestroy()
         _binding = null
         map = null
+    }
+
+    override fun onThemeChanged() {
+        L.d("MapFragment: onThemeChanged called")
+        // Re-apply theme attributes to floor control elements
+        refreshThemeAttributes()
+    }
+
+    private fun refreshThemeAttributes() {
+        if (_binding != null) {
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            
+            // Apply the new background color to the root layout
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            binding.root.setBackgroundColor(typedValue.data)
+            
+            // Update floor control text color to use theme-appropriate color
+            if (binding.floorControls.visibility == View.VISIBLE) {
+                theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.primary_text_color, typedValue, true)
+                if (typedValue.resourceId != 0) {
+                    val textColor = requireContext().getColor(typedValue.resourceId)
+                    binding.floorControlText.setTextColor(textColor)
+                }
+            }
+            
+            L.d("MapFragment: Theme attributes refreshed")
+        }
     }
 
     override fun onStart() { super.onStart(); mapView?.onStart() }
