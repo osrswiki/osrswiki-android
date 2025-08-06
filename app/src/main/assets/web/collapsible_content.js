@@ -86,22 +86,19 @@
         var titleWrapper = document.createElement('div');
         titleWrapper.className = 'title-wrapper';
         var captionText = defaultTitle;
+        // Use generic labels for all collapsible containers
+        // Hide original captions if they exist
         if (selector === 'table.infobox') {
-            const bonusesCaption = elementForTitle.querySelector('.infobox-switch-buttons-caption');
-            const primaryCaption = elementForTitle.querySelector('.infobox-header');
-            if (bonusesCaption && bonusesCaption.innerText.trim() !== '') {
-                captionText = 'Equipment bonuses';
-            } else if (primaryCaption && primaryCaption.innerText.trim() !== '') {
-                captionText = primaryCaption.innerText.trim();
-            }
+            // Keep the generic "Infobox" label
+            captionText = defaultTitle;
         } else {
-            const caption = elementForTitle.querySelector('caption, th');
-            if (caption && caption.innerText.trim() !== '') {
-                captionText = caption.innerText.trim();
-                if (caption.tagName === 'CAPTION') {
-                    caption.style.display = 'none';
-                }
+            // For tables and navboxes, also use the generic label
+            const caption = elementForTitle.querySelector('caption');
+            if (caption) {
+                // Hide the original caption since we're using a generic label
+                caption.style.display = 'none';
             }
+            captionText = defaultTitle;
         }
 
         var icon = document.createElement('span');
