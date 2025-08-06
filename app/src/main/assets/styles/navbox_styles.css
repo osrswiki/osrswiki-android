@@ -21,6 +21,13 @@
     padding: 0.3em 0.5em;
 }
 
+/* Add consistent borders to navbox-subgroup table cells */
+.navbox.navbox .navbox-subgroup > * > tr > th,
+.navbox.navbox .navbox-subgroup > * > tr > td {
+    border: 1px solid var(--navbox-border);
+    padding: 0.3em 0.5em;
+}
+
 /* Target cells containing .navbox-group-title to fix cell-in-cell appearance */
 /* These cells need transparent backgrounds and zero padding so the nested element styling works */
 .navbox.navbox > * > tr > th:has(.navbox-group-title),
