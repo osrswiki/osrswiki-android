@@ -24,13 +24,14 @@ import com.omiyawaki.osrswiki.databinding.FragmentHistoryBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.applyRubikUIHint
 import com.omiyawaki.osrswiki.util.log.L
 
-class HistoryFragment : Fragment() {
+class HistoryFragment : Fragment(), ThemeAware {
 
     private var _binding: FragmentHistoryBinding? = null
     private val binding get() = _binding!!
@@ -184,6 +185,30 @@ class HistoryFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onThemeChanged() {
+        L.d("HistoryFragment: onThemeChanged called")
+        // Re-apply theme attributes to views that use theme attributes
+        refreshThemeAttributes()
+    }
+
+    private fun refreshThemeAttributes() {
+        if (_binding != null) {
+            // Get the current theme's paper_color attribute
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            
+            // Apply the new background color to the root layout
+            binding.root.setBackgroundColor(typedValue.data)
+            
+            // Apply the new background color to the AppBarLayout
+            val appBarLayout = binding.root.findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.history_app_bar)
+            appBarLayout?.setBackgroundColor(typedValue.data)
+            
+            L.d("HistoryFragment: Theme attributes refreshed")
+        }
     }
 
     companion object {

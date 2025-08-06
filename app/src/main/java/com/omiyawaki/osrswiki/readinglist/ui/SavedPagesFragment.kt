@@ -43,6 +43,7 @@ import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository // For
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModel
 import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory // For ViewModel factory
 import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
@@ -54,7 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 // @AndroidEntryPoint // Removed
-class SavedPagesFragment : Fragment() {
+class SavedPagesFragment : Fragment(), ThemeAware {
 
     private var _binding: FragmentSavedPagesBinding? = null
     private val binding get() = _binding!!
@@ -309,6 +310,30 @@ class SavedPagesFragment : Fragment() {
         super.onDestroyView()
         binding.savedPagesRecyclerView.adapter = null // Important to prevent memory leaks with RecyclerView adapter
         _binding = null
+    }
+
+    override fun onThemeChanged() {
+        L.d("SavedPagesFragment: onThemeChanged called")
+        // Re-apply theme attributes to views that use theme attributes
+        refreshThemeAttributes()
+    }
+
+    private fun refreshThemeAttributes() {
+        if (_binding != null) {
+            // Get the current theme's paper_color attribute
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
+            
+            // Apply the new background color to the root layout
+            binding.root.setBackgroundColor(typedValue.data)
+            
+            // Apply the new background color to the AppBarLayout
+            val appBarLayout = binding.root.findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.saved_pages_app_bar)
+            appBarLayout?.setBackgroundColor(typedValue.data)
+            
+            L.d("SavedPagesFragment: Theme attributes refreshed")
+        }
     }
     
     private inner class SwipeToDeleteCallback(
