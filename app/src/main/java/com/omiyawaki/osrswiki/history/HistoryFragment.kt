@@ -123,12 +123,10 @@ class HistoryFragment : Fragment(), ThemeAware {
         
         // Apply fonts to header elements
         binding.root.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
-        binding.root.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
         
         // Apply font to empty state text
         val emptyStateTextView = binding.emptyStateContainer.getChildAt(1) as? TextView
         emptyStateTextView?.let { 
-            it.applyRubikUIHint()
             L.d("HistoryFragment: Applied Rubik font to empty state text")
         }
         

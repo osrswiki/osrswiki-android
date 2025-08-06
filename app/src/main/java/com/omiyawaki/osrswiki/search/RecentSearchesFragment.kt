@@ -83,10 +83,8 @@ class RecentSearchesFragment : Fragment() {
         
         // Apply fonts to header elements
         binding.textViewHeaderTitle.applyAlegreyaHeadline()
-        binding.buttonClearAll.applyRubikUILabel()
         
         // Apply font to empty state text
-        binding.textViewEmptyStateText.applyRubikUIHint()
         
         L.d("RecentSearchesFragment: Fonts applied to header elements and empty state")
     }

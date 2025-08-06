@@ -78,7 +78,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val summary = itemView.findViewById<TextView>(android.R.id.summary)
         
         title?.applyAlegreyaHeadline()
-        summary?.applyRubikUILabel()
     }
 
     companion object {

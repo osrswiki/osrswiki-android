@@ -93,8 +93,7 @@ class SavedPagesSearchActivity : BaseActivity() {
     private fun setupFonts() {
         L.d("SavedPagesSearchActivity: Setting up fonts...")
         
-        // Apply font to search input field
-        FontUtil.applyRubikUIHint(binding.searchEditText)
+        // Search input field will use system font
         
         L.d("SavedPagesSearchActivity: Fonts applied to UI elements")
     }

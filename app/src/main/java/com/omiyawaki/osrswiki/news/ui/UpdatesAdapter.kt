@@ -38,7 +38,6 @@ class UpdatesAdapter(
         init {
             // Apply fonts on ViewHolder creation
             titleView.applyAlegreyaTitle()
-            snippetView.applyInterBody()
         }
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {

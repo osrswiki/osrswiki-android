@@ -42,7 +42,6 @@ class SavedPageViewHolder(
             if (cleanDescription.isNotBlank()) {
                 binding.itemSavedPageSnippet.text = cleanDescription
                 binding.itemSavedPageSnippet.visibility = View.VISIBLE
-                binding.itemSavedPageSnippet.applyInterBody()
             } else {
                 binding.itemSavedPageSnippet.visibility = View.GONE
             }
@@ -89,7 +88,6 @@ class SavedPageViewHolder(
         if (infoText.isNotEmpty()) {
             binding.itemSavedPageInfo.text = infoText
             binding.itemSavedPageInfo.visibility = View.VISIBLE
-            FontUtil.applyRubikUICaption(binding.itemSavedPageInfo)
         } else {
             binding.itemSavedPageInfo.visibility = View.GONE
         }

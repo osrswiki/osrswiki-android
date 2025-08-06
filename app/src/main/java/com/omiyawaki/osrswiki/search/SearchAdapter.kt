@@ -45,7 +45,6 @@ class SearchAdapter(
 
             if (item.snippet.isNotBlank()) {
                 binding.searchItemSnippet.text = item.snippet
-                binding.searchItemSnippet.applyInterBody()
                 binding.searchItemSnippet.visibility = View.VISIBLE
             } else {
                 binding.searchItemSnippet.visibility = View.GONE

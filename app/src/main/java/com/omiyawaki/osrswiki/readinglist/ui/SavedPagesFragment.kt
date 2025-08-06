@@ -133,10 +133,8 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         
         // Apply fonts to header elements
         binding.root.findViewById<TextView>(R.id.page_title)?.applyAlegreyaHeadline()
-        binding.root.findViewById<TextView>(R.id.search_text)?.applyRubikUIHint()
         
         // Apply font to empty state message
-        binding.emptyStateTextViewText.applyRubikUIHint()
         
         L.d("SavedPagesFragment: Fonts applied to header elements and empty state")
     }

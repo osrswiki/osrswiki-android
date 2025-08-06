@@ -31,7 +31,6 @@ class RecentSearchAdapter(
         RecyclerView.ViewHolder(binding.root) {
         fun bind(item: RecentSearch, onItemClicked: (RecentSearch) -> Unit) {
             binding.textViewRecentSearchQuery.text = item.query
-            binding.textViewRecentSearchQuery.applyRubikUILabel()
             binding.root.setOnClickListener { onItemClicked(item) }
         }
     }
