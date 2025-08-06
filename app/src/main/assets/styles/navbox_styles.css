@@ -115,9 +115,10 @@
     box-shadow: none;
 }
 
-/* Cells containing navbox-subgroup tables should have zero padding to eliminate cell-in-cell effect */
+/* Cells containing navbox-subgroup tables should have zero padding and no borders to eliminate cell-in-cell effect */
 .navbox.navbox .navbox-parent {
     padding: 0 !important;
+    border: none !important;
 }
 
 /* Group titles inside navbox-subgroup tables need proper styling */
