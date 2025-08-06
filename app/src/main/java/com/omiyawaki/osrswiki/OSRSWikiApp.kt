@@ -156,8 +156,7 @@ class OSRSWikiApp : Application() {
                 nightModeFlags == Configuration.UI_MODE_NIGHT_YES
             }
         }
-        val themeTag = if (isNightMode) Prefs.darkThemeChoice else Prefs.lightThemeChoice
-        return Theme.ofTag(themeTag) ?: Theme.DEFAULT_LIGHT
+        return if (isNightMode) Theme.OSRS_DARK else Theme.OSRS_LIGHT
     }
 
     private fun initializeNetworkCallback() {

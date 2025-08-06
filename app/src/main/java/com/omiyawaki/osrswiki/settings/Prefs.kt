@@ -7,8 +7,6 @@ object Prefs {
     // String constants for preference keys, to be used by fragments and the data layer.
     // These keys MUST match the keys defined in res/xml/preferences.xml
     const val KEY_APP_THEME_MODE = "app_theme_mode"
-    const val KEY_LIGHT_THEME_CHOICE = "light_theme_choice"
-    const val KEY_DARK_THEME_CHOICE = "dark_theme_choice"
     const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "downloadReadingListArticles"
     const val KEY_COLLAPSE_TABLES = "collapseTables"
     const val KEY_OFFLINE_CACHE_SIZE_LIMIT = "offlineCacheSizeLimit"
@@ -34,19 +32,6 @@ object Prefs {
     val appThemeMode
         get() = PrefsIoUtil.getString(KEY_APP_THEME_MODE, "auto") ?: "auto"
 
-    /**
-     * Gets the specific choice for the light theme.
-     * Defaults to "osrs_light".
-     */
-    val lightThemeChoice
-        get() = PrefsIoUtil.getString(KEY_LIGHT_THEME_CHOICE, "osrs_light") ?: "osrs_light"
-
-    /**
-     * Gets the specific choice for the dark theme.
-     * Defaults to "osrs_dark".
-     */
-    val darkThemeChoice
-        get() = PrefsIoUtil.getString(KEY_DARK_THEME_CHOICE, "osrs_dark") ?: "osrs_dark"
 
     /**
      * Gets the cache size limit in megabytes.
