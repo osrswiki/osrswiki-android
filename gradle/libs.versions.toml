@@ -2,7 +2,7 @@
 
 [versions]
 # Core Android & Kotlin
-agp = "8.11.1"
+agp = "8.12.0"
 kotlin = "2.0.21" # Your project's Kotlin version
 coreKtx = "1.16.0"
 appcompat = "1.7.0"
