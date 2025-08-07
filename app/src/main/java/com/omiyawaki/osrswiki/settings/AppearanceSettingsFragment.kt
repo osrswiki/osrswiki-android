@@ -92,55 +92,21 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             // Apply the new theme to current activity without recreation
             activity.setTheme(newTheme.resourceId)
             
-            // CRITICAL FIX: Refresh the current activity's UI immediately
-            // Don't call activity.applyThemeDynamically() as that would be recursive
+            // Simplified approach: Let the BaseActivity handle its own theme refresh
             if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
-                val baseActivity = activity as com.omiyawaki.osrswiki.activity.BaseActivity
-                
-                // Update the BaseActivity's currentThemeId to match using reflection
-                try {
-                    val field = baseActivity.javaClass.superclass.getDeclaredField("currentThemeId")
-                    field.isAccessible = true
-                    field.setInt(baseActivity, newTheme.resourceId)
-                } catch (e: Exception) {
-                    L.w("AppearanceSettingsFragment: Could not update currentThemeId: ${e.message}")
-                }
-                
-                // Call applyThemeDynamically but prevent recursion by setting a flag
-                try {
-                    // Use reflection to call the protected method refreshThemeDependentElements
-                    val method = baseActivity.javaClass.superclass.getDeclaredMethod("refreshThemeDependentElements")
-                    method.isAccessible = true
-                    method.invoke(baseActivity)
-                    L.d("AppearanceSettingsFragment: Called refreshThemeDependentElements via reflection")
-                } catch (e: Exception) {
-                    L.w("AppearanceSettingsFragment: Reflection failed, using fallback mechanism: ${e.message}")
-                    // Fallback - call the activity's own applyThemeDynamically method
-                    try {
-                        baseActivity.applyThemeDynamically()
-                        L.d("AppearanceSettingsFragment: Fallback - called applyThemeDynamically directly")
-                    } catch (fallbackException: Exception) {
-                        L.w("AppearanceSettingsFragment: Fallback also failed: ${fallbackException.message}")
-                        // Final fallback - manual refresh
-                        activity.window?.decorView?.invalidate()
-                        activity.window?.decorView?.requestLayout()
-                        L.d("AppearanceSettingsFragment: Final fallback - manual window refresh")
-                    }
-                }
+                activity.applyThemeDynamically()
             }
             
-            // Refresh the fragment's own preferences UI immediately
-            refreshPreferencesUI()
-            
-            // CRITICAL: Force immediate background refresh for the entire fragment view  
-            view?.let { fragmentView ->
-                forceFragmentBackgroundRefresh(fragmentView)
+            // Post to ensure theme change has taken effect before refreshing fragment UI
+            view?.post {
+                // Focus on refreshing the fragment's own UI elements directly
+                refreshFragmentUIDirectly()
+                
+                // Notify other components about the theme change
+                notifyGlobalThemeChange()
+                
+                L.d("AppearanceSettingsFragment: Dynamic theme change completed")
             }
-            
-            // Notify the global app about theme change for other activities/fragments
-            notifyGlobalThemeChange()
-            
-            L.d("AppearanceSettingsFragment: Dynamic theme change completed")
             
         } catch (e: Exception) {
             L.e("AppearanceSettingsFragment: Error applying theme dynamically: ${e.message}")
@@ -150,6 +116,58 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         }
     }
     
+    private fun refreshFragmentUIDirectly() {
+        try {
+            L.d("AppearanceSettingsFragment: Refreshing fragment UI directly")
+            
+            // Refresh the fragment's root view background
+            view?.let { fragmentView ->
+                val typedValue = android.util.TypedValue()
+                val theme = requireContext().theme
+                
+                // Apply new background color
+                val backgroundAttrs = arrayOf(
+                    com.omiyawaki.osrswiki.R.attr.paper_color,
+                    com.google.android.material.R.attr.colorSurface,
+                    android.R.attr.colorBackground
+                )
+                
+                for (attr in backgroundAttrs) {
+                    if (theme.resolveAttribute(attr, typedValue, true)) {
+                        fragmentView.setBackgroundColor(typedValue.data)
+                        L.d("AppearanceSettingsFragment: Applied fragment background color")
+                        break
+                    }
+                }
+            }
+            
+            // Refresh the RecyclerView and preference items
+            val recyclerView = listView as? RecyclerView
+            recyclerView?.let { rv ->
+                // Force adapter refresh to pick up new theme colors
+                rv.adapter?.notifyDataSetChanged()
+                
+                // Apply new theme background to the RecyclerView
+                val typedValue = android.util.TypedValue()
+                val theme = requireContext().theme
+                
+                if (theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)) {
+                    rv.setBackgroundColor(typedValue.data)
+                }
+                
+                // Force complete refresh
+                rv.invalidate()
+                rv.requestLayout()
+                
+                L.d("AppearanceSettingsFragment: RecyclerView refreshed with new theme")
+            }
+            
+            L.d("AppearanceSettingsFragment: Fragment UI refresh completed successfully")
+            
+        } catch (e: Exception) {
+            L.e("AppearanceSettingsFragment: Error refreshing fragment UI directly: ${e.message}")
+        }
+    }
     
     private fun refreshPreferencesUI() {
         // Refresh the preference list to apply new theme colors
@@ -299,8 +317,8 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 for (i in 0 until preferenceView.childCount) {
                     val child = preferenceView.getChildAt(i)
                     if (child is android.widget.TextView) {
-                        // Force TextView to re-read theme colors
-                        child.invalidate()
+                        // CRITICAL: Apply actual theme colors instead of just invalidating
+                        applyTextViewThemeColors(child)
                     } else if (child is android.view.ViewGroup) {
                         // Recursively refresh nested ViewGroups
                         refreshTextViewsInPreference(child)
@@ -309,6 +327,86 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             }
         } catch (e: Exception) {
             // Ignore errors in preference item refresh
+        }
+    }
+    
+    private fun applyTextViewThemeColors(textView: android.widget.TextView) {
+        try {
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            
+            // Determine if this is a title or summary by checking text characteristics
+            val isTitle = isPreferenceTitle(textView)
+            
+            if (isTitle) {
+                // Apply primary text color for titles
+                val titleAttrs = arrayOf(
+                    com.google.android.material.R.attr.colorOnSurface,          // Material 3 primary
+                    android.R.attr.textColorPrimary,                           // System primary
+                    R.attr.primary_text_color                                  // App fallback
+                )
+                
+                for (attr in titleAttrs) {
+                    if (theme.resolveAttribute(attr, typedValue, true)) {
+                        textView.setTextColor(typedValue.data)
+                        L.d("AppearanceSettingsFragment: Applied title color from ${getAttributeName(attr)}")
+                        break
+                    }
+                }
+            } else {
+                // Apply secondary text color for summaries
+                val summaryAttrs = arrayOf(
+                    android.R.attr.textColorSecondary,                         // System secondary (most common)
+                    com.google.android.material.R.attr.colorOnSurfaceVariant,  // Material 3 secondary
+                    R.attr.secondary_text_color                                // App fallback
+                )
+                
+                for (attr in summaryAttrs) {
+                    if (theme.resolveAttribute(attr, typedValue, true)) {
+                        textView.setTextColor(typedValue.data)
+                        L.d("AppearanceSettingsFragment: Applied summary color from ${getAttributeName(attr)}: ${textView.text}")
+                        break
+                    }
+                }
+            }
+            
+            // Force immediate refresh
+            textView.invalidate()
+            
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error applying TextView theme colors: ${e.message}")
+        }
+    }
+    
+    private fun isPreferenceTitle(textView: android.widget.TextView): Boolean {
+        // Heuristics to determine if this TextView is a title or summary
+        val text = textView.text?.toString() ?: ""
+        val textSize = textView.textSize
+        val typeface = textView.typeface
+        
+        // Title characteristics: larger text, often bold, shorter text
+        // Common title texts we know about
+        val knownTitles = setOf(
+            "App theme", 
+            "Collapse tables"
+        )
+        
+        // Summary characteristics: smaller text, longer descriptive text
+        val knownSummaries = setOf(
+            "Dark", 
+            "Light", 
+            "Auto", 
+            "Collapses infoboxes by default in articles"
+        )
+        
+        return when {
+            knownTitles.contains(text) -> true
+            knownSummaries.contains(text) -> false
+            // Fallback heuristics
+            textSize > 16 -> true  // Larger text is likely a title
+            text.length < 20 -> true  // Short text is likely a title  
+            text.contains("by default") || text.contains("articles") -> false // Long descriptive text is summary
+            else -> false // Default to summary to be safe
         }
     }
     

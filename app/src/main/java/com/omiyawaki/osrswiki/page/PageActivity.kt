@@ -361,6 +361,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 )
             }
             
+            // CRITICAL: Refresh search text color (the actual text hint that wasn't updating)
+            val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
+            refreshSearchTextColors(searchContainer, theme, typedValue)
+            
             // Refresh voice search button tint
             val voiceSearchButton = binding.pageToolbar.findViewById<android.widget.ImageView>(R.id.toolbar_voice_search_button)
             if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
@@ -379,9 +383,63 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 )
             }
             
-            L.d("PageActivity: Toolbar icon tints refreshed")
+            L.d("PageActivity: Toolbar icon tints and search text refreshed")
         } catch (e: Exception) {
             L.w("PageActivity: Error refreshing toolbar icon tints: ${e.message}")
+        }
+    }
+    
+    private fun refreshSearchTextColors(searchContainer: com.google.android.material.textview.MaterialTextView?, theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        searchContainer?.let { textView ->
+            try {
+                // Preserve the original hint text before applying color changes
+                val originalHint = textView.hint
+                
+                // Try multiple text color attributes for search text/hint
+                val textColorAttrs = arrayOf(
+                    android.R.attr.textColorHint,                    // Primary hint color
+                    android.R.attr.textColorSecondary,               // Secondary text color
+                    com.google.android.material.R.attr.colorOnSurfaceVariant,  // Material 3 surface text
+                    com.google.android.material.R.attr.colorOnSurface,          // Fallback
+                    R.attr.secondary_text_color                      // App-specific fallback
+                )
+                
+                for (attr in textColorAttrs) {
+                    if (theme.resolveAttribute(attr, typedValue, true)) {
+                        // Apply both text color and hint color
+                        textView.setTextColor(typedValue.data)
+                        textView.setHintTextColor(typedValue.data)
+                        
+                        // CRITICAL: Restore the hint text if it was cleared
+                        if (originalHint != null && textView.hint != originalHint) {
+                            textView.hint = originalHint
+                            L.d("PageActivity: Restored search hint text: '$originalHint'")
+                        }
+                        
+                        // Also ensure hint is set from resource if it's missing
+                        if (textView.hint.isNullOrBlank()) {
+                            textView.setHint(R.string.page_toolbar_search_hint)
+                            L.d("PageActivity: Set search hint from resource")
+                        }
+                        
+                        L.d("PageActivity: Applied search text color from ${getTextColorAttributeName(attr)}: ${Integer.toHexString(typedValue.data)}")
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                L.w("PageActivity: Error refreshing search text colors: ${e.message}")
+            }
+        }
+    }
+    
+    private fun getTextColorAttributeName(attr: Int): String {
+        return when (attr) {
+            android.R.attr.textColorHint -> "textColorHint"
+            android.R.attr.textColorSecondary -> "textColorSecondary" 
+            com.google.android.material.R.attr.colorOnSurfaceVariant -> "colorOnSurfaceVariant"
+            com.google.android.material.R.attr.colorOnSurface -> "colorOnSurface"
+            R.attr.secondary_text_color -> "secondary_text_color"
+            else -> "unknown_attr_$attr"
         }
     }
     
