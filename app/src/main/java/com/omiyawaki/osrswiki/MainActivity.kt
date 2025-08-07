@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
@@ -427,11 +428,63 @@ class MainActivity : BaseActivity() {
             L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
         }
         
+        // CRITICAL: Force BottomNavigationView to refresh its theme colors
+        // BottomNavigationView has internal color management that needs special handling
+        try {
+            refreshBottomNavigationColors()
+        } catch (e: Exception) {
+            L.e("MainActivity: Error refreshing bottom navigation colors: ${e.message}")
+        }
+        
         // CRITICAL: Notify all fragments that theme has changed
         // This ensures fragments refresh their theme-dependent UI elements
         notifyFragmentsOfThemeChange()
         
         L.d("MainActivity: Theme-dependent elements refresh completed")
+    }
+    
+    private fun refreshBottomNavigationColors() {
+        L.d("MainActivity: Refreshing bottom navigation colors")
+        
+        try {
+            // Get current theme colors
+            val typedValue = TypedValue()
+            val theme = this.theme
+            
+            if (theme.resolveAttribute(android.R.attr.colorSecondary, typedValue, true)) {
+                val selectedColor = typedValue.data
+                
+                if (theme.resolveAttribute(R.attr.primary_text_color, typedValue, true)) {
+                    val unselectedColor = typedValue.data
+                    
+                    // Create color state list for the new theme
+                    val states = arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    )
+                    val colors = intArrayOf(selectedColor, unselectedColor)
+                    val colorStateList = ColorStateList(states, colors)
+                    
+                    // Apply new colors to bottom navigation
+                    binding.bottomNav.itemIconTintList = colorStateList
+                    binding.bottomNav.itemTextColor = colorStateList
+                    
+                    L.d("MainActivity: Applied new color state list to bottom navigation")
+                }
+            }
+            
+            // Also refresh background color
+            if (theme.resolveAttribute(R.attr.bottom_nav_background_color, typedValue, true)) {
+                binding.bottomNav.setBackgroundColor(typedValue.data)
+                L.d("MainActivity: Applied new background color to bottom navigation")
+            }
+            
+            // Force redraw
+            binding.bottomNav.invalidate()
+            
+        } catch (e: Exception) {
+            L.e("MainActivity: Failed to refresh bottom navigation colors: ${e.message}")
+        }
     }
     
     override fun onDestroy() {
