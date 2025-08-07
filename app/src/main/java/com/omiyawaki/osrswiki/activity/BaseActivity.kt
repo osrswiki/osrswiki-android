@@ -1,7 +1,7 @@
 package com.omiyawaki.osrswiki.activity
 
-import android.content.res.Configuration
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.TypedValue
@@ -390,9 +390,13 @@ abstract class BaseActivity : AppCompatActivity() {
                     // Use isSearchBar (not isSearchBarText) for consistency with earlier check
                     if (isSearchBar) {
                         // Always ensure search bar has hint text, even if originalHint was present
-                        textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
-                        // For search bar, apply the same color to hint as text
-                        textView.setHintTextColor(typedValue.data)
+                        val hintText = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
+                        textView.hint = hintText
+                        
+                        // Apply hint color using ColorStateList
+                        val hintColorStateList = ColorStateList.valueOf(typedValue.data)
+                        textView.setHintTextColor(hintColorStateList)
+                        
                         android.util.Log.d("BaseActivity", "Restored search bar hint text and color")
                     } else if (originalHint != null) {
                         // For other TextViews, restore original hint
