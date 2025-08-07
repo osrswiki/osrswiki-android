@@ -213,6 +213,15 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     private fun forceCachedUIElementRefresh(view: View) {
         try {
+            // Special handling for search bar to preserve hint during invalidation
+            if (view is TextView && view.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container) {
+                // For search bar, skip aggressive invalidation that might clear the hint
+                // Just request a layout update to refresh visual appearance
+                view.requestLayout()
+                android.util.Log.d("BaseActivity", "Gentle refresh for search bar to preserve hint")
+                return
+            }
+            
             // Force invalidate the view and all its children recursively
             invalidateViewRecursively(view)
             
@@ -333,6 +342,27 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun refreshTextViewTheme(textView: TextView, theme: android.content.res.Resources.Theme) {
         val typedValue = TypedValue()
         
+        // Check if this is the search bar TextView first - handle it specially
+        val isSearchBarTextView = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
+        
+        if (isSearchBarTextView) {
+            // For search bar, ONLY handle hint - don't change text color as it has proper styling from SearchBarText style
+            // The SearchBarText style already sets textColor and textColorHint to ?android:attr/textColorSecondary
+            
+            // ALWAYS ensure search bar has hint text
+            textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
+            
+            // Re-resolve hint color from current theme to match the style
+            val hintTypedValue = TypedValue()
+            if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
+                textView.setHintTextColor(hintTypedValue.data)
+                android.util.Log.d("BaseActivity", "Set search bar hint text and color from theme (skipped text color to preserve style)")
+            }
+            return // Skip the rest of the text color logic for search bar
+        }
+        
+        // For non-search bar TextViews, proceed with normal text color refresh
+        
         // Preserve original hint text and colors
         val originalHint = textView.hint
         val originalHintColors = textView.hintTextColors
@@ -374,21 +404,8 @@ abstract class BaseActivity : AppCompatActivity() {
                 try {
                     textView.setTextColor(typedValue.data)
                     
-                    // Handle hint text and colors based on TextView type
-                    // Check if this is the search bar TextView first
-                    val isSearchBarTextView = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
-                    
-                    if (isSearchBarTextView) {
-                        // ALWAYS ensure search bar has hint text, regardless of originalHint
-                        textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
-                        // Re-resolve hint color from current theme
-                        val hintTypedValue = TypedValue()
-                        if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
-                            textView.setHintTextColor(hintTypedValue.data)
-                            android.util.Log.d("BaseActivity", "Set search bar hint text and color from theme")
-                        }
-                    } else if (originalHint != null) {
-                        // Handle regular TextViews only if they had original hints
+                    // Handle hint restoration for regular TextViews
+                    if (originalHint != null) {
                         textView.hint = originalHint
                         if (originalHintColors != null) {
                             textView.setHintTextColor(originalHintColors)
