@@ -268,11 +268,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             // Refresh status bar theming
             setupStatusBarTheming()
             
-            // CRITICAL: Run search bar specific refresh AFTER BaseActivity's generic refresh
-            // This ensures our hint text preservation logic runs last and doesn't get overridden
-            window.decorView.post {
-                refreshSearchBarSpecific(theme, typedValue)
-            }
+            // Run search bar specific refresh for search-specific colors
+            refreshSearchBarSpecific(theme, typedValue)
             
             L.d("PageActivity: Theme-dependent elements refresh completed")
             
@@ -387,11 +384,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private fun refreshSearchTextColors(searchContainer: com.google.android.material.textview.MaterialTextView?, theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
         searchContainer?.let { textView ->
             try {
-                // Preserve the original hint text before applying color changes
-                val originalHint = textView.hint
-                
-                // Try multiple text color attributes for search text/hint
-                val textColorAttrs = arrayOf(
+                // Apply search-specific hint colors
+                val hintColorAttrs = arrayOf(
                     android.R.attr.textColorHint,                    // Primary hint color
                     android.R.attr.textColorSecondary,               // Secondary text color
                     com.google.android.material.R.attr.colorOnSurfaceVariant,  // Material 3 surface text
@@ -399,25 +393,18 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                     R.attr.secondary_text_color                      // App-specific fallback
                 )
                 
-                for (attr in textColorAttrs) {
+                for (attr in hintColorAttrs) {
                     if (theme.resolveAttribute(attr, typedValue, true)) {
-                        // Apply both text color and hint color
-                        textView.setTextColor(typedValue.data)
+                        // Apply hint color (text color already handled by BaseActivity)
                         textView.setHintTextColor(typedValue.data)
                         
-                        // CRITICAL: Restore the hint text if it was cleared
-                        if (originalHint != null && textView.hint != originalHint) {
-                            textView.hint = originalHint
-                            L.d("PageActivity: Restored search hint text: '$originalHint'")
-                        }
-                        
-                        // Also ensure hint is set from resource if it's missing
+                        // Ensure hint text is set if missing
                         if (textView.hint.isNullOrBlank()) {
                             textView.setHint(R.string.page_toolbar_search_hint)
                             L.d("PageActivity: Set search hint from resource")
                         }
                         
-                        L.d("PageActivity: Applied search text color from ${getTextColorAttributeName(attr)}: ${Integer.toHexString(typedValue.data)}")
+                        L.d("PageActivity: Applied search hint color from ${getTextColorAttributeName(attr)}: ${Integer.toHexString(typedValue.data)}")
                         break
                     }
                 }

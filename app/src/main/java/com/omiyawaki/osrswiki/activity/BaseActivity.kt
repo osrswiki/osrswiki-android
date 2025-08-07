@@ -333,6 +333,10 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun refreshTextViewTheme(textView: TextView, theme: android.content.res.Resources.Theme) {
         val typedValue = TypedValue()
         
+        // CRITICAL: Preserve hint text before applying color changes
+        val originalHint = textView.hint
+        val originalHintColors = textView.hintTextColors
+        
         // Comprehensive text color attribute list based on actual usage analysis
         val textColorAttrs = arrayOf(
             // Material 3 primary text colors (defined in themes.xml)
@@ -359,6 +363,15 @@ abstract class BaseActivity : AppCompatActivity() {
             if (theme.resolveAttribute(attr, typedValue, true)) {
                 try {
                     textView.setTextColor(typedValue.data)
+                    
+                    // CRITICAL: Restore hint text and hint colors after applying text colors
+                    if (originalHint != null) {
+                        textView.hint = originalHint
+                    }
+                    if (originalHintColors != null) {
+                        textView.setHintTextColor(originalHintColors)
+                    }
+                    
                     break // Use the first one that resolves
                 } catch (e: Exception) {
                     continue

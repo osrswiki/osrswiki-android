@@ -139,9 +139,6 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
                 L.d("AppearanceSettingsFragment: RecyclerView refreshed with new theme")
             }
             
-            // Notify other components about the theme change
-            notifyGlobalThemeChange()
-            
             L.d("AppearanceSettingsFragment: Preferences theme refresh completed successfully")
             
         } catch (e: Exception) {

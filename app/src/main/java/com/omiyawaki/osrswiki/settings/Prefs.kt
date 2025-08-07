@@ -5,7 +5,7 @@ package com.omiyawaki.osrswiki.settings
  */
 object Prefs {
     // String constants for preference keys, to be used by fragments and the data layer.
-    // These keys MUST match the keys defined in res/xml/preferences.xml
+    // These keys MUST match the keys defined in res/xml/preferences_appearance.xml and res/xml/preferences_offline.xml
     const val KEY_APP_THEME_MODE = "app_theme_mode"
     const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "downloadReadingListArticles"
     const val KEY_COLLAPSE_TABLES = "collapseTables"
