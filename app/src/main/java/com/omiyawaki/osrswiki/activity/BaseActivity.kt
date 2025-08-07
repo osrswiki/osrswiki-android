@@ -335,6 +335,12 @@ abstract class BaseActivity : AppCompatActivity() {
         
         // CRITICAL: Preserve hint text before applying color changes
         val originalHint = textView.hint
+        // Special handling for search bar to ensure hint is never lost
+        val isSearchBar = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
+        if (isSearchBar && originalHint.isNullOrBlank()) {
+            // Restore hint from resources if it was somehow cleared
+            textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
+        }
         val originalHintColors = textView.hintTextColors
         
         // ENHANCED: Check if this TextView has specific styling that should be preserved
@@ -383,12 +389,16 @@ abstract class BaseActivity : AppCompatActivity() {
                     // CRITICAL: Restore hint text and hint colors after applying text colors
                     if (originalHint != null) {
                         textView.hint = originalHint
-                    }
-                    if (originalHintColors != null) {
-                        textView.setHintTextColor(originalHintColors)
                     } else if (isSearchBarText) {
-                        // For search bar text, also apply the same color to hint
+                        // Ensure search bar always has hint text
+                        textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
+                    }
+                    
+                    if (isSearchBarText) {
+                        // For search bar text, apply the same color to hint as text
                         textView.setHintTextColor(typedValue.data)
+                    } else if (originalHintColors != null) {
+                        textView.setHintTextColor(originalHintColors)
                     }
                     
                     android.util.Log.d("BaseActivity", "Applied ${getAttributeName(attr)} color to ${textView.javaClass.simpleName}")

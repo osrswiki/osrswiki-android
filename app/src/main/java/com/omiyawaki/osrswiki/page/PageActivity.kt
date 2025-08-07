@@ -128,6 +128,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         )
         
         val searchContainer = binding.pageToolbar.findViewById<MaterialTextView>(R.id.toolbar_search_container)
+        // Ensure hint text is set on initialization
+        if (searchContainer.hint.isNullOrBlank()) {
+            searchContainer.setHint(R.string.page_toolbar_search_hint)
+        }
         searchContainer.setOnClickListener {
             val searchActivityIntent = Intent(this, SearchActivity::class.java)
             startActivity(searchActivityIntent)
@@ -284,6 +288,12 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             
             // Find the search container MaterialTextView
             val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
+            
+            // CRITICAL: Ensure hint is always present before applying colors
+            if (searchContainer?.hint.isNullOrBlank()) {
+                searchContainer?.setHint(R.string.page_toolbar_search_hint)
+                L.d("PageActivity: Restored search hint text before color refresh")
+            }
             
             // Apply our specific search text color refresh with hint preservation
             refreshSearchTextColors(searchContainer, theme, typedValue)
