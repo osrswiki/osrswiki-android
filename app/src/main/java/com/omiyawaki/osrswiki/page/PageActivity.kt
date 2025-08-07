@@ -1,13 +1,10 @@
 package com.omiyawaki.osrswiki.page
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
@@ -45,7 +42,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     private lateinit var pageActionBarManager: PageActionBarManager
     
-    private var themeChangeReceiver: BroadcastReceiver? = null
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
     private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -92,7 +88,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 .commit()
         }
         setupToolbarListeners()
-        setupThemeChangeReceiver()
         checkAndShowOfflineBanner()
     }
 
@@ -242,29 +237,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
     }
     
-    private fun setupThemeChangeReceiver() {
-        themeChangeReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
-                    L.d("PageActivity: Received theme change broadcast")
-                    // Apply theme dynamically without recreation
-                    applyThemeDynamically()
-                }
-            }
-        }
-        
-        val filter = IntentFilter(com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED)
-        LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
-        L.d("PageActivity: Theme change receiver registered")
-    }
     
-    private fun unregisterThemeChangeReceiver() {
-        themeChangeReceiver?.let { receiver ->
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
-            themeChangeReceiver = null
-            L.d("PageActivity: Theme change receiver unregistered")
-        }
-    }
     
     override fun refreshThemeDependentElements() {
         super.refreshThemeDependentElements()
@@ -619,7 +592,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
     
     override fun onDestroy() {
-        unregisterThemeChangeReceiver()
         super.onDestroy()
     }
 

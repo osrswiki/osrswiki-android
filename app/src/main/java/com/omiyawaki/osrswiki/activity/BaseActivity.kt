@@ -21,6 +21,7 @@ import com.omiyawaki.osrswiki.theme.ThemeAware
 abstract class BaseActivity : AppCompatActivity() {
 
     private var currentThemeId: Int = 0
+    private var isApplyingTheme: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply the selected theme BEFORE super.onCreate() and setContentView().
@@ -81,33 +82,53 @@ abstract class BaseActivity : AppCompatActivity() {
      * This method updates the theme and refreshes UI elements to prevent FOUC.
      */
     fun applyThemeDynamically() {
+        // Guard against multiple simultaneous theme applications
+        if (isApplyingTheme) {
+            android.util.Log.d("BaseActivity", "Theme application already in progress, skipping duplicate call")
+            return
+        }
+        
         val osrsWikiApp = applicationContext as OSRSWikiApp
         val newTheme = osrsWikiApp.getCurrentTheme()
         val newThemeId = newTheme.resourceId
         
         // Only apply if theme actually changed
         if (currentThemeId != newThemeId) {
-            android.util.Log.d("BaseActivity", "Applying theme dynamically from ${currentThemeId} to ${newThemeId}")
+            // Set guard flag
+            isApplyingTheme = true
             
-            // PHASE 1: Clear previous theme state
-            clearPreviousThemeState()
-            
-            // PHASE 2: Update theme ID and apply new theme
-            currentThemeId = newThemeId
-            setTheme(newThemeId)
-            
-            // PHASE 3: Allow theme to take effect before refreshing views
-            runOnUiThread {
-                // Post to ensure setTheme() has taken effect
-                window.decorView.post {
-                    // Refresh theme-dependent UI elements
-                    refreshThemeDependentElements()
-                    
-                    // Notify fragments of theme change
-                    notifyFragmentsOfThemeChange()
-                    
-                    android.util.Log.d("BaseActivity", "Dynamic theme application completed")
+            try {
+                android.util.Log.d("BaseActivity", "Applying theme dynamically from ${currentThemeId} to ${newThemeId}")
+                
+                // PHASE 1: Clear previous theme state
+                clearPreviousThemeState()
+                
+                // PHASE 2: Update theme ID and apply new theme
+                currentThemeId = newThemeId
+                setTheme(newThemeId)
+                
+                // PHASE 3: Allow theme to take effect before refreshing views
+                runOnUiThread {
+                    // Post to ensure setTheme() has taken effect
+                    window.decorView.post {
+                        try {
+                            // Refresh theme-dependent UI elements
+                            refreshThemeDependentElements()
+                            
+                            // Notify fragments of theme change
+                            notifyFragmentsOfThemeChange()
+                            
+                            android.util.Log.d("BaseActivity", "Dynamic theme application completed")
+                        } finally {
+                            // Clear guard flag after theme application is complete
+                            isApplyingTheme = false
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                android.util.Log.e("BaseActivity", "Error during theme application", e)
+                // Clear guard flag if exception occurs
+                isApplyingTheme = false
             }
         }
     }
