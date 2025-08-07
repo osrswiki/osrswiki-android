@@ -8,8 +8,8 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  * Full-screen activity for reporting issues/bugs.
  * Provides a comprehensive form for users to report problems with the app.
  */
-class ReportIssueActivity : AppCompatActivity() {
+class ReportIssueActivity : BaseActivity() {
 
     private lateinit var binding: ActivityReportIssueBinding
     private val feedbackRepository = SecureFeedbackRepository()

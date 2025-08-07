@@ -92,8 +92,45 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             // Apply the new theme to current activity without recreation
             activity.setTheme(newTheme.resourceId)
             
-            // Refresh the activity's UI elements to reflect new theme
-            refreshActivityTheme()
+            // CRITICAL FIX: Refresh the current activity's UI immediately
+            // Don't call activity.applyThemeDynamically() as that would be recursive
+            if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
+                val baseActivity = activity as com.omiyawaki.osrswiki.activity.BaseActivity
+                
+                // Update the BaseActivity's currentThemeId to match using reflection
+                try {
+                    val field = baseActivity.javaClass.superclass.getDeclaredField("currentThemeId")
+                    field.isAccessible = true
+                    field.setInt(baseActivity, newTheme.resourceId)
+                } catch (e: Exception) {
+                    L.w("AppearanceSettingsFragment: Could not update currentThemeId: ${e.message}")
+                }
+                
+                // Call applyThemeDynamically but prevent recursion by setting a flag
+                try {
+                    // Use reflection to call the protected method refreshThemeDependentElements
+                    val method = baseActivity.javaClass.superclass.getDeclaredMethod("refreshThemeDependentElements")
+                    method.isAccessible = true
+                    method.invoke(baseActivity)
+                    L.d("AppearanceSettingsFragment: Called refreshThemeDependentElements via reflection")
+                } catch (e: Exception) {
+                    L.w("AppearanceSettingsFragment: Reflection failed, using fallback mechanism: ${e.message}")
+                    // Fallback - call the activity's own applyThemeDynamically method
+                    try {
+                        baseActivity.applyThemeDynamically()
+                        L.d("AppearanceSettingsFragment: Fallback - called applyThemeDynamically directly")
+                    } catch (fallbackException: Exception) {
+                        L.w("AppearanceSettingsFragment: Fallback also failed: ${fallbackException.message}")
+                        // Final fallback - manual refresh
+                        activity.window?.decorView?.invalidate()
+                        activity.window?.decorView?.requestLayout()
+                        L.d("AppearanceSettingsFragment: Final fallback - manual window refresh")
+                    }
+                }
+            }
+            
+            // Refresh the fragment's own preferences UI 
+            refreshPreferencesUI()
             
             // Notify the global app about theme change for other activities/fragments
             notifyGlobalThemeChange()
@@ -108,34 +145,107 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         }
     }
     
-    private fun refreshActivityTheme() {
-        val activity = activity ?: return
-        
-        // Apply dynamic theme to the current activity
-        if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
-            activity.runOnUiThread {
-                activity.applyThemeDynamically()
-                // Refresh preferences UI after theme is applied
-                refreshPreferencesUI()
-            }
-        }
-    }
     
     private fun refreshPreferencesUI() {
         // Refresh the preference list to apply new theme colors
         try {
             preferenceScreen?.let {
-                // Refresh preference screen colors and styling
+                // Force complete refresh of the preference RecyclerView
                 val recyclerView = listView as? RecyclerView
-                recyclerView?.invalidate()
+                recyclerView?.let { rv ->
+                    // Invalidate and request layout to force theme color refresh
+                    rv.invalidate()
+                    rv.requestLayout()
+                    
+                    // Force adapter refresh to pick up new theme colors
+                    rv.adapter?.notifyDataSetChanged()
+                    
+                    // Apply new theme background color to RecyclerView with comprehensive fallback
+                    applyNewBackgroundColor(rv)
+                    
+                    // Force refresh of all visible preference items
+                    forceRefreshVisiblePreferences(rv)
+                    
+                    // Re-apply fonts with new theme colors
+                    setupFonts()
+                }
                 
-                // Re-apply fonts with new theme
-                setupFonts()
-                
-                L.d("AppearanceSettingsFragment: Preferences UI refreshed for new theme")
+                L.d("AppearanceSettingsFragment: Comprehensive preferences UI refresh completed")
             }
         } catch (e: Exception) {
             L.e("AppearanceSettingsFragment: Error refreshing preferences UI: ${e.message}")
+        }
+    }
+    
+    private fun applyNewBackgroundColor(recyclerView: RecyclerView) {
+        try {
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            
+            // Try multiple background color attributes in order of preference
+            val backgroundAttrs = arrayOf(
+                com.omiyawaki.osrswiki.R.attr.paper_color,
+                com.google.android.material.R.attr.colorSurface,
+                android.R.attr.colorBackground
+            )
+            
+            for (attr in backgroundAttrs) {
+                if (theme.resolveAttribute(attr, typedValue, true)) {
+                    recyclerView.setBackgroundColor(typedValue.data)
+                    L.d("AppearanceSettingsFragment: Applied background color from ${getAttributeName(attr)}")
+                    break
+                }
+            }
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error applying background color: ${e.message}")
+        }
+    }
+    
+    private fun forceRefreshVisiblePreferences(recyclerView: RecyclerView) {
+        try {
+            // Force refresh all visible preference items
+            for (i in 0 until recyclerView.childCount) {
+                val child = recyclerView.getChildAt(i)
+                child?.let { preferenceView ->
+                    // Force complete refresh of each preference item
+                    preferenceView.invalidate()
+                    preferenceView.requestLayout()
+                    
+                    // If this preference has text views, force them to re-read theme colors
+                    refreshTextViewsInPreference(preferenceView)
+                }
+            }
+            L.d("AppearanceSettingsFragment: Forced refresh of ${recyclerView.childCount} visible preferences")
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error refreshing visible preferences: ${e.message}")
+        }
+    }
+    
+    private fun refreshTextViewsInPreference(preferenceView: android.view.View) {
+        try {
+            if (preferenceView is android.view.ViewGroup) {
+                for (i in 0 until preferenceView.childCount) {
+                    val child = preferenceView.getChildAt(i)
+                    if (child is android.widget.TextView) {
+                        // Force TextView to re-read theme colors
+                        child.invalidate()
+                    } else if (child is android.view.ViewGroup) {
+                        // Recursively refresh nested ViewGroups
+                        refreshTextViewsInPreference(child)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore errors in preference item refresh
+        }
+    }
+    
+    private fun getAttributeName(attr: Int): String {
+        return when (attr) {
+            com.omiyawaki.osrswiki.R.attr.paper_color -> "paper_color"
+            com.google.android.material.R.attr.colorSurface -> "colorSurface"
+            android.R.attr.colorBackground -> "colorBackground"
+            else -> "unknown_attr_$attr"
         }
     }
     

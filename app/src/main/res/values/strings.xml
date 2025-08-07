@@ -42,7 +42,7 @@
     
     <!-- Donation screen -->
     <string name="donate_title">Support OSRS Wiki App</string>
-    <string name="donate_description">Help support the development and maintenance of this app. Your donation helps keep the app free and enables future improvements.</string>
+    <string name="donate_description">Help support the development and maintenance of this app. Your donation enables future improvements.</string>
     <string name="donate_amount_1">$1</string>
     <string name="donate_amount_5">$5</string>
     <string name="donate_amount_10">$10</string>
