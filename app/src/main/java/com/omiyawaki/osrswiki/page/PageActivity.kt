@@ -1,10 +1,13 @@
 package com.omiyawaki.osrswiki.page
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
@@ -41,6 +44,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var currentActionMode: ActionMode? = null
 
     private lateinit var pageActionBarManager: PageActionBarManager
+    
+    private var themeChangeReceiver: BroadcastReceiver? = null
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
     private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -87,6 +92,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 .commit()
         }
         setupToolbarListeners()
+        setupThemeChangeReceiver()
         checkAndShowOfflineBanner()
     }
 
@@ -234,6 +240,204 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         if (::voiceRecognitionManager.isInitialized) {
             voiceRecognitionManager.handlePermissionResult(requestCode, grantResults)
         }
+    }
+    
+    private fun setupThemeChangeReceiver() {
+        themeChangeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
+                    L.d("PageActivity: Received theme change broadcast")
+                    // Apply theme dynamically without recreation
+                    applyThemeDynamically()
+                }
+            }
+        }
+        
+        val filter = IntentFilter(com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED)
+        LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
+        L.d("PageActivity: Theme change receiver registered")
+    }
+    
+    private fun unregisterThemeChangeReceiver() {
+        themeChangeReceiver?.let { receiver ->
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            themeChangeReceiver = null
+            L.d("PageActivity: Theme change receiver unregistered")
+        }
+    }
+    
+    override fun refreshThemeDependentElements() {
+        super.refreshThemeDependentElements()
+        L.d("PageActivity: Refreshing theme-dependent elements")
+        
+        try {
+            val theme = this.theme
+            val typedValue = android.util.TypedValue()
+            
+            // Refresh AppBarLayout background
+            refreshAppBarLayout(theme, typedValue)
+            
+            // Refresh MaterialToolbar
+            refreshToolbar(theme, typedValue)
+            
+            // Refresh offline banner
+            refreshOfflineBanner(theme, typedValue)
+            
+            // Refresh side panel
+            refreshSidePanel(theme, typedValue)
+            
+            // Refresh custom views
+            refreshCustomViews(theme, typedValue)
+            
+            // Refresh action bar
+            refreshActionBar(theme, typedValue)
+            
+            // Refresh status bar theming
+            setupStatusBarTheming()
+            
+            L.d("PageActivity: Theme-dependent elements refresh completed")
+            
+        } catch (e: Exception) {
+            L.e("PageActivity: Error refreshing theme elements: ${e.message}")
+        }
+    }
+    
+    private fun refreshAppBarLayout(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Refresh AppBarLayout background using ?attr/colorSurface
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)) {
+                binding.pageAppbarLayout.setBackgroundColor(typedValue.data)
+                L.d("PageActivity: Refreshed AppBarLayout background")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing AppBarLayout: ${e.message}")
+        }
+    }
+    
+    private fun refreshToolbar(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Force toolbar to re-read theme attributes
+            binding.pageToolbar.invalidate()
+            
+            // Refresh any toolbar text colors
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                // The toolbar should pick up the new theme colors automatically
+                L.d("PageActivity: Toolbar theme refreshed")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing toolbar: ${e.message}")
+        }
+    }
+    
+    private fun refreshOfflineBanner(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Refresh offline banner background (?attr/colorSecondaryContainer)
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSecondaryContainer, typedValue, true)) {
+                binding.pageOfflineBanner.setBackgroundColor(typedValue.data)
+            }
+            
+            // Refresh offline banner text color (?attr/colorOnSecondaryContainer)  
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSecondaryContainer, typedValue, true)) {
+                binding.pageOfflineBanner.setTextColor(typedValue.data)
+            }
+            
+            L.d("PageActivity: Refreshed offline banner theme")
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing offline banner: ${e.message}")
+        }
+    }
+    
+    private fun refreshSidePanel(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            val sidePanelContainer = findViewById<android.view.View>(R.id.side_panel_container)
+            
+            // Refresh side panel background (?attr/colorSurface)
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)) {
+                sidePanelContainer?.setBackgroundColor(typedValue.data)
+                L.d("PageActivity: Refreshed side panel background")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing side panel: ${e.message}")
+        }
+    }
+    
+    private fun refreshCustomViews(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Refresh DottedLineView (custom view that uses theme colors)
+            val dottedLineView = findViewById<android.view.View>(R.id.toc_track)
+            dottedLineView?.invalidate() // Force custom view to re-read theme
+            
+            // Refresh PageScrollerView 
+            val pageScrollerView = findViewById<android.view.View>(R.id.page_scroller_view)
+            pageScrollerView?.let { scrollerView ->
+                // Refresh background tint (?attr/colorSurfaceVariant)
+                if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceVariant, typedValue, true)) {
+                    if (scrollerView is android.widget.ImageView) {
+                        androidx.core.widget.ImageViewCompat.setImageTintList(
+                            scrollerView, 
+                            android.content.res.ColorStateList.valueOf(typedValue.data)
+                        )
+                    }
+                }
+                
+                // Force complete refresh
+                scrollerView.invalidate()
+                
+                L.d("PageActivity: Refreshed custom views")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing custom views: ${e.message}")
+        }
+    }
+    
+    private fun refreshActionBar(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // The page action bar is an included layout, refresh it
+            val pageActionBar = findViewById<android.view.View>(R.id.page_action_bar)
+            pageActionBar?.let { actionBar ->
+                // Force complete refresh of the action bar
+                actionBar.invalidate()
+                
+                // If it has background color attributes, refresh them
+                if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)) {
+                    actionBar.setBackgroundColor(typedValue.data)
+                }
+                
+                L.d("PageActivity: Refreshed action bar")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing action bar: ${e.message}")
+        }
+    }
+    
+    private fun setupStatusBarTheming() {
+        try {
+            // Get the current theme's windowLightStatusBar setting
+            val typedValue = android.util.TypedValue()
+            val theme = this.theme
+            val hasLightStatusBar = theme.resolveAttribute(android.R.attr.windowLightStatusBar, typedValue, true) && typedValue.data != 0
+            
+            // Apply the theme's status bar settings
+            val windowInsetsController = androidx.core.view.ViewCompat.getWindowInsetsController(window.decorView)
+            windowInsetsController?.let { controller ->
+                controller.isAppearanceLightStatusBars = hasLightStatusBar
+                L.d("PageActivity: Set status bar light mode: $hasLightStatusBar")
+            }
+            
+            // Set status bar color from theme if available
+            val statusBarColorTypedValue = android.util.TypedValue()
+            if (theme.resolveAttribute(android.R.attr.statusBarColor, statusBarColorTypedValue, true)) {
+                window.statusBarColor = statusBarColorTypedValue.data
+                L.d("PageActivity: Applied theme status bar color")
+            }
+        } catch (e: Exception) {
+            L.e("PageActivity: Error setting up status bar theming: ${e.message}")
+        }
+    }
+    
+    override fun onDestroy() {
+        unregisterThemeChangeReceiver()
+        super.onDestroy()
     }
 
     companion object {

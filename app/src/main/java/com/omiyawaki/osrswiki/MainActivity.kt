@@ -444,43 +444,94 @@ class MainActivity : BaseActivity() {
     }
     
     private fun refreshBottomNavigationColors() {
-        L.d("MainActivity: Refreshing bottom navigation colors")
+        L.d("MainActivity: Refreshing bottom navigation colors comprehensively")
         
         try {
-            // Get current theme colors
-            val typedValue = TypedValue()
             val theme = this.theme
+            val typedValue = TypedValue()
             
-            if (theme.resolveAttribute(android.R.attr.colorSecondary, typedValue, true)) {
+            // CRITICAL: Force active indicator color refresh (for the pill background)
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceVariant, typedValue, true)) {
+                val indicatorColor = typedValue.data
+                binding.bottomNav.itemActiveIndicatorColor = ColorStateList.valueOf(indicatorColor)
+                L.d("MainActivity: Set new indicator color: ${Integer.toHexString(indicatorColor)}")
+            }
+            
+            // Update icon and text color state lists
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true)) {
                 val selectedColor = typedValue.data
                 
-                if (theme.resolveAttribute(R.attr.primary_text_color, typedValue, true)) {
-                    val unselectedColor = typedValue.data
-                    
-                    // Create color state list for the new theme
-                    val states = arrayOf(
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf(-android.R.attr.state_checked)
-                    )
-                    val colors = intArrayOf(selectedColor, unselectedColor)
-                    val colorStateList = ColorStateList(states, colors)
-                    
-                    // Apply new colors to bottom navigation
-                    binding.bottomNav.itemIconTintList = colorStateList
-                    binding.bottomNav.itemTextColor = colorStateList
-                    
-                    L.d("MainActivity: Applied new color state list to bottom navigation")
+                // Try comprehensive list of unselected color attributes
+                val unselectedColorAttrs = arrayOf(
+                    com.google.android.material.R.attr.colorOnSurface,          // Used in bottom nav selectors
+                    com.google.android.material.R.attr.colorOnSurfaceVariant,   // Alternative for unselected state
+                    R.attr.primary_text_color,              // App fallback
+                    android.R.attr.textColorPrimary         // System fallback
+                )
+                
+                for (unselectedAttr in unselectedColorAttrs) {
+                    if (theme.resolveAttribute(unselectedAttr, typedValue, true)) {
+                        val unselectedColor = typedValue.data
+                        
+                        // Create color state list for the new theme
+                        val states = arrayOf(
+                            intArrayOf(android.R.attr.state_checked),
+                            intArrayOf(-android.R.attr.state_checked)
+                        )
+                        val colors = intArrayOf(selectedColor, unselectedColor)
+                        val colorStateList = ColorStateList(states, colors)
+                        
+                        // Apply new colors to bottom navigation
+                        binding.bottomNav.itemIconTintList = colorStateList
+                        binding.bottomNav.itemTextColor = colorStateList
+                        
+                        L.d("MainActivity: Applied new color state list (selected: ${Integer.toHexString(selectedColor)}, unselected: ${Integer.toHexString(unselectedColor)})")
+                        break // Use the first unselected color that resolves
+                    }
                 }
             }
             
-            // Also refresh background color
-            if (theme.resolveAttribute(R.attr.bottom_nav_background_color, typedValue, true)) {
-                binding.bottomNav.setBackgroundColor(typedValue.data)
-                L.d("MainActivity: Applied new background color to bottom navigation")
+            // Refresh background color using comprehensive attribute list
+            val backgroundColorAttrs = arrayOf(
+                R.attr.bottom_nav_background_color,     // App-specific
+                com.google.android.material.R.attr.colorSurface,            // Material 3 default
+                R.attr.paper_color,                     // App fallback
+                android.R.attr.colorBackground          // System fallback
+            )
+            
+            for (backgroundAttr in backgroundColorAttrs) {
+                if (theme.resolveAttribute(backgroundAttr, typedValue, true)) {
+                    binding.bottomNav.setBackgroundColor(typedValue.data)
+                    L.d("MainActivity: Applied new background color: ${Integer.toHexString(typedValue.data)}")
+                    break
+                }
             }
             
-            // Force redraw
+            // Force Material component refresh via selection cycling
+            try {
+                val currentSelection = binding.bottomNav.selectedItemId
+                val menu = binding.bottomNav.menu
+                
+                if (menu.size() > 1) {
+                    for (i in 0 until menu.size()) {
+                        val item = menu.getItem(i)
+                        if (item.itemId != currentSelection) {
+                            binding.bottomNav.selectedItemId = item.itemId
+                            binding.bottomNav.post {
+                                binding.bottomNav.selectedItemId = currentSelection
+                                L.d("MainActivity: Forced navigation refresh via selection cycling")
+                            }
+                            break
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                L.w("MainActivity: Selection cycling failed: ${e.message}")
+            }
+            
+            // Force redraw and layout
             binding.bottomNav.invalidate()
+            binding.bottomNav.requestLayout()
             
         } catch (e: Exception) {
             L.e("MainActivity: Failed to refresh bottom navigation colors: ${e.message}")

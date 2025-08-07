@@ -1,8 +1,11 @@
 package com.omiyawaki.osrswiki.search
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
 import com.omiyawaki.osrswiki.activity.BaseActivity
@@ -17,6 +20,8 @@ import com.omiyawaki.osrswiki.util.log.L
 class SearchActivity : BaseActivity() {
 
     internal lateinit var binding: ActivitySearchBinding
+    
+    private var themeChangeReceiver: BroadcastReceiver? = null
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
     private lateinit var voiceAnimationHelper: VoiceSearchAnimationHelper
@@ -34,6 +39,7 @@ class SearchActivity : BaseActivity() {
 
         setupFonts()
         setupVoiceSearch()
+        setupThemeChangeReceiver()
         
         // Handle voice search query if provided
         val voiceQuery = intent.getStringExtra("query")
@@ -104,7 +110,32 @@ class SearchActivity : BaseActivity() {
         }
     }
     
+    private fun setupThemeChangeReceiver() {
+        themeChangeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
+                    L.d("SearchActivity: Received theme change broadcast")
+                    // Apply theme dynamically without recreation
+                    applyThemeDynamically()
+                }
+            }
+        }
+        
+        val filter = IntentFilter(com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED)
+        LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
+        L.d("SearchActivity: Theme change receiver registered")
+    }
+    
+    private fun unregisterThemeChangeReceiver() {
+        themeChangeReceiver?.let { receiver ->
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            themeChangeReceiver = null
+            L.d("SearchActivity: Theme change receiver unregistered")
+        }
+    }
+    
     override fun onDestroy() {
+        unregisterThemeChangeReceiver()
         super.onDestroy()
         if (::voiceRecognitionManager.isInitialized) {
             voiceRecognitionManager.destroy()
