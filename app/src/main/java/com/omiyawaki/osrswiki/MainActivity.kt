@@ -41,6 +41,7 @@ class MainActivity : BaseActivity() {
     private lateinit var activeFragment: Fragment
     
     private var themeChangeReceiver: BroadcastReceiver? = null
+    private var returningFromExternalActivity = false
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
@@ -311,7 +312,15 @@ class MainActivity : BaseActivity() {
     private fun setupBackNavigation() {
         val backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                L.d("MainActivity: Back pressed, current fragment: ${activeFragment.javaClass.simpleName}")
+                L.d("MainActivity: Back pressed, current fragment: ${activeFragment.javaClass.simpleName}, returningFromExternalActivity: $returningFromExternalActivity")
+                
+                // If we're returning from an external activity, don't intercept the back press
+                // This prevents incorrect navigation when returning from settings activities
+                if (returningFromExternalActivity) {
+                    L.d("MainActivity: Returning from external activity, ignoring back press")
+                    returningFromExternalActivity = false
+                    return
+                }
                 
                 // If not on main fragment (Home), navigate to Home
                 if (activeFragment !== mainFragment) {
@@ -333,6 +342,13 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume() // This handles theme changes in BaseActivity
+        
+        // Reset the external activity flag after a short delay to handle potential race conditions
+        // This ensures we properly handle returns from external activities like settings
+        binding.root.post {
+            returningFromExternalActivity = false
+            L.d("MainActivity: onResume: Reset returningFromExternalActivity flag")
+        }
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
@@ -541,5 +557,14 @@ class MainActivity : BaseActivity() {
     override fun onDestroy() {
         unregisterThemeChangeReceiver()
         super.onDestroy()
+    }
+    
+    /**
+     * Method to notify MainActivity that we're launching an external activity
+     * This helps prevent incorrect back navigation when returning
+     */
+    fun setReturningFromExternalActivity() {
+        returningFromExternalActivity = true
+        L.d("MainActivity: Set returningFromExternalActivity flag")
     }
 }

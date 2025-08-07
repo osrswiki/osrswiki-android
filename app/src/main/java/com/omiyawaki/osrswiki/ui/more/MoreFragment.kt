@@ -84,18 +84,27 @@ class MoreFragment : Fragment(), ThemeAware {
         L.d("MoreFragment: More item clicked: $action")
         when (action) {
             MoreAction.APPEARANCE -> {
+                // Notify MainActivity that we're launching an external activity
+                // This helps prevent incorrect back navigation when returning
+                (activity as? com.omiyawaki.osrswiki.MainActivity)?.setReturningFromExternalActivity()
                 val intent = AppearanceSettingsActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             MoreAction.DONATE -> {
+                // Notify MainActivity that we're launching an external activity
+                (activity as? com.omiyawaki.osrswiki.MainActivity)?.setReturningFromExternalActivity()
                 val intent = DonateActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             MoreAction.ABOUT -> {
+                // Notify MainActivity that we're launching an external activity
+                (activity as? com.omiyawaki.osrswiki.MainActivity)?.setReturningFromExternalActivity()
                 val intent = AboutActivity.newIntent(requireContext())
                 startActivity(intent)
             }
             MoreAction.FEEDBACK -> {
+                // Notify MainActivity that we're launching an external activity
+                (activity as? com.omiyawaki.osrswiki.MainActivity)?.setReturningFromExternalActivity()
                 val intent = FeedbackActivity.newIntent(requireContext())
                 startActivity(intent)
             }
