@@ -213,12 +213,13 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     private fun forceCachedUIElementRefresh(view: View) {
         try {
-            // Special handling for search bar to preserve hint during invalidation
+            // Special handling for search bar - now that we properly set hint with ColorStateList,
+            // we can safely invalidate to ensure proper redraw (Expert 1's recommendation)
             if (view is TextView && view.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container) {
-                // For search bar, skip aggressive invalidation that might clear the hint
-                // Just request a layout update to refresh visual appearance
+                // Both layout and invalidate are needed for complete refresh
                 view.requestLayout()
-                android.util.Log.d("BaseActivity", "Gentle refresh for search bar to preserve hint")
+                view.invalidate()
+                android.util.Log.d("BaseActivity", "Full refresh for search bar with proper invalidation")
                 return
             }
             
@@ -352,12 +353,28 @@ abstract class BaseActivity : AppCompatActivity() {
             // ALWAYS ensure search bar has hint text
             textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
             
-            // Re-resolve hint color from current theme to match the style
-            val hintTypedValue = TypedValue()
-            if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
-                textView.setHintTextColor(hintTypedValue.data)
-                android.util.Log.d("BaseActivity", "Set search bar hint text and color from theme (skipped text color to preserve style)")
+            // Re-resolve hint color from current theme using proper ColorStateList (Expert 2's recommendation)
+            val attrs = intArrayOf(android.R.attr.textColorHint)
+            val ta = theme.obtainStyledAttributes(attrs)
+            val hintColorStateList = ta.getColorStateList(0)
+            ta.recycle()
+            
+            if (hintColorStateList != null) {
+                textView.setHintTextColor(hintColorStateList)
+                android.util.Log.d("BaseActivity", "Set search bar hint text and ColorStateList from theme")
+            } else {
+                // Fallback to textColorSecondary if textColorHint is not available
+                val hintTypedValue = TypedValue()
+                if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
+                    textView.setHintTextColor(hintTypedValue.data)
+                    android.util.Log.d("BaseActivity", "Set search bar hint with fallback textColorSecondary")
+                }
             }
+            
+            // Critical: Force view to invalidate and redraw with new hint color (Expert 1's recommendation)
+            textView.invalidate()
+            android.util.Log.d("BaseActivity", "Invalidated search bar to force hint redraw")
+            
             return // Skip the rest of the text color logic for search bar
         }
         
