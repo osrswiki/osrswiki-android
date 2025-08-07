@@ -374,11 +374,24 @@ abstract class BaseActivity : AppCompatActivity() {
                 try {
                     textView.setTextColor(typedValue.data)
                     
-                    // Restore original hint text and colors for non-search TextViews
+                    // Handle hint text and colors based on TextView type
                     if (originalHint != null) {
                         textView.hint = originalHint
-                        if (originalHintColors != null) {
+                        
+                        // Check if this is the search bar EditText
+                        val isSearchBarEditText = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
+                        
+                        if (!isSearchBarEditText && originalHintColors != null) {
+                            // For regular TextViews, restore original hint colors
                             textView.setHintTextColor(originalHintColors)
+                        } else if (isSearchBarEditText) {
+                            // For search bar EditText, re-resolve hint color from current theme
+                            // SearchBarText style uses ?android:attr/textColorSecondary for hints
+                            val hintTypedValue = TypedValue()
+                            if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
+                                textView.setHintTextColor(hintTypedValue.data)
+                                android.util.Log.d("BaseActivity", "Updated search bar hint color from theme")
+                            }
                         }
                     }
                     
