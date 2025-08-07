@@ -1,9 +1,13 @@
 package com.omiyawaki.osrswiki
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
@@ -34,6 +38,8 @@ class MainActivity : BaseActivity() {
     private lateinit var savedPagesFragment: SavedPagesFragment
     private lateinit var moreFragment: MoreFragment
     private lateinit var activeFragment: Fragment
+    
+    private var themeChangeReceiver: BroadcastReceiver? = null
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
@@ -157,6 +163,7 @@ class MainActivity : BaseActivity() {
         setupBottomNav()
         setupFonts()
         setupBackNavigation()
+        setupThemeChangeReceiver()
         handleIntentExtras(intent)
     }
     
@@ -377,5 +384,54 @@ class MainActivity : BaseActivity() {
             window.statusBarColor = statusBarColorTypedValue.data
             L.d("MainActivity: Applied theme status bar color: ${Integer.toHexString(statusBarColorTypedValue.data)}")
         }
+    }
+    
+    private fun setupThemeChangeReceiver() {
+        themeChangeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
+                    L.d("MainActivity: Received theme change broadcast")
+                    // Apply theme dynamically without recreation
+                    applyThemeDynamically()
+                }
+            }
+        }
+        
+        val filter = IntentFilter(com.omiyawaki.osrswiki.settings.AppearanceSettingsFragment.ACTION_THEME_CHANGED)
+        LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
+        L.d("MainActivity: Theme change receiver registered")
+    }
+    
+    private fun unregisterThemeChangeReceiver() {
+        themeChangeReceiver?.let { receiver ->
+            LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver)
+            themeChangeReceiver = null
+            L.d("MainActivity: Theme change receiver unregistered")
+        }
+    }
+    
+    override fun refreshThemeDependentElements() {
+        super.refreshThemeDependentElements()
+        L.d("MainActivity: Refreshing theme-dependent elements")
+        
+        // Refresh status bar theming
+        setupStatusBarTheming()
+        
+        // Refresh fragment visibility to ensure proper alpha states
+        refreshFragmentVisibility()
+        
+        // Refresh navigation fonts with new theme
+        try {
+            applyFontsToBottomNavigation(binding.bottomNav)
+        } catch (e: Exception) {
+            L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
+        }
+        
+        L.d("MainActivity: Theme-dependent elements refresh completed")
+    }
+    
+    override fun onDestroy() {
+        unregisterThemeChangeReceiver()
+        super.onDestroy()
     }
 }

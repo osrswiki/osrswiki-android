@@ -64,4 +64,42 @@ abstract class BaseActivity : AppCompatActivity() {
             }
         }
     }
+    
+    /**
+     * Applies a new theme dynamically without recreating the activity.
+     * This method updates the theme and refreshes UI elements to prevent FOUC.
+     */
+    fun applyThemeDynamically() {
+        val osrsWikiApp = applicationContext as OSRSWikiApp
+        val newTheme = osrsWikiApp.getCurrentTheme()
+        val newThemeId = newTheme.resourceId
+        
+        // Only apply if theme actually changed
+        if (currentThemeId != newThemeId) {
+            android.util.Log.d("BaseActivity", "Applying theme dynamically from ${currentThemeId} to ${newThemeId}")
+            
+            // Update the current theme ID
+            currentThemeId = newThemeId
+            
+            // Apply the new theme
+            setTheme(newThemeId)
+            
+            // Refresh theme-dependent UI elements
+            refreshThemeDependentElements()
+            
+            // Notify fragments of theme change
+            notifyFragmentsOfThemeChange()
+            
+            android.util.Log.d("BaseActivity", "Dynamic theme application completed")
+        }
+    }
+    
+    /**
+     * Refreshes UI elements that depend on theme attributes.
+     * Override this method in subclasses to handle theme-specific UI updates.
+     */
+    protected open fun refreshThemeDependentElements() {
+        // Default implementation - subclasses can override for specific behavior
+        android.util.Log.d("BaseActivity", "Refreshing theme-dependent elements")
+    }
 }
