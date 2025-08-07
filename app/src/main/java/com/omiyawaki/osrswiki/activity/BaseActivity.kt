@@ -597,29 +597,9 @@ abstract class BaseActivity : AppCompatActivity() {
             }
             
             // Method 3: Force Material component internal refresh via selection cycling
-            try {
-                val currentSelection = bottomNav.selectedItemId
-                val menu = bottomNav.menu
-                
-                if (menu.size() > 1) {
-                    // Find a different item to temporarily select
-                    for (i in 0 until menu.size()) {
-                        val item = menu.getItem(i)
-                        if (item.itemId != currentSelection) {
-                            // Temporarily change selection to force internal style refresh
-                            bottomNav.selectedItemId = item.itemId
-                            bottomNav.post {
-                                // Restore original selection
-                                bottomNav.selectedItemId = currentSelection
-                                android.util.Log.d("BaseActivity", "Forced navigation refresh via selection cycling")
-                            }
-                            break
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.w("BaseActivity", "Method 3 failed for BottomNavigationView refresh", e)
-            }
+            // DISABLED: This was causing unwanted navigation changes during theme refresh
+            // MainActivity now handles its own color cycling with proper navigation blocking
+            android.util.Log.d("BaseActivity", "Skipping BaseActivity selection cycling to prevent navigation issues")
             
             // Method 4: Force complete view system refresh
             try {
