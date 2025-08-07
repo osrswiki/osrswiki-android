@@ -66,8 +66,9 @@ class AppearanceSettingsActivity : BaseActivity() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
                     L.d("AppearanceSettingsActivity: Received theme change broadcast")
-                    // Apply theme dynamically without recreation
-                    applyThemeDynamically()
+                    // For AppearanceSettings specifically, recreate the activity for complete refresh
+                    // This ensures all preference items and backgrounds are properly themed
+                    recreate()
                 }
             }
         }
