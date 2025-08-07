@@ -319,6 +319,12 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             // Force toolbar to re-read theme attributes
             binding.pageToolbar.invalidate()
             
+            // CRITICAL: Refresh search bar background drawable
+            refreshSearchBarBackground(theme, typedValue)
+            
+            // Refresh toolbar icon tints
+            refreshToolbarIconTints(theme, typedValue)
+            
             // Refresh any toolbar text colors
             if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
                 // The toolbar should pick up the new theme colors automatically
@@ -326,6 +332,56 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             }
         } catch (e: Exception) {
             L.w("PageActivity: Error refreshing toolbar: ${e.message}")
+        }
+    }
+    
+    private fun refreshSearchBarBackground(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Find the search container LinearLayout (the one with shape_search_box background)
+            val searchContainer = binding.pageToolbar.findViewById<android.view.View>(R.id.toolbar_search_container)?.parent as? android.view.ViewGroup
+            searchContainer?.let { container ->
+                // Force re-inflate the shape_search_box drawable with new theme
+                val newBackground = resources.getDrawable(R.drawable.shape_search_box, theme)
+                container.background = newBackground
+                L.d("PageActivity: Search bar background drawable re-inflated with new theme")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing search bar background: ${e.message}")
+        }
+    }
+    
+    private fun refreshToolbarIconTints(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            // Refresh search icon tint
+            val searchIcon = binding.pageToolbar.findViewById<android.widget.ImageView>(R.id.toolbar_search_icon)
+            if (theme.resolveAttribute(R.attr.placeholder_color, typedValue, true)) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(
+                    searchIcon, 
+                    android.content.res.ColorStateList.valueOf(typedValue.data)
+                )
+            }
+            
+            // Refresh voice search button tint
+            val voiceSearchButton = binding.pageToolbar.findViewById<android.widget.ImageView>(R.id.toolbar_voice_search_button)
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(
+                    voiceSearchButton, 
+                    android.content.res.ColorStateList.valueOf(typedValue.data)
+                )
+            }
+            
+            // Refresh overflow menu button tint
+            val overflowButton = binding.pageToolbar.findViewById<android.widget.ImageView>(R.id.toolbar_overflow_menu_button)
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                androidx.core.widget.ImageViewCompat.setImageTintList(
+                    overflowButton, 
+                    android.content.res.ColorStateList.valueOf(typedValue.data)
+                )
+            }
+            
+            L.d("PageActivity: Toolbar icon tints refreshed")
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing toolbar icon tints: ${e.message}")
         }
     }
     
@@ -398,15 +454,62 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 // Force complete refresh of the action bar
                 actionBar.invalidate()
                 
-                // If it has background color attributes, refresh them
+                // Refresh background color
                 if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)) {
                     actionBar.setBackgroundColor(typedValue.data)
                 }
+                
+                // CRITICAL: Refresh compound drawable tints for all action bar buttons
+                refreshActionBarButtonTints(theme, typedValue, actionBar)
                 
                 L.d("PageActivity: Refreshed action bar")
             }
         } catch (e: Exception) {
             L.w("PageActivity: Error refreshing action bar: ${e.message}")
+        }
+    }
+    
+    private fun refreshActionBarButtonTints(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue, actionBar: android.view.View) {
+        try {
+            // Get the text color from theme for compound drawable tints
+            if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                val tintColor = android.content.res.ColorStateList.valueOf(typedValue.data)
+                
+                // Refresh all action bar button compound drawable tints
+                val buttonIds = arrayOf(
+                    R.id.page_action_save,
+                    R.id.page_action_find_in_article,
+                    R.id.page_action_theme,
+                    R.id.page_action_contents
+                )
+                
+                for (buttonId in buttonIds) {
+                    val button = actionBar.findViewById<com.google.android.material.textview.MaterialTextView>(buttonId)
+                    button?.let { materialTextView ->
+                        // Apply compound drawable tint using TextViewCompat
+                        androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(materialTextView, tintColor)
+                        
+                        // Also refresh the text color to ensure consistency
+                        materialTextView.setTextColor(typedValue.data)
+                        
+                        L.d("PageActivity: Refreshed tint for button ${getButtonName(buttonId)}")
+                    }
+                }
+                
+                L.d("PageActivity: All action bar button tints refreshed")
+            }
+        } catch (e: Exception) {
+            L.w("PageActivity: Error refreshing action bar button tints: ${e.message}")
+        }
+    }
+    
+    private fun getButtonName(buttonId: Int): String {
+        return when (buttonId) {
+            R.id.page_action_save -> "Save"
+            R.id.page_action_find_in_article -> "Find"
+            R.id.page_action_theme -> "Theme"
+            R.id.page_action_contents -> "Contents"
+            else -> "Unknown"
         }
     }
     

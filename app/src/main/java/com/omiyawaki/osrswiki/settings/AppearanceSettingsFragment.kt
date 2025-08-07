@@ -129,8 +129,13 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 }
             }
             
-            // Refresh the fragment's own preferences UI 
+            // Refresh the fragment's own preferences UI immediately
             refreshPreferencesUI()
+            
+            // CRITICAL: Force immediate background refresh for the entire fragment view  
+            view?.let { fragmentView ->
+                forceFragmentBackgroundRefresh(fragmentView)
+            }
             
             // Notify the global app about theme change for other activities/fragments
             notifyGlobalThemeChange()
@@ -191,13 +196,80 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             
             for (attr in backgroundAttrs) {
                 if (theme.resolveAttribute(attr, typedValue, true)) {
+                    // Apply to RecyclerView
                     recyclerView.setBackgroundColor(typedValue.data)
-                    L.d("AppearanceSettingsFragment: Applied background color from ${getAttributeName(attr)}")
+                    
+                    // CRITICAL: Also apply to parent views to ensure complete background coverage
+                    applyBackgroundToParentViews(recyclerView, typedValue.data)
+                    
+                    L.d("AppearanceSettingsFragment: Applied background color from ${getAttributeName(attr)}: ${Integer.toHexString(typedValue.data)}")
                     break
                 }
             }
         } catch (e: Exception) {
             L.w("AppearanceSettingsFragment: Error applying background color: ${e.message}")
+        }
+    }
+    
+    private fun applyBackgroundToParentViews(view: android.view.View, backgroundColor: Int) {
+        try {
+            var currentView = view.parent
+            var level = 0
+            val maxLevels = 3 // Limit to prevent going too far up the hierarchy
+            
+            while (currentView != null && currentView is android.view.View && level < maxLevels) {
+                val parentView = currentView as android.view.View
+                
+                // Apply background to suitable parent views
+                if (shouldApplyBackgroundToParent(parentView)) {
+                    parentView.setBackgroundColor(backgroundColor)
+                    L.d("AppearanceSettingsFragment: Applied background to parent view level $level: ${parentView.javaClass.simpleName}")
+                }
+                
+                currentView = parentView.parent
+                level++
+            }
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error applying background to parent views: ${e.message}")
+        }
+    }
+    
+    private fun shouldApplyBackgroundToParent(view: android.view.View): Boolean {
+        // Only apply background to certain types of parent views to avoid breaking other UI elements
+        val className = view.javaClass.simpleName
+        return className.contains("FrameLayout") || 
+               className.contains("LinearLayout") ||
+               className.contains("PreferenceRecyclerViewFragment") ||
+               view.id == android.R.id.list_container ||
+               view.id == androidx.preference.R.id.recycler_view
+    }
+    
+    private fun forceFragmentBackgroundRefresh(fragmentView: android.view.View) {
+        try {
+            val typedValue = android.util.TypedValue()
+            val theme = requireContext().theme
+            
+            // Apply new theme background color to the fragment's root view
+            val backgroundAttrs = arrayOf(
+                com.omiyawaki.osrswiki.R.attr.paper_color,
+                com.google.android.material.R.attr.colorSurface,
+                android.R.attr.colorBackground
+            )
+            
+            for (attr in backgroundAttrs) {
+                if (theme.resolveAttribute(attr, typedValue, true)) {
+                    fragmentView.setBackgroundColor(typedValue.data)
+                    L.d("AppearanceSettingsFragment: Applied fragment view background: ${Integer.toHexString(typedValue.data)}")
+                    break
+                }
+            }
+            
+            // Force complete invalidation and redraw
+            fragmentView.invalidate()
+            fragmentView.requestLayout()
+            
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error forcing fragment background refresh: ${e.message}")
         }
     }
     
