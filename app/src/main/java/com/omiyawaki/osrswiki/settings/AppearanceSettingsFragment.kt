@@ -28,13 +28,12 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
             
             // Post the theme change to ensure preference is persisted first
             view?.post {
-                // Let BaseActivity handle the theme change - it will call onThemeChanged() on this fragment
-                val activity = activity ?: return@post
-                if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
-                    activity.applyThemeDynamically()
-                }
+                // Send broadcast to notify all activities about theme change
+                // This will trigger broadcast receivers in all activities (including current one)
+                // which will call BaseActivity.applyThemeDynamically() and trigger onThemeChanged() on ThemeAware fragments
+                notifyGlobalThemeChange()
             }
-
+            
             // Return true to allow the preference change to be saved.
             true
         }
