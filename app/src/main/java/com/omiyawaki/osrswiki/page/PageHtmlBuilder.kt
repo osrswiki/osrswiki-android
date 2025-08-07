@@ -47,7 +47,37 @@ class PageHtmlBuilder(private val context: Context) {
                 if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
                     window.RenderTimeline.log('Event: window.load');
                 }
+                // Make page visible once fully loaded to prevent FOUC
+                document.body.style.visibility = 'visible';
             });
+        </script>
+    """.trimIndent()
+    
+    private val themeUtilityScript = """
+        <script>
+            // Theme switching utility for instant theme changes
+            window.OSRSWikiTheme = {
+                switchTheme: function(isDark) {
+                    var body = document.body;
+                    if (!body) return;
+                    
+                    // Remove existing theme classes
+                    body.classList.remove('theme-osrs-dark');
+                    
+                    // Add dark theme class if needed
+                    if (isDark) {
+                        body.classList.add('theme-osrs-dark');
+                    }
+                    
+                    // Force immediate style recalculation
+                    body.offsetHeight;
+                    
+                    // Ensure page remains visible after theme change
+                    if (body.style.visibility !== 'visible') {
+                        body.style.visibility = 'visible';
+                    }
+                }
+            };
         </script>
     """.trimIndent()
 
@@ -87,6 +117,7 @@ class PageHtmlBuilder(private val context: Context) {
                     <title>${documentTitle}</title>
                     ${fontPreloadLink}
                     ${cssLinks}
+                    ${themeUtilityScript}
                 </head>
                 <body class="$themeClass" style="visibility: hidden;">
                     ${finalBodyContent}

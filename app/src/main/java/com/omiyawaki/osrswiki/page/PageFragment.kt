@@ -30,6 +30,7 @@ import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.page.model.TocData
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.settings.SettingsActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
@@ -39,7 +40,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
-class PageFragment : Fragment(), RenderCallback {
+class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
     interface Callback {
         fun onPageStartActionMode(callback: ActionMode.Callback)
@@ -393,6 +394,37 @@ class PageFragment : Fragment(), RenderCallback {
     fun getPageTitleArg(): String? = pageTitleArg
     fun getNavigationSource(): Int = navigationSource
     fun provideBinding(): FragmentPageBinding? = _binding
+
+    override fun onThemeChanged() {
+        if (!isAdded || _binding == null) {
+            return
+        }
+        
+        L.d("PageFragment: Theme changed, updating WebView theme")
+        val app = requireActivity().application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        
+        // Update fragment background color immediately
+        val backgroundColorRes = when (currentTheme) {
+            Theme.OSRS_DARK -> R.color.osrs_parchment_dark
+            else -> R.color.osrs_parchment_light
+        }
+        view?.setBackgroundColor(ContextCompat.getColor(requireContext(), backgroundColorRes))
+        
+        // Update WebView theme instantly via JavaScript without reload
+        updateWebViewTheme(currentTheme)
+    }
+    
+    private fun updateWebViewTheme(theme: Theme) {
+        val isDark = theme.isDark()
+        
+        // Use the theme utility script for instant theme switching
+        val script = "if (window.OSRSWikiTheme) { window.OSRSWikiTheme.switchTheme($isDark); }"
+        
+        binding.pageWebView.evaluateJavascript(script) { result ->
+            L.d("PageFragment: WebView theme updated to: $theme, result: $result")
+        }
+    }
 
     companion object {
         const val ARG_PAGE_ID = "pageId"

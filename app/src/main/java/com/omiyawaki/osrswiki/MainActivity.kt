@@ -331,6 +331,27 @@ class MainActivity : BaseActivity() {
         binding.root.post {
             notifyFragmentsOfThemeChange()
             L.d("MainActivity: onResume: Notified fragments of theme change (posted)")
+            
+            // Ensure proper alpha state after theme change
+            refreshFragmentVisibility()
+        }
+    }
+    
+    private fun refreshFragmentVisibility() {
+        // Ensure only the active fragment is visible after theme changes
+        try {
+            mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
+            mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
+            historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
+            savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
+            moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+            
+            // Ensure active fragment is in front
+            activeFragment.view?.bringToFront()
+            
+            L.d("MainActivity: Fragment visibility refreshed after theme change")
+        } catch (e: Exception) {
+            L.e("MainActivity: Error refreshing fragment visibility: ${e.message}")
         }
     }
     
