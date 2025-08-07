@@ -32,7 +32,7 @@ import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.settings.SettingsActivity
+import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
