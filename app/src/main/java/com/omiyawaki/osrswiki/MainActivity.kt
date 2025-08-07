@@ -343,13 +343,6 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume() // This handles theme changes in BaseActivity
         
-        // Reset the external activity flag after a short delay to handle potential race conditions
-        // This ensures we properly handle returns from external activities like settings
-        binding.root.post {
-            returningFromExternalActivity = false
-            L.d("MainActivity: onResume: Reset returningFromExternalActivity flag")
-        }
-        
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
         binding.root.post {
@@ -359,6 +352,15 @@ class MainActivity : BaseActivity() {
             // Ensure proper alpha state after theme change
             refreshFragmentVisibility()
         }
+        
+        // Add a safety timeout to reset the flag if it somehow gets stuck
+        // This prevents the flag from remaining true indefinitely
+        binding.root.postDelayed({
+            if (returningFromExternalActivity) {
+                L.d("MainActivity: onResume: Safety timeout - resetting returningFromExternalActivity flag")
+                returningFromExternalActivity = false
+            }
+        }, 1000) // 1 second timeout
     }
     
     private fun refreshFragmentVisibility() {
