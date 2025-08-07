@@ -28,6 +28,13 @@ import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
 import android.widget.TextView
+import com.google.android.material.bottomnavigation.BottomNavigationView
+
+// Debug extension to trace all programmatic tab changes
+fun BottomNavigationView.debugSelect(id: Int, src: String = "") {
+    Log.w("BNV-TRACE", "select($id) from $src", Exception())
+    selectedItemId = id
+}
 
 class MainActivity : BaseActivity() {
 
@@ -41,6 +48,7 @@ class MainActivity : BaseActivity() {
     private lateinit var activeFragment: Fragment
     
     private var themeChangeReceiver: BroadcastReceiver? = null
+    private var isRefreshingColors: Boolean = false
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
@@ -51,9 +59,11 @@ class MainActivity : BaseActivity() {
         private const val MORE_FRAGMENT_TAG = "more_fragment"
         private const val ACTIVE_FRAGMENT_TAG = "active_fragment_tag"
         private const val SAVED_SELECTED_NAV_ID = "selected_nav_id"
+        private const val LIFECYCLE_TAG = "MainActivityLifecycle"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(LIFECYCLE_TAG, "onCreate() called. Saved state is ${if (savedInstanceState == null) "null" else "present"}")
         super.onCreate(savedInstanceState)
         
         // Enable edge-to-edge but respect the theme's status bar settings
@@ -175,7 +185,7 @@ class MainActivity : BaseActivity() {
         // CRITICAL: Set the selected item AFTER all setup is complete
         // This prevents triggering the listener cascade during initialization
         L.d("MainActivity: onCreate: Setting bottom nav selectedItemId to $selectedNavId")
-        binding.bottomNav.selectedItemId = selectedNavId
+        binding.bottomNav.debugSelect(selectedNavId, "MainActivity#onCreate")
         setupThemeChangeReceiver()
         handleIntentExtras(intent)
     }
@@ -224,6 +234,12 @@ class MainActivity : BaseActivity() {
 
     private fun setupBottomNav() {
         binding.bottomNav.setOnItemSelectedListener { item ->
+            // Skip navigation if we're currently refreshing colors to prevent unwanted tab switches
+            if (isRefreshingColors) {
+                Log.d("MainActivity", "Skipping navigation during color refresh: ${item.itemId}")
+                return@setOnItemSelectedListener true
+            }
+            
             Log.d("MainActivity", "Bottom nav item selected: ${item.itemId}")
             val selectedFragment = when (item.itemId) {
                 R.id.nav_news -> {
@@ -308,6 +324,7 @@ class MainActivity : BaseActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        Log.d(LIFECYCLE_TAG, "onSaveInstanceState() called.")
         super.onSaveInstanceState(outState)
         val activeTag = when (activeFragment) {
             mapFragment -> MAP_FRAGMENT_TAG
@@ -334,7 +351,7 @@ class MainActivity : BaseActivity() {
                 // If not on main fragment (Home), navigate to Home
                 if (activeFragment !== mainFragment) {
                     L.d("MainActivity: Not on Home fragment, navigating to Home")
-                    binding.bottomNav.selectedItemId = R.id.nav_news
+                    binding.bottomNav.debugSelect(R.id.nav_news, "MainActivity#backCallback")
                     return
                 }
                 
@@ -349,7 +366,13 @@ class MainActivity : BaseActivity() {
         onBackPressedDispatcher.addCallback(this, backCallback)
     }
 
+    override fun onStart() {
+        super.onStart()
+        Log.d(LIFECYCLE_TAG, "onStart() called.")
+    }
+    
     override fun onResume() {
+        Log.d(LIFECYCLE_TAG, "onResume() called.")
         super.onResume() // This handles theme changes in BaseActivity
         
         // Post the theme change notification to ensure fragments are fully restored
@@ -362,6 +385,16 @@ class MainActivity : BaseActivity() {
             refreshFragmentVisibility()
         }
         
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        Log.d(LIFECYCLE_TAG, "onPause() called.")
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        Log.d(LIFECYCLE_TAG, "onStop() called.")
     }
     
     private fun refreshFragmentVisibility() {
@@ -527,6 +560,7 @@ class MainActivity : BaseActivity() {
             }
             
             // Force Material component refresh via selection cycling
+            // CRITICAL: Use flag to prevent navigation changes during cycling
             try {
                 val currentSelection = binding.bottomNav.selectedItemId
                 val menu = binding.bottomNav.menu
@@ -535,9 +569,12 @@ class MainActivity : BaseActivity() {
                     for (i in 0 until menu.size()) {
                         val item = menu.getItem(i)
                         if (item.itemId != currentSelection) {
-                            binding.bottomNav.selectedItemId = item.itemId
+                            L.d("MainActivity: Cycling to refresh colors: ${item.itemId} → $currentSelection")
+                            isRefreshingColors = true // Set flag to block navigation
+                            binding.bottomNav.selectedItemId = item.itemId // This will be blocked by the flag
                             binding.bottomNav.post {
-                                binding.bottomNav.selectedItemId = currentSelection
+                                binding.bottomNav.selectedItemId = currentSelection // This will also be blocked
+                                isRefreshingColors = false // Clear flag after cycling
                                 L.d("MainActivity: Forced navigation refresh via selection cycling")
                             }
                             break
@@ -546,6 +583,7 @@ class MainActivity : BaseActivity() {
                 }
             } catch (e: Exception) {
                 L.w("MainActivity: Selection cycling failed: ${e.message}")
+                isRefreshingColors = false // Ensure flag is cleared on error
             }
             
             // Force redraw and layout
@@ -558,6 +596,7 @@ class MainActivity : BaseActivity() {
     }
     
     override fun onDestroy() {
+        Log.d(LIFECYCLE_TAG, "onDestroy() called.")
         unregisterThemeChangeReceiver()
         super.onDestroy()
     }
