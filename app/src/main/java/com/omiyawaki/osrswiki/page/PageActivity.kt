@@ -384,32 +384,65 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private fun refreshSearchTextColors(searchContainer: com.google.android.material.textview.MaterialTextView?, theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
         searchContainer?.let { textView ->
             try {
-                // Apply search-specific hint colors
-                val hintColorAttrs = arrayOf(
-                    android.R.attr.textColorHint,                    // Primary hint color
-                    android.R.attr.textColorSecondary,               // Secondary text color
-                    com.google.android.material.R.attr.colorOnSurfaceVariant,  // Material 3 surface text
-                    com.google.android.material.R.attr.colorOnSurface,          // Fallback
-                    R.attr.secondary_text_color                      // App-specific fallback
-                )
+                // CRITICAL: Force re-apply SearchBarText style attributes to override cached colors
+                // The SearchBarText style uses ?android:attr/textColorSecondary for both text and hint colors
+                // We need to manually resolve and apply these to override the cached style values
                 
-                for (attr in hintColorAttrs) {
-                    if (theme.resolveAttribute(attr, typedValue, true)) {
-                        // Apply hint color (text color already handled by BaseActivity)
-                        textView.setHintTextColor(typedValue.data)
-                        
-                        // Ensure hint text is set if missing
-                        if (textView.hint.isNullOrBlank()) {
-                            textView.setHint(R.string.page_toolbar_search_hint)
-                            L.d("PageActivity: Set search hint from resource")
+                // First, resolve the textColorSecondary attribute that SearchBarText style references
+                val textColorSecondary = if (theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)) {
+                    typedValue.data
+                } else {
+                    // Fallback to other text color attributes if textColorSecondary fails
+                    val fallbackAttrs = arrayOf(
+                        com.google.android.material.R.attr.colorOnSurfaceVariant,
+                        com.google.android.material.R.attr.colorOnSurface,
+                        R.attr.secondary_text_color,
+                        android.R.attr.textColorHint
+                    )
+                    
+                    var resolvedColor = 0
+                    for (attr in fallbackAttrs) {
+                        if (theme.resolveAttribute(attr, typedValue, true)) {
+                            resolvedColor = typedValue.data
+                            L.d("PageActivity: Using fallback color attribute ${getTextColorAttributeName(attr)}")
+                            break
                         }
-                        
-                        L.d("PageActivity: Applied search hint color from ${getTextColorAttributeName(attr)}: ${Integer.toHexString(typedValue.data)}")
-                        break
+                    }
+                    resolvedColor
+                }
+                
+                if (textColorSecondary != 0) {
+                    // Apply the resolved color to both text and hint (matching SearchBarText style)
+                    textView.setTextColor(textColorSecondary)
+                    textView.setHintTextColor(textColorSecondary)
+                    
+                    // CRITICAL: Always ensure hint text is set - this is the core issue
+                    if (textView.hint.isNullOrBlank()) {
+                        textView.setHint(R.string.page_toolbar_search_hint)
+                        L.d("PageActivity: Restored missing search hint text")
+                    }
+                    
+                    L.d("PageActivity: Applied search text/hint color (SearchBarText style override): ${Integer.toHexString(textColorSecondary)}")
+                } else {
+                    L.w("PageActivity: Could not resolve any text color for search bar")
+                    // Even if color resolution fails, ensure hint text is present
+                    if (textView.hint.isNullOrBlank()) {
+                        textView.setHint(R.string.page_toolbar_search_hint)
+                        L.d("PageActivity: Set search hint text (color resolution failed)")
                     }
                 }
+                
             } catch (e: Exception) {
                 L.w("PageActivity: Error refreshing search text colors: ${e.message}")
+                // Ensure hint text is present even if color application fails
+                try {
+                    if (textView.hint.isNullOrBlank()) {
+                        textView.setHint(R.string.page_toolbar_search_hint)
+                        L.d("PageActivity: Set search hint text (exception recovery)")
+                    }
+                } catch (hintException: Exception) {
+                    L.e("PageActivity: Failed to set search hint text: ${hintException.message}")
+                }
             }
         }
     }

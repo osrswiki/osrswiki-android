@@ -337,27 +337,43 @@ abstract class BaseActivity : AppCompatActivity() {
         val originalHint = textView.hint
         val originalHintColors = textView.hintTextColors
         
-        // Comprehensive text color attribute list based on actual usage analysis
-        val textColorAttrs = arrayOf(
-            // Material 3 primary text colors (defined in themes.xml)
-            com.google.android.material.R.attr.colorOnSurface,          // Used in styles.xml, bottom nav, toolbar
-            com.google.android.material.R.attr.colorOnSurfaceVariant,   // Used in activity_request_feature.xml, feedback
-            
-            // App-specific text colors
-            R.attr.primary_text_color,              // Used in view_history_search_card.xml, map fragment
-            R.attr.secondary_text_color,            // Used extensively for secondary text
-            
-            // Error and special states  
-            com.google.android.material.R.attr.colorError,              // Used in fragment_search_results.xml
-            com.google.android.material.R.attr.colorOnError,            // Used for error text
-            com.google.android.material.R.attr.colorOnPrimary,          // Used for text on primary backgrounds
-            com.google.android.material.R.attr.colorOnSecondary,        // Used for text on secondary backgrounds  
-            com.google.android.material.R.attr.colorOnSecondaryContainer, // Used in activity_page.xml
-            
-            // Standard fallbacks
-            android.R.attr.textColorPrimary,
-            android.R.attr.textColor
-        )
+        // ENHANCED: Check if this TextView has specific styling that should be preserved
+        val isSearchBarText = isSearchBarTextView(textView)
+        val isPreferenceText = isPreferenceTextView(textView)
+        
+        // Choose appropriate color attributes based on TextView type and context
+        val textColorAttrs = when {
+            isSearchBarText -> arrayOf(
+                android.R.attr.textColorSecondary,                      // SearchBarText style uses this
+                com.google.android.material.R.attr.colorOnSurfaceVariant,
+                R.attr.secondary_text_color
+            )
+            isPreferenceText -> arrayOf(
+                com.google.android.material.R.attr.colorOnSurface,      // Primary preference text
+                android.R.attr.textColorPrimary,
+                R.attr.primary_text_color
+            )
+            else -> arrayOf(
+                // Comprehensive text color attribute list for general TextViews
+                com.google.android.material.R.attr.colorOnSurface,          // Used in styles.xml, bottom nav, toolbar
+                com.google.android.material.R.attr.colorOnSurfaceVariant,   // Used in activity_request_feature.xml, feedback
+                
+                // App-specific text colors
+                R.attr.primary_text_color,              // Used in view_history_search_card.xml, map fragment
+                R.attr.secondary_text_color,            // Used extensively for secondary text
+                
+                // Error and special states  
+                com.google.android.material.R.attr.colorError,              // Used in fragment_search_results.xml
+                com.google.android.material.R.attr.colorOnError,            // Used for error text
+                com.google.android.material.R.attr.colorOnPrimary,          // Used for text on primary backgrounds
+                com.google.android.material.R.attr.colorOnSecondary,        // Used for text on secondary backgrounds  
+                com.google.android.material.R.attr.colorOnSecondaryContainer, // Used in activity_page.xml
+                
+                // Standard fallbacks
+                android.R.attr.textColorPrimary,
+                android.R.attr.textColor
+            )
+        }
         
         for (attr in textColorAttrs) {
             if (theme.resolveAttribute(attr, typedValue, true)) {
@@ -370,13 +386,44 @@ abstract class BaseActivity : AppCompatActivity() {
                     }
                     if (originalHintColors != null) {
                         textView.setHintTextColor(originalHintColors)
+                    } else if (isSearchBarText) {
+                        // For search bar text, also apply the same color to hint
+                        textView.setHintTextColor(typedValue.data)
                     }
                     
+                    android.util.Log.d("BaseActivity", "Applied ${getAttributeName(attr)} color to ${textView.javaClass.simpleName}")
                     break // Use the first one that resolves
                 } catch (e: Exception) {
                     continue
                 }
             }
+        }
+    }
+    
+    private fun isSearchBarTextView(textView: TextView): Boolean {
+        // Check if this is a search bar TextView by ID or parent context
+        return textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container ||
+               textView.contentDescription?.contains("search", ignoreCase = true) == true ||
+               textView.hint?.contains("search", ignoreCase = true) == true
+    }
+    
+    private fun isPreferenceTextView(textView: TextView): Boolean {
+        // Check if this is a preference TextView (usually has android.R.id.title or android.R.id.summary)
+        return textView.id == android.R.id.title || 
+               textView.id == android.R.id.summary ||
+               textView.parent?.parent?.javaClass?.simpleName?.contains("Preference") == true
+    }
+    
+    private fun getAttributeName(attr: Int): String {
+        return when (attr) {
+            android.R.attr.textColorPrimary -> "textColorPrimary"
+            android.R.attr.textColorSecondary -> "textColorSecondary"
+            android.R.attr.textColor -> "textColor"
+            com.google.android.material.R.attr.colorOnSurface -> "colorOnSurface"
+            com.google.android.material.R.attr.colorOnSurfaceVariant -> "colorOnSurfaceVariant"
+            R.attr.primary_text_color -> "primary_text_color"
+            R.attr.secondary_text_color -> "secondary_text_color"
+            else -> "unknown_attr_$attr"
         }
     }
     

@@ -90,19 +90,50 @@ class AppearanceSettingsActivity : BaseActivity() {
         L.d("AppearanceSettingsActivity: Refreshing theme-dependent elements")
         
         try {
+            // CRITICAL: Refresh status bar theming IMMEDIATELY and with proper timing
+            // Status bar theming must happen early to avoid visual glitches
+            setupStatusBarTheming()
+            
+            // Force a complete window refresh to apply status bar changes immediately
+            window.decorView.invalidate()
+            
             // Refresh the toolbar/action bar theme
             supportActionBar?.let { actionBar ->
-                // Force toolbar to refresh its theme by invalidating the decorView
-                window.decorView.invalidate()
+                // Force toolbar colors to refresh
+                val typedValue = android.util.TypedValue()
+                val theme = this.theme
                 
-                // Refresh the status bar to match new theme
-                setupStatusBarTheming()
+                // Apply toolbar background color
+                if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurface, typedValue, true)) {
+                    // The toolbar should pick up the new theme automatically, but force refresh if needed
+                    actionBar.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(typedValue.data))
+                }
+                
+                // Apply toolbar text color 
+                if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                    // Unfortunately, ActionBar doesn't have a direct setTitleColor method
+                    // The theme should handle this, but we can try to find and refresh the title TextView
+                    try {
+                        val titleId = resources.getIdentifier("action_bar_title", "id", "android")
+                        if (titleId > 0) {
+                            findViewById<android.widget.TextView>(titleId)?.setTextColor(typedValue.data)
+                        }
+                    } catch (e: Exception) {
+                        L.d("AppearanceSettingsActivity: Could not manually set action bar title color: ${e.message}")
+                    }
+                }
             }
             
             // Refresh any other UI elements specific to this activity
             val containerView = findViewById<android.view.View>(R.id.appearance_settings_container)
             containerView?.let { container ->
                 refreshViewBackground(container)
+            }
+            
+            // CRITICAL: Force a second status bar refresh after other elements
+            // This ensures status bar theming overrides any other conflicting settings
+            window.decorView.post {
+                setupStatusBarTheming()
             }
             
             L.d("AppearanceSettingsActivity: Theme-dependent elements refresh completed")
