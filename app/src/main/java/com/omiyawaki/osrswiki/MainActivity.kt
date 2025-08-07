@@ -427,6 +427,10 @@ class MainActivity : BaseActivity() {
             L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
         }
         
+        // CRITICAL: Notify all fragments that theme has changed
+        // This ensures fragments refresh their theme-dependent UI elements
+        notifyFragmentsOfThemeChange()
+        
         L.d("MainActivity: Theme-dependent elements refresh completed")
     }
     
