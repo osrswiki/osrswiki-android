@@ -65,7 +65,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/about_jagex_description"
-            android:textAppearance="@style/AppTextAppearance.BodySmall"
+            android:textAppearance="@style/AppTextAppearance.Body"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/jagex_title" />
@@ -87,7 +87,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/about_wiki_description"
-            android:textAppearance="@style/AppTextAppearance.BodySmall"
+            android:textAppearance="@style/AppTextAppearance.Body"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/wiki_title" />
@@ -96,13 +96,13 @@
             android:id="@+id/wiki_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:text="@string/about_wiki_button"
             app:icon="@drawable/ic_open_in_new_24"
             app:iconGravity="textEnd"
-            android:layout_marginBottom="32dp"
-            app:layout_constraintTop_toBottomOf="@id/wiki_description"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/wiki_description" />
 
         <!-- Wikipedia App Credit -->
         <TextView
@@ -121,7 +121,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="@string/about_wikipedia_description"
-            android:textAppearance="@style/AppTextAppearance.BodySmall"
+            android:textAppearance="@style/AppTextAppearance.Body"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/wikipedia_title" />

@@ -141,7 +141,7 @@
                         android:id="@+id/device_info_text"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textAppearance="@style/AppTextAppearance.Body"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:fontFamily="monospace"
                         android:text="Loading device information..." />
