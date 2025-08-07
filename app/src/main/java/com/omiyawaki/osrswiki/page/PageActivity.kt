@@ -289,16 +289,18 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             // Find the search container MaterialTextView
             val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
             
-            // CRITICAL: Ensure hint is always present before applying colors
+            // CRITICAL: Ensure hint is always present
+            // BaseActivity already handles the color refresh properly, so we just ensure hint exists
             if (searchContainer?.hint.isNullOrBlank()) {
                 searchContainer?.setHint(R.string.page_toolbar_search_hint)
-                L.d("PageActivity: Restored search hint text before color refresh")
+                L.d("PageActivity: Restored search hint text")
             }
             
-            // Apply our specific search text color refresh with hint preservation
-            refreshSearchTextColors(searchContainer, theme, typedValue)
+            // REMOVED: refreshSearchTextColors() call to avoid race condition
+            // BaseActivity.refreshTextViewTheme() already handles the search bar correctly
+            // Calling refreshSearchTextColors() here was overriding the correct colors
             
-            L.d("PageActivity: Search bar specific refresh completed")
+            L.d("PageActivity: Search bar specific refresh completed (colors handled by BaseActivity)")
             
         } catch (e: Exception) {
             L.e("PageActivity: Error in search bar specific refresh: ${e.message}")

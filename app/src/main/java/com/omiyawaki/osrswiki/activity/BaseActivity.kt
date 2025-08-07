@@ -387,18 +387,19 @@ abstract class BaseActivity : AppCompatActivity() {
                     textView.setTextColor(typedValue.data)
                     
                     // CRITICAL: Restore hint text and hint colors after applying text colors
-                    if (originalHint != null) {
-                        textView.hint = originalHint
-                    } else if (isSearchBarText) {
-                        // Ensure search bar always has hint text
+                    // Use isSearchBar (not isSearchBarText) for consistency with earlier check
+                    if (isSearchBar) {
+                        // Always ensure search bar has hint text, even if originalHint was present
                         textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
-                    }
-                    
-                    if (isSearchBarText) {
-                        // For search bar text, apply the same color to hint as text
+                        // For search bar, apply the same color to hint as text
                         textView.setHintTextColor(typedValue.data)
-                    } else if (originalHintColors != null) {
-                        textView.setHintTextColor(originalHintColors)
+                        android.util.Log.d("BaseActivity", "Restored search bar hint text and color")
+                    } else if (originalHint != null) {
+                        // For other TextViews, restore original hint
+                        textView.hint = originalHint
+                        if (originalHintColors != null) {
+                            textView.setHintTextColor(originalHintColors)
+                        }
                     }
                     
                     android.util.Log.d("BaseActivity", "Applied ${getAttributeName(attr)} color to ${textView.javaClass.simpleName}")
