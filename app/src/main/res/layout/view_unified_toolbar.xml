@@ -26,12 +26,11 @@
             app:srcCompat="@drawable/ic_search_white_24dp"
             app:tint="?attr/placeholder_color" />
 
-        <EditText
+        <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/toolbar_search_container"
             style="@style/SearchBarText"
             android:clickable="true"
             android:focusable="false"
-            android:editable="false"
             android:background="@android:color/transparent"
             android:hint="@string/page_toolbar_search_hint" />
 
