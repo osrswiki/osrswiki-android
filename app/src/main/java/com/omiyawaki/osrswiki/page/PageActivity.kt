@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -127,7 +128,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             }
         )
         
-        val searchContainer = binding.pageToolbar.findViewById<MaterialTextView>(R.id.toolbar_search_container)
+        val searchContainer = binding.pageToolbar.findViewById<EditText>(R.id.toolbar_search_container)
         // Ensure hint text is set on initialization
         if (searchContainer.hint.isNullOrBlank()) {
             searchContainer.setHint(R.string.page_toolbar_search_hint)
@@ -284,34 +285,23 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     
     private fun refreshSearchBarSpecific(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
         try {
-            L.d("PageActivity: Running search bar specific refresh after BaseActivity generic refresh")
+            L.d("PageActivity: Running search bar specific refresh")
             
-            // CRITICAL FIX: Get fresh reference through binding to ensure we have the current view
-            val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
+            // Get reference to the EditText search container
+            val searchContainer = binding.pageToolbar.findViewById<EditText>(R.id.toolbar_search_container)
             
-            searchContainer?.let { textView ->
-                // Always set the hint text
-                val hintText = getString(R.string.page_toolbar_search_hint)
-                textView.hint = hintText
-                
-                // CRITICAL FIX: Force MaterialToolbar to properly re-layout its children
-                // This is necessary because MaterialToolbar doesn't properly propagate
-                // theme changes to child views, especially for non-standard uses like
-                // a MaterialTextView with hint inside a toolbar
-                binding.pageToolbar.requestLayout()
-                binding.pageToolbar.invalidate()
-                
-                // Also force the search container itself to redraw
-                textView.requestLayout()
-                textView.invalidate()
-                
-                L.d("PageActivity: Forced MaterialToolbar and search container refresh for hint visibility")
+            // Ensure hint text is set (EditText handles hint colors automatically through theme)
+            searchContainer?.let { editText ->
+                if (editText.hint.isNullOrBlank()) {
+                    editText.setHint(R.string.page_toolbar_search_hint)
+                    L.d("PageActivity: Set search hint text")
+                }
             }
             
-            L.d("PageActivity: Search bar specific refresh completed")
+            L.d("PageActivity: Search bar refresh completed - EditText handles hints properly")
             
         } catch (e: Exception) {
-            L.e("PageActivity: Error in search bar specific refresh: ${e.message}")
+            L.e("PageActivity: Error in search bar refresh: ${e.message}")
         }
     }
     
@@ -401,71 +391,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
     }
     
-    private fun refreshSearchTextColors(searchContainer: com.google.android.material.textview.MaterialTextView?, theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
-        searchContainer?.let { textView ->
-            try {
-                // CRITICAL: Force re-apply SearchBarText style attributes to override cached colors
-                // The SearchBarText style uses ?android:attr/textColorSecondary for both text and hint colors
-                // We need to manually resolve and apply these to override the cached style values
-                
-                // First, resolve the textColorSecondary attribute that SearchBarText style references
-                val textColorSecondary = if (theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)) {
-                    typedValue.data
-                } else {
-                    // Fallback to other text color attributes if textColorSecondary fails
-                    val fallbackAttrs = arrayOf(
-                        com.google.android.material.R.attr.colorOnSurfaceVariant,
-                        com.google.android.material.R.attr.colorOnSurface,
-                        R.attr.secondary_text_color,
-                        android.R.attr.textColorHint
-                    )
-                    
-                    var resolvedColor = 0
-                    for (attr in fallbackAttrs) {
-                        if (theme.resolveAttribute(attr, typedValue, true)) {
-                            resolvedColor = typedValue.data
-                            L.d("PageActivity: Using fallback color attribute ${getTextColorAttributeName(attr)}")
-                            break
-                        }
-                    }
-                    resolvedColor
-                }
-                
-                if (textColorSecondary != 0) {
-                    // Apply the resolved color to both text and hint (matching SearchBarText style)
-                    textView.setTextColor(textColorSecondary)
-                    textView.setHintTextColor(textColorSecondary)
-                    
-                    // CRITICAL: Always ensure hint text is set - this is the core issue
-                    if (textView.hint.isNullOrBlank()) {
-                        textView.setHint(R.string.page_toolbar_search_hint)
-                        L.d("PageActivity: Restored missing search hint text")
-                    }
-                    
-                    L.d("PageActivity: Applied search text/hint color (SearchBarText style override): ${Integer.toHexString(textColorSecondary)}")
-                } else {
-                    L.w("PageActivity: Could not resolve any text color for search bar")
-                    // Even if color resolution fails, ensure hint text is present
-                    if (textView.hint.isNullOrBlank()) {
-                        textView.setHint(R.string.page_toolbar_search_hint)
-                        L.d("PageActivity: Set search hint text (color resolution failed)")
-                    }
-                }
-                
-            } catch (e: Exception) {
-                L.w("PageActivity: Error refreshing search text colors: ${e.message}")
-                // Ensure hint text is present even if color application fails
-                try {
-                    if (textView.hint.isNullOrBlank()) {
-                        textView.setHint(R.string.page_toolbar_search_hint)
-                        L.d("PageActivity: Set search hint text (exception recovery)")
-                    }
-                } catch (hintException: Exception) {
-                    L.e("PageActivity: Failed to set search hint text: ${hintException.message}")
-                }
-            }
-        }
-    }
     
     private fun getTextColorAttributeName(attr: Int): String {
         return when (attr) {
