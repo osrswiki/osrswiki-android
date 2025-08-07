@@ -375,23 +375,23 @@ abstract class BaseActivity : AppCompatActivity() {
                     textView.setTextColor(typedValue.data)
                     
                     // Handle hint text and colors based on TextView type
-                    if (originalHint != null) {
+                    // Check if this is the search bar EditText first
+                    val isSearchBarEditText = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
+                    
+                    if (isSearchBarEditText) {
+                        // ALWAYS ensure search bar has hint text, regardless of originalHint
+                        textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
+                        // Re-resolve hint color from current theme
+                        val hintTypedValue = TypedValue()
+                        if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
+                            textView.setHintTextColor(hintTypedValue.data)
+                            android.util.Log.d("BaseActivity", "Set search bar hint text and color from theme")
+                        }
+                    } else if (originalHint != null) {
+                        // Handle regular TextViews only if they had original hints
                         textView.hint = originalHint
-                        
-                        // Check if this is the search bar EditText
-                        val isSearchBarEditText = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
-                        
-                        if (!isSearchBarEditText && originalHintColors != null) {
-                            // For regular TextViews, restore original hint colors
+                        if (originalHintColors != null) {
                             textView.setHintTextColor(originalHintColors)
-                        } else if (isSearchBarEditText) {
-                            // For search bar EditText, re-resolve hint color from current theme
-                            // SearchBarText style uses ?android:attr/textColorSecondary for hints
-                            val hintTypedValue = TypedValue()
-                            if (theme.resolveAttribute(android.R.attr.textColorSecondary, hintTypedValue, true)) {
-                                textView.setHintTextColor(hintTypedValue.data)
-                                android.util.Log.d("BaseActivity", "Updated search bar hint color from theme")
-                            }
                         }
                     }
                     
