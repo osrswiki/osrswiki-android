@@ -286,21 +286,29 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         try {
             L.d("PageActivity: Running search bar specific refresh after BaseActivity generic refresh")
             
-            // Find the search container MaterialTextView
+            // CRITICAL FIX: Get fresh reference through binding to ensure we have the current view
             val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
             
-            // CRITICAL: Ensure hint is always present
-            // BaseActivity already handles the color refresh properly, so we just ensure hint exists
-            if (searchContainer?.hint.isNullOrBlank()) {
-                searchContainer?.setHint(R.string.page_toolbar_search_hint)
-                L.d("PageActivity: Restored search hint text")
+            searchContainer?.let { textView ->
+                // Always set the hint text
+                val hintText = getString(R.string.page_toolbar_search_hint)
+                textView.hint = hintText
+                
+                // CRITICAL FIX: Force MaterialToolbar to properly re-layout its children
+                // This is necessary because MaterialToolbar doesn't properly propagate
+                // theme changes to child views, especially for non-standard uses like
+                // a MaterialTextView with hint inside a toolbar
+                binding.pageToolbar.requestLayout()
+                binding.pageToolbar.invalidate()
+                
+                // Also force the search container itself to redraw
+                textView.requestLayout()
+                textView.invalidate()
+                
+                L.d("PageActivity: Forced MaterialToolbar and search container refresh for hint visibility")
             }
             
-            // REMOVED: refreshSearchTextColors() call to avoid race condition
-            // BaseActivity.refreshTextViewTheme() already handles the search bar correctly
-            // Calling refreshSearchTextColors() here was overriding the correct colors
-            
-            L.d("PageActivity: Search bar specific refresh completed (colors handled by BaseActivity)")
+            L.d("PageActivity: Search bar specific refresh completed")
             
         } catch (e: Exception) {
             L.e("PageActivity: Error in search bar specific refresh: ${e.message}")
