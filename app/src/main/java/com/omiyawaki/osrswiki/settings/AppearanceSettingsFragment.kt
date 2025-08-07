@@ -11,10 +11,11 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.log.L
 
-class AppearanceSettingsFragment : PreferenceFragmentCompat() {
+class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey)
@@ -27,7 +28,11 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
             
             // Post the theme change to ensure preference is persisted first
             view?.post {
-                applyThemeDynamically()
+                // Let BaseActivity handle the theme change - it will call onThemeChanged() on this fragment
+                val activity = activity ?: return@post
+                if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
+                    activity.applyThemeDynamically()
+                }
             }
 
             // Return true to allow the preference change to be saved.
@@ -77,48 +82,21 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
         // Let preference text use system fonts - no custom font application needed
         // This aligns with the app's migration to system fonts for non-heading text
     }
-    
-    private fun applyThemeDynamically() {
-        val activity = activity ?: return
-        L.d("AppearanceSettingsFragment: Applying theme dynamically without recreation")
-        
-        try {
-            // Get the new theme from the app
-            val app = activity.applicationContext as OSRSWikiApp
-            val newTheme = app.getCurrentTheme()
-            
-            L.d("AppearanceSettingsFragment: New theme: $newTheme")
-            
-            // Apply the new theme to current activity without recreation
-            activity.setTheme(newTheme.resourceId)
-            
-            // Simplified approach: Let the BaseActivity handle its own theme refresh
-            if (activity is com.omiyawaki.osrswiki.activity.BaseActivity) {
-                activity.applyThemeDynamically()
-            }
-            
-            // Post to ensure theme change has taken effect before refreshing fragment UI
-            view?.post {
-                // Focus on refreshing the fragment's own UI elements directly
-                refreshFragmentUIDirectly()
-                
-                // Notify other components about the theme change
-                notifyGlobalThemeChange()
-                
-                L.d("AppearanceSettingsFragment: Dynamic theme change completed")
-            }
-            
-        } catch (e: Exception) {
-            L.e("AppearanceSettingsFragment: Error applying theme dynamically: ${e.message}")
-            // Fallback to recreation if dynamic update fails
-            L.d("AppearanceSettingsFragment: Falling back to activity recreation")
-            activity.recreate()
+
+    override fun onThemeChanged() {
+        if (!isAdded || view == null) {
+            return
         }
+        
+        L.d("AppearanceSettingsFragment: onThemeChanged called - refreshing preferences UI")
+        
+        // Use the established ThemeAware callback to refresh the fragment UI
+        refreshPreferencesThemeDirectly()
     }
     
-    private fun refreshFragmentUIDirectly() {
+    private fun refreshPreferencesThemeDirectly() {
         try {
-            L.d("AppearanceSettingsFragment: Refreshing fragment UI directly")
+            L.d("AppearanceSettingsFragment: Refreshing preferences theme directly")
             
             // Refresh the fragment's root view background
             view?.let { fragmentView ->
@@ -141,12 +119,9 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 }
             }
             
-            // Refresh the RecyclerView and preference items
+            // Refresh the RecyclerView and preference items using proper preference refresh
             val recyclerView = listView as? RecyclerView
             recyclerView?.let { rv ->
-                // Force adapter refresh to pick up new theme colors
-                rv.adapter?.notifyDataSetChanged()
-                
                 // Apply new theme background to the RecyclerView
                 val typedValue = android.util.TypedValue()
                 val theme = requireContext().theme
@@ -155,6 +130,9 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                     rv.setBackgroundColor(typedValue.data)
                 }
                 
+                // Force adapter refresh to pick up new theme colors - this is critical for preferences
+                rv.adapter?.notifyDataSetChanged()
+                
                 // Force complete refresh
                 rv.invalidate()
                 rv.requestLayout()
@@ -162,10 +140,13 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat() {
                 L.d("AppearanceSettingsFragment: RecyclerView refreshed with new theme")
             }
             
-            L.d("AppearanceSettingsFragment: Fragment UI refresh completed successfully")
+            // Notify other components about the theme change
+            notifyGlobalThemeChange()
+            
+            L.d("AppearanceSettingsFragment: Preferences theme refresh completed successfully")
             
         } catch (e: Exception) {
-            L.e("AppearanceSettingsFragment: Error refreshing fragment UI directly: ${e.message}")
+            L.e("AppearanceSettingsFragment: Error refreshing preferences theme directly: ${e.message}")
         }
     }
     

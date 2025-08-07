@@ -295,10 +295,33 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             // Refresh status bar theming
             setupStatusBarTheming()
             
+            // CRITICAL: Run search bar specific refresh AFTER BaseActivity's generic refresh
+            // This ensures our hint text preservation logic runs last and doesn't get overridden
+            window.decorView.post {
+                refreshSearchBarSpecific(theme, typedValue)
+            }
+            
             L.d("PageActivity: Theme-dependent elements refresh completed")
             
         } catch (e: Exception) {
             L.e("PageActivity: Error refreshing theme elements: ${e.message}")
+        }
+    }
+    
+    private fun refreshSearchBarSpecific(theme: android.content.res.Resources.Theme, typedValue: android.util.TypedValue) {
+        try {
+            L.d("PageActivity: Running search bar specific refresh after BaseActivity generic refresh")
+            
+            // Find the search container MaterialTextView
+            val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
+            
+            // Apply our specific search text color refresh with hint preservation
+            refreshSearchTextColors(searchContainer, theme, typedValue)
+            
+            L.d("PageActivity: Search bar specific refresh completed")
+            
+        } catch (e: Exception) {
+            L.e("PageActivity: Error in search bar specific refresh: ${e.message}")
         }
     }
     
@@ -322,7 +345,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             // CRITICAL: Refresh search bar background drawable
             refreshSearchBarBackground(theme, typedValue)
             
-            // Refresh toolbar icon tints
+            // Refresh toolbar icon tints (but not search text - that's handled separately)
             refreshToolbarIconTints(theme, typedValue)
             
             // Refresh any toolbar text colors
@@ -361,9 +384,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 )
             }
             
-            // CRITICAL: Refresh search text color (the actual text hint that wasn't updating)
-            val searchContainer = binding.pageToolbar.findViewById<com.google.android.material.textview.MaterialTextView>(R.id.toolbar_search_container)
-            refreshSearchTextColors(searchContainer, theme, typedValue)
+            // Note: Search text color refresh is handled separately in refreshSearchBarSpecific()
+            // to ensure proper timing after BaseActivity's generic refresh
             
             // Refresh voice search button tint
             val voiceSearchButton = binding.pageToolbar.findViewById<android.widget.ImageView>(R.id.toolbar_voice_search_button)
@@ -383,7 +405,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 )
             }
             
-            L.d("PageActivity: Toolbar icon tints and search text refreshed")
+            L.d("PageActivity: Toolbar icon tints refreshed (search text handled separately)")
         } catch (e: Exception) {
             L.w("PageActivity: Error refreshing toolbar icon tints: ${e.message}")
         }
