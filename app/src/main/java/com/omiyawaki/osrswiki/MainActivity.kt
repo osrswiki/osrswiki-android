@@ -90,6 +90,16 @@ class MainActivity : BaseActivity() {
             savedPagesFragment = SavedPagesFragment()
             moreFragment = MoreFragment.newInstance()
             
+            // Set initial active fragment based on selected nav (default or restored)
+            // CRITICAL: This must be set synchronously BEFORE setupBottomNav() is called
+            activeFragment = when (selectedNavId) {
+                R.id.nav_map -> mapFragment
+                R.id.nav_search -> historyFragment
+                R.id.nav_saved -> savedPagesFragment
+                R.id.nav_more -> moreFragment
+                else -> mainFragment
+            }
+            
             supportFragmentManager.beginTransaction()
                 .add(R.id.nav_host_container, mainFragment, MAIN_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
@@ -97,30 +107,21 @@ class MainActivity : BaseActivity() {
                 .add(R.id.nav_host_container, savedPagesFragment, SAVED_PAGES_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, moreFragment, MORE_FRAGMENT_TAG)
                 .runOnCommit {
-                    // Set initial active fragment based on selected nav (default or restored)
-                    val initialActiveFragment = when (selectedNavId) {
-                        R.id.nav_map -> mapFragment
-                        R.id.nav_search -> historyFragment
-                        R.id.nav_saved -> savedPagesFragment
-                        R.id.nav_more -> moreFragment
-                        else -> mainFragment
-                    }
-                    
-                    // Set alpha values based on initial selection
-                    mainFragment.view?.alpha = if (initialActiveFragment === mainFragment) 1.0f else 0.0f
-                    mapFragment.view?.alpha = if (initialActiveFragment === mapFragment) 1.0f else 0.0f
-                    historyFragment.view?.alpha = if (initialActiveFragment === historyFragment) 1.0f else 0.0f
-                    savedPagesFragment.view?.alpha = if (initialActiveFragment === savedPagesFragment) 1.0f else 0.0f
-                    moreFragment.view?.alpha = if (initialActiveFragment === moreFragment) 1.0f else 0.0f
+                    // Set alpha values based on initial selection (async after views are created)
+                    mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
+                    mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
+                    historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
+                    savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
+                    moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
                     
                     // Bring active fragment to front so it can receive touches
-                    initialActiveFragment.view?.bringToFront()
+                    activeFragment.view?.bringToFront()
                     
-                    activeFragment = initialActiveFragment
+                    L.d("MainActivity: Views alpha set and active fragment brought to front")
                 }
                 .commit()
 
-            L.d("MainActivity: onCreate: Fragments added. Initial fragment based on nav selection.")
+            L.d("MainActivity: onCreate: Fragments added. Active fragment: ${activeFragment.javaClass.simpleName}")
         } else {
             L.d("MainActivity: onCreate: Restoring state.")
             val savedActiveTag = savedInstanceState.getString(ACTIVE_FRAGMENT_TAG, MAIN_FRAGMENT_TAG)
