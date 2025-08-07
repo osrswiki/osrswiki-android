@@ -8,8 +8,8 @@ import android.os.Bundle
 import android.view.ActionMode
 import android.view.Gravity
 import android.view.View
-import android.widget.EditText
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.GravityCompat
@@ -128,7 +128,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             }
         )
         
-        val searchContainer = binding.pageToolbar.findViewById<EditText>(R.id.toolbar_search_container)
+        val searchContainer = binding.pageToolbar.findViewById<TextView>(R.id.toolbar_search_container)
         // Ensure hint text is set on initialization
         if (searchContainer.hint.isNullOrBlank()) {
             searchContainer.setHint(R.string.page_toolbar_search_hint)
@@ -287,18 +287,18 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         try {
             L.d("PageActivity: Running search bar specific refresh")
             
-            // Get reference to the EditText search container
-            val searchContainer = binding.pageToolbar.findViewById<EditText>(R.id.toolbar_search_container)
+            // Get reference to the TextView search container
+            val searchContainer = binding.pageToolbar.findViewById<TextView>(R.id.toolbar_search_container)
             
-            // Ensure hint text is set (EditText handles hint colors automatically through theme)
-            searchContainer?.let { editText ->
-                if (editText.hint.isNullOrBlank()) {
-                    editText.setHint(R.string.page_toolbar_search_hint)
+            // Ensure hint text is set (TextView handles hint colors automatically through theme)
+            searchContainer?.let { textView ->
+                if (textView.hint.isNullOrBlank()) {
+                    textView.setHint(R.string.page_toolbar_search_hint)
                     L.d("PageActivity: Set search hint text")
                 }
             }
             
-            L.d("PageActivity: Search bar refresh completed - EditText handles hints properly")
+            L.d("PageActivity: Search bar refresh completed - TextView handles hints properly")
             
         } catch (e: Exception) {
             L.e("PageActivity: Error in search bar refresh: ${e.message}")

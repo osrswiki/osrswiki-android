@@ -375,10 +375,10 @@ abstract class BaseActivity : AppCompatActivity() {
                     textView.setTextColor(typedValue.data)
                     
                     // Handle hint text and colors based on TextView type
-                    // Check if this is the search bar EditText first
-                    val isSearchBarEditText = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
+                    // Check if this is the search bar TextView first
+                    val isSearchBarTextView = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
                     
-                    if (isSearchBarEditText) {
+                    if (isSearchBarTextView) {
                         // ALWAYS ensure search bar has hint text, regardless of originalHint
                         textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
                         // Re-resolve hint color from current theme
