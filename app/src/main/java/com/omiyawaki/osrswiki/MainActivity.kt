@@ -41,7 +41,6 @@ class MainActivity : BaseActivity() {
     private lateinit var activeFragment: Fragment
     
     private var themeChangeReceiver: BroadcastReceiver? = null
-    private var returningFromExternalActivity = false
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
@@ -51,6 +50,7 @@ class MainActivity : BaseActivity() {
         private const val SAVED_PAGES_FRAGMENT_TAG = "saved_pages_fragment"
         private const val MORE_FRAGMENT_TAG = "more_fragment"
         private const val ACTIVE_FRAGMENT_TAG = "active_fragment_tag"
+        private const val SAVED_SELECTED_NAV_ID = "selected_nav_id"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,6 +76,10 @@ class MainActivity : BaseActivity() {
         appRouter = AppRouterImpl(supportFragmentManager, R.id.nav_host_container)
         L.d("MainActivity: onCreate: AppRouter initialized.")
 
+        // Determine which navigation item should be selected
+        val selectedNavId = savedInstanceState?.getInt(SAVED_SELECTED_NAV_ID) ?: R.id.nav_news
+        L.d("MainActivity: onCreate: Selected nav ID: $selectedNavId (from savedState: ${savedInstanceState != null})")
+
         if (savedInstanceState == null) {
             L.d("MainActivity: onCreate: savedInstanceState is null, setting up initial fragments.")
             
@@ -93,20 +97,30 @@ class MainActivity : BaseActivity() {
                 .add(R.id.nav_host_container, savedPagesFragment, SAVED_PAGES_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, moreFragment, MORE_FRAGMENT_TAG)
                 .runOnCommit {
-                    // Ensure only mainFragment is visible on startup
-                    mapFragment.view?.alpha = 0.0f
-                    historyFragment.view?.alpha = 0.0f
-                    savedPagesFragment.view?.alpha = 0.0f
-                    moreFragment.view?.alpha = 0.0f
-                    mainFragment.view?.alpha = 1.0f
+                    // Set initial active fragment based on selected nav (default or restored)
+                    val initialActiveFragment = when (selectedNavId) {
+                        R.id.nav_map -> mapFragment
+                        R.id.nav_search -> historyFragment
+                        R.id.nav_saved -> savedPagesFragment
+                        R.id.nav_more -> moreFragment
+                        else -> mainFragment
+                    }
                     
-                    // FIX: Bring mainFragment to front so it can receive touches
-                    mainFragment.view?.bringToFront()
+                    // Set alpha values based on initial selection
+                    mainFragment.view?.alpha = if (initialActiveFragment === mainFragment) 1.0f else 0.0f
+                    mapFragment.view?.alpha = if (initialActiveFragment === mapFragment) 1.0f else 0.0f
+                    historyFragment.view?.alpha = if (initialActiveFragment === historyFragment) 1.0f else 0.0f
+                    savedPagesFragment.view?.alpha = if (initialActiveFragment === savedPagesFragment) 1.0f else 0.0f
+                    moreFragment.view?.alpha = if (initialActiveFragment === moreFragment) 1.0f else 0.0f
+                    
+                    // Bring active fragment to front so it can receive touches
+                    initialActiveFragment.view?.bringToFront()
+                    
+                    activeFragment = initialActiveFragment
                 }
                 .commit()
 
-            activeFragment = mainFragment
-            L.d("MainActivity: onCreate: Fragments added. MainFragment is visible, others are hidden.")
+            L.d("MainActivity: onCreate: Fragments added. Initial fragment based on nav selection.")
         } else {
             L.d("MainActivity: onCreate: Restoring state.")
             val savedActiveTag = savedInstanceState.getString(ACTIVE_FRAGMENT_TAG, MAIN_FRAGMENT_TAG)
@@ -149,22 +163,18 @@ class MainActivity : BaseActivity() {
                 }
             })
             
-            // Restore bottom navigation selected state
-            val selectedItemId = when (activeFragment) {
-                mapFragment -> R.id.nav_map
-                historyFragment -> R.id.nav_search
-                savedPagesFragment -> R.id.nav_saved
-                moreFragment -> R.id.nav_more
-                else -> R.id.nav_news
-            }
-            binding.bottomNav.selectedItemId = selectedItemId
-            
             L.d("MainActivity: onCreate: Active fragment is ${activeFragment.javaClass.simpleName}")
         }
 
+        // Set up bottom navigation AFTER fragment setup
         setupBottomNav()
         setupFonts()
         setupBackNavigation()
+        
+        // CRITICAL: Set the selected item AFTER all setup is complete
+        // This prevents triggering the listener cascade during initialization
+        L.d("MainActivity: onCreate: Setting bottom nav selectedItemId to $selectedNavId")
+        binding.bottomNav.selectedItemId = selectedNavId
         setupThemeChangeReceiver()
         handleIntentExtras(intent)
     }
@@ -306,21 +316,19 @@ class MainActivity : BaseActivity() {
             else -> MAIN_FRAGMENT_TAG
         }
         outState.putString(ACTIVE_FRAGMENT_TAG, activeTag)
-        L.d("MainActivity: onSaveInstanceState: Saved active fragment tag: $activeTag")
+        
+        // CRITICAL: Save the currently selected bottom navigation item
+        // This is the key fix for the navigation restoration issue
+        val selectedNavId = binding.bottomNav.selectedItemId
+        outState.putInt(SAVED_SELECTED_NAV_ID, selectedNavId)
+        
+        L.d("MainActivity: onSaveInstanceState: Saved active fragment tag: $activeTag, nav ID: $selectedNavId")
     }
 
     private fun setupBackNavigation() {
         val backCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                L.d("MainActivity: Back pressed, current fragment: ${activeFragment.javaClass.simpleName}, returningFromExternalActivity: $returningFromExternalActivity")
-                
-                // If we're returning from an external activity, don't intercept the back press
-                // This prevents incorrect navigation when returning from settings activities
-                if (returningFromExternalActivity) {
-                    L.d("MainActivity: Returning from external activity, ignoring back press")
-                    returningFromExternalActivity = false
-                    return
-                }
+                L.d("MainActivity: Back pressed, current fragment: ${activeFragment.javaClass.simpleName}")
                 
                 // If not on main fragment (Home), navigate to Home
                 if (activeFragment !== mainFragment) {
@@ -353,14 +361,6 @@ class MainActivity : BaseActivity() {
             refreshFragmentVisibility()
         }
         
-        // Add a safety timeout to reset the flag if it somehow gets stuck
-        // This prevents the flag from remaining true indefinitely
-        binding.root.postDelayed({
-            if (returningFromExternalActivity) {
-                L.d("MainActivity: onResume: Safety timeout - resetting returningFromExternalActivity flag")
-                returningFromExternalActivity = false
-            }
-        }, 1000) // 1 second timeout
     }
     
     private fun refreshFragmentVisibility() {
@@ -561,12 +561,4 @@ class MainActivity : BaseActivity() {
         super.onDestroy()
     }
     
-    /**
-     * Method to notify MainActivity that we're launching an external activity
-     * This helps prevent incorrect back navigation when returning
-     */
-    fun setReturningFromExternalActivity() {
-        returningFromExternalActivity = true
-        L.d("MainActivity: Set returningFromExternalActivity flag")
-    }
 }
