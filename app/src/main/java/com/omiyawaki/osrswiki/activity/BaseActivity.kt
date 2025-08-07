@@ -333,27 +333,15 @@ abstract class BaseActivity : AppCompatActivity() {
     private fun refreshTextViewTheme(textView: TextView, theme: android.content.res.Resources.Theme) {
         val typedValue = TypedValue()
         
-        // CRITICAL: Preserve hint text before applying color changes
+        // Preserve original hint text and colors
         val originalHint = textView.hint
-        // Special handling for search bar to ensure hint is never lost
-        val isSearchBar = textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container
-        if (isSearchBar && originalHint.isNullOrBlank()) {
-            // Restore hint from resources if it was somehow cleared
-            textView.hint = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
-        }
         val originalHintColors = textView.hintTextColors
         
-        // ENHANCED: Check if this TextView has specific styling that should be preserved
-        val isSearchBarText = isSearchBarTextView(textView)
+        // Check if this TextView has specific styling that should be preserved
         val isPreferenceText = isPreferenceTextView(textView)
         
         // Choose appropriate color attributes based on TextView type and context
         val textColorAttrs = when {
-            isSearchBarText -> arrayOf(
-                android.R.attr.textColorSecondary,                      // SearchBarText style uses this
-                com.google.android.material.R.attr.colorOnSurfaceVariant,
-                R.attr.secondary_text_color
-            )
             isPreferenceText -> arrayOf(
                 com.google.android.material.R.attr.colorOnSurface,      // Primary preference text
                 android.R.attr.textColorPrimary,
@@ -386,20 +374,8 @@ abstract class BaseActivity : AppCompatActivity() {
                 try {
                     textView.setTextColor(typedValue.data)
                     
-                    // CRITICAL: Restore hint text and hint colors after applying text colors
-                    // Use isSearchBar (not isSearchBarText) for consistency with earlier check
-                    if (isSearchBar) {
-                        // Always ensure search bar has hint text, even if originalHint was present
-                        val hintText = textView.context.getString(com.omiyawaki.osrswiki.R.string.page_toolbar_search_hint)
-                        textView.hint = hintText
-                        
-                        // Apply hint color using ColorStateList
-                        val hintColorStateList = ColorStateList.valueOf(typedValue.data)
-                        textView.setHintTextColor(hintColorStateList)
-                        
-                        android.util.Log.d("BaseActivity", "Restored search bar hint text and color")
-                    } else if (originalHint != null) {
-                        // For other TextViews, restore original hint
+                    // Restore original hint text and colors for non-search TextViews
+                    if (originalHint != null) {
                         textView.hint = originalHint
                         if (originalHintColors != null) {
                             textView.setHintTextColor(originalHintColors)
@@ -415,12 +391,6 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
     
-    private fun isSearchBarTextView(textView: TextView): Boolean {
-        // Check if this is a search bar TextView by ID or parent context
-        return textView.id == com.omiyawaki.osrswiki.R.id.toolbar_search_container ||
-               textView.contentDescription?.contains("search", ignoreCase = true) == true ||
-               textView.hint?.contains("search", ignoreCase = true) == true
-    }
     
     private fun isPreferenceTextView(textView: TextView): Boolean {
         // Check if this is a preference TextView (usually has android.R.id.title or android.R.id.summary)
