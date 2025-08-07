@@ -137,12 +137,121 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
                 rv.requestLayout()
                 
                 L.d("AppearanceSettingsFragment: RecyclerView refreshed with new theme")
+                
+                // CRITICAL: Apply theme colors to preference text views
+                // PreferenceFragmentCompat uses complex view hierarchies that generic theme refresh misses
+                refreshPreferenceTextViews(rv, theme)
             }
             
             L.d("AppearanceSettingsFragment: Preferences theme refresh completed successfully")
             
         } catch (e: Exception) {
             L.e("AppearanceSettingsFragment: Error refreshing preferences theme directly: ${e.message}")
+        }
+    }
+    
+    private fun refreshPreferenceTextViews(recyclerView: RecyclerView, theme: android.content.res.Resources.Theme) {
+        try {
+            L.d("AppearanceSettingsFragment: Refreshing preference text views with new theme")
+            
+            val typedValue = android.util.TypedValue()
+            
+            // Resolve theme colors for preferences
+            val primaryTextColor = if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)) {
+                typedValue.data
+            } else if (theme.resolveAttribute(android.R.attr.textColorPrimary, typedValue, true)) {
+                typedValue.data
+            } else {
+                null
+            }
+            
+            val secondaryTextColor = if (theme.resolveAttribute(android.R.attr.textColorSecondary, typedValue, true)) {
+                typedValue.data
+            } else if (theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurfaceVariant, typedValue, true)) {
+                typedValue.data
+            } else {
+                null
+            }
+            
+            // Traverse all visible preference items
+            for (i in 0 until recyclerView.childCount) {
+                val itemView = recyclerView.getChildAt(i)
+                refreshPreferenceItemTextViews(itemView, primaryTextColor, secondaryTextColor)
+            }
+            
+            // Also set up a scroll listener to refresh newly visible items
+            // Remove existing listeners to avoid duplicates
+            val existingListeners = mutableListOf<RecyclerView.OnScrollListener>()
+            try {
+                // Unfortunately there's no clean way to remove specific listeners, so we'll add ours
+                recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                    override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                        super.onScrolled(recyclerView, dx, dy)
+                        // Refresh any newly visible preference items
+                        for (j in 0 until recyclerView.childCount) {
+                            val itemView = recyclerView.getChildAt(j)
+                            refreshPreferenceItemTextViews(itemView, primaryTextColor, secondaryTextColor)
+                        }
+                    }
+                })
+            } catch (e: Exception) {
+                L.w("AppearanceSettingsFragment: Could not set scroll listener: ${e.message}")
+            }
+            
+            L.d("AppearanceSettingsFragment: Preference text views refreshed")
+            
+        } catch (e: Exception) {
+            L.e("AppearanceSettingsFragment: Error refreshing preference text views: ${e.message}")
+        }
+    }
+    
+    private fun refreshPreferenceItemTextViews(itemView: android.view.View, primaryTextColor: Int?, secondaryTextColor: Int?) {
+        try {
+            // Find preference title (primary text) - usually android.R.id.title
+            val titleView = itemView.findViewById<android.widget.TextView>(android.R.id.title)
+            titleView?.let { textView ->
+                primaryTextColor?.let { color ->
+                    textView.setTextColor(color)
+                    L.d("AppearanceSettingsFragment: Applied primary color to preference title: ${textView.text}")
+                }
+            }
+            
+            // Find preference summary (secondary text) - usually android.R.id.summary
+            val summaryView = itemView.findViewById<android.widget.TextView>(android.R.id.summary)
+            summaryView?.let { textView ->
+                secondaryTextColor?.let { color ->
+                    textView.setTextColor(color)
+                    L.d("AppearanceSettingsFragment: Applied secondary color to preference summary: ${textView.text}")
+                }
+            }
+            
+            // Also check for any other TextViews that might be in the preference layout
+            if (itemView is android.view.ViewGroup) {
+                refreshTextViewsInViewGroup(itemView, primaryTextColor, secondaryTextColor)
+            }
+            
+        } catch (e: Exception) {
+            L.w("AppearanceSettingsFragment: Error refreshing preference item: ${e.message}")
+        }
+    }
+    
+    private fun refreshTextViewsInViewGroup(viewGroup: android.view.ViewGroup, primaryTextColor: Int?, secondaryTextColor: Int?) {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            when (child) {
+                is android.widget.TextView -> {
+                    // Skip if we already handled this TextView by ID
+                    if (child.id != android.R.id.title && child.id != android.R.id.summary) {
+                        // Apply primary color to other text views by default
+                        primaryTextColor?.let { color ->
+                            child.setTextColor(color)
+                        }
+                    }
+                }
+                is android.view.ViewGroup -> {
+                    refreshTextViewsInViewGroup(child, primaryTextColor, secondaryTextColor)
+                }
+            }
         }
     }
     
