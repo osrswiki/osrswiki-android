@@ -8,6 +8,7 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
+import android.view.View
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -488,6 +489,13 @@ class MainActivity : BaseActivity() {
             L.e("MainActivity: Error refreshing bottom navigation colors: ${e.message}")
         }
         
+        // Refresh bottom navigation border color
+        try {
+            refreshBottomNavigationBorder()
+        } catch (e: Exception) {
+            L.e("MainActivity: Error refreshing bottom navigation border: ${e.message}")
+        }
+        
         // CRITICAL: Notify all fragments that theme has changed
         // This ensures fragments refresh their theme-dependent UI elements
         notifyFragmentsOfThemeChange()
@@ -592,6 +600,28 @@ class MainActivity : BaseActivity() {
             
         } catch (e: Exception) {
             L.e("MainActivity: Failed to refresh bottom navigation colors: ${e.message}")
+        }
+    }
+    
+    private fun refreshBottomNavigationBorder() {
+        L.d("MainActivity: Refreshing bottom navigation border color")
+        
+        try {
+            val borderView = findViewById<View>(R.id.bottom_nav_border)
+            if (borderView != null) {
+                val typedValue = TypedValue()
+                if (theme.resolveAttribute(R.attr.border_color, typedValue, true)) {
+                    val borderColor = typedValue.data
+                    borderView.setBackgroundColor(borderColor)
+                    L.d("MainActivity: Set new border color: ${Integer.toHexString(borderColor)}")
+                } else {
+                    L.w("MainActivity: Could not resolve border_color attribute")
+                }
+            } else {
+                L.w("MainActivity: bottom_nav_border view not found")
+            }
+        } catch (e: Exception) {
+            L.e("MainActivity: Failed to refresh bottom navigation border: ${e.message}")
         }
     }
     
