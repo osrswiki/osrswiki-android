@@ -37,9 +37,49 @@ class SearchPagingSource(
             )
 
             val unsortedResults = response.query?.pages ?: emptyList()
+            
+            // Debug logging for API response
+            Log.d("SearchPagingSource", "API response for query '$query': ${unsortedResults.size} results")
+            unsortedResults.forEachIndexed { index, result ->
+                val hasSnippet = !result.snippet.isNullOrBlank()
+                Log.d("SearchPagingSource", "Result $index: '${result.title}' (pageId=${result.pageid}) - snippet: ${if (hasSnippet) "present (${result.snippet?.length} chars)" else "missing/empty"}")
+                if (result.title.contains("Logs", ignoreCase = true)) {
+                    Log.d("SearchPagingSource", "*** LOGS PAGE DEBUG: snippet='${result.snippet}', snippet.isNullOrBlank()=${result.snippet.isNullOrBlank()}")
+                }
+            }
 
             // Sort the results by the 'index' field to ensure correct relevance order.
-            val searchResults = unsortedResults.sortedBy { it.index }
+            var searchResults = unsortedResults.sortedBy { it.index }
+
+            // Smart fallback: For pages with null snippets, try to get extracts without exintro=true
+            val pagesWithoutSnippets = searchResults.filter { it.snippet.isNullOrBlank() }
+            if (pagesWithoutSnippets.isNotEmpty()) {
+                Log.d("SearchPagingSource", "Found ${pagesWithoutSnippets.size} pages without snippets, trying fallback API")
+                try {
+                    val pageIds = pagesWithoutSnippets.joinToString("|") { it.pageid.toString() }
+                    val fallbackResponse = apiService.getPageExtract(pageIds)
+                    
+                    // Create a map of pageid to snippet for quick lookup from fallback response
+                    val fallbackSnippets = fallbackResponse.query?.pages?.associateBy({ it.pageid }, { it.snippet }) ?: emptyMap()
+                    
+                    // Update search results with fallback snippets
+                    searchResults = searchResults.map { result ->
+                        if (result.snippet.isNullOrBlank()) {
+                            val fallbackSnippet = fallbackSnippets[result.pageid]
+                            if (!fallbackSnippet.isNullOrBlank()) {
+                                Log.d("SearchPagingSource", "Fallback SUCCESS for '${result.title}': got ${fallbackSnippet.length} chars")
+                                result.copy(snippet = fallbackSnippet)
+                            } else {
+                                result
+                            }
+                        } else {
+                            result
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w("SearchPagingSource", "Fallback API call failed: ${e.message}")
+                }
+            }
 
             if (searchResults.isEmpty()) {
                 return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
