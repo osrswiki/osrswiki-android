@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.network
 
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
+import com.omiyawaki.osrswiki.network.model.FallbackApiResponse
 import com.omiyawaki.osrswiki.network.model.GeneratedSearchApiResponse
 import com.omiyawaki.osrswiki.network.model.PageImagesInfo
 import com.omiyawaki.osrswiki.page.ImageInfoResponse
@@ -24,6 +25,17 @@ interface WikiApiService {
         @Query("gpsoffset") offset: Int,
         @Query("pithumbsize") thumbSize: Int
     ): GeneratedSearchApiResponse
+
+    /**
+     * Fallback API call for pages that didn't get extracts with exintro=true.
+     * Uses exintro=false to get content from anywhere in the page.
+     */
+    @GET("api.php?action=query&format=json&formatversion=2" +
+            "&prop=extracts" +
+            "&explaintext=true&exchars=280") // No exintro=true for fallback
+    suspend fun getPageExtract(
+        @Query("pageids") pageIds: String
+    ): FallbackApiResponse
 
     @GET("api.php?action=query&list=prefixsearch&format=json")
     suspend fun prefixSearchArticles(
