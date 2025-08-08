@@ -38,8 +38,8 @@ class AppearanceSettingsActivity : BaseActivity() {
                 .beginTransaction()
                 .replace(
                     R.id.appearance_settings_container, 
-                    AppearanceSettingsFragment.newInstance(), 
-                    AppearanceSettingsFragment.TAG
+                    CustomAppearanceSettingsFragment.newInstance(), 
+                    CustomAppearanceSettingsFragment.TAG
                 )
                 .commit()
         }
@@ -64,7 +64,7 @@ class AppearanceSettingsActivity : BaseActivity() {
     private fun setupThemeChangeReceiver() {
         themeChangeReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
+                if (intent?.action == CustomAppearanceSettingsFragment.ACTION_THEME_CHANGED) {
                     L.d("AppearanceSettingsActivity: Received theme change broadcast")
                     // For AppearanceSettings specifically, recreate the activity for complete refresh
                     // This ensures all preference items and backgrounds are properly themed
@@ -73,7 +73,7 @@ class AppearanceSettingsActivity : BaseActivity() {
             }
         }
         
-        val filter = IntentFilter(AppearanceSettingsFragment.ACTION_THEME_CHANGED)
+        val filter = IntentFilter(CustomAppearanceSettingsFragment.ACTION_THEME_CHANGED)
         LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
         L.d("AppearanceSettingsActivity: Theme change receiver registered")
     }
