@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.util.Log
 import android.util.LruCache
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
@@ -36,6 +37,7 @@ object ThemePreviewRenderer {
     private const val TARGET_W_DP = 110
     private const val TARGET_H_DP = 72
     private const val CACHE_SIZE = 3 // light, dark, split
+    private const val TAG = "ThemePreviewRenderer"
     
     // Memory cache for immediate access
     private val memoryCache = LruCache<String, Bitmap>(CACHE_SIZE)
@@ -95,32 +97,60 @@ object ThemePreviewRenderer {
         context: Context,
         @StyleRes theme: Int
     ): Bitmap = withContext(Dispatchers.Default) {
+        Log.d(TAG, "generateSinglePreview: Starting preview generation for theme $theme")
+        
         try {
-            val themedContext = ContextThemeWrapper(context, theme)
-            // Use cloneInContext to fix theme inflation bugs (Expert 1's recommendation)
-            val inflater = LayoutInflater.from(context).cloneInContext(themedContext)
-            val root = inflater.inflate(R.layout.theme_preview_host, null, false)
+            // EXPERT 1's SOLUTION: Move all view operations to Main thread
+            val root = withContext(Dispatchers.Main.immediate) {
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Creating themed context")
+                val themedContext = ContextThemeWrapper(context, theme)
+                
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Creating inflater")
+                // Use cloneInContext to fix theme inflation bugs (Expert 1's recommendation)
+                val inflater = LayoutInflater.from(context).cloneInContext(themedContext)
+                
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Inflating layout")
+                val root = inflater.inflate(R.layout.theme_preview_host, null, false)
+                
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Setting up stub data")
+                // Attempt to populate with content, but continue even if it fails
+                val contentSuccess = setupStubData(root)
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Content setup ${if (contentSuccess) "succeeded" else "failed, using fallback"}")
+                
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Starting measure and layout")
+                // Measure at standard phone dimensions
+                val specW = View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY)
+                val specH = View.MeasureSpec.makeMeasureSpec(2280, View.MeasureSpec.EXACTLY)
+                
+                root.measure(specW, specH)
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Measured view: ${root.measuredWidth}x${root.measuredHeight}")
+                
+                root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+                Log.d(TAG, "generateSinglePreview: [MAIN THREAD] Layout complete - returning to background thread")
+                
+                root // Return prepared root view to Default thread
+            }
             
-            // Handle RecyclerView dependencies by showing empty state (Expert 1's tip)
-            setupStubData(root)
-            
-            // Measure at standard phone dimensions
-            val specW = View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY)
-            val specH = View.MeasureSpec.makeMeasureSpec(2280, View.MeasureSpec.EXACTLY)
-            root.measure(specW, specH)
-            root.layout(0, 0, root.measuredWidth, root.measuredHeight)
-            
+            // EXPERT 1's SOLUTION: Only bitmap creation stays on background thread
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Creating bitmap from prepared view")
             // Create full-size bitmap
             val fullBitmap = Bitmap.createBitmap(
                 root.measuredWidth, 
                 root.measuredHeight, 
                 Bitmap.Config.ARGB_8888
             )
-            val canvas = Canvas(fullBitmap)
-            root.draw(canvas)
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Created bitmap ${fullBitmap.width}x${fullBitmap.height}")
             
+            val canvas = Canvas(fullBitmap)
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Drawing to canvas")
+            root.draw(canvas)
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Draw complete")
+            
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Starting bitmap processing")
             // Crop out status bar area (top 72px) and scale to preview size
             val cropHeight = fullBitmap.height - dpToPx(24, context)
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Cropping to height $cropHeight (from ${fullBitmap.height})")
+            
             val croppedBitmap = Bitmap.createBitmap(
                 fullBitmap, 
                 0, 
@@ -128,14 +158,17 @@ object ThemePreviewRenderer {
                 fullBitmap.width, 
                 cropHeight
             )
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Created cropped bitmap ${croppedBitmap.width}x${croppedBitmap.height}")
             
             // Scale proportionally based on width to maintain aspect ratio
             val targetWidth = dpToPx(TARGET_W_DP, context)
             val targetHeight = dpToPx(TARGET_H_DP, context)
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Target dimensions ${targetWidth}x${targetHeight}")
             
             // Calculate scale factor based on width
             val scale = targetWidth.toFloat() / croppedBitmap.width.toFloat()
             val scaledHeight = (croppedBitmap.height * scale).toInt()
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Scale factor $scale, scaled height $scaledHeight")
             
             // Scale proportionally (maintains aspect ratio)
             val proportionalBitmap = Bitmap.createScaledBitmap(
@@ -144,9 +177,11 @@ object ThemePreviewRenderer {
                 scaledHeight,
                 true
             )
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Created scaled bitmap ${proportionalBitmap.width}x${proportionalBitmap.height}")
             
             // Top-align crop if scaled height exceeds target
             val finalBitmap = if (scaledHeight > targetHeight) {
+                Log.d(TAG, "generateSinglePreview: [BACKGROUND] Final crop needed, height $scaledHeight > target $targetHeight")
                 Bitmap.createBitmap(
                     proportionalBitmap,
                     0,
@@ -155,8 +190,11 @@ object ThemePreviewRenderer {
                     targetHeight
                 )
             } else {
+                Log.d(TAG, "generateSinglePreview: [BACKGROUND] No final crop needed")
                 proportionalBitmap
             }
+            
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Final bitmap ${finalBitmap.width}x${finalBitmap.height}")
             
             // Clean up intermediate bitmaps
             fullBitmap.recycle()
@@ -164,11 +202,16 @@ object ThemePreviewRenderer {
             if (finalBitmap !== proportionalBitmap) {
                 proportionalBitmap.recycle()
             }
+            Log.d(TAG, "generateSinglePreview: [BACKGROUND] Cleaned up intermediate bitmaps")
             
+            Log.d(TAG, "generateSinglePreview: SUCCESS - returning final bitmap")
             finalBitmap
         } catch (e: Exception) {
+            Log.e(TAG, "generateSinglePreview: FAILED - Exception during preview generation", e)
             // Return fallback bitmap on error
-            generateFallbackBitmap(context)
+            val fallback = generateFallbackBitmap(context)
+            Log.d(TAG, "generateSinglePreview: Returning fallback bitmap ${fallback.width}x${fallback.height}")
+            fallback
         }
     }
     
@@ -240,48 +283,115 @@ object ThemePreviewRenderer {
     }
     
     /**
-     * Sets up actual data for RecyclerViews and other components to show realistic home page content.
-     * Populates the news RecyclerView with sample data that represents what users see on the home page.
+     * Sets up content for theme preview. Attempts to populate with realistic home page content,
+     * but falls back to basic layout if complex content fails.
      */
-    private fun setupStubData(root: View) {
-        // Hide progress indicator and error states
-        root.findViewById<View>(R.id.progressBarNews)?.let { progress ->
-            progress.visibility = View.GONE
-        }
+    private fun setupStubData(root: View): Boolean {
+        Log.d(TAG, "setupStubData: Starting content setup")
         
-        root.findViewById<View>(R.id.textViewNewsError)?.let { error ->
-            error.visibility = View.GONE
+        try {
+            // Hide progress indicator and error states
+            root.findViewById<View>(R.id.progressBarNews)?.let { progress ->
+                progress.visibility = View.GONE
+                Log.d(TAG, "setupStubData: Hidden progress indicator")
+            }
+            
+            root.findViewById<View>(R.id.textViewNewsError)?.let { error ->
+                error.visibility = View.GONE
+                Log.d(TAG, "setupStubData: Hidden error text")
+            }
+            
+            // Set page title for the header - use the same string as the real app (Home)
+            root.findViewById<TextView>(R.id.page_title)?.let { title ->
+                title.text = root.context.getString(R.string.nav_news)  // This resolves to "Home"
+                Log.d(TAG, "setupStubData: Set page title to '${title.text}'")
+            }
+            
+            // Ensure search text placeholder is visible 
+            root.findViewById<TextView>(R.id.search_text)?.let { searchText ->
+                searchText.text = "Search OSRSWiki"
+                Log.d(TAG, "setupStubData: Set search text")
+            }
+            
+            // Attempt to populate news RecyclerView with realistic sample data
+            root.findViewById<RecyclerView>(R.id.recyclerViewNews)?.let { recyclerView ->
+                Log.d(TAG, "setupStubData: Found RecyclerView, attempting to populate")
+                
+                try {
+                    recyclerView.visibility = View.VISIBLE
+                    
+                    // Create sample data that represents typical home page content
+                    val sampleFeedItems = createSampleFeedData()
+                    Log.d(TAG, "setupStubData: Created sample feed items: ${sampleFeedItems.size}")
+                    
+                    // Set up adapter with sample data (using empty click handlers for preview)
+                    val adapter = NewsFeedAdapter(
+                        onUpdateItemClicked = { /* No-op for preview */ },
+                        onLinkClicked = { /* No-op for preview */ }
+                    )
+                    Log.d(TAG, "setupStubData: Created NewsFeedAdapter")
+                    
+                    // Configure RecyclerView
+                    recyclerView.layoutManager = LinearLayoutManager(root.context)
+                    Log.d(TAG, "setupStubData: Set layout manager")
+                    
+                    recyclerView.adapter = adapter
+                    Log.d(TAG, "setupStubData: Set adapter on RecyclerView")
+                    
+                    // Populate with sample data
+                    adapter.setItems(sampleFeedItems)
+                    Log.d(TAG, "setupStubData: Set items on adapter - SUCCESS")
+                    
+                    return true
+                    
+                } catch (e: Exception) {
+                    Log.e(TAG, "setupStubData: Failed to populate RecyclerView with complex content", e)
+                    // Fall back to empty but visible RecyclerView
+                    setupFallbackContent(recyclerView)
+                    return false
+                }
+            } ?: run {
+                Log.w(TAG, "setupStubData: RecyclerView not found in layout")
+                return false
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "setupStubData: Overall setup failed", e)
+            // Try to at least show basic content
+            setupBasicFallbackContent(root)
+            return false
         }
-        
-        // Set page title for the header - News is the home screen
-        root.findViewById<TextView>(R.id.page_title)?.let { title ->
-            title.text = "News"
-        }
-        
-        // Ensure search text placeholder is visible 
-        root.findViewById<TextView>(R.id.search_text)?.let { searchText ->
-            searchText.text = "Search OSRSWiki"
-        }
-        
-        // Populate news RecyclerView with realistic sample data
-        root.findViewById<RecyclerView>(R.id.recyclerViewNews)?.let { recyclerView ->
+    }
+    
+    /**
+     * Sets up fallback content when complex RecyclerView population fails.
+     */
+    private fun setupFallbackContent(recyclerView: RecyclerView) {
+        Log.d(TAG, "setupFallbackContent: Setting up empty RecyclerView fallback")
+        try {
             recyclerView.visibility = View.VISIBLE
-            
-            // Create sample data that represents typical home page content
-            val sampleFeedItems = createSampleFeedData()
-            
-            // Set up adapter with sample data (using empty click handlers for preview)
-            val adapter = NewsFeedAdapter(
-                onUpdateItemClicked = { /* No-op for preview */ },
-                onLinkClicked = { /* No-op for preview */ }
-            )
-            
-            // Configure RecyclerView
-            recyclerView.layoutManager = LinearLayoutManager(root.context)
-            recyclerView.adapter = adapter
-            
-            // Populate with sample data
-            adapter.setItems(sampleFeedItems)
+            recyclerView.layoutManager = null
+            recyclerView.adapter = null
+            Log.d(TAG, "setupFallbackContent: Set empty RecyclerView state")
+        } catch (e: Exception) {
+            Log.e(TAG, "setupFallbackContent: Even fallback failed", e)
+            recyclerView.visibility = View.GONE
+        }
+    }
+    
+    /**
+     * Sets up basic fallback content when everything else fails.
+     */
+    private fun setupBasicFallbackContent(root: View) {
+        Log.d(TAG, "setupBasicFallbackContent: Setting up minimal fallback")
+        try {
+            // Just ensure basic visibility states
+            root.findViewById<View>(R.id.progressBarNews)?.visibility = View.GONE
+            root.findViewById<View>(R.id.textViewNewsError)?.visibility = View.GONE
+            root.findViewById<RecyclerView>(R.id.recyclerViewNews)?.visibility = View.GONE
+            Log.d(TAG, "setupBasicFallbackContent: Set basic visibility states")
+        } catch (e: Exception) {
+            Log.e(TAG, "setupBasicFallbackContent: Even basic fallback failed", e)
         }
     }
     
