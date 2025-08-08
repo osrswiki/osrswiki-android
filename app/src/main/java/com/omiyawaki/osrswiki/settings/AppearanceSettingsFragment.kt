@@ -18,6 +18,27 @@ import com.omiyawaki.osrswiki.util.log.L
 class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        // Debug: Verify preference theme resolution
+        L.d("ThemeCheck: --- Verifying Preference Theme ---")
+        val typedValue = android.util.TypedValue()
+        val themeResolved = requireContext().theme.resolveAttribute(
+            androidx.preference.R.attr.preferenceTheme,
+            typedValue,
+            true
+        )
+        
+        if (themeResolved) {
+            val themeResId = typedValue.resourceId
+            val themeName = try {
+                resources.getResourceName(themeResId)
+            } catch (e: Exception) {
+                "ID: $themeResId (name not found)"
+            }
+            L.d("ThemeCheck: Preference theme is RESOLVED: $themeName (ID: $themeResId)")
+        } else {
+            L.d("ThemeCheck: Preference theme is NOT RESOLVED. Using default theme.")
+        }
+        
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey)
 
         val appThemeModePref = findPreference<ListPreference>(Prefs.KEY_APP_THEME_MODE)
@@ -44,7 +65,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupFonts()
+        // setupFonts() // DISABLED: Testing theme-based styling approach
     }
 
     private fun setupFonts() {
@@ -89,8 +110,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
         
         L.d("AppearanceSettingsFragment: onThemeChanged called - refreshing preferences UI")
         
-        // Use the established ThemeAware callback to refresh the fragment UI
-        refreshPreferencesThemeDirectly()
+        // refreshPreferencesThemeDirectly() // DISABLED: Testing theme-based styling approach
     }
     
     private fun refreshPreferencesThemeDirectly() {

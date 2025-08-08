@@ -6,6 +6,7 @@
         <item name="colorOnPrimary">@color/osrs_text_light</item>
         <item name="colorPrimaryContainer">@color/osrs_parchment_medium</item>
         <item name="colorOnPrimaryContainer">@color/osrs_text_dark</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
         <item name="colorSecondary">@color/osrs_gold</item>
         <item name="colorOnSecondary">@color/osrs_brown_deep</item>
         <item name="colorSecondaryContainer">@color/osrs_parchment_medium</item>
@@ -35,6 +36,9 @@
         <item name="secondary_text_color">@color/osrs_text_dark</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Light" parent="Theme.Material3.Light.NoActionBar">
@@ -57,6 +61,9 @@
         <item name="base_color">?attr/colorSurface</item>
         <item name="secondary_text_color">#757575</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -75,6 +82,9 @@
         <item name="base_color">?attr/colorSurface</item>
         <item name="secondary_text_color">#BDBDBD</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
@@ -82,6 +92,7 @@
         <item name="colorOnPrimary">@color/osrs_text_light</item>
         <item name="colorPrimaryContainer">@color/osrs_parchment_medium</item>
         <item name="colorOnPrimaryContainer">@color/osrs_text_dark</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
         <item name="colorSecondary">@color/osrs_brown_deep</item>
         <item name="colorOnSecondary">@color/osrs_text_light</item>
         <item name="colorSecondaryContainer">@color/osrs_parchment_medium</item>
@@ -120,6 +131,9 @@
         <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
         <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
         <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
     </style>
 
 
@@ -128,6 +142,7 @@
         <item name="colorOnPrimary">@color/osrs_text_light</item>
         <item name="colorPrimaryContainer">@color/osrs_parchment_dark</item>
         <item name="colorOnPrimaryContainer">@color/osrs_text_light_alt</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
         <item name="colorSecondary">@color/osrs_text_light_alt</item>
         <item name="colorOnSecondary">@color/osrs_brown_deep</item>
         <item name="colorSecondaryContainer">@color/osrs_parchment_dark</item>
@@ -166,6 +181,9 @@
         <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
         <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
         <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
     </style>
 
 
@@ -176,11 +194,19 @@
         <item name="elevation">0dp</item>
     </style>
 
-    <!-- Preference Theme Overlay for better text styling -->
+    <!-- Preference Theme Overlay - Using Expert 2's solution with textAppearanceSmall/Large -->
     <style name="PreferenceThemeOverlay.App" parent="PreferenceThemeOverlay.v14.Material">
-        <!-- Override text appearances used by preferences -->
-        <item name="textAppearanceListItem">@style/AppTextAppearance.PreferenceTitle</item>
-        <item name="textAppearanceListItemSecondary">@style/AppTextAppearance.PreferenceSummary</item>
+        <!-- Tell every <Preference> row which TextAppearances to use -->
+        <item name="android:textAppearanceLarge">@style/AppTextAppearance.PreferenceTitle</item>
+        <item name="android:textAppearanceSmall">@style/AppTextAppearance.PreferenceSummary</item>
+    </style>
+
+    <!-- Custom MaterialSwitch style for proper theming following expert guidance -->
+    <style name="Widget.OSRSWiki.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/switch_thumb_tint</item>
+        <item name="trackTint">@color/switch_track_tint</item>
+        <item name="trackDecorationTint">@color/switch_outline_tint</item>
+        <item name="useMaterialThemeColors">false</item>
     </style>
 
 </resources>
