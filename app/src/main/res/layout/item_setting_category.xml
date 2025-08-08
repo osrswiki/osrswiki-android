@@ -8,6 +8,6 @@
     android:paddingTop="32dp"
     android:paddingBottom="8dp"
     android:textAppearance="?attr/textAppearanceTitleSmall"
-    android:textColor="?attr/colorPrimary"
+    android:textColor="?attr/colorOnSurface"
     android:textStyle="bold"
     tools:text="General" />
