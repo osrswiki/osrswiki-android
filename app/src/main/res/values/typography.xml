@@ -235,4 +235,23 @@
         <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
     
+    <!-- Preference Styles - Settings screen text -->
+    <!-- Preference Title - Medium weight for better readability in settings -->
+    <style name="AppTextAppearance.PreferenceTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight">500</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+    
+    <!-- Preference Summary - Regular weight for supporting text -->
+    <style name="AppTextAppearance.PreferenceSummary" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight">400</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+    
 </resources>
