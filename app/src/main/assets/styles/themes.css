@@ -161,6 +161,14 @@
     --rc-negative-color: #d73027;
     --sourceeditor-background-secondary: var(--body-light);
     --sourceeditor-border: var(--body-border);
+    
+    /* Phase 8: User Roles, Echo Notifications & UI Chrome Variables */
+    --awb-purple: #8b5a96;
+    --admin-blue: #4285f4;
+    --bearcat-green: #2e7d32;
+    --background-text-color: var(--text-color);
+    --background-link-color: var(--link-color);
+    --body-dark: var(--body-dark-shade);
 }
 
 
@@ -325,6 +333,14 @@ body.theme-osrs-dark {
     --rc-negative-color: #f26d60;
     --sourceeditor-background-secondary: var(--body-mid);
     --sourceeditor-border: var(--body-border);
+    
+    /* Phase 8: User Roles, Echo Notifications & UI Chrome Variables adapted for dark theme */
+    --awb-purple: #c799d1;
+    --admin-blue: #7bb3ff;
+    --bearcat-green: #66bb6a;
+    --background-text-color: var(--text-color);
+    --background-link-color: var(--link-color);
+    --body-dark: var(--body-dark-shade);
 }
 
 
