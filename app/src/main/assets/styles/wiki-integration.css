@@ -2516,3 +2516,679 @@ input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button-
 .font-runescape {
     font-family: 'RuneScape';
 }
+
+
+/* =================================================================== */
+/* PHASE 5: OSRS GAME INTERFACE & EQUIPMENT SYSTEMS                  */
+/* =================================================================== */
+
+/* --- Advanced Game Interface Systems --- */
+
+/* Equipment Tab Framework */
+.equipment {
+    background: #3e3529;
+    border: 9px solid transparent;
+    border-image-source: url(/images/Interface_border.png?5150e);
+    border-image-slice: 9;
+    border-image-width: 9px;
+    border-image-outset: 0;
+    border-image-repeat: repeat;
+    margin: 7px 0;
+    padding: 0 2px 0 3px;
+    border-radius: 4px;
+}
+
+.equipment-div {
+    background-image: url(/images/Worn_equipment_tab_%28no_buttons%29.png?324d3);
+    height: 222px;
+    margin: 15px 0 14px;
+}
+
+.equipment-div-buttons {
+    background-image: url(/images/Worn_equipment_tab_%28borderless%29.png?bce01);
+    height: 244px;
+    margin: 4px 0 3px;
+}
+
+.equipment-blank {
+    background-image: url(/images/Blank_slot.png?75904);
+    width: 36px;
+    height: 36px;
+}
+
+/* Equipment Positioning */
+.equipment-left {
+    float: left;
+    clear: left;
+    margin-right: 7px;
+}
+
+.equipment-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.equipment-right {
+    float: right;
+    clear: right;
+    margin-left: 7px;
+}
+
+/* Equipment Stats Display */
+.equipment-stats {
+    font-family: RuneScape;
+    font-size: 16px;
+    line-height: 14px;
+    color: #ff981f;
+    text-shadow: 1px 1px 0 black;
+}
+
+.equipment-ikod {
+    max-width: 325px;
+}
+
+.equipment-stats b {
+    font-family: RuneScape;
+    font-weight: bold;
+    display: block;
+    margin-top: 2px;
+}
+
+.equipment-stats data {
+    display: block;
+    padding-left: 8px;
+}
+
+.equipment-stats data img {
+    vertical-align: bottom;
+}
+
+/* Equipment IKOD (Item Knowledge on Demand) */
+.equipment-ikod em {
+    font-style: normal;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.equipment-ikod b {
+    font-weight: normal;
+    color: white;
+}
+
+.equipment-ikod strong {
+    font-weight: normal;
+    color: red;
+}
+
+.equipment-ikod ul {
+    list-style: none;
+    margin: 0;
+}
+
+.equipment-ikod li {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    margin: 0;
+    margin-right: 14px;
+}
+
+.equipment-ikod img {
+    cursor: help;
+}
+
+.equipment-ikod hr {
+    border-top: 1px solid #0e0e0c;
+    border-bottom: 1px solid #474745;
+    margin: 7px 0;
+}
+
+/* Equipment Slot Positioning */
+.equipment-plinkp {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    left: 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.equipment-head {
+    left: 70px;
+    top: 0px;
+}
+
+.equipment-cape {
+    left: 29px;
+    top: 39px;
+}
+
+.equipment-neck {
+    left: 70px;
+    top: 39px;
+}
+
+.equipment-ammo {
+    left: 111px;
+    top: 39px;
+}
+
+.equipment-ammo2 {
+    left: 111px;
+    top: 0px;
+}
+
+.equipment-weapon {
+    left: 14px;
+    top: 78px;
+}
+
+.equipment-torso {
+    left: 70px;
+    top: 78px;
+}
+
+.equipment-shield {
+    left: 126px;
+    top: 78px;
+}
+
+.equipment-legs {
+    left: 70px;
+    top: 118px;
+}
+
+.equipment-gloves {
+    left: 14px;
+    top: 158px;
+}
+
+.equipment-boots {
+    left: 70px;
+    top: 158px;
+}
+
+.equipment-ring {
+    left: 126px;
+    top: 158px;
+}
+
+.equipment-statsbutton {
+    top: 204px;
+    left: 0px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    box-shadow: 2px 2px 3px black;
+}
+
+.equipment-ikodbutton {
+    top: 204px;
+    left: 90px;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    box-shadow: 2px 2px 3px black;
+}
+
+/* Inventory Systems */
+.inventorytable {
+    background-image: url(/images/Inventory_tab.png?dd7c2);
+    width: 204px;
+    padding: 13px 16px 10px;
+}
+
+.lootingbagtable {
+    background-image: url(/images/Looting_bag_tab.png?4088f);
+    width: 204px;
+    padding: 31px 17px 20px 12px;
+}
+
+.menagerietable {
+    background-image: url(/images/Menagerie_interface.png?89434);
+    background-repeat: no-repeat;
+    background-position: top left;
+}
+
+.menagerietable td {
+    padding: 0;
+    border: 0;
+    text-align: center;
+}
+
+/* Rune Pouch Systems */
+.runepouchtable {
+    background-image: url(/images/Rune_pouch_background.png?30a74);
+    width: 158px;
+    padding: 24px 7px 6px;
+}
+
+.runepouchtable.storage-left {
+    margin-left: 23px;
+}
+
+.runepouchtable.storage-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.runepouchtable.storage-right {
+    margin-right: 23px;
+}
+
+.runepouchtable td {
+    width: 32px;
+    height: 32px;
+    line-height: 1.6em;
+}
+
+.runepouchtable td.middle-rune {
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.divinerunepouch td.middle-rune {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.divinerunepouch td.middle-rune + td.middle-rune {
+    padding-left: 0;
+}
+
+/* Inventory Quantity Text System */
+.inventorytable .inv-quantity-text,
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small';
+    font-size: 12pt;
+    position: absolute;
+    pointer-events: none;
+}
+
+.runepouchtable .inv-quantity-text,
+.equipment .inv-quantity-text {
+    position: absolute;
+    top: -3px;
+}
+
+.runepouchtable .inv-quantity-text {
+    left: -1px;
+}
+
+/* Quantity Color Tiers */
+.runepouchtable .inv-quantity-text.qty-1,
+.equipment .inv-quantity-text.qty-1 {
+    color: #ff0;
+}
+
+.runepouchtable .inv-quantity-text.qty-100k,
+.equipment .inv-quantity-text.qty-100k {
+    color: #fff;
+}
+
+.runepouchtable .inv-quantity-text.qty-10m,
+.equipment .inv-quantity-text.qty-10m {
+    color: #01ff80;
+}
+
+/* Rune Pouch Positioning Refinements */
+.runepouchtable td.middle-rune .inv-quantity-text {
+    left: 23px;
+}
+
+.divinerunepouch td.middle-rune .inv-quantity-text {
+    left: 5px;
+}
+
+.divinerunepouch td.middle-rune + td.middle-rune .inv-quantity-text {
+    left: 0;
+}
+
+/* Noted Item Display */
+span.noted-item {
+    width: 30px;
+    height: 29px;
+    text-align: center;
+    display: inline-block;
+}
+
+span.noted-item a {
+    width: 30px;
+    height: 29px;
+}
+
+
+/* --- OSRS-Specific Gaming Components --- */
+
+/* Enhanced Music Player Interface */
+.musicplayer {
+    border: 1px solid var(--body-border);
+    font-size: 90%;
+    background: var(--body-light);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+    max-width: 300px;
+    margin: 0 0 1em 1em;
+    padding: 5px;
+}
+
+.musicplayer audio {
+    max-width: 298px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Transcript Systems */
+.transcript {
+    background: var(--body-light);
+    border-radius: 0 0 120px 120px / 0 0 8px 8px;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+    max-width: 90ch;
+    overflow: hidden;
+    margin-bottom: 1em;
+    padding: 0.5em 1em 1em;
+    clear: left;
+}
+
+.transcript.godletter {
+    margin: 1em auto;
+    padding: 1em 1.5em;
+    max-width: 60ch;
+}
+
+.transcript-chatbox-image {
+    display: inline-block;
+    margin-right: 5px;
+    position: relative;
+    text-align: center;
+    width: 32px;
+}
+
+.transcript-chatbox-image + .transcript-chatbox-image {
+    left: -10px;
+    top: 10px;
+    margin-right: 0;
+}
+
+.transcript-opt::before {
+    display: inline-block;
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Black-chevron.svg?00549) no-repeat 50% 50% / contain;
+    mask: url(/images/Black-chevron.svg?00549) no-repeat 50% 50% / contain;
+    width: 7px;
+    height: 10px;
+    margin-right: 5px;
+}
+
+/* Enhanced RuneScape Font Variants */
+.font-runescape-bold {
+    font-family: 'RuneScape';
+    font-weight: bold;
+}
+
+.font-runescape-small {
+    font-family: 'RuneScape Small';
+}
+
+.font-runescape-quill-8 {
+    font-family: 'RuneScape Quill 8';
+}
+
+/* Link Templates for Lists */
+.mw-parser-output > ul .plink-template,
+.mw-parser-output > ul .plinkp-template,
+.mw-parser-output > ol .plink-template,
+.mw-parser-output > ol .plinkp-template {
+    width: 35px;
+    line-height: 29px;
+    text-align: center;
+    display: inline-block;
+}
+
+.plinkt-image {
+    text-align: center;
+}
+
+
+/* --- Community & Feedback Systems --- */
+
+/* Gloop Feedback Framework */
+.gloop-feedback-wrapper.tile {
+    margin-bottom: 0.75em;
+    padding-bottom: 1.5em;
+}
+
+.gloop-feedback-resolve-toggle {
+    display: inline;
+    padding: 0.25em 0.75em;
+    border-radius: 0.4em;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.gloop-feedback-categories {
+    display: inline-block;
+    float: right;
+    clear: right;
+}
+
+.gloop-feedback-category {
+    display: inline;
+    padding: 0.25em 0.75em;
+    border-radius: 10em;
+    margin-left: 4px;
+    font-size: 0.85em;
+    cursor: help;
+    font-weight: bold;
+}
+
+/* Gloop Feedback Category Colors */
+.gloop-feedback-category-beginner {
+    color: var(--droptable-common-text-color);
+    background-color: var(--droptable-common-background);
+}
+
+.gloop-feedback-category-game {
+    color: var(--droptable-uncommon-text-color);
+    background-color: var(--droptable-uncommon-background);
+}
+
+.gloop-feedback-category-wiki {
+    color: var(--droptable-always-text-color);
+    background-color: var(--droptable-always-background);
+}
+
+.gloop-feedback-category-none {
+    color: var(--keypress-color);
+    background-color: var(--infobox-room-poh-color);
+}
+
+/* Enhanced Ajax Poll System */
+.ajaxpoll .ajaxpoll-hover-revoke {
+    background: none;
+}
+
+.ajaxpoll .ajaxpoll-ajax,
+.ajaxpoll .ajaxpoll-misc,
+.ajaxpoll .ajaxpoll-info {
+    color: var(--ajaxpoll-text-color);
+}
+
+.ajaxpoll .ajaxpoll-answer-vote {
+    border-color: var(--ajaxpoll-answerbar-border);
+}
+
+.ajaxpoll .ajaxpoll-answer-vote div {
+    background: var(--ajaxpoll-answerbar-background);
+    border-color: var(--ajaxpoll-answerbar-border);
+}
+
+.ajaxpoll .ajaxpoll-our-vote div {
+    border-color: #3c780a;
+}
+
+.ajaxpoll-id-info {
+    display: none;
+}
+
+/* Reference System Enhancements */
+.reflist-lower-alpha {
+    list-style-type: lower-alpha;
+}
+
+sup.reference:target {
+    background-color: var(--body-light);
+}
+
+
+/* --- Advanced TOC & Navigation --- */
+
+/* Floor Number Display Settings */
+#toc li a span.toctext span span:nth-child(2) {
+    display: none;
+}
+
+.floornumber-setting-gb #toc li a span.toctext span span:nth-child(2) {
+    display: none;
+}
+
+.floornumber-setting-us #toc li a span.toctext span span:nth-child(1) {
+    display: none;
+}
+
+.floornumber-setting-gb #toc li a span.toctext span span:nth-child(1) {
+    display: inline;
+}
+
+.floornumber-setting-us #toc li a span.toctext span span:nth-child(2) {
+    display: inline;
+}
+
+/* Floor Number Override Controls */
+.floornumber-override-gb #toc li a span.toctext span span:nth-child(2) {
+    display: none !important;
+}
+
+.floornumber-override-us #toc li a span.toctext span span:nth-child(1) {
+    display: none !important;
+}
+
+.floornumber-override-gb #toc li a span.toctext span span:nth-child(1) {
+    display: inline !important;
+}
+
+.floornumber-override-us #toc li a span.toctext span span:nth-child(2) {
+    display: inline !important;
+}
+
+/* Template Data UI Enhancements */
+.mw-templateData-template-map-list-menu-panel {
+    border-right-color: var(--ooui-interface-border);
+}
+
+.tdg-templateDataParamWidget-param-alias:first-child {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+}
+
+
+/* --- Enhanced Typography & Interface Polish --- */
+
+/* CDX Button System Enhancements */
+.cdx-button.cdx-button--weight-quiet:hover {
+    background-color: rgba(0,24,73,0.02745098);
+}
+
+.cdx-button.cdx-button--weight-quiet:active {
+    background-color: rgba(0,36,73,0.08235294);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:focus {
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+/* Enhanced Border Controls */
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet {
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:hover {
+    border-color: transparent;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet {
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    border-color: #72777d;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:active {
+    border-color: #72777d;
+}
+
+/* Redirect Arrow Enhancement */
+.mw-content-ltr .redirectText li:first-child::before {
+    display: inline-block;
+    width: 47px;
+    height: 20px;
+}
+
+/* Advanced Table Handling */
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+}
+
+/* Quest Details System */
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+}
+
+/* MediaWiki Widget Enhancements */
+.mw-widget-dateInputWidget-handle,
+.mw-widgets-datetime-dateTimeInputWidget-handle {
+    border-color: var(--ooui-input-border);
+}
+
+.smw-ask-query-format select {
+    background-color: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    color: var(--ooui-text);
+}
+
+/* Highcharts Integration */
+.highcharts-scrollbar-track {
+    stroke: var(--ooui-interface-border);
+}

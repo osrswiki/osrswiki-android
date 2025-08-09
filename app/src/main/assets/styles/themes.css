@@ -146,6 +146,11 @@
     --messagebox-warn-border: #fc3;
     --messagebox-warn-color: #222;
     --messagebox-warn-link-color: var(--link-color);
+    
+    /* Phase 5: Advanced Game Interface Variables */
+    --ajaxpoll-text-color: var(--text-color);
+    --ajaxpoll-answerbar-background: #3c780a;
+    --ajaxpoll-answerbar-border: #2d5a08;
 }
 
 
@@ -295,6 +300,11 @@ body.theme-osrs-dark {
     --messagebox-warn-border: #ffcc55;
     --messagebox-warn-color: var(--text-color);
     --messagebox-warn-link-color: var(--link-color);
+    
+    /* Phase 5: Advanced Game Interface Variables adapted for dark theme */
+    --ajaxpoll-text-color: var(--text-color);
+    --ajaxpoll-answerbar-background: #4a8a1a;
+    --ajaxpoll-answerbar-border: #3a6a0a;
 }
 
 
