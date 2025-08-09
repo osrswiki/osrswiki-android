@@ -3192,3 +3192,648 @@ table.wikitable td.no-cell-spacing table {
 .highcharts-scrollbar-track {
     stroke: var(--ooui-interface-border);
 }
+
+
+/* =================================================================== */
+/* PHASE 6: MAIN PAGE & CONTENT TILE SYSTEMS                         */
+/* =================================================================== */
+
+/* --- Main Page Layout & Grid Systems --- */
+
+/* Main Page Framework */
+body.page-Old_School_RuneScape_Wiki .mw-parser-output {
+    max-width: 75em;
+    margin: 0 auto;
+}
+
+body.page-Old_School_RuneScape_Wiki.action-view .catlinks,
+body.page-Old_School_RuneScape_Wiki.action-view #contentSub,
+body.page-Old_School_RuneScape_Wiki.action-view #siteNotice {
+    display: none;
+}
+
+/* Main Page Header */
+.mainpage-header {
+    display: flex;
+    margin: 2.6em 1.75em 1.5em;
+}
+
+.mainpage-header .header-intro {
+    flex: 2;
+}
+
+.mainpage-header .header-intro h1 {
+    font-size: 2.5em;
+    font-weight: bold;
+    border: none;
+    margin: 0 0 0.15em;
+}
+
+.mainpage-header .header-intro p {
+    font-size: 1.1em;
+    line-height: 1.7em;
+}
+
+.mainpage-header .header-stats {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -1em;
+}
+
+/* Main Page Body Grid */
+.mainpage-body {
+    display: grid;
+    grid-template-areas: "update update update" "content content content" "left left right";
+    gap: 0.9rem;
+    grid-template-columns: repeat(3,1fr);
+}
+
+.mainpage-body:has(.mainpage-event) {
+    grid-template-areas: "event event event" "update update update" "content content content" "left left right";
+}
+
+.mainpage-body h2 a {
+    color: var(--text-color);
+}
+
+.mainpage-body .tile {
+    padding-left: 1.75em;
+    padding-right: 1.75em;
+    max-width: 100%;
+}
+
+.mainpage-body .tile-row {
+    display: grid;
+    gap: 0.9rem;
+}
+
+/* Main Page Column Layout */
+.mainpage-left {
+    grid-area: left;
+    flex: 2;
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.mainpage-left > * {
+    margin: 0 0 0.9rem;
+}
+
+.mainpage-right {
+    grid-area: right;
+    flex: 1;
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.mainpage-right > * {
+    margin: 0 0 0.9rem;
+}
+
+/* Recent Updates Section */
+.mainpage-recent-updates {
+    grid-area: update;
+    grid-template-columns: repeat(3,1fr);
+}
+
+.mainpage-recent-updates .tile-halves {
+    flex: 1;
+    align-content: flex-start;
+}
+
+.mainpage-recent-updates .tile-halves:hover .tile-top img {
+    transform: scale(1.04);
+}
+
+.mainpage-recent-updates .tile-halves .tile-top span {
+    width: 100%;
+}
+
+.mainpage-recent-updates .tile-bottom.link-button a {
+    text-align: left;
+    padding: 1rem 1.5rem 0.75rem;
+}
+
+.mainpage-recent-updates h2 {
+    margin: -0.5em 0 0.3em;
+}
+
+.mainpage-recent-updates p:not(.byline) {
+    font-size: 0.9em;
+    line-height: 1.75em;
+    color: var(--text-color);
+}
+
+/* Contents Section */
+.mainpage-contents {
+    grid-area: content;
+    grid-template-columns: repeat(6,1fr);
+}
+
+.mainpage-contents .tile-halves {
+    flex: 1;
+}
+
+.mainpage-contents .tile-top {
+    position: relative;
+}
+
+.mainpage-contents h2 {
+    margin: 0;
+    padding: 0;
+}
+
+.mainpage-contents .tile-bottom.link-button a {
+    padding: 0.75em 0.2em;
+}
+
+
+/* --- Content Tile & Card Systems --- */
+
+/* Base Tile Components */
+.tile h2 {
+    font-size: 1.4em;
+    font-weight: bold;
+    border: none;
+    margin: 0 0 0.4em;
+}
+
+.tile .byline + h2 {
+    margin-top: -0.5em;
+}
+
+.tile.dark h2 {
+    color: var(--tile-dark-header-color);
+}
+
+.tile-halves h2 {
+    font-size: 1.4em;
+    font-weight: bold;
+    border: none;
+    margin: 0 0 0.4em;
+}
+
+.tile-halves .byline + h2 {
+    margin-top: -0.5em;
+}
+
+/* Tile Top Sections */
+.tile-top {
+    width: 100%;
+    padding: 1.3rem 1.5rem 0.6rem;
+}
+
+.tile-top.tile-image {
+    display: flex;
+    align-items: center;
+    background-color: var(--byline-color);
+    overflow: hidden;
+    padding: 0;
+    height: 13vw;
+    max-height: 12em;
+    transition: 0.4s ease-out;
+}
+
+.tile-halves:hover .tile-top.tile-image img {
+    transform: scale(1.1);
+    transition: 0.5s ease-out;
+}
+
+.tile-top.tile-image span {
+    width: 100%;
+}
+
+.tile-top.tile-image img {
+    width: 100%;
+    object-fit: cover;
+    max-height: 200px;
+    transition: 0.4s ease-out;
+}
+
+/* Popular Pages Grid */
+.popular-pages ul {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    grid-gap: 0.6em;
+    margin: 1em 0 0.7em 0;
+}
+
+.mp-popular-page-light {
+    display: flex;
+    align-items: center;
+    background-color: var(--button-background);
+    transition: 100ms;
+}
+
+.mp-popular-page-light a {
+    flex: 1;
+    display: block;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    padding: 0.7em 1em;
+}
+
+.mp-popular-page-light:hover {
+    filter: brightness(115%);
+    transition: 100ms;
+}
+
+
+/* --- Skills Navigation & Gaming Content --- */
+
+/* Skills Grid System */
+.mainpage-skills ul {
+    columns: 3 9em;
+    margin: 1em 0.7em 0.7em 1em;
+}
+
+.mainpage-skills li {
+    display: flex;
+    margin-bottom: 0.29em;
+}
+
+.mainpage-skills li span a {
+    border-radius: 2px;
+    padding: 4px;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mainpage-skills li > a:last-child {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    padding-left: 0.7em;
+    text-decoration: none;
+}
+
+.mainpage-skills li:hover a:first-child {
+    border-radius: 2px 0 0 2px;
+}
+
+.mainpage-skills li:hover > a:last-child {
+    color: rgba(255,255,255,0.9);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Skill Category Colors */
+.skill-agility span a,
+.skill-melee span a {
+    background: #bc483d;
+}
+
+.skill-ranged span a {
+    background: #748d36;
+}
+
+.skill-magic span a {
+    background: #6274ab;
+}
+
+.skill-fishing span a,
+.skill-fletching span a {
+    background: #3e8e9a;
+}
+
+.skill-cooking span a,
+.skill-thieving span a {
+    background: #91689e;
+}
+
+.skill-farming span a,
+.skill-woodcutting span a {
+    background: #59924f;
+}
+
+.skill-mining span a {
+    background: #6385a8;
+}
+
+.skill-smithing span a {
+    background: #d2b244;
+}
+
+
+/* --- Social & Community Integration --- */
+
+/* Discord Integration Tile */
+.mainpage-discord {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-discord .tile-top {
+    display: flex;
+    align-items: center;
+    background: #5865f2;
+    padding: 1em 1.75em;
+}
+
+.mainpage-discord .tile-top a {
+    flex: 1;
+    position: relative;
+    text-decoration: none;
+}
+
+.mainpage-discord .tile-top a:hover .arrow {
+    transform: translateX(50%);
+}
+
+.mainpage-discord .tile-bottom {
+    background: #525ee0;
+    border: none;
+    padding: 1em 1.75em;
+}
+
+.mainpage-discord .tile-bottom p {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0;
+}
+
+.mainpage-discord .partner-icon {
+    margin-right: 0.75em;
+}
+
+.mainpage-discord .server-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.25em;
+    margin: 0.5em 0 -0.15em;
+}
+
+.mainpage-discord .server-tagline {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0.5em;
+}
+
+.mainpage-discord .arrow {
+    position: absolute;
+    top: calc(50% - .5em);
+    right: 0;
+    height: 1em;
+    width: 0.7em;
+    background-size: 0.7em 1em;
+    transition: 0.3s ease-out;
+}
+
+/* Twitter Integration Tile */
+.mainpage-twitter {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-twitter .tile-top {
+    display: flex;
+    align-items: center;
+    background: #15202b;
+    padding: 1em 1.75em;
+}
+
+.mainpage-twitter .tile-top a {
+    flex: 1;
+    position: relative;
+    text-decoration: none;
+}
+
+.mainpage-twitter .tile-top a:hover .arrow {
+    transform: translateX(50%);
+}
+
+.mainpage-twitter .tile-bottom {
+    background: #121c26;
+    border: none;
+    padding: 1em 1.75em;
+}
+
+.mainpage-twitter .tile-bottom p {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0;
+}
+
+.mainpage-twitter .twitter-logo {
+    margin-right: 0.75em;
+}
+
+.mainpage-twitter .twitter-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.25em;
+    margin: 0.5em 0 -0.15em;
+}
+
+.mainpage-twitter .twitter-tagline {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0.5em;
+}
+
+.mainpage-twitter .arrow {
+    position: absolute;
+    top: calc(50% - .5em);
+    right: 0;
+    height: 1em;
+    width: 0.7em;
+    background-size: 0.7em 1em;
+    transition: 0.3s ease-out;
+}
+
+/* Community Editing Tile */
+.mainpage-editing {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-editing .tile-top {
+    background: #438ab5;
+}
+
+.mainpage-editing .tile-bottom {
+    background: #3980ab;
+    border: none;
+    padding: 0.8rem 1.5rem 0.4rem;
+}
+
+.mainpage-editing h2 {
+    color: #fff;
+}
+
+.mainpage-editing a {
+    color: #fff;
+}
+
+.mainpage-editing p {
+    color: rgba(255,255,255,0.9);
+}
+
+.mainpage-editing ul {
+    list-style-image: url(/images/Transparent-chevron.svg?20dcf);
+}
+
+
+/* --- Advanced Content Systems --- */
+
+/* OSWF Tile System (OSRS Wiki Festival) */
+.oswf-tile.oswf-complete {
+    opacity: 0.65;
+}
+
+/* Event Systems */
+.mainpage-trailblazer {
+    grid-area: event;
+}
+
+.mainpage-trailblazer .tb-logo {
+    margin-bottom: 0.9rem;
+}
+
+.mainpage-trailblazer .tile-row {
+    grid-template-columns: repeat(4,1fr);
+}
+
+/* Main Page Polls Integration */
+.mainpage-poll .ajaxpoll {
+    border: none;
+    background: none;
+    padding: 0;
+    width: auto;
+}
+
+/* Transcript Enhancements */
+.transcript-opt.disabled {
+    filter: opacity(0.5);
+}
+
+.ns-120 .mw-parser-output s,
+.transcript s {
+    text-decoration-color: var(--transcript-strikethrough-color);
+}
+
+.ns-120 .mw-parser-output .template-colour,
+.transcript .template-colour {
+    text-shadow: 1px 1px #000a;
+}
+
+
+/* --- Interface Polish & Refinements --- */
+
+/* Enhanced CDX Button States */
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,24,73,0.02745098);
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,36,73,0.08235294);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+/* Enhanced Border Controls */
+.cdx-button.cdx-button--weight-quiet:hover {
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet:active {
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    border-color: #72777d;
+}
+
+/* Advanced Table Handling */
+table.wikitable td.no-cell-spacing table {
+    height: calc(100% + 2px);
+}
+
+.table-na {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.questdetails {
+    width: 100%;
+    border-collapse: separate;
+}
+
+/* Enhanced Inventory & Equipment Systems */
+.menagerietable {
+    width: 300px;
+    height: 250px;
+    padding: 56px 28px 34px 6px;
+    border-spacing: 0;
+}
+
+.menagerietable td {
+    position: relative;
+    width: 46px;
+    height: 32px;
+}
+
+.inventorytable .inv-quantity-text,
+.lootingbagtable .inv-quantity-text {
+    top: -8px;
+    left: 4px;
+    text-shadow: #000 1px 1px;
+    color: #ff0;
+}
+
+/* Widget Enhancements */
+.mw-widget-dateInputWidget-handle,
+.mw-widgets-datetime-dateTimeInputWidget-handle {
+    background-color: var(--ooui-input);
+    color: var(--ooui-text);
+}
+
+/* Enhanced Tooltip Integration */
+.js-tooltip-close {
+    border: 0;
+}
+
+/* Scrollbar Integration */
+.highcharts-scrollbar-track {
+    fill: transparent;
+}
