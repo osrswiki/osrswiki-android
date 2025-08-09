@@ -151,6 +151,10 @@
     --ajaxpoll-text-color: var(--text-color);
     --ajaxpoll-answerbar-background: #3c780a;
     --ajaxpoll-answerbar-border: #2d5a08;
+    
+    /* Phase 6: Main Page & Content Tile Variables */
+    --tile-dark-header-color: #ddd;
+    --transcript-strikethrough-color: var(--text-color);
 }
 
 
@@ -305,6 +309,10 @@ body.theme-osrs-dark {
     --ajaxpoll-text-color: var(--text-color);
     --ajaxpoll-answerbar-background: #4a8a1a;
     --ajaxpoll-answerbar-border: #3a6a0a;
+    
+    /* Phase 6: Main Page & Content Tile Variables adapted for dark theme */
+    --tile-dark-header-color: #aaa;
+    --transcript-strikethrough-color: var(--text-color);
 }
 
 
