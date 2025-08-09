@@ -1460,3 +1460,612 @@ tr.mw-abusefilter-list-disabled {
 }
 
 /* --- Final Implementation Complete --- */
+
+/* --- Phase 3: Advanced Content Structure & Semantic Components --- */
+
+/* --- MW Popup Settings & Advanced Tooltips --- */
+#mwe-popups-settings {
+    background: var(--ooui-interface);
+    border-color: var(--ooui-interface-border);
+    color: var(--text-color);
+    border-radius: 4px;
+    padding: 16px;
+}
+
+#mwe-popups-settings header {
+    border-color: var(--ooui-interface-border);
+    border-bottom: 1px solid;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+}
+
+#mwe-popups-settings main#mwe-popups-settings-form p {
+    color: var(--byline-color);
+    margin: 8px 0;
+}
+
+#mwe-popups-settings main#mwe-popups-settings-form form label > span {
+    color: var(--ooui-text);
+    font-weight: normal;
+}
+
+/* --- Advanced Tooltip System --- */
+.tippy-tooltip.light-border-theme {
+    background-color: var(--body-light);
+    color: var(--text-color);
+    border: 1px solid var(--body-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.tippy-tooltip.light-border-theme .tippy-arrow {
+    border-top-color: var(--body-light);
+}
+
+.tippy-tooltip.light-border-theme .tippy-arrow:after {
+    border-top-color: var(--body-light) !important;
+}
+
+.tippy-header {
+    background-color: var(--body-mid);
+    border-bottom: 1px solid var(--body-border);
+    padding: 8px 12px;
+    font-weight: bold;
+}
+
+.js-tooltip-wrapper {
+    position: absolute;
+    z-index: 10;
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--text-color);
+    max-width: 75%;
+    overflow-wrap: break-word;
+    padding: 10px 15px;
+    margin: 0px;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+    font-size: 0.8em;
+    border-radius: 4px;
+}
+
+.js-tooltip-text {
+    padding: 5px;
+    line-height: 1.4;
+}
+
+.js-tooltip-click {
+    color: var(--button-color);
+    background: var(--button-background);
+    border-radius: 2em;
+    cursor: pointer;
+    padding: 0 0.3em;
+    user-select: none;
+    border: 1px solid var(--ooui-normal-border);
+}
+
+.js-tooltip-arrow {
+    position: absolute;
+    border-color: transparent;
+    border-style: solid;
+    width: 0;
+    height: 0;
+}
+
+.js-tooltip-arrow.js-tooltip-arrow-pointleft {
+    border-right-color: var(--body-border);
+    border-left-color: transparent;
+    border-left-width: 0;
+}
+
+.js-tooltip-arrow.js-tooltip-arrow-pointright {
+    border-left-color: var(--body-border);
+    border-right-color: transparent;
+    border-right-width: 0;
+}
+
+.js-tooltip-close {
+    float: right;
+    margin-left: 10px;
+    margin-right: -5px;
+    margin-top: -5px;
+    margin-bottom: 1px;
+    background: var(--button-background);
+    border: 1px solid var(--ooui-normal-border);
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 12px;
+}
+
+/* --- End Phase 3 Section 1 --- */
+
+/* --- SMW (Semantic MediaWiki) Complete System --- */
+
+/* SMW Pre-formatted Content */
+.smwpre {
+    border: 1px solid var(--body-border);
+    color: var(--text-color);
+    background-color: var(--body-light);
+    padding: 8px 12px;
+    font-family: monospace;
+    border-radius: 2px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+/* SMW Query Interface */
+.smw-ask-printhead fieldset,
+.smw-ask-options fieldset {
+    border: 1px solid var(--sidebar);
+    border-radius: 4px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+/* Strike-through Elements with Pseudo-elements */
+.strike > span:before,
+.strike > span:after {
+    background: var(--sidebar);
+    content: '';
+    display: inline-block;
+    height: 1px;
+    position: relative;
+    vertical-align: middle;
+    width: 50%;
+}
+
+.strike > span:before {
+    right: 0.5em;
+    margin-left: -50%;
+}
+
+.strike > span:after {
+    left: 0.5em;
+    margin-right: -50%;
+}
+
+/* SMW Ask Options Fields */
+.smw-ask-options-fields tr td {
+    background-color: var(--smw-ask-options-even-bg);
+    padding: 6px 10px;
+    border: 1px solid var(--body-border);
+}
+
+.smw-ask-options-fields tr:nth-child(odd) td {
+    background-color: var(--smw-ask-options-odd-bg);
+}
+
+/* SMW Top Links with Info Icons */
+.smw-ask-toplinks {
+    background-color: var(--body-mid);
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.smw-ask-toplinks span.smw-icon-info {
+    background: none;
+    padding: 0 !important;
+    display: inline-block;
+}
+
+.smw-ask-toplinks span.smw-icon-info::before {
+    content: '';
+    background: var(--text-color);
+    -webkit-mask: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ctitle%3Einfo%3C/title%3E%3Cpath d='M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zM9 5h2v2H9zm0 4h2v6H9z'/%3E%3C/svg%3E") no-repeat 50% 50% / contain;
+    mask: url("data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ctitle%3Einfo%3C/title%3E%3Cpath d='M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zM9 5h2v2H9zm0 4h2v6H9z'/%3E%3C/svg%3E") no-repeat 50% 50% / contain;
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    vertical-align: text-top;
+    margin-right: 4px;
+}
+
+/* SMW Ask Options Row Alternating */
+.smw-ask-options-row-odd {
+    background-color: var(--body-light);
+}
+
+.smw-ask-options-row-even {
+    background-color: var(--body-mid);
+}
+
+/* Options Toggle Gradient */
+#options-toggle:not(:checked) + #options-list .options-parameter-list:after {
+    background-image: linear-gradient(to bottom,transparent,var(--body-mid) 90%);
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    pointer-events: none;
+}
+
+/* SMW Button System */
+.smw-ask-button-submit input {
+    background-color: var(--ooui-normal);
+    border: 1px solid var(--ooui-normal-border);
+    color: var(--text-color);
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.smw-ask-button-submit input:hover {
+    background-color: var(--ooui-normal--hover);
+    border-color: var(--ooui-normal-border);
+}
+
+input.smw-ask-action-btn.smw-ask-action-btn-dblue {
+    background-color: var(--ooui-progressive);
+    border: 1px solid var(--ooui-progressive);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+input.smw-ask-action-btn.smw-ask-action-btn-dblue:hover {
+    background-color: var(--ooui-progressive--hover);
+    border-color: var(--ooui-progressive--hover);
+}
+
+/* SMW Tabs and Navigation */
+.smw-tabs input.nav-tab:checked + label.nav-label {
+    border: 1px solid var(--ooui-normal-border);
+    background-color: var(--ooui-normal);
+    color: var(--ooui-text);
+}
+
+.smw-tabs input.nav-tab:checked + label.nav-label:hover {
+    color: inherit;
+}
+
+#tab-smw-property-value:checked + label.nav-label .usage-count {
+    color: #fff;
+    background-color: var(--ooui-progressive);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+#tab-smw-property-value:checked + label.nav-label .usage-count.moderate {
+    color: #fff;
+    background-color: #b55e0c;
+    border-color: #b55e0c;
+}
+
+#tab-smw-property-value:checked + label.nav-label .usage-count.high {
+    color: #fff;
+    background-color: #9f261e;
+    border-color: #9f261e;
+}
+
+/* SMW Property Page Results */
+.smw-property-page-results .header-title {
+    background-color: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    color: var(--ooui-text);
+    padding: 8px 12px;
+}
+
+.smw-property-page-results .header-row > .header-title {
+    border-color: var(--ooui-interface-border);
+}
+
+.smw-property-page-results .value-row:hover {
+    background-color: var(--ooui-normal--hover);
+    cursor: pointer;
+}
+
+.smw-property-page-results .smw-table .header-row {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+/* SMW UI Components */
+.smw-ui-input-filter {
+    background-color: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    color: var(--ooui-text);
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+.smw-ui-input-filter input {
+    border-left: 1px solid var(--ooui-interface-border) !important;
+    color: var(--ooui-text) !important;
+    background: transparent;
+    padding: 4px 8px;
+}
+
+/* SMW Pagination */
+.smw-ui-pagination .page-link.link-disabled {
+    color: var(--ooui-disabled-text);
+    background-color: var(--ooui-disabled);
+    border: 1px solid var(--ooui-disabled-border);
+    cursor: not-allowed;
+}
+
+.smw-ui-pagination .page-link {
+    background-color: var(--ooui-normal);
+    border: 1px solid var(--ooui-normal-border);
+    color: var(--link-color);
+    padding: 6px 10px;
+    margin: 0 2px;
+    text-decoration: none;
+    border-radius: 2px;
+}
+
+.smw-ui-pagination .page-link:hover {
+    background-color: var(--ooui-normal--hover);
+    border-color: var(--ooui-normal-border);
+    color: var(--link-color);
+}
+
+.smw-ui-pagination .page-link.link-active {
+    color: #fff;
+    background-color: var(--ooui-progressive);
+    border-color: var(--ooui-progressive);
+}
+
+/* SMW Factbox Components */
+.smwb-theme-light .smwb-prophead {
+    background-color: var(--body-mid);
+    padding: 4px 8px;
+    font-weight: bold;
+    border: 1px solid var(--body-border);
+}
+
+.smwb-theme-light .smwb-propval {
+    background-color: var(--body-light);
+    padding: 4px 8px;
+    border: 1px solid var(--body-border);
+}
+
+.smwb-action-separator {
+    border-color: var(--wikitable-border);
+    border-top: 1px solid;
+    margin: 8px 0;
+}
+
+.smwb-propvalue .smwb-prophead,
+.smwb-ipropvalue .smwb-prophead,
+.smwb-propvalue .smwb-propval,
+.smwb-ipropvalue .smwb-propval {
+    font-size: 0.9em;
+}
+
+/* SMW Browse and Search Links */
+#bodyContent span.smwbrowse a {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwbrowse.svg);
+    filter: var(--filter-black-to-link);
+    background-repeat: no-repeat;
+    background-position: left center;
+    padding-left: 18px;
+    text-decoration: none;
+}
+
+#bodyContent span.smwbrowse a:hover {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwbrowse-hover.svg);
+    text-decoration: underline;
+}
+
+#bodyContent span.smwsearch a {
+    color: var(--text-color);
+    filter: var(--filter-black-to-link);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwsearch.svg);
+    background-repeat: no-repeat;
+    background-position: left center;
+    padding-left: 18px;
+    text-decoration: none;
+}
+
+#bodyContent span.smwsearch a:hover {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwsearch-hover.svg);
+    text-decoration: underline;
+}
+
+/* --- End SMW Section --- */
+
+/* --- Advanced MediaWiki Widgets & Specialized Components --- */
+
+/* Date and Time Input Widgets */
+.mw-widget-dateInputWidget-handle,
+.mw-widgets-datetime-dateTimeInputWidget-handle {
+    background-color: var(--ooui-input);
+    color: var(--ooui-text);
+    border: 1px solid var(--ooui-input-border);
+    padding: 6px 10px;
+    border-radius: 2px;
+}
+
+.mw-widget-dateInputWidget-calendar {
+    background-color: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.mw-widget-titleWidget-menu .mw-widget-titleOptionWidget-description {
+    color: var(--byline-color);
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+/* Kartographer Map Components */
+.mw-kartographer-mapDialog-foot {
+    background-color: var(--body-light);
+    border-top: 1px solid var(--body-border);
+    padding: 12px;
+}
+
+.mw-kartographer-interactive .leaflet-container {
+    color: var(--text-color);
+    font-family: inherit;
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a {
+    color: var(--link-color);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a:visited {
+    color: var(--link-visited-color);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a:hover {
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a:active {
+    color: var(--link-color);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a.new,
+.mw-kartographer-interactive .leaflet-popup-content a.new:visited {
+    color: var(--redlink-color);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content p {
+    margin-bottom: 5px;
+    font-size: 14px;
+    line-height: 1.4em;
+}
+
+.leaflet-popup-content-wrapper {
+    background-color: var(--body-light);
+    color: var(--text-color);
+    border-radius: 4px;
+}
+
+.leaflet-popup-tip {
+    border-top-color: var(--body-light);
+}
+
+/* Leaflet Tooltip Variants */
+.leaflet-vis-tooltip.lbl-bg-grey {
+    background: #e4eaee;
+    color: #444e5a;
+    text-shadow: none;
+    padding: 4px 8px;
+    border-radius: 2px;
+}
+
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey {
+    color: #444e5a; /* Keep consistent with light background */
+}
+
+.leaflet-vis-tooltip.lbl-bg-grey a,
+.leaflet-vis-tooltip.lbl-bg-grey a:visited,
+.leaflet-vis-tooltip.lbl-bg-grey a:active,
+.leaflet-vis-tooltip.lbl-bg-grey a:hover,
+.leaflet-vis-tooltip.lbl-bg-grey a.mw-selflink.selflink {
+    color: #444e5a;
+}
+
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey a,
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey a:visited,
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey a:active,
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey a:hover,
+body.wgl-theme-dark .leaflet-vis-tooltip.lbl-bg-grey a.mw-selflink.selflink,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a:visited,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a:active,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a:hover,
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a.mw-selflink.selflink {
+    color: #444e5a;
+}
+
+.leaflet-vis-tooltip.lbl-bg-grey.leaflet-tooltip-left::before {
+    display: block;
+    border-left-color: #e4eaee;
+}
+
+.leaflet-vis-tooltip.lbl-bg-grey.leaflet-tooltip-right::before {
+    display: block;
+    border-right-color: #e4eaee;
+}
+
+.leaflet-vis-tooltip.lbl-bg-grey.leaflet-tooltip-top::before {
+    display: block;
+    border-top-color: #e4eaee;
+}
+
+.leaflet-vis-tooltip.lbl-bg-grey.leaflet-tooltip-bottom::before {
+    display: block;
+    border-bottom-color: #e4eaee;
+}
+
+/* Kartographer CSS Variables */
+.mw-kartographer-interactive {
+    --background-color-interactive-subtle: var(--body-light);
+    --color-base: var(--text-color);
+    --color-base--hover: var(--link-color);
+    --border-color-base: var(--body-border);
+    --background-color-base: var(--body-main);
+}
+
+/* OSRS-Specific Music and Update Components */
+#musicMap data {
+    display: none;
+}
+
+.musicMap-buttons {
+    text-align: center;
+    margin: 0.7em;
+}
+
+.update {
+    border-radius: 2px;
+    background: var(--body-mid);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+    margin: 1em 0;
+    padding: 0.25em 1em;
+    text-align: center;
+    border: 1px solid var(--body-border);
+}
+
+/* Poll System */
+.pollwrapper {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    counter-reset: question;
+    margin: 20px 0;
+}
+
+.pollbox {
+    position: relative;
+    padding: 1em 0.7em;
+    margin: 0.7em;
+    margin-bottom: 1.2em;
+    width: min(700px, 100%);
+    font-size: 16px;
+    border: 2px solid var(--body-border);
+    background: var(--body-light);
+    border-radius: 4px;
+}
+
+.pollbox::before {
+    content: "Question " counter(question);
+    counter-increment: question;
+    position: absolute;
+    font-size: 16px;
+    font-weight: bold;
+    top: -0.5em;
+    margin-top: -2px;
+    left: 0.6em;
+    line-height: 1em;
+    background: linear-gradient(0deg,var(--body-light),var(--body-light) 50%,rgba(0,0,0,0) 50%);
+    padding: 0 0.6em;
+    color: var(--heading-color);
+}
+
+/* --- End Specialized Components Section --- */
