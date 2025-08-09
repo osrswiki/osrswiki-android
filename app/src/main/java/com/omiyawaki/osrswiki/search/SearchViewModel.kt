@@ -122,7 +122,23 @@ class SearchViewModel(
 
     private fun mapNetworkResultToCleanedItem(networkResult: NetworkSearchResult): CleanedSearchResultItem {
         val cleanTitle = StringUtil.extractMainTitle(networkResult.title)
-        val cleanSnippet = networkResult.snippet?.let { Html.fromHtml(it, Html.FROM_HTML_MODE_LEGACY).toString().trim() } ?: ""
+        val cleanSnippet = networkResult.snippet?.let { snippet ->
+            // Preserve HTML highlighting tags for search term highlighting
+            if (snippet.contains("searchmatch")) {
+                // Keep HTML tags for search highlighting, just clean up whitespace
+                snippet.trim()
+                    .replace('\u00A0', ' ') // Replace non-breaking spaces with regular spaces  
+                    .replace("\\s+".toRegex(), " ") // Replace multiple whitespace with single space
+                    .trim() // Final trim after cleanup
+            } else {
+                // Strip HTML for non-highlighted snippets (legacy behavior)
+                StringUtil.fromHtml(snippet).toString()
+                    .trim()
+                    .replace('\u00A0', ' ') // Replace non-breaking spaces with regular spaces
+                    .replace("\\s+".toRegex(), " ") // Replace multiple whitespace with single space
+                    .trim() // Final trim after cleanup
+            }
+        } ?: ""
         return CleanedSearchResultItem(
             id = networkResult.pageid.toString(),
             title = cleanTitle,

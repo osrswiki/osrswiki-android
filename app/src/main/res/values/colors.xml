@@ -39,4 +39,15 @@
     <color name="osrs_loading_bar_red">#8c1111</color>
     <color name="osrs_loading_bar_black">#000000</color>
 
-    <color name="ripple_light">#1A000000</color> <color name="ripple_dark">#1AFFFFFF</color>  </resources>
+    <color name="ripple_light">#1A000000</color>
+    <color name="ripple_dark">#1AFFFFFF</color>
+    
+    <!-- Theme selection colors -->
+    <color name="theme_selection_card_stroke">@android:color/transparent</color>
+    <color name="theme_selection_card_stroke_selected">?attr/colorPrimary</color>
+    <color name="theme_preview_stroke">@android:color/transparent</color>
+    
+    <!-- Search term highlighting -->
+    <color name="search_highlight_light">#FF6B35</color>
+    <color name="search_highlight_dark">#FF8A65</color>
+</resources>
