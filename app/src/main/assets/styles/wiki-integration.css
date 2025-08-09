@@ -3837,3 +3837,589 @@ table.wikitable td.no-cell-spacing table {
 .highcharts-scrollbar-track {
     fill: transparent;
 }
+
+/* ===== PHASE 7: ADVANCED CONTENT & GAMING INTEGRATION ===== */
+
+/* Content Foundation Polish */
+h1, h2 {
+    border-color: var(--sidebar);
+}
+
+h3 {
+    color: var(--text-color);
+}
+
+/* Enhanced Table Systems */
+.wikitable > tr > td,
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Quest Details Enhancement */
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    width: 100%;
+    border-collapse: separate;
+}
+
+/* Updated Content Markers */
+.updatedmarker {
+    background-color: #c3e8a3;
+    color: #162e02;
+}
+
+/* OSRS Gaming Features Integration */
+
+/* Monster Manual Systems */
+.mmg-xpline:after {
+    content: ',';
+}
+
+.mmg-xpline:last-child:after {
+    content: '';
+}
+
+/* Grand Exchange Market Watch (GEMW) */
+.gemw-header.positive {
+    border-color: var(--gemw-positive-color);
+}
+
+.gemw-header .gemw-price {
+    display: inline-block;
+    font-size: 2.75em;
+    font-weight: bold;
+}
+
+.gemw-header .gemw-price::after {
+    content: ' coins';
+    color: var(--byline-color);
+    font-size: 1rem;
+    font-weight: normal;
+    word-spacing: 0.25em;
+}
+
+.gemw-header .gemw-updated {
+    color: var(--byline-color);
+    line-height: 1.5em;
+    margin-top: 0.25em;
+}
+
+.gemw-body .gemw-property {
+    width: 30%;
+    border-top: 0.15em dotted var(--body-mid);
+    padding-top: 0.25em;
+    margin-bottom: 1.5em;
+}
+
+.gemw-body .gemw-property dt {
+    color: var(--byline-color);
+    font-weight: normal;
+}
+
+.gemw-body .gemw-property dd {
+    font-weight: bold;
+    margin: -0.25em 0 0;
+}
+
+.gemw-container.gemw-historical .gemw-header.positive {
+    border-color: var(--gemw-historical-border-color);
+}
+
+.gemw-container.gemw-historical .gemw-header .gemw-time .jsPurgeLink,
+.gemw-container.gemw-historical .gemw-header .gemw-time > span.plainlinks {
+    display: none;
+}
+
+/* GE Chart Systems */
+#GEchartpopup {
+    background: var(--ooui-interface);
+    border: 1px solid var(--ooui-interface-border);
+    border-radius: 2px;
+    color: var(--ooui-text);
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 1em;
+    bottom: 1em;
+    margin: auto;
+    padding: 1em;
+    max-width: 975px;
+    z-index: 450;
+    overflow: auto;
+}
+
+#GEchartpopup #closepopup {
+    float: right;
+    margin-bottom: 5px;
+    z-index: 100;
+}
+
+#GEpopupchart {
+    height: 500px;
+}
+
+.GEPermLink {
+    float: right;
+    font-size: 14px;
+}
+
+.GEPermLink ~ .GEdatachart {
+    clear: right;
+}
+
+#GEchartpopup g.highcharts-label text > a:visited {
+    fill: white;
+}
+
+/* Chart Refinements */
+.smallChart svg > text:first-of-type,
+.smallChart .highcharts-input-group {
+    display: none;
+}
+
+.highcharts-plot-background {
+    fill: transparent;
+}
+
+.highcharts-range-selector-group text {
+    color: var(--ooui-text) !important;
+    fill: var(--ooui-text) !important;
+}
+
+.highcharts-scrollbar-track {
+    stroke: var(--ooui-interface-border);
+}
+
+/* Interactive Component Systems */
+
+/* CDX Button State Enhancements */
+.cdx-button.cdx-button--weight-quiet:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+/* Enhanced Checkbox + Button Combinations */
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+/* Enhanced Tooltip Systems */
+.js-tooltip-close {
+    float: right;
+    margin-left: 10px;
+    margin-right: -5px;
+    margin-top: -5px;
+    margin-bottom: 1px;
+    background: var(--button-background);
+    cursor: pointer;
+    border: 0;
+}
+
+/* Enhanced Form & Widget Systems */
+.mw-widget-dateInputWidget-handle,
+.mw-widgets-datetime-dateTimeInputWidget-handle {
+    background-color: var(--ooui-input);
+    color: var(--ooui-text);
+    border-color: var(--ooui-input-border);
+}
+
+/* Enhanced Inventory Systems */
+.menagerietable {
+    background-image: url(/images/Menagerie_interface.png?89434);
+    background-repeat: no-repeat;
+    background-position: top left;
+    width: 300px;
+    height: 250px;
+    padding: 56px 28px 34px 6px;
+    border-spacing: 0;
+}
+
+.menagerietable td {
+    position: relative;
+    width: 46px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    text-align: center;
+}
+
+.inventorytable .inv-quantity-text,
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small';
+    font-size: 12pt;
+    position: absolute;
+    pointer-events: none;
+    top: -8px;
+    left: 4px;
+    text-shadow: #000 1px 1px;
+    color: #ff0;
+}
+
+/* Advanced MediaWiki Features */
+
+/* Recent Changes & Edit Monitoring */
+.mw-plusminus-pos {
+    color: var(--rc-positive-color);
+}
+
+.mw-plusminus-neg {
+    color: var(--rc-negative-color);
+}
+
+/* Recent Changes Filters */
+.client-js .mw-recentchanges-toplinks:not(.mw-recentchanges-toplinks-collapsed) {
+    border-color: var(--body-border);
+    background-color: var(--body-light);
+    border-radius: 2px;
+}
+
+.mw-rcfilters-ui-filterTagMultiselectWidget-wrapper-content-title {
+    color: var(--text-color);
+}
+
+.mw-rcfilters-ui-filterTagMultiselectWidget-emptyFilters {
+    color: var(--byline-color);
+}
+
+.mw-rcfilters-collapsed .mw-rcfilters-ui-filterTagMultiselectWidget {
+    border-bottom-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-tagItemWidget-popup-content {
+    color: var(--ooui-text);
+}
+
+.mw-rcfilters-ui-changesListWrapperWidget-previousChangesIndicator,
+.mw-rcfilters-ui-watchlistTopSectionWidget-separator {
+    border-color: var(--sidebar);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-header {
+    border-bottom-color: var(--ooui-interface);
+    background-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget:not(:last-child):not(.mw-rcfilters-ui-itemMenuOptionWidget-identifier-talk) {
+    border-bottom-color: var(--ooui-normal-border);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-label-title,
+.mw-rcfilters-ui-itemMenuOptionWidget-label-desc {
+    color: var(--text-color);
+}
+
+.mw-rcfilters-ui-filterMenuSectionOptionWidget {
+    background-color: var(--body-mid);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-view-namespaces {
+    border-top-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-datePopupWidget {
+    border-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-datePopupWidget .mw-rcfilters-ui-valuePickerWidget-title {
+    color: var(--byline-color);
+}
+
+/* Enhanced Change Lists */
+.client-js .mw-changeslist.mw-rcfilters-ui-changesListWrapperWidget-highlighted ul,
+.client-js .mw-changeslist.mw-rcfilters-ui-changesListWrapperWidget-highlighted table.mw-enhanced-rc {
+    margin-left: 1.5em;
+}
+
+/* SMW (Semantic MediaWiki) Enhancements */
+.smwpre {
+    border-color: var(--body-border);
+}
+
+.smw-ask-printhead fieldset,
+.smw-ask-options fieldset {
+    border-color: var(--sidebar);
+}
+
+.strike > span:before,
+.strike > span:after {
+    background: var(--sidebar);
+}
+
+.smw-ask-toplinks span.smw-icon-info::before {
+    padding: 0 0 3px 18px;
+}
+
+.smw-ask-button-submit input {
+    border-color: var(--ooui-normal-border);
+}
+
+input.smw-ask-action-btn.smw-ask-action-btn-dblue {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+    color: var(--ooui-text);
+}
+
+.smw-tabs input.nav-tab:checked + label.nav-label {
+    border-color: var(--ooui-normal-border);
+}
+
+.smw-property-page-results .header-title {
+    border-color: var(--ooui-interface-border);
+}
+
+.smw-ui-input-filter {
+    border-color: var(--ooui-interface-border);
+}
+
+.smw-ui-input-filter input {
+    border-left-color: var(--ooui-interface-border) !important;
+}
+
+.smw-ui-pagination .page-link.link-disabled {
+    border-color: var(--ooui-disabled-border);
+}
+
+.smw-ui-pagination .page-link {
+    border-color: var(--ooui-normal-border);
+}
+
+#bodyContent span.smwbrowse a {
+    color: black;
+    background-image: url(/images/Smwbrowse.svg?87d2b);
+}
+
+#bodyContent span.smwbrowse a:hover {
+    color: black;
+    background-image: url(/images/Smwbrowse-hover.svg?73b79);
+}
+
+#bodyContent span.smwsearch a {
+    color: black;
+    background-image: url(/images/Smwsearch.svg?72b04);
+}
+
+#bodyContent span.smwsearch a:hover {
+    color: black;
+    background-image: url(/images/Smwsearch-hover.svg?62df0);
+}
+
+/* Preferences & Settings */
+#preferences .mw-htmlform-submit-buttons {
+    background-color: var(--body-main);
+    border-top-color: var(--body-border);
+}
+
+.mw-prefs-search-highlight {
+    background: var(--body-mid) !important;
+    outline-color: var(--body-mid) !important;
+}
+
+/* Search System Enhancements */
+.mw-search-profile-tabs {
+    background-color: var(--body-mid);
+    border-color: transparent;
+}
+
+.search-types .current a {
+    color: inherit;
+}
+
+.mw-body-content .mw-number-text h3 {
+    color: var(--text-color);
+}
+
+/* Special Page Enhancements */
+.page-Special_CreateAccount .mw-ui-container,
+.page-Special_UserLogin .mw-ui-container {
+    max-width: 64rem;
+    margin: 0 auto;
+}
+
+.page-Special_ListFiles a.mw-file-description img {
+    width: inherit;
+    height: inherit;
+}
+
+.page-Special_ListFiles .TablePager_col_thumb {
+    text-align: center;
+}
+
+.mw-protectedpages-unknown {
+    color: var(--byline-color);
+}
+
+.allpagesredirect {
+    font-style: italic;
+}
+
+.allpagesredirect:after {
+    color: var(--byline-color);
+    content: " (redirect)";
+}
+
+/* API & Development Tools */
+.mw-apisandbox-toolbar {
+    background: var(--body-main);
+}
+
+/* File Upload Systems */
+span.fileinput-button {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+    color: var(--ooui-text);
+}
+
+ul.fileupload-results li.ful-success {
+    background-color: var(--successbox-bg);
+}
+
+ul.fileupload-results li.ful-success a {
+    color: var(--link-color);
+}
+
+ul.fileupload-results li.ful-error {
+    background-color: var(--errorbox-bg);
+}
+
+/* Notification Systems */
+.mw-dismissable-notice-close-parent {
+    min-height: 1em;
+}
+
+/* Edit Interface */
+.editOptions {
+    color: var(--text-color);
+    background-color: var(--sourceeditor-background-secondary);
+    border-color: var(--sourceeditor-border);
+}
+
+/* Redirect & Navigation */
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+}
+
+/* Map & Kartographer Integration */
+.mw-kartographer-mapDialog-foot {
+    border-color: var(--body-mid);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a:visited {
+    color: var(--link-color);
+}
+
+.mw-kartographer-interactive .leaflet-popup-content a.new a.new:visited {
+    color: var(--redlink-color);
+}
+
+.mw-kartographer-interactive {
+    --background-color-interactive-subtle: #f8f9fa;
+    --color-base: #202122;
+    --color-base--hover: #404244;
+    --border-color-base: #a2a9b1;
+    --background-color-base: #fff;
+}
+
+/* Content Collapsing */
+.collapsed-sec {
+    text-shadow: 1px 1px #fff;
+}
+
+/* Production Selection */
+.production-selected {
+    background: var(--production-selected-background);
+    color: var(--production-selected-color);
+}
+
+/* Polls & Community Features */
+.pollbox {
+    width: 700px;
+}
+
+/* Message Boxes */
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+/* Typography */
+.font-runescape {
+    font-family: 'RuneScape';
+}
+
+/* Print & Permalink (Hidden on Mobile) */
+#t-print,
+#t-permalink {
+    display: none;
+}

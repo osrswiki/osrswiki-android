@@ -155,6 +155,12 @@
     /* Phase 6: Main Page & Content Tile Variables */
     --tile-dark-header-color: #ddd;
     --transcript-strikethrough-color: var(--text-color);
+    
+    /* Phase 7: Advanced Gaming & Content Variables */
+    --rc-positive-color: #00af89;
+    --rc-negative-color: #d73027;
+    --sourceeditor-background-secondary: var(--body-light);
+    --sourceeditor-border: var(--body-border);
 }
 
 
@@ -313,6 +319,12 @@ body.theme-osrs-dark {
     /* Phase 6: Main Page & Content Tile Variables adapted for dark theme */
     --tile-dark-header-color: #aaa;
     --transcript-strikethrough-color: var(--text-color);
+    
+    /* Phase 7: Advanced Gaming & Content Variables adapted for dark theme */
+    --rc-positive-color: #55bb99;
+    --rc-negative-color: #f26d60;
+    --sourceeditor-background-secondary: var(--body-mid);
+    --sourceeditor-border: var(--body-border);
 }
 
 
