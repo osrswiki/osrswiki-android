@@ -73,6 +73,25 @@
     --warningbox-border: #ffa500;
     --successbox-bg: #f0fff0;
     --successbox-border: #32cd32;
+    
+    /* OOUI interface elements */
+    --ooui-normal: #f8f9fa;
+    --ooui-normal--hover: #eaecf0;
+    --ooui-normal-border: #a2a9b1;
+    --ooui-text: #222;
+    --ooui-input: #fff;
+    --ooui-input-border: #a2a9b1;
+    --ooui-input-border--hover: #72777d;
+    --ooui-window-background: rgba(255,255,255,0.95);
+    
+    /* Content-specific variables */
+    --production-selected-background: var(--table-yes-background);
+    --production-selected-color: var(--table-yes-color);
+    --questdetails-header-background: var(--wikitable-header-bg);
+    --questdetails-header-background-alt: var(--wikitable-alternating-bg);
+    --thumb-bg: #f8f9fa;
+    --diff-addedline-background: #d1f2d1;
+    --diff-inline-deletedline: #f8d7da;
 }
 
 
@@ -149,6 +168,25 @@ body.theme-osrs-dark {
     --warningbox-border: #cc8844;
     --successbox-bg: #264a26;
     --successbox-border: #55aa55;
+    
+    /* OOUI interface elements adapted for dark theme */
+    --ooui-normal: #3e362f;
+    --ooui-normal--hover: #453c33;
+    --ooui-normal-border: #736559;
+    --ooui-text: var(--text-color);
+    --ooui-input: #312a25;
+    --ooui-input-border: #736559;
+    --ooui-input-border--hover: #a4a1a1;
+    --ooui-window-background: rgba(40,34,29,0.95);
+    
+    /* Content-specific variables adapted for dark theme */
+    --production-selected-background: var(--table-yes-background);
+    --production-selected-color: var(--table-yes-color);
+    --questdetails-header-background: var(--wikitable-header-bg);
+    --questdetails-header-background-alt: var(--wikitable-alternating-bg);
+    --thumb-bg: #3e362f;
+    --diff-addedline-background: #2a4a2a;
+    --diff-inline-deletedline: #4a2525;
 }
 
 
