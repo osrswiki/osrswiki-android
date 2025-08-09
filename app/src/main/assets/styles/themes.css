@@ -33,6 +33,46 @@
     --tap-highlight-color: rgba(0, 0, 0, 0.1);
     --external-icon: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23936039' d='M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16L6 1Z M2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E);
     --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23000'/%3E%3C/svg%3E);
+    
+    /* Table highlighting colors from wiki */
+    --table-yes-background: #c3e8a3;
+    --table-yes-color: #2e5e05;
+    --table-no-background: #fbc0ba;
+    --table-no-color: #801c13;
+    --table-maybe-background: #fcea94;
+    --table-maybe-color: #786300;
+    --table-na-background: rgba(255,255,255,0.3);
+    --table-na-color: var(--subtle-color);
+    
+    /* Drop table rarity colors */
+    --droptable-text-color: #000;
+    --droptable-always-background: #afeeee;
+    --droptable-common-background: #56e156;
+    --droptable-uncommon-background: #ffed4c;
+    --droptable-rare-background: #ff863c;
+    --droptable-veryrare-background: #ff6262;
+    --droptable-random-background: #ffa3ff;
+    
+    /* Additional GEMW (Grand Exchange Market Watch) variables */
+    --gemw-positive-color: #6bc71f;
+    --gemw-unchanged-color: #3ea6e6;
+    --gemw-negative-color: #ee4231;
+    --gemw-historical-border-color: #000;
+    
+    /* Interface and interactive elements */
+    --sidebar: var(--sidebar-color);
+    --wikitable-bg-lighter: #f0e7d4;
+    --ooui-progressive: #0645ad;
+    --ooui-progressive--hover: #0b5394;
+    --ooui-accent: #36c;
+    
+    /* Message boxes and notifications */
+    --errorbox-bg: #ffeedd;
+    --errorbox-border: #ff6347;
+    --warningbox-bg: #fff8dc;
+    --warningbox-border: #ffa500;
+    --successbox-bg: #f0fff0;
+    --successbox-border: #32cd32;
 }
 
 
@@ -69,6 +109,46 @@ body.theme-osrs-dark {
     --tap-highlight-color: rgba(255, 255, 255, 0.1);
     --external-icon: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23b79d7e' d='M6 1h5v5L8.86 3.85 4.7 8 4 7.3l4.15-4.16L6 1Z M2 3h2v1H2v6h6V8h1v2a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z'/%3E%3C/svg%3E);
     --ul-list-style-image: url(data:image/svg+xml,%3C%3Fxml version='1.0' encoding='UTF-8'%3F%3E%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='13'%3E%3Ccircle cx='2.5' cy='9' r='2.5' fill='%23f4eaea'/%3E%3C/svg%3E);
+    
+    /* Table highlighting colors adapted for dark theme */
+    --table-yes-background: #2d4a1f;
+    --table-yes-color: #a8d67b;
+    --table-no-background: #4a2521;
+    --table-no-color: #f08a7d;
+    --table-maybe-background: #4a3f1e;
+    --table-maybe-color: #e4d464;
+    --table-na-background: rgba(0,0,0,0.3);
+    --table-na-color: var(--subtle-color);
+    
+    /* Drop table rarity colors adapted for dark theme */
+    --droptable-text-color: var(--text-color);
+    --droptable-always-background: #2f4a4a;
+    --droptable-common-background: #2a4a2a;
+    --droptable-uncommon-background: #4a4a1e;
+    --droptable-rare-background: #4a2f1e;
+    --droptable-veryrare-background: #4a2525;
+    --droptable-random-background: #3d2a3d;
+    
+    /* Additional GEMW variables adapted for dark theme */
+    --gemw-positive-color: #2a4a2a;
+    --gemw-unchanged-color: #2a3a4a;
+    --gemw-negative-color: #4a2525;
+    --gemw-historical-border-color: var(--body-border);
+    
+    /* Interface and interactive elements adapted for dark theme */
+    --sidebar: var(--sidebar-color);
+    --wikitable-bg-lighter: #453c33;
+    --ooui-progressive: #4d9bff;
+    --ooui-progressive--hover: #6babff;
+    --ooui-accent: #72a7f7;
+    
+    /* Message boxes and notifications adapted for dark theme */
+    --errorbox-bg: #4a2626;
+    --errorbox-border: #cc5555;
+    --warningbox-bg: #4a3d26;
+    --warningbox-border: #cc8844;
+    --successbox-bg: #264a26;
+    --successbox-border: #55aa55;
 }
 
 

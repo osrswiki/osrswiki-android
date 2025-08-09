@@ -1,0 +1,649 @@
+/* --- Wiki Integration CSS --- */
+/*
+ * This file contains CSS classes and styles from the oldschool.runescape.wiki
+ * that are missing from the app but needed for proper rendering.
+ */
+
+/* --- Table Highlighting Classes --- */
+
+/* Yes/No/Maybe table cells - commonly used in wiki tables */
+.table-yes {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+.table-no {
+    background: var(--table-no-background);
+    color: var(--table-no-color);
+}
+
+.table-maybe {
+    background: var(--table-maybe-background);
+    color: var(--table-maybe-color);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+}
+
+/* Positive/Negative alternatives */
+.table-positive {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+.table-negative {
+    background: var(--table-no-background);
+    color: var(--table-no-color);
+}
+
+/* --- Drop Table Rarity Background Classes --- */
+
+.table-bg-always, .table-bg-blue {
+    background: var(--droptable-always-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-common, .table-bg-green {
+    background: var(--droptable-common-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-uncommon, .table-bg-yellow {
+    background: var(--droptable-uncommon-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-rare, .table-bg-orange {
+    background: var(--droptable-rare-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-veryrare, .table-bg-red {
+    background: var(--droptable-veryrare-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-random, .table-bg-pink {
+    background: var(--droptable-random-background);
+    color: var(--droptable-text-color);
+}
+
+/* Additional drop table colors */
+.table-bg-fade {
+    background: var(--wikitable-alternating-bg);
+    color: var(--wikitable-color);
+}
+
+/* --- Production Selected Class (User's specific example) --- */
+.production-selected {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+/* --- Table Border Control --- */
+.table-noborder {
+    border-left-style: hidden !important;
+    border-right-style: hidden !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* --- Alternating Row Styles --- */
+table.alternating-rows tr:nth-child(odd) {
+    background: var(--wikitable-alternating-bg);
+}
+
+/* --- Additional Wiki-Specific Styles --- */
+
+/* Table cell alignment classes commonly used in wiki */
+.table-center {
+    text-align: center;
+}
+
+.table-left {
+    text-align: left;
+}
+
+.table-right {
+    text-align: right;
+}
+
+/* Highlight for search results and selections */
+.searchmatch {
+    background: var(--table-maybe-background);
+    color: var(--table-maybe-color);
+    font-weight: bold;
+}
+
+/* Wiki-style code blocks */
+.mw-code {
+    background-color: var(--mw-code-background-color);
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-family: monospace;
+}
+
+/* Template parameter highlighting */
+.template-param {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+    font-style: italic;
+}\n\n\n
+/* --- Auto-Generated Missing CSS Rules from Wiki Analysis --- */
+
+/* --- Typography and Headings --- */
+.mw-body h1,
+.mw-body .mw-heading1,
+.mw-body-content h1,
+.mw-body-content .mw-heading1,
+.mw-body-content h2,
+.mw-body-content .mw-heading2,
+.mw-body-content h3,
+.mw-body-content .mw-heading3 {
+    font-family: 'PT Serif', 'Palatino', 'Georgia', serif;
+}
+
+h1, .mw-heading1 {
+    border-color: var(--sidebar-color);
+}
+
+h2, .mw-heading2 {
+    border-color: var(--sidebar-color);
+}
+
+h3, h4, h5, h6 {
+    color: var(--heading-color);
+}
+
+.mw-parser-output h2:first-of-type {
+    clear: left;
+}
+
+/* --- External and Parser Links --- */
+.mw-parser-output a.extiw,
+.mw-parser-output a.external {
+    color: var(--link-color);
+}
+
+.mw-parser-output a.extiw:visited,
+.mw-parser-output a.external:visited,
+.mw-parser-output a.extiw:active,
+.mw-parser-output a.external:active {
+    color: var(--link-color);
+}
+
+/* --- Content Styles --- */
+::placeholder {
+    color: var(--subtle-color);
+}
+
+.mw-content-ltr.mw-highlight-lines pre,
+.content .mw-highlight-lines pre {
+    box-shadow: inset 2.75em 0 0 var(--mw-code-background-color);
+}
+
+/* --- Table Improvements --- */
+.wikitable > tr > td,
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.mw_metadata td {
+    background-color: var(--wikitable-bg);
+}
+
+.mw_metadata th {
+    background-color: var(--wikitable-header-bg);
+}
+
+table.alternating-cols td:nth-child(odd) {
+    background: var(--wikitable-alternating-bg);
+}
+
+.mw-datatable {
+    border-color: var(--wikitable-border);
+}
+
+.mw-datatable td {
+    background-color: var(--wikitable-bg);
+}
+
+.mw-datatable th {
+    background-color: var(--wikitable-header-bg);
+}
+
+.mw-datatable tr:hover td {
+    background-color: var(--wikitable-alternating-bg);
+}
+
+/* --- Quest Details Tables --- */
+.questdetails {
+    width: 100%;
+    background-color: var(--wikitable-bg);
+    border: 1px solid var(--wikitable-border);
+    border-collapse: separate;
+}
+
+.questdetails th {
+    text-align: left;
+    background-color: var(--wikitable-header-bg);
+}
+
+.questdetails-header {
+    padding: 0.5em 1em;
+    background-color: var(--wikitable-header-bg);
+    width: 125px;
+}
+
+.questdetails-info {
+    padding-left: 1em;
+    padding-right: 2em;
+}
+
+/* --- Form and Interactive Elements --- */
+.mw-usertoollinks-contribs-no-edits,
+.mw-usertoollinks-contribs-no-edits:visited {
+    color: var(--redlink-color);
+}
+
+.CategoryTreeToggle {
+    color: var(--link-color);
+}
+
+/* --- Fixes for Existing Classes --- */
+.messagebox {
+    width: 65%;
+    border-color: var(--body-border);
+    background-color: var(--wikitable-bg);
+}
+
+.font-runescape {
+    font-family: 'RuneScape', 'runescape_plain', sans-serif;
+}
+
+.table-bg-fade {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.1);
+}
+
+.table-na {
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* --- Production Selected (Fixed Variables) --- */
+.production-selected {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+/* --- Additional High-Priority Content Selectors --- */
+
+/* MediaWiki Body Content */
+.mw-body h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-content-ltr.content .mw-highlight-lines pre {
+    box-shadow: inset 2.75em 0 0 var(--mw-code-background-color);
+}
+
+.mw-content-ltr .redirectText li:first-child {
+    padding: 0;
+    background: 0;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    display: block;
+    width: 2px;
+    height: 1em;
+    margin: 0.25em 0.5em 0.25em 0;
+    float: left;
+}
+
+/* Enhanced WikiTable Support */
+.wikitable {
+    background: var(--wikitable-bg);
+    color: var(--wikitable-color);
+    border-color: var(--wikitable-border);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+
+.wikitable > tr > th.table-noborder,
+.wikitable > tr > td.table-noborder,
+.wikitable > * > tr > th.table-noborder,
+.wikitable > * > tr > td.table-noborder {
+    border-left-style: hidden;
+    border-right-style: hidden;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.tabber .wikitable {
+    box-shadow: none;
+}
+
+table.wikitable td.no-cell-spacing {
+    padding: 0;
+    height: 0;
+}
+
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+}
+
+/* Page History and Revision Tools */
+#pagehistory ul {
+    list-style: none;
+    margin: 0;
+}
+
+#pagehistory li {
+    border: 1px solid transparent;
+    padding: 1px 10px;
+    margin: 2px 0;
+}
+
+#pagehistory li.selected {
+    background-color: var(--body-light);
+    color: inherit;
+    border: 1px dashed var(--body-border);
+    outline: none;
+}
+
+li span.deleted,
+span.history-deleted {
+    color: var(--byline-color);
+}
+
+/* Interactive Elements and Tables */
+table.mw-interwikitable.body td.mw-interwikitable-local-yes {
+    background-color: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+table.mw-abuselog-details {
+    background: var(--wikitable-bg);
+    border-color: var(--wikitable-border);
+}
+
+table.mw-abuselog-details th,
+table.mw-abuselog-details td {
+    border-color: var(--wikitable-border);
+}
+
+.mw-json th {
+    background: var(--wikitable-header-bg);
+}
+
+.mw-json td {
+    background: var(--wikitable-bg);
+}
+
+/* Content Quality and State Indicators */
+.mw-mmv-post-image {
+    color: var(--text-color);
+    background-color: var(--body-main);
+}
+
+.mw-revslider-slider-wrapper {
+    border-color: var(--sidebar);
+}
+
+/* Interactive Button Styles */
+.cdx-button:not(:disabled).cdx-button--weight-primary.cdx-button--action-progressive,
+.cdx-button:enabled.cdx-button--weight-primary.cdx-button--action-progressive,
+.cdx-button.cdx-button--fake-button--enabled.cdx-button--weight-primary.cdx-button--action-progressive {
+    background-color: var(--ooui-progressive);
+    color: #fff;
+    border-color: var(--ooui-progressive);
+}
+
+.cdx-button:not(:disabled).cdx-button--weight-primary.cdx-button--action-progressive:hover,
+.cdx-button:enabled.cdx-button--weight-primary.cdx-button--action-progressive:hover,
+.cdx-button.cdx-button--fake-button--enabled.cdx-button--weight-primary.cdx-button--action-progressive:hover {
+    background-color: var(--ooui-progressive--hover);
+    border-color: var(--ooui-progressive--hover);
+}
+
+.cdx-button:not(:disabled).cdx-button--weight-primary.cdx-button--action-progressive:focus,
+.cdx-button:enabled.cdx-button--weight-primary.cdx-button--action-progressive:focus,
+.cdx-button.cdx-button--fake-button--enabled.cdx-button--weight-primary.cdx-button--action-progressive:focus {
+    box-shadow: inset 0 0 0 1px var(--ooui-accent),inset 0 0 0 2px #fff;
+}
+
+/* Enhanced Table Data Hover Effects */
+.mw-datatable tr:hover td {
+    background-color: var(--wikitable-bg-lighter);
+}
+
+/* --- OSRS-Specific Data Presentation Tables --- */
+
+/* Table Column Alignment Utilities (1-10 most common) */
+table.align-right-1 td:nth-of-type(1) { text-align: right; }
+table.align-right-2 td:nth-of-type(2) { text-align: right; }
+table.align-right-3 td:nth-of-type(3) { text-align: right; }
+table.align-right-4 td:nth-of-type(4) { text-align: right; }
+table.align-right-5 td:nth-of-type(5) { text-align: right; }
+table.align-right-6 td:nth-of-type(6) { text-align: right; }
+table.align-right-7 td:nth-of-type(7) { text-align: right; }
+table.align-right-8 td:nth-of-type(8) { text-align: right; }
+table.align-right-9 td:nth-of-type(9) { text-align: right; }
+table.align-right-10 td:nth-of-type(10) { text-align: right; }
+
+table.align-center-1 td:nth-of-type(1) { text-align: center; }
+table.align-center-2 td:nth-of-type(2) { text-align: center; }
+table.align-center-3 td:nth-of-type(3) { text-align: center; }
+table.align-center-4 td:nth-of-type(4) { text-align: center; }
+table.align-center-5 td:nth-of-type(5) { text-align: center; }
+table.align-center-6 td:nth-of-type(6) { text-align: center; }
+table.align-center-7 td:nth-of-type(7) { text-align: center; }
+table.align-center-8 td:nth-of-type(8) { text-align: center; }
+
+/* Quest Details Tables */
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.questdetails-header {
+    background-color: var(--wikitable-header-bg);
+}
+
+.questdetails tr:nth-child(odd) .questdetails-header {
+    background-color: var(--wikitable-alternating-bg);
+}
+
+/* Growth and Farming Tables */
+.growth-stage-table td.growth-stage {
+    text-align: center;
+    vertical-align: bottom;
+}
+
+/* Inventory and Storage Interface Tables */
+.inventorytable {
+    background-image: url(https://oldschool.runescape.wiki/images/Inventory_tab.png);
+    width: 204px;
+    padding: 13px 16px 10px;
+    background-repeat: no-repeat;
+}
+
+.lootingbagtable {
+    background-image: url(https://oldschool.runescape.wiki/images/Looting_bag_tab.png);
+    width: 204px;
+    padding: 31px 17px 20px 12px;
+    background-repeat: no-repeat;
+}
+
+.menagerietable {
+    background-image: url(https://oldschool.runescape.wiki/images/Menagerie_interface.png);
+    background-repeat: no-repeat;
+    background-position: top left;
+    width: 512px;
+    height: 334px;
+    table-layout: fixed;
+}
+
+/* Storage positioning utilities */
+.inventorytable.storage-left,
+.lootingbagtable.storage-left {
+    float: left;
+    clear: left;
+    margin-right: 7px;
+}
+
+.inventorytable.storage-center,
+.lootingbagtable.storage-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.inventorytable.storage-right,
+.lootingbagtable.storage-right {
+    float: right;
+    clear: right;
+    margin-left: 7px;
+}
+
+/* Inventory table cell sizing */
+.inventorytable td {
+    width: 43px;
+    height: 36px;
+}
+
+.lootingbagtable td {
+    width: 44px;
+    height: 32px;
+}
+
+.menagerietable td {
+    padding: 0;
+    border: 0;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Inventory quantity text styling */
+.inventorytable .inv-quantity-text,
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small', monospace;
+    font-size: 12pt;
+    position: absolute;
+    text-shadow: 1px 1px 0px #000;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.inventorytable .inv-quantity-text.qty-1,
+.lootingbagtable .inv-quantity-text.qty-1 {
+    color: #ff0;
+}
+
+.inventorytable .inv-quantity-text.qty-100k,
+.lootingbagtable .inv-quantity-text.qty-100k {
+    color: #fff;
+}
+
+.inventorytable .inv-quantity-text.qty-10m,
+.lootingbagtable .inv-quantity-text.qty-10m {
+    color: #01ff80;
+}
+
+/* Enhanced Recent Changes Tables */
+.client-js .mw-changeslist table.mw-enhanced-rc {
+    margin-left: 0;
+}
+
+/* --- Typography and Content Formatting --- */
+
+/* RuneScape Font Utility */
+.font-runescape {
+    font-family: 'RuneScape', 'runescape_plain', sans-serif;
+}
+
+/* Heading Border Fixes */
+h1, h2 {
+    border-color: var(--sidebar);
+}
+
+h3 {
+    color: var(--text-color);
+}
+
+/* MediaWiki Body Content Headings */
+.mw-body-content h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+/* Redirect Text Styling */
+.mw-content-ltr .redirectText li:first-child {
+    padding: 0;
+    background: 0;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    display: block;
+    width: 2px;
+    height: 1em;
+    margin: 0.25em 0.5em 0.25em 0;
+    float: left;
+}
+
+/* Succession Tables (Navigation) */
+.succession th {
+    width: 33%;
+    font-size: 90%;
+    background: var(--body-mid);
+}
+
+.succession td {
+    background: var(--body-light);
+}
+
+/* Noted Item Links */
+td.noted-item a {
+    width: 32px;
+    line-height: 28px;
+}
+
+/* Italic Text for Special Cases */
+tr.mw-abusefilter-list-disabled {
+    font-style: italic;
+}
+
+/* Message Box System */
+.cdx-message--error {
+    background-color: var(--errorbox-bg);
+    border-color: var(--errorbox-border);
+    border: 1px solid;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.cdx-message--warning {
+    background-color: var(--warningbox-bg);
+    border-color: var(--warningbox-border);
+    border: 1px solid;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.cdx-message--success {
+    background-color: var(--successbox-bg);
+    border-color: var(--successbox-border);
+    border: 1px solid;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+/* --- End Auto-Generated Section --- */
