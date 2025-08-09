@@ -169,6 +169,28 @@
     --background-text-color: var(--text-color);
     --background-link-color: var(--link-color);
     --body-dark: var(--body-dark-shade);
+    
+    /* Phase 9B: Strategic Mobile-Relevant Variables */
+    --diff-context-border-color: var(--body-border);
+    --diff-context-background: var(--body-main);
+    --diff-addedline-border-color: #a3d3ff;
+    --diff-addedline-color: #000;
+    --diff-deletedline-border-color: #ffe49c;
+    --diff-deletedline-color: #000;
+    --diff-deletedline-background: #ffe49c;
+    --tabber-active-tab-bg: var(--body-main);
+    --tabber-active-tab-color: var(--text-color);
+    --tabber-active-tab-hover-color: var(--text-color);
+    --tabber-active-tab-hover-bg: var(--body-light);
+    --tabber-active-tab-hover-border-color: var(--body-border);
+    --tabber-active-tab-border-hider-color: var(--body-main);
+    --tabber-inactive-tab-bg: var(--body-light);
+    --tabber-inactive-tab-color: var(--link-color);
+    --tabber-inactive-tab-border-color: var(--body-border);
+    --tabber-inactive-tab-hover-bg: var(--body-mid);
+    --tabber-inactive-tab-hover-border-color: var(--body-dark-shade);
+    --documentation-link-color: var(--link-color);
+    --tile-dark-byline-color: #ddd;
 }
 
 
@@ -341,6 +363,28 @@ body.theme-osrs-dark {
     --background-text-color: var(--text-color);
     --background-link-color: var(--link-color);
     --body-dark: var(--body-dark-shade);
+    
+    /* Phase 9B: Strategic Mobile-Relevant Variables adapted for dark theme */
+    --diff-context-border-color: var(--body-border);
+    --diff-context-background: var(--body-mid);
+    --diff-addedline-border-color: #2a4a4a;
+    --diff-addedline-color: var(--text-color);
+    --diff-deletedline-border-color: #4a3d26;
+    --diff-deletedline-color: var(--text-color);
+    --diff-deletedline-background: #4a3d26;
+    --tabber-active-tab-bg: var(--body-mid);
+    --tabber-active-tab-color: var(--text-color);
+    --tabber-active-tab-hover-color: var(--text-color);
+    --tabber-active-tab-hover-bg: var(--body-light);
+    --tabber-active-tab-hover-border-color: var(--body-border);
+    --tabber-active-tab-border-hider-color: var(--body-mid);
+    --tabber-inactive-tab-bg: var(--body-light);
+    --tabber-inactive-tab-color: var(--link-color);
+    --tabber-inactive-tab-border-color: var(--body-border);
+    --tabber-inactive-tab-hover-bg: var(--wikitable-header-bg);
+    --tabber-inactive-tab-hover-border-color: var(--body-border);
+    --documentation-link-color: var(--link-color);
+    --tile-dark-byline-color: #aaa;
 }
 
 

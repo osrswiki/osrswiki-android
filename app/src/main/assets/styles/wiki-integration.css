@@ -4946,3 +4946,357 @@ h3 {
 .mw-body-content sub {
     bottom: -0.25em;
 }
+
+/* ================================= */
+/* PHASE 9A: Content-High Polish    */
+/* ================================= */
+
+/* Heading Border & Color Completion */
+h1 {
+    border-color: var(--sidebar);
+}
+
+h2 {
+    border-color: var(--sidebar);
+}
+
+h3 {
+    color: var(--text-color);
+}
+
+/* Typography Enhancement - PT Serif Font Family */
+.mw-body-content h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-body-content h2 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-body-content h3 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+/* Wikitable Border Consistency */
+.wikitable > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+/* Tooltip System Polish */
+.tippy-header {
+    background-color: var(--body-dark);
+}
+
+/* Poll Box Styling */
+.pollbox {
+    border: 2px solid var(--body-border);
+    background: var(--body-light);
+}
+
+/* Message Box Polish */
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+/* RuneScape Font Family Support */
+.font-runescape {
+    font-family: 'RuneScape';
+}
+
+/* Content-Medium Polish */
+.highcharts-scrollbar-track {
+    fill: transparent;
+}
+
+/* Other Category Incomplete Selectors Polish */
+
+/* Additional Heading Colors */
+h4, h5, h6 {
+    color: var(--text-color);
+}
+
+/* MediaWiki Heading Classes Border Fix */
+.mw-heading1, .mw-heading2 {
+    border-color: var(--sidebar);
+}
+
+/* Extended Typography - PT Serif for All Headings */
+.mw-body .mw-heading1,
+.mw-body-content .mw-heading1,
+.mw-body-content .mw-heading2,
+.mw-body-content .mw-heading3,
+.mw-body-content h4,
+.mw-body-content h5,
+.mw-body-content h6 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+/* Link States Fix */
+a:visited {
+    color: var(--link-color);
+}
+
+/* Chart Error Styling */
+.rsw-chartjs.rsw-chart-error {
+    font-family: monospace;
+}
+
+/* SMW Callout Warning Border Fix */
+.smw-callout-warning {
+    border-color: var(--warningbox-bg);
+}
+
+/* Reference Target Background Enhancement */
+ol.references li:target {
+    background-color: var(--body-light);
+}
+
+/* ============================================= */
+/* PHASE 9B: Strategic Mobile-Relevant Selectors */
+/* ============================================= */
+
+/* Core MediaWiki Body Styling */
+.mw-body {
+    background-color: var(--body-main);
+    color: var(--text-color);
+    border-color: transparent;
+    box-shadow: 0 0 7px rgba(0,0,0,0.15);
+    margin-top: 0;
+}
+
+.mw-heading {
+    color: var(--text-color);
+}
+
+/* Extended Heading Typography */
+.mw-body-content .mw-heading4,
+.mw-body-content .mw-heading5,
+.mw-body-content .mw-heading6 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+/* Citation Styling */
+cite {
+    font-style: inherit;
+}
+
+/* Link States Enhancement */
+a:active {
+    color: var(--link-color);
+}
+
+/* Category Links */
+.catlinks {
+    background: var(--body-light);
+    border: 1px solid var(--body-dark);
+    padding: 8px 15px;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+
+.catlinks li {
+    border-color: var(--body-mid);
+}
+
+/* Syntax Highlighting */
+.mw-highlight {
+    background: none;
+}
+
+.mw-highlight .linenos {
+    color: var(--byline-color);
+}
+
+.mw-highlight a:hover .linenos,
+.mw-highlight .hll a .linenos {
+    color: var(--text-color);
+}
+
+/* Auto-comments */
+.autocomment,
+.autocomment a,
+.autocomment a:visited {
+    color: var(--link-color);
+}
+
+/* Sticky Header Target Offset */
+body.wgl-stickyheader.action-view .mw-headline:target::before {
+    display: block;
+    content: '';
+    margin-top: -3rem;
+    height: 3rem;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Revision Slider */
+.mw-revslider-container {
+    border-color: var(--sidebar);
+}
+
+/* Diff Styling */
+.diff-context {
+    border-color: var(--diff-context-border-color);
+    background: var(--diff-context-background);
+    color: inherit;
+}
+
+.diff-addedline {
+    border-color: var(--diff-addedline-border-color);
+}
+
+.diff-addedline .diffchange {
+    background: var(--diff-addedline-background);
+    color: var(--diff-addedline-color);
+}
+
+.diff-deletedline {
+    border-color: var(--diff-deletedline-border-color);
+}
+
+.diff-deletedline .diffchange {
+    background: var(--diff-deletedline-background);
+    color: var(--diff-deletedline-color);
+}
+
+/* Inline Diff Styling */
+.mw-inline-diff-newline::after {
+    background: var(--diff-inline-deletedline);
+    color: var(--byline-color);
+}
+
+.mw-diff-inline-added ins,
+.mw-diff-inline-changed ins,
+.mw-diff-inline-moved ins {
+    background: var(--diff-addedline-background);
+}
+
+.mw-diff-inline-deleted del,
+.mw-diff-inline-changed del,
+.mw-diff-inline-moved del {
+    background: var(--diff-inline-deletedline);
+}
+
+/* SMW Components */
+.smw-column-header {
+    color: var(--text-color);
+}
+
+/* Tabber Interface */
+ul.tabbernav {
+    border: none;
+    margin-left: 2em;
+    margin-bottom: 0;
+    margin-right: 2em;
+    padding: 0;
+    font-family: inherit;
+}
+
+ul.tabbernav li.tabberactive > a {
+    background-color: var(--tabber-active-tab-bg);
+    color: var(--tabber-active-tab-color);
+    border-bottom: none;
+    position: relative;
+}
+
+ul.tabbernav li.tabberactive > a:hover {
+    color: var(--tabber-active-tab-hover-color);
+    background-color: var(--tabber-active-tab-hover-bg);
+    border-color: var(--tabber-active-tab-hover-border-color);
+    border-bottom: none;
+}
+
+ul.tabbernav li.tabberactive > a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    border-bottom: 2px solid var(--tabber-active-tab-border-hider-color);
+}
+
+ul.tabbernav li a {
+    background-color: var(--tabber-inactive-tab-bg);
+    border-bottom: transparent;
+    border-color: var(--tabber-inactive-tab-border-color);
+    color: var(--tabber-inactive-tab-color);
+    display: inline-block;
+    font-size: 110%;
+    padding: 0.5em 1em;
+}
+
+ul.tabbernav li a:hover {
+    background-color: var(--tabber-inactive-tab-hover-bg);
+    border-color: var(--tabber-inactive-tab-hover-border-color);
+}
+
+ul.tabbernav li a:link,
+ul.tabbernav li a:visited {
+    color: var(--tabber-inactive-tab-color);
+}
+
+/* Archive Lists */
+.archivelist {
+    background-color: var(--body-light);
+    border: solid 1px var(--body-border);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+    float: right;
+    margin: 5px;
+    padding: 5px;
+    text-align: center;
+    width: 120px;
+}
+
+/* External Images */
+.extimage div {
+    width: inherit;
+    height: inherit;
+}
+
+/* Documentation */
+.documentation code {
+    background-color: var(--documentation-background);
+    border-color: var(--documentation-border);
+}
+
+.documentation-subheader a:visited,
+.documentation-subheader a:active {
+    color: var(--documentation-link-color);
+}
+
+.documentation-links {
+    font-size: 0.85em;
+}
+
+/* Fairy Code Styling */
+.fairycode {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+    font-size: 120%;
+    font-weight: bold;
+    text-transform: lowercase;
+    letter-spacing: 1px;
+}
+
+.fairycode b ~ b:before {
+    content: "•";
+}
+
+/* Tile & Byline Styling */
+.tile.dark .byline {
+    color: var(--tile-dark-byline-color);
+}
+
+.byline {
+    font-size: 0.9em;
+    color: var(--byline-color);
+}
+
+.byline a {
+    color: var(--byline-color);
+}
