@@ -2069,3 +2069,450 @@ body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a.mw-selflink.selflink
 }
 
 /* --- End Specialized Components Section --- */
+
+
+/* =================================================================== */
+/* PHASE 4: OSRS GAMING & COMMUNITY FEATURES                         */
+/* =================================================================== */
+
+/* --- OSRS Polls & Community Systems --- */
+
+/* Kartographer Interactive Map Popups */
+.mw-kartographer-interactive .leaflet-popup-content a.new,
+.mw-kartographer-interactive .leaflet-popup-content a.new:visited {
+    color: var(--redlink-color);
+}
+
+/* Poll Box Framework */
+.pollbox table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.pollbox caption {
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.pollbox td {
+    padding: 0px;
+}
+
+/* Poll Question Layout */
+.pollquestion td:first-child::before {
+    content: "";
+    background: url(/images/Poll_shield.png?c691a);
+    background-repeat: no-repeat;
+    background-position: top;
+    width: 10px;
+    height: 14px;
+    position: absolute;
+    top: 4px;
+    left: 0;
+}
+
+.pollquestion td:first-child {
+    position: relative;
+    width: 32%;
+    padding-right: 0.7em;
+    padding-left: 16px;
+}
+
+.pollquestion td.pollpercent {
+    box-sizing: border-box;
+    padding-left: 17px;
+    padding-right: 8px;
+}
+
+.pollquestion td:last-child {
+    width: 22%;
+    padding-left: 0.7em;
+}
+
+/* Poll Notes */
+.pollquestion .pollnote td {
+    width: 100%;
+    padding: 20px 5px;
+    padding-bottom: 5px;
+}
+
+.pollquestion .pollnote td::before {
+    content: none;
+}
+
+/* Poll Progress Bars */
+.pollquestion data {
+    display: block;
+    height: 15px;
+    background-image: url(/images/Poll_sword2.png?7d4c4);
+    position: relative;
+}
+
+.pollquestion data::before {
+    background: url(/images/Poll_sword1.png?d445b);
+    width: 17px;
+    right: 100%;
+}
+
+.pollquestion data::after {
+    background: url(/images/Poll_sword3.png?487b5);
+    width: 8px;
+    left: 100%;
+}
+
+/* Archive Poll Questions */
+.archivepollq th {
+    text-align: left;
+    font-weight: normal;
+    padding: 15px 0 0 0;
+}
+
+.archivepollq td:first-child {
+    position: relative;
+    width: 80%;
+    padding-right: 0.7em;
+    padding-left: 16px;
+}
+
+.archivepollq td.archivepollpercent {
+    box-sizing: border-box;
+    padding: 2px;
+    border: 1px solid var(--body-border);
+}
+
+.archivepollq td:last-child {
+    text-align: right;
+    padding-left: 0.7em;
+}
+
+.archivepollq .archivepollnote > td {
+    text-align: left;
+    width: 100%;
+    padding: 20px 5px;
+    padding-bottom: 5px;
+}
+
+.archivepollq data {
+    display: block;
+    height: 25px;
+    background: var(--body-border);
+    position: relative;
+}
+
+/* Archive Poll Error States */
+.archivepollq.e {
+    border: 2px solid var(--errorbox-border);
+    background: var(--errorbox-bg);
+}
+
+.archivepollq.e::before {
+    content: "Error";
+    background: linear-gradient(0deg,var(--errorbox-bg),var(--errorbox-bg) 50%,rgba(0,0,0,0) 50%);
+}
+
+
+/* --- Interactive Gaming Elements --- */
+
+/* Keypress Indicators */
+.keypress {
+    background: var(--keypress-background);
+    color: var(--keypress-color);
+    font-family: inherit;
+    border: 1px solid var(--keypress-border);
+    border-radius: 2px;
+    font-size: 0.9em;
+    margin: 0 0.1em;
+    padding: 0.1em 0.4em;
+    white-space: nowrap;
+}
+
+/* Music Player Integration */
+.rsw-music-player {
+    height: 2em;
+    vertical-align: middle;
+}
+
+/* Spell Component Display (scp) */
+.scp {
+    display: inline-block;
+    height: 1em;
+    position: relative;
+}
+
+.scp img {
+    height: auto;
+    image-rendering: crisp-edges;
+    max-width: 32px;
+}
+
+/* Coins Display with Positive Coloring */
+.coins-pos {
+    color: var(--coins-pos-color);
+}
+
+
+/* --- OSRS Content Systems --- */
+
+/* Item Drops with Beast Versions */
+.item-drops .beast-version {
+    font-size: smaller;
+    font-style: italic;
+}
+
+/* Store Locations with Shop Versions */
+.store-locations-list .shop-version {
+    font-size: smaller;
+    font-style: italic;
+}
+
+/* AJAX Polls */
+.ajaxpoll {
+    background: var(--ajaxpoll-background);
+}
+
+.ajaxpoll .ajaxpoll-hover-vote {
+    background: none;
+}
+
+
+/* --- Documentation & Template Framework --- */
+
+/* Documentation Styling */
+.documentation pre {
+    background-color: var(--documentation-background);
+    border-color: var(--documentation-border);
+}
+
+.documentation h2 {
+    border-color: var(--documentation-border);
+}
+
+/* Template Data Documentation */
+.mw-templatedata-doc-params dl:not(:empty) {
+    column-count: 3;
+    border-top: 1px solid var(--body-border);
+    margin-bottom: 0.5em;
+}
+
+.mw-templatedata-doc-params dt::after {
+    content: ":";
+}
+
+.mw-templatedata-doc-params dd {
+    margin: 0.1em 2em;
+    min-width: auto;
+}
+
+.mw-templatedata-doc-params dt {
+    margin: 0.1em 2em;
+    min-width: auto;
+}
+
+.mw-templatedata-doc-param-alias {
+    color: var(--subtle-color);
+}
+
+.mw-templatedata-doc-muted {
+    color: var(--subtle-color);
+}
+
+.tdg-templateDataParamWidget-param-alias {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+}
+
+.tdg-templateDataParamWidget-param-description {
+    color: var(--subtle-color);
+}
+
+
+/* --- Message Box System --- */
+
+/* Base Message Box Styling */
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+/* Message Box Variants */
+.messagebox.obsolete {
+    background-color: var(--messagebox-obsolete-background);
+    border-color: var(--messagebox-obsolete-border);
+    color: var(--messagebox-obsolete-color);
+}
+
+.messagebox.obsolete a,
+.messagebox.obsolete a:visited,
+.messagebox.obsolete a:active {
+    color: var(--messagebox-obsolete-link-color);
+}
+
+.messagebox.info {
+    background-color: var(--messagebox-info-background);
+    border-color: var(--messagebox-info-border);
+    color: var(--messagebox-info-color);
+}
+
+.messagebox.info a,
+.messagebox.info a:visited,
+.messagebox.info a:active {
+    color: var(--messagebox-info-link-color);
+}
+
+.messagebox.action {
+    background-color: var(--messagebox-action-background);
+    border-color: var(--messagebox-action-border);
+    color: var(--messagebox-action-color);
+}
+
+.messagebox.action a,
+.messagebox.action a:visited,
+.messagebox.action a:active {
+    color: var(--messagebox-action-link-color);
+}
+
+.messagebox.warn {
+    background-color: var(--messagebox-warn-background);
+    border-color: var(--messagebox-warn-border);
+    color: var(--messagebox-warn-color);
+}
+
+.messagebox.warn a,
+.messagebox.warn a:visited,
+.messagebox.warn a:active {
+    color: var(--messagebox-warn-link-color);
+}
+
+.messagebox.safe {
+    background-color: var(--messagebox-safe-background);
+    border-color: var(--messagebox-safe-border);
+    color: var(--messagebox-safe-color);
+}
+
+.messagebox.safe a,
+.messagebox.safe a:visited,
+.messagebox.safe a:active {
+    color: var(--messagebox-safe-link-color);
+}
+
+.messagebox.disambig {
+    background-color: var(--messagebox-disambig-background);
+    border-color: var(--messagebox-disambig-border);
+    color: var(--messagebox-disambig-color);
+}
+
+.messagebox.disambig a,
+.messagebox.disambig a:visited,
+.messagebox.disambig a:active {
+    color: var(--messagebox-disambig-link-color);
+}
+
+.messagebox.discord {
+    background-color: var(--messagebox-discord-background);
+    border-color: var(--messagebox-discord-border);
+    color: #fff;
+}
+
+.messagebox.discord a,
+.messagebox.discord a:visited,
+.messagebox.discord a:active {
+    color: var(--messagebox-discord-link-color);
+}
+
+.messagebox.discord a.external,
+.messagebox.discord a:visited.external,
+.messagebox.discord a:active.external {
+    font-style: italic;
+}
+
+
+/* --- Typography & Layout Refinements --- */
+
+/* Enhanced Heading Borders */
+h1 {
+    border-color: var(--sidebar);
+}
+
+h2 {
+    border-color: var(--sidebar);
+}
+
+h3 {
+    color: var(--text-color);
+}
+
+/* Redirect Text Enhancements */
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+}
+
+/* Table Border Refinements */
+.wikitable > tr > td,
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.wikitable > tr > th.table-noborder,
+.wikitable > tr > td.table-noborder,
+.wikitable > * > tr > th.table-noborder,
+.wikitable > * > tr > td.table-noborder {
+    border-left-style: hidden;
+    border-right-style: hidden;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* CDX Button System Refinements */
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive {
+    color: var(--text-color);
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,24,73,0.02745098);
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+input[type='checkbox']:focus + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:focus + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:focus {
+    color: var(--text-color);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet {
+    background-color: rgba(0,36,73,0.08235294);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive,
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-progressive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+/* RuneScape Font Support */
+.font-runescape {
+    font-family: 'RuneScape';
+}
