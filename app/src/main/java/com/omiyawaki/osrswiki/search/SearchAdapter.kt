@@ -1,8 +1,10 @@
 package com.omiyawaki.osrswiki.search
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.text.HtmlCompat
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -43,9 +45,41 @@ class SearchAdapter(
             binding.searchItemTitle.applyAlegreyaHeadline()
 
             if (item.snippet.isNotBlank()) {
-                binding.searchItemSnippet.text = item.snippet
+                // Phase 2: Render search term highlights using HtmlCompat with theme-aware colors
+                val context = binding.root.context
+                val highlightColor = androidx.core.content.ContextCompat.getColor(
+                    context, 
+                    com.omiyawaki.osrswiki.R.color.search_highlight_light
+                )
+                val highlightColorHex = String.format("#%06X", (0xFFFFFF and highlightColor))
+                
+                // DEBUG: Log HTML conversion process
+                val hasSearchMatch = item.snippet.contains("searchmatch")
+                Log.d("SearchAdapter", "=== HTML CONVERSION DEBUG ===")
+                Log.d("SearchAdapter", "Title: ${item.title}")
+                Log.d("SearchAdapter", "Original snippet (${item.snippet.length} chars): ${item.snippet}")
+                Log.d("SearchAdapter", "Contains searchmatch tags: $hasSearchMatch")
+                Log.d("SearchAdapter", "Highlight color resolved: $highlightColorHex")
+                
+                val styledSnippet = item.snippet
+                    .replace("<span class=\"searchmatch\">", "<b><font color='$highlightColorHex'>")
+                    .replace("</span>", "</font></b>")
+                
+                Log.d("SearchAdapter", "Styled snippet: $styledSnippet")
+                
+                val htmlSpanned = HtmlCompat.fromHtml(
+                    styledSnippet, 
+                    HtmlCompat.FROM_HTML_MODE_COMPACT
+                )
+                
+                Log.d("SearchAdapter", "HtmlCompat result type: ${htmlSpanned.javaClass.simpleName}")
+                Log.d("SearchAdapter", "Final text: '$htmlSpanned'")
+                Log.d("SearchAdapter", "=== END DEBUG ===")
+                
+                binding.searchItemSnippet.text = htmlSpanned
                 binding.searchItemSnippet.visibility = View.VISIBLE
             } else {
+                binding.searchItemSnippet.text = null
                 binding.searchItemSnippet.visibility = View.GONE
             }
 

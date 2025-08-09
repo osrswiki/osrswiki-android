@@ -4,6 +4,7 @@ import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
 import com.omiyawaki.osrswiki.network.model.FallbackApiResponse
 import com.omiyawaki.osrswiki.network.model.GeneratedSearchApiResponse
 import com.omiyawaki.osrswiki.network.model.PageImagesInfo
+import com.omiyawaki.osrswiki.network.model.SearchApiResponse
 import com.omiyawaki.osrswiki.page.ImageInfoResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -25,6 +26,21 @@ interface WikiApiService {
         @Query("gpsoffset") offset: Int,
         @Query("pithumbsize") thumbSize: Int
     ): GeneratedSearchApiResponse
+
+    /**
+     * MediaWiki Search API for intelligent search results with proper relevance ranking.
+     * This replaces the generator=prefixsearch approach to provide superior user experience
+     * with guaranteed snippet coverage and better result ordering.
+     */
+    @GET("api.php?action=query&format=json&formatversion=2" +
+            "&list=search" +
+            "&srprop=snippet|size|wordcount|timestamp" +
+            "&srsort=relevance") // explicit relevance sorting
+    suspend fun searchPages(
+        @Query("srsearch") query: String,
+        @Query("srlimit") limit: Int,
+        @Query("sroffset") offset: Int
+    ): SearchApiResponse
 
     /**
      * Fallback API call for pages that didn't get extracts with exintro=true.

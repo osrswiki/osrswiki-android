@@ -5,7 +5,9 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.network.SearchResult
+import com.omiyawaki.osrswiki.network.Thumbnail
 import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.network.model.SearchApiResult
 import retrofit2.HttpException
 import java.io.IOException
 import java.util.concurrent.CancellationException
@@ -28,19 +30,18 @@ class SearchPagingSource(
         }
 
         return try {
-            // Step 1: Make a single, combined network call.
-            val response = apiService.generatedPrefixSearch(
+            // Step 1: Use MediaWiki Search API for intelligent ranking and guaranteed snippets.
+            val response = apiService.searchPages(
                 query = query,
                 limit = limit,
-                offset = currentOffset,
-                thumbSize = THUMBNAIL_SIZE
+                offset = currentOffset
             )
 
-            val unsortedResults = response.query?.pages ?: emptyList()
+            val searchApiResults = response.query?.search ?: emptyList()
             
             // Debug logging for API response
-            Log.d("SearchPagingSource", "API response for query '$query': ${unsortedResults.size} results")
-            unsortedResults.forEachIndexed { index, result ->
+            Log.d("SearchPagingSource", "Search API response for query '$query': ${searchApiResults.size} results")
+            searchApiResults.forEachIndexed { index, result ->
                 val hasSnippet = !result.snippet.isNullOrBlank()
                 Log.d("SearchPagingSource", "Result $index: '${result.title}' (pageId=${result.pageid}) - snippet: ${if (hasSnippet) "present (${result.snippet?.length} chars)" else "missing/empty"}")
                 if (result.title.contains("Logs", ignoreCase = true)) {
@@ -48,44 +49,58 @@ class SearchPagingSource(
                 }
             }
 
-            // Sort the results by the 'index' field to ensure correct relevance order.
-            var searchResults = unsortedResults.sortedBy { it.index }
-
-            // Smart fallback: For pages with null snippets, try to get extracts without exintro=true
-            val pagesWithoutSnippets = searchResults.filter { it.snippet.isNullOrBlank() }
-            if (pagesWithoutSnippets.isNotEmpty()) {
-                Log.d("SearchPagingSource", "Found ${pagesWithoutSnippets.size} pages without snippets, trying fallback API")
-                try {
-                    val pageIds = pagesWithoutSnippets.joinToString("|") { it.pageid.toString() }
-                    val fallbackResponse = apiService.getPageExtract(pageIds)
-                    
-                    // Create a map of pageid to snippet for quick lookup from fallback response
-                    val fallbackSnippets = fallbackResponse.query?.pages?.associateBy({ it.pageid }, { it.snippet }) ?: emptyMap()
-                    
-                    // Update search results with fallback snippets
-                    searchResults = searchResults.map { result ->
-                        if (result.snippet.isNullOrBlank()) {
-                            val fallbackSnippet = fallbackSnippets[result.pageid]
-                            if (!fallbackSnippet.isNullOrBlank()) {
-                                Log.d("SearchPagingSource", "Fallback SUCCESS for '${result.title}': got ${fallbackSnippet.length} chars")
-                                result.copy(snippet = fallbackSnippet)
-                            } else {
-                                result
-                            }
-                        } else {
-                            result
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w("SearchPagingSource", "Fallback API call failed: ${e.message}")
-                }
+            // Map SearchApiResult to SearchResult with HTML stripping for snippets (Phase 1 pragmatic approach)
+            var searchResults = searchApiResults.map { apiResult ->
+                SearchResult(
+                    ns = apiResult.ns,
+                    title = apiResult.title,
+                    pageid = apiResult.pageid,
+                    index = searchApiResults.indexOf(apiResult) + 1, // Maintain order from search API
+                    size = apiResult.size,
+                    wordcount = apiResult.wordcount,
+                    // Phase 2: Keep HTML for search term highlighting in UI
+                    snippet = apiResult.snippet?.trim(),
+                    timestamp = apiResult.timestamp,
+                    thumbnail = null, // Search API doesn't provide thumbnails directly
+                    isOfflineAvailable = false // Will be set later
+                )
             }
 
             if (searchResults.isEmpty()) {
                 return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
             }
 
-            // Step 2: Efficiently enhance results with offline status from the local database.
+            // Step 2: Fetch thumbnails for search results using a separate API call
+            // MediaWiki API has a 50-page limit for pageids parameter
+            if (searchResults.isNotEmpty()) {
+                try {
+                    val pagesToFetch = searchResults.take(50) // Respect API limit of 50 pages
+                    val pageIds = pagesToFetch.joinToString("|") { it.pageid.toString() }
+                    val thumbnailResponse = apiService.getPageThumbnails(pageIds, THUMBNAIL_SIZE)
+                    
+                    // Create a map of pageid to thumbnail for quick lookup
+                    // PageImagesApiResponse uses Map<String, PageImagesPageInfo> structure
+                    val thumbnailMap = thumbnailResponse.query?.pages?.values?.associate { pageInfo ->
+                        pageInfo.pageid to pageInfo.thumbnail?.let { pageThumbnail ->
+                            // Convert PageThumbnail to Thumbnail for SearchResult compatibility
+                            Thumbnail(source = pageThumbnail.source)
+                        }
+                    } ?: emptyMap()
+                    
+                    // Update search results with thumbnails
+                    searchResults = searchResults.map { result ->
+                        val thumbnail = thumbnailMap[result.pageid]
+                        result.copy(thumbnail = thumbnail)
+                    }
+                    
+                    Log.d("SearchPagingSource", "Added thumbnails for ${thumbnailMap.size}/${pagesToFetch.size} results (limited to first 50 due to API constraint)")
+                } catch (e: Exception) {
+                    Log.w("SearchPagingSource", "Thumbnail fetch failed: ${e.message}")
+                    // Continue without thumbnails - not critical for functionality
+                }
+            }
+
+            // Step 3: Efficiently enhance results with offline status from the local database.
             val pageIds = searchResults.map { it.pageid }
             val offlineMetas = articleMetaDao.getMetasByPageIds(pageIds)
             val offlinePageIds = offlineMetas.map { it.pageId }.toSet()
