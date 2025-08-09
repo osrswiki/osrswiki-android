@@ -92,6 +92,18 @@
     --thumb-bg: #f8f9fa;
     --diff-addedline-background: #d1f2d1;
     --diff-inline-deletedline: #f8d7da;
+    
+    /* SMW and advanced interface variables */
+    --smw-ask-options-even-bg: var(--body-light);
+    --smw-ask-options-odd-bg: var(--wikitable-alternating-bg);
+    --button-background: var(--ooui-normal);
+    --button-color: var(--ooui-text);
+    --filter-black-to-link: brightness(0) saturate(100%) invert(35%) sepia(29%) saturate(1292%) hue-rotate(16deg) brightness(93%) contrast(92%);
+    
+    /* OOUI disabled states */
+    --ooui-disabled: #c8ccd1;
+    --ooui-disabled-text: #72777d;
+    --ooui-disabled-border: #c8ccd1;
 }
 
 
@@ -187,6 +199,18 @@ body.theme-osrs-dark {
     --thumb-bg: #3e362f;
     --diff-addedline-background: #2a4a2a;
     --diff-inline-deletedline: #4a2525;
+    
+    /* SMW and advanced interface variables adapted for dark theme */
+    --smw-ask-options-even-bg: var(--body-mid);
+    --smw-ask-options-odd-bg: var(--body-dark-shade);
+    --button-background: var(--ooui-normal);
+    --button-color: var(--ooui-text);
+    --filter-black-to-link: brightness(0) saturate(100%) invert(67%) sepia(18%) saturate(657%) hue-rotate(13deg) brightness(99%) contrast(96%);
+    
+    /* OOUI disabled states adapted for dark theme */
+    --ooui-disabled: #54524f;
+    --ooui-disabled-text: #a4a1a1;
+    --ooui-disabled-border: #54524f;
 }
 
 
