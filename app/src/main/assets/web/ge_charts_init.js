@@ -81,9 +81,9 @@
         height,
         backgroundColor: 'white',
         reflow: true,
-        marginLeft: 56,
+        marginLeft: 48,
         marginRight: 16,
-        spacingBottom: 6,
+        spacingBottom: 10,
         spacing: [4, 4, 4, 4],
         animation: false
       },
