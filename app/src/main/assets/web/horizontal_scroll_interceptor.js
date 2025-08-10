@@ -152,6 +152,11 @@
      */
     document.addEventListener('touchstart', function(event) {
         const target = event.target;
+        // If interacting within a GE chart, let the chart's guard manage horizontal scroll state
+        if (target && (target.closest && (target.closest('.GEdatachart') || target.closest('.GEChartBox')))) {
+            log('Touch within GE chart: skipping horizontal scroll check');
+            return;
+        }
         log('Touch on: ' + target.tagName + ' ' + (target.className || '') + 
             ' at (' + Math.round(event.touches[0].clientX) + ', ' + Math.round(event.touches[0].clientY) + ')');
         

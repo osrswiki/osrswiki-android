@@ -236,4 +236,43 @@
       el.addEventListener('mouseleave', onUp, { passive: true });
     }
   }
+
+  // Global, capture-phase guard to reliably catch events within inner Highcharts layers
+  (function installGlobalChartGestureGuard() {
+    let active = 0;
+    const isInChart = (t) => !!(t && (t.closest && (t.closest('.GEdatachart') || t.closest('.GEChartBox'))));
+    const send = (flag) => {
+      if (!window.OsrsWikiBridge || typeof window.OsrsWikiBridge.setHorizontalScroll !== 'function') return;
+      try { window.OsrsWikiBridge.setHorizontalScroll(!!flag); } catch (_) {}
+    };
+
+    const onDown = (ev) => {
+      const t = ev.target;
+      if (isInChart(t)) {
+        active++;
+        if (active === 1) send(true);
+      }
+    };
+    const onUp = (ev) => {
+      // Only decrement if we previously incremented
+      if (active > 0) {
+        active--;
+        if (active === 0) send(false);
+      }
+    };
+
+    if (window.PointerEvent) {
+      document.addEventListener('pointerdown', onDown, { passive: true, capture: true });
+      document.addEventListener('pointerup', onUp, { passive: true, capture: true });
+      document.addEventListener('pointercancel', onUp, { passive: true, capture: true });
+      document.addEventListener('pointerleave', onUp, { passive: true, capture: true });
+    } else {
+      document.addEventListener('touchstart', onDown, { passive: true, capture: true });
+      document.addEventListener('touchend', onUp, { passive: true, capture: true });
+      document.addEventListener('touchcancel', onUp, { passive: true, capture: true });
+      document.addEventListener('mousedown', onDown, { passive: true, capture: true });
+      document.addEventListener('mouseup', onUp, { passive: true, capture: true });
+      document.addEventListener('mouseleave', onUp, { passive: true, capture: true });
+    }
+  })();
 })();
