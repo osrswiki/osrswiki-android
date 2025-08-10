@@ -19,7 +19,7 @@ class ResponsiveThemeLayoutManager(
 ) : GridLayoutManager(context, 1) {
     
     companion object {
-        private const val MIN_CARD_WIDTH_DP = 180 // Minimum width for horizontal cards
+        private const val MIN_CARD_WIDTH_DP = 140 // Minimum width for horizontal cards (reduced for better fit)
         private const val HORIZONTAL_THRESHOLD_DP = 600 // Minimum screen width to enable horizontal layout
         private const val MAX_COLUMNS = 3 // Maximum number of columns in horizontal layout
     }
@@ -80,7 +80,7 @@ class ResponsiveThemeLayoutManager(
         
         // Calculate how many cards can fit horizontally with padding
         val availableWidth = screenWidthDp - 32 // Account for RecyclerView padding
-        val cardWidthWithMargin = MIN_CARD_WIDTH_DP + 8 // Card width + horizontal margins
+        val cardWidthWithMargin = MIN_CARD_WIDTH_DP + 4 // Card width + horizontal margins (2dp each side)
         val possibleColumns = availableWidth / cardWidthWithMargin
         
         // Return optimal column count (min 2 for horizontal, max MAX_COLUMNS)
