@@ -50,6 +50,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         setupRecyclerView()
         observeViewModel()
         preWarmThemePreviewCache()
+        preWarmTablePreviewCache()
         
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
@@ -81,6 +82,10 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
                 viewModel.onThemeSelected(themeKey)
                 notifyGlobalThemeChange()
                 L.d("CustomAppearanceSettingsFragment: Theme selected inline - $themeKey")
+            },
+            onTablePreviewSelected = { collapseTablesEnabled ->
+                viewModel.onTablePreviewSelected(collapseTablesEnabled)
+                L.d("CustomAppearanceSettingsFragment: Table preview selected - collapseTablesEnabled: $collapseTablesEnabled")
             },
             lifecycleScope = viewLifecycleOwner.lifecycleScope
         )
@@ -173,6 +178,26 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         }
     }
 
+    /**
+     * Pre-warms the table preview cache by generating the table collapse comparison in the background.
+     * This ensures smooth scrolling when the table preview UI is displayed.
+     */
+    private fun preWarmTablePreviewCache() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                L.d("CustomAppearanceSettingsFragment: Pre-warming table preview cache")
+                
+                // Generate the side-by-side table preview in background
+                // We only need to call it once since it generates both states in a single bitmap
+                TablePreviewRenderer.getPreview(requireContext(), true) // Value doesn't matter, it generates both states
+                
+                L.d("CustomAppearanceSettingsFragment: Table preview cache pre-warming completed")
+            } catch (e: Exception) {
+                L.e("CustomAppearanceSettingsFragment: Error pre-warming table preview cache: ${e.message}")
+            }
+        }
+    }
+
     override fun onThemeChanged() {
         if (!isAdded || view == null) {
             return
@@ -180,15 +205,17 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         
         L.d("CustomAppearanceSettingsFragment: onThemeChanged called - clearing cache and refreshing UI")
         
-        // Clear theme preview cache since themes have changed
+        // Clear preview caches since themes have changed
         ThemePreviewRenderer.clearCache(requireContext())
+        TablePreviewRenderer.clearCache(requireContext())
         
         // The RecyclerView and its items should automatically pick up the new theme
         // since they use theme attributes. Just notify the adapter to refresh.
         adapter.notifyDataSetChanged()
         
-        // Re-warm the cache with new theme previews
+        // Re-warm the cache with new theme and table previews
         preWarmThemePreviewCache()
+        preWarmTablePreviewCache()
     }
     
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -238,6 +265,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
                 
                 // Re-warm the cache with new device configuration previews
                 preWarmThemePreviewCache()
+                preWarmTablePreviewCache()
                 
                 L.d("CustomAppearanceSettingsFragment: Configuration change handling completed")
             } catch (e: Exception) {

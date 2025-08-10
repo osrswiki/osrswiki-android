@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import com.omiyawaki.osrswiki.util.log.L
 
 /**
  * ViewModel for the custom settings screen.
@@ -29,6 +30,18 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                 val appThemeMode = state[SettingsRepository.KEY_APP_THEME_MODE] as String
                 val collapseTablesEnabled = state[SettingsRepository.KEY_COLLAPSE_TABLES] as Boolean
 
+                val tablePreviewItem = SettingItem.InlineTablePreviewSelection(
+                    key = SettingsRepository.KEY_COLLAPSE_TABLES,
+                    title = "Collapse tables",
+                    options = listOf(
+                        true to "Collapsed",
+                        false to "Expanded"
+                    ),
+                    currentSelection = collapseTablesEnabled
+                )
+                
+                L.d("SettingsViewModel: Creating InlineTablePreviewSelection with ${tablePreviewItem.options.size} options, currentSelection=${tablePreviewItem.currentSelection}")
+                
                 val items = listOf(
                     SettingItem.InlineThemeSelection(
                         key = SettingsRepository.KEY_APP_THEME_MODE,
@@ -37,24 +50,21 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                         currentSelection = appThemeMode
                     ),
                     SettingItem.CategoryHeader("Content"),
-                    SettingItem.SwitchSetting(
-                        key = SettingsRepository.KEY_COLLAPSE_TABLES,
-                        title = "Collapse tables",
-                        summary = "Collapses infoboxes by default in articles",
-                        isChecked = collapseTablesEnabled
-                    )
+                    tablePreviewItem
                 )
+                
+                L.d("SettingsViewModel: Settings list updated with ${items.size} items")
                 _settingsList.value = items
             }
         }
     }
 
     fun onSwitchSettingToggled(key: String, isChecked: Boolean) {
-        when (key) {
-            SettingsRepository.KEY_COLLAPSE_TABLES -> {
-                repository.setCollapseTablesEnabled(isChecked)
-            }
-        }
+        // No more switch settings - all replaced with inline previews
+    }
+
+    fun onTablePreviewSelected(collapseTablesEnabled: Boolean) {
+        repository.setCollapseTablesEnabled(collapseTablesEnabled)
     }
 
     fun onListSettingClicked(key: String) {
