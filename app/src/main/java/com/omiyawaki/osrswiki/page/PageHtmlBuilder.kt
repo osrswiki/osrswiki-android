@@ -17,6 +17,7 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/fonts.css",
         "styles/layout.css",
         "styles/components.css",
+        "styles/wiki-integration.css",
         "styles/navbox_styles.css",
         "web/collapsible_tables.css",
         "web/collapsible_sections.css",
@@ -96,12 +97,25 @@ class PageHtmlBuilder(private val context: Context) {
                 else -> "" // OSRS Light is the default theme in CSS, no class needed.
             }
 
+            // Detect presence of GE price charts in the content and include widget script when needed
+            val needsGECharts = cleanedBodyContent.contains("GEChartBox") ||
+                    cleanedBodyContent.contains("GEdatachart") ||
+                    cleanedBodyContent.contains("GEdataprices")
+            if (needsGECharts) {
+                Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
+            }
+
             val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
                 // The URL must match the path handled by WebViewAssetLoader.
                 "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
             }
 
-            val jsScripts = jsAssetPaths.joinToString("\n") { assetPath ->
+            // Build the JS list, conditionally appending the GE charts widget
+            val dynamicJsAssets = if (needsGECharts) {
+                jsAssetPaths + listOf("web/highcharts-stock.js")
+            } else jsAssetPaths
+
+            val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
                 // The URL must match the path handled by WebViewAssetLoader.
                 "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
             }
