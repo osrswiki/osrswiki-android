@@ -40,28 +40,79 @@
     return series;
   }
 
+  function ensureStylesInjected() {
+    if (document.getElementById('ge-charts-style')) return;
+    const css = `
+      .GEdatachart.smallChart { width: 100% !important; max-width: 100% !important; }
+      .GEChartBox { width: 100%; }
+      /* Let Highcharts manage its own overflow; keep labels visible */
+      .GEdatachart.smallChart svg { overflow: visible !important; }
+    `;
+    const style = document.createElement('style');
+    style.id = 'ge-charts-style';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  function formatCompact(n) {
+    const abs = Math.abs(n);
+    if (abs >= 1_000_000) return (n/1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1) + 'm';
+    if (abs >= 1_000) return (n/1_000).toFixed(n % 1_000 === 0 ? 0 : 1) + 'k';
+    return String(n);
+  }
+
   function renderChart(container, series) {
     if (!window.Highcharts || !window.Highcharts.stockChart) {
       log('e', 'Highcharts.stockChart not available');
       return;
     }
+    ensureStylesInjected();
+
     const id = container.id || undefined;
+    const bodyColor = getComputedStyle(document.body).color || '#333';
+    const height = Math.max(container.clientHeight || 0, 160);
     const opts = {
       chart: {
-        height: container.clientHeight || 160,
+        height,
         backgroundColor: 'white',
+        reflow: true,
+        marginLeft: 44,
+        spacing: [4, 4, 4, 4],
+        animation: false
       },
+      title: { text: null },
+      subtitle: { text: null },
       credits: { enabled: false },
       rangeSelector: { enabled: false },
+      legend: { enabled: false },
       navigator: { enabled: false },
       scrollbar: { enabled: true },
-      xAxis: { ordinal: false },
-      yAxis: { title: { text: null } },
+      xAxis: {
+        ordinal: false,
+        lineWidth: 1,
+        tickWidth: 0,
+        labels: { style: { color: bodyColor, fontSize: '11px' } }
+      },
+      yAxis: {
+        title: { text: null },
+        gridLineWidth: 1,
+        tickAmount: 2,
+        startOnTick: true,
+        endOnTick: true,
+        labels: {
+          style: { color: bodyColor, fontSize: '11px' },
+          align: 'right',
+          x: -6,
+          formatter: function () { return formatCompact(this.value); }
+        }
+      },
       series: [{
         type: 'line',
         name: 'Price',
         data: series,
-        tooltip: { valueDecimals: 0 }
+        color: '#4572A7',
+        lineWidth: 2,
+        tooltip: { valueDecimals: 0, pointFormat: '<b>{point.y}</b> gp' }
       }]
     };
     try {
@@ -122,4 +173,3 @@
   const mo = new MutationObserver(() => initAll());
   ready(() => mo.observe(document.body, { childList: true, subtree: true }));
 })();
-
