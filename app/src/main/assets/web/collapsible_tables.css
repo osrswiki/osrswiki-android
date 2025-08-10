@@ -123,13 +123,24 @@
 
 .collapsible-container {
         border-radius: 4px;
-        margin: 0.5em auto 1em auto; /* Center like infoboxes, with consistent vertical margins */
+        margin: 0.5em 0 1em 1em; /* Spacing for floating right: top right bottom left */
         width: auto;
         max-width: 450px; /* Match infobox max-width */
         overflow: hidden; /* This clips the corners for the border-radius */
         background-color: var(--colorsurfacevariant);
         color: var(--coloronsurfacevariant);
         display: block;
+        float: right;
+        clear: right; /* Stack properly with other right-floated elements */
+}
+
+/* On narrow screens, center the collapsible container instead of floating */
+@media (max-width: 768px) {
+        .collapsible-container {
+                float: none;
+                clear: both;
+                margin: 0.5em auto 1em auto; /* Centered like before */
+        }
 }
 
 .collapsible-header {
