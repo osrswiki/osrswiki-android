@@ -1,0 +1,1370 @@
+/*
+ * TABLES MODULE
+ * Table styling including wikitables and drop tables
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 297
+ */
+
+.table-yes {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+.table-no {
+    background: var(--table-no-background);
+    color: var(--table-no-color);
+}
+
+.table-maybe {
+    background: var(--table-maybe-background);
+    color: var(--table-maybe-color);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+}
+
+.table-positive {
+    background: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+.table-negative {
+    background: var(--table-no-background);
+    color: var(--table-no-color);
+}
+
+.table-bg-always, .table-bg-blue {
+    background: var(--droptable-always-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-common, .table-bg-green {
+    background: var(--droptable-common-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-uncommon, .table-bg-yellow {
+    background: var(--droptable-uncommon-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-rare, .table-bg-orange {
+    background: var(--droptable-rare-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-veryrare, .table-bg-red {
+    background: var(--droptable-veryrare-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-random, .table-bg-pink {
+    background: var(--droptable-random-background);
+    color: var(--droptable-text-color);
+}
+
+.table-bg-fade {
+    background: var(--wikitable-alternating-bg);
+    color: var(--wikitable-color);
+}
+
+.table-noborder {
+    border-left-style: hidden !important;
+    border-right-style: hidden !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+table.alternating-rows tr:nth-child(odd) {
+    background: var(--wikitable-alternating-bg);
+}
+
+.table-center {
+    text-align: center;
+}
+
+.table-left {
+    text-align: left;
+}
+
+.table-right {
+    text-align: right;
+}
+
+.content .mw-highlight-lines pre {
+    box-shadow: inset 2.75em 0 0 var(--mw-code-background-color);
+}
+
+.mw_metadata td {
+    background-color: var(--wikitable-bg);
+}
+
+.mw_metadata th {
+    background-color: var(--wikitable-header-bg);
+}
+
+table.alternating-cols td:nth-child(odd) {
+    background: var(--wikitable-alternating-bg);
+}
+
+.mw-datatable {
+    border-color: var(--wikitable-border);
+}
+
+.mw-datatable td {
+    background-color: var(--wikitable-bg);
+}
+
+.mw-datatable th {
+    background-color: var(--wikitable-header-bg);
+}
+
+.mw-datatable tr:hover td {
+    background-color: var(--wikitable-alternating-bg);
+}
+
+.questdetails {
+    width: 100%;
+    background-color: var(--wikitable-bg);
+    border: 1px solid var(--wikitable-border);
+    border-collapse: separate;
+}
+
+.questdetails th {
+    text-align: left;
+    background-color: var(--wikitable-header-bg);
+}
+
+.questdetails-header {
+    padding: 0.5em 1em;
+    background-color: var(--wikitable-header-bg);
+    width: 125px;
+}
+
+.questdetails-info {
+    padding-left: 1em;
+    padding-right: 2em;
+}
+
+.mw-usertoollinks-contribs-no-edits:visited {
+    color: var(--redlink-color);
+}
+
+.CategoryTreeToggle {
+    color: var(--link-color);
+}
+
+.table-bg-fade {
+    opacity: 0.6;
+    background: rgba(0,0,0,0.1);
+}
+
+.table-na {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.mw-content-ltr.content .mw-highlight-lines pre {
+    box-shadow: inset 2.75em 0 0 var(--mw-code-background-color);
+}
+
+.mw-content-ltr .redirectText li:first-child {
+    padding: 0;
+    background: 0;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    display: block;
+    width: 2px;
+    height: 1em;
+    margin: 0.25em 0.5em 0.25em 0;
+    float: left;
+}
+
+.wikitable {
+    background: var(--wikitable-bg);
+    color: var(--wikitable-color);
+    border-color: var(--wikitable-border);
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
+}
+
+.tabber .wikitable {
+    box-shadow: none;
+}
+
+table.wikitable td.no-cell-spacing {
+    padding: 0;
+    height: 0;
+}
+
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+}
+
+table.mw-abuselog-details {
+    background: var(--wikitable-bg);
+    border-color: var(--wikitable-border);
+}
+
+table.mw-abuselog-details td {
+    border-color: var(--wikitable-border);
+}
+
+.mw-json th {
+    background: var(--wikitable-header-bg);
+}
+
+.mw-json td {
+    background: var(--wikitable-bg);
+}
+
+.mw-datatable tr:hover td {
+    background-color: var(--wikitable-bg-lighter);
+}
+
+table.align-right-1 td:nth-of-type(1) { text-align: right; }
+
+table.align-right-2 td:nth-of-type(2) { text-align: right; }
+
+table.align-right-3 td:nth-of-type(3) { text-align: right; }
+
+table.align-right-4 td:nth-of-type(4) { text-align: right; }
+
+table.align-right-5 td:nth-of-type(5) { text-align: right; }
+
+table.align-right-6 td:nth-of-type(6) { text-align: right; }
+
+table.align-right-7 td:nth-of-type(7) { text-align: right; }
+
+table.align-right-8 td:nth-of-type(8) { text-align: right; }
+
+table.align-right-9 td:nth-of-type(9) { text-align: right; }
+
+table.align-right-10 td:nth-of-type(10) { text-align: right; }
+
+table.align-center-1 td:nth-of-type(1) { text-align: center; }
+
+table.align-center-2 td:nth-of-type(2) { text-align: center; }
+
+table.align-center-3 td:nth-of-type(3) { text-align: center; }
+
+table.align-center-4 td:nth-of-type(4) { text-align: center; }
+
+table.align-center-5 td:nth-of-type(5) { text-align: center; }
+
+table.align-center-6 td:nth-of-type(6) { text-align: center; }
+
+table.align-center-7 td:nth-of-type(7) { text-align: center; }
+
+table.align-center-8 td:nth-of-type(8) { text-align: center; }
+
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.questdetails-header {
+    background-color: var(--wikitable-header-bg);
+}
+
+.questdetails tr:nth-child(odd) .questdetails-header {
+    background-color: var(--wikitable-alternating-bg);
+}
+
+.growth-stage-table td.growth-stage {
+    text-align: center;
+    vertical-align: bottom;
+}
+
+.inventorytable {
+    background-image: url(https://oldschool.runescape.wiki/images/Inventory_tab.png);
+    width: 204px;
+    padding: 13px 16px 10px;
+    background-repeat: no-repeat;
+}
+
+.lootingbagtable {
+    background-image: url(https://oldschool.runescape.wiki/images/Looting_bag_tab.png);
+    width: 204px;
+    padding: 31px 17px 20px 12px;
+    background-repeat: no-repeat;
+}
+
+.menagerietable {
+    background-image: url(https://oldschool.runescape.wiki/images/Menagerie_interface.png);
+    background-repeat: no-repeat;
+    background-position: top left;
+    width: 512px;
+    height: 334px;
+    table-layout: fixed;
+}
+
+.lootingbagtable.storage-left {
+    float: left;
+    clear: left;
+    margin-right: 7px;
+}
+
+.lootingbagtable.storage-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.lootingbagtable.storage-right {
+    float: right;
+    clear: right;
+    margin-left: 7px;
+}
+
+.inventorytable td {
+    width: 43px;
+    height: 36px;
+}
+
+.lootingbagtable td {
+    width: 44px;
+    height: 32px;
+}
+
+.menagerietable td {
+    padding: 0;
+    border: 0;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small', monospace;
+    font-size: 12pt;
+    position: absolute;
+    text-shadow: 1px 1px 0px #000;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.lootingbagtable .inv-quantity-text.qty-1 {
+    color: #ff0;
+}
+
+.lootingbagtable .inv-quantity-text.qty-100k {
+    color: #fff;
+}
+
+.lootingbagtable .inv-quantity-text.qty-10m {
+    color: #01ff80;
+}
+
+.client-js .mw-changeslist table.mw-enhanced-rc {
+    margin-left: 0;
+}
+
+.mw-content-ltr .redirectText li:first-child {
+    padding: 0;
+    background: 0;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    display: block;
+    width: 2px;
+    height: 1em;
+    margin: 0.25em 0.5em 0.25em 0;
+    float: left;
+}
+
+.succession th {
+    width: 33%;
+    font-size: 90%;
+    background: var(--body-mid);
+}
+
+.succession td {
+    background: var(--body-light);
+}
+
+td.noted-item a {
+    width: 32px;
+    line-height: 28px;
+}
+
+tr.mw-abusefilter-list-disabled {
+    font-style: italic;
+}
+
+.sitedir-ltr .mw-dismissable-notice-close {
+    float: none;
+    text-align: right;
+}
+
+.cdx-button.cdx-button--action-destructive:not(:disabled) {
+    color: #fff;
+    background-color: var(--errorbox-border);
+    border-color: var(--errorbox-border);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--errorbox-border);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    background-color: rgba(0,24,73,0.027);
+    color: var(--errorbox-border);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:focus {
+    color: var(--errorbox-border);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    background-color: rgba(0,36,73,0.082);
+    color: var(--errorbox-border);
+    border-color: #72777d;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.027);
+    color: var(--errorbox-border);
+    border-color: transparent;
+}
+
+input[type='checkbox']:focus + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--errorbox-border);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.082);
+    color: var(--errorbox-border);
+    border-color: #72777d;
+}
+
+table.align-right-11 td:nth-of-type(11) { text-align: right; }
+
+table.align-right-12 td:nth-of-type(12) { text-align: right; }
+
+table.align-right-13 td:nth-of-type(13) { text-align: right; }
+
+table.align-right-14 td:nth-of-type(14) { text-align: right; }
+
+table.align-right-15 td:nth-of-type(15) { text-align: right; }
+
+table.align-right-16 td:nth-of-type(16) { text-align: right; }
+
+table.align-right-17 td:nth-of-type(17) { text-align: right; }
+
+table.align-right-18 td:nth-of-type(18) { text-align: right; }
+
+table.align-right-19 td:nth-of-type(19) { text-align: right; }
+
+table.align-right-20 td:nth-of-type(20) { text-align: right; }
+
+table.align-center-9 td:nth-of-type(9) { text-align: center; }
+
+table.align-center-10 td:nth-of-type(10) { text-align: center; }
+
+table.align-center-11 td:nth-of-type(11) { text-align: center; }
+
+table.align-center-12 td:nth-of-type(12) { text-align: center; }
+
+table.align-center-13 td:nth-of-type(13) { text-align: center; }
+
+table.align-center-14 td:nth-of-type(14) { text-align: center; }
+
+table.align-center-15 td:nth-of-type(15) { text-align: center; }
+
+table.align-center-16 td:nth-of-type(16) { text-align: center; }
+
+table.align-center-17 td:nth-of-type(17) { text-align: center; }
+
+table.align-center-18 td:nth-of-type(18) { text-align: center; }
+
+table.align-center-19 td:nth-of-type(19) { text-align: center; }
+
+table.align-center-20 td:nth-of-type(20) { text-align: center; }
+
+table.align-left-1 td:nth-of-type(1) { text-align: left; }
+
+table.align-left-2 td:nth-of-type(2) { text-align: left; }
+
+table.align-left-3 td:nth-of-type(3) { text-align: left; }
+
+table.align-left-4 td:nth-of-type(4) { text-align: left; }
+
+table.align-left-5 td:nth-of-type(5) { text-align: left; }
+
+table.align-left-6 td:nth-of-type(6) { text-align: left; }
+
+table.align-left-7 td:nth-of-type(7) { text-align: left; }
+
+table.align-left-8 td:nth-of-type(8) { text-align: left; }
+
+table.align-left-9 td:nth-of-type(9) { text-align: left; }
+
+table.align-left-10 td:nth-of-type(10) { text-align: left; }
+
+table.align-left-11 td:nth-of-type(11) { text-align: left; }
+
+table.align-left-12 td:nth-of-type(12) { text-align: left; }
+
+table.align-left-13 td:nth-of-type(13) { text-align: left; }
+
+table.align-left-14 td:nth-of-type(14) { text-align: left; }
+
+table.align-left-15 td:nth-of-type(15) { text-align: left; }
+
+table.align-left-16 td:nth-of-type(16) { text-align: left; }
+
+table.align-left-17 td:nth-of-type(17) { text-align: left; }
+
+table.align-left-18 td:nth-of-type(18) { text-align: left; }
+
+table.align-left-19 td:nth-of-type(19) { text-align: left; }
+
+table.align-left-20 td:nth-of-type(20) { text-align: left; }
+
+li.gallerybox div.thumb {
+    border: none;
+    background-color: var(--thumb-bg);
+    padding: 2px;
+    border-radius: 2px;
+}
+
+.mwe-popups .mwe-popups-container.mwe-popups-no-image-tri:before {
+    border-bottom: none;
+}
+
+.mwe-popups .mwe-popups-container.mwe-popups-no-image-tri:after {
+    border-bottom-color: var(--body-light);
+}
+
+.mwe-popups .mwe-popups-extract {
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.mwe-popups .mwe-popups-extract[dir='ltr']:after {
+    background-image: linear-gradient(to right,rgba(49,62,89,0),var(--body-light) 50%);
+}
+
+.mw-diff-table-prefix .mw-diff-inline-legend .mw-diff-inline-legend-ins {
+    background: var(--diff-addedline-background);
+    color: var(--text-color);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.mw-diff-table-prefix .mw-diff-inline-legend .mw-diff-inline-legend-del {
+    background: var(--diff-inline-deletedline);
+    color: var(--text-color);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
+.skill-thieving:hover > a:last-child {
+    background: #713684;
+}
+
+.skill-smithing:hover > a:last-child {
+    background: #b69213;
+}
+
+.searchResultImage .searchResultImage-thumbnail img {
+    border-color: var(--body-border);
+    border-radius: 2px;
+}
+
+td.famtreesub {
+    margin: 0;
+    padding: 0;
+}
+
+td.famtreesub table {
+    border-spacing: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+td.famtreesub table td {
+    height: 1em;
+    width: 1em;
+}
+
+td.famtreeleaf {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 0.2em;
+    text-align: center;
+}
+
+.watchlistredir {
+    font-style: italic;
+}
+
+tr.mw-abusefilter-list-disabled td {
+    color: var(--byline-color);
+}
+
+.mw-abusefilter-log-hidden-entry {
+    color: var(--subtle-color);
+}
+
+.smwb-theme-light .smwb-actions {
+    background-color: var(--body-mid);
+}
+
+.smwb-theme-light .smwb-factbox {
+    border-left-color: var(--body-mid);
+}
+
+.smwb-theme-light .smwb-ifactbox {
+    border-right-color: var(--body-mid);
+}
+
+.highcharts-scrollbar-track {
+    fill: transparent;
+    stroke: var(--ooui-input-border);
+}
+
+.highcharts-scrollbar-thumb {
+    fill: var(--ooui-normal);
+    stroke: var(--ooui-normal-border);
+}
+
+.gemw-container.gemw-historical .gemw-header.neutral {
+    border-color: var(--gemw-historical-border-color);
+}
+
+table.wikitable td.no-cell-spacing table {
+    height: calc(100% + 2px);
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    -webkit-mask: url(https://oldschool.runescape.wiki/images/Redirect-arrow.svg) no-repeat 50% 50% / contain;
+    mask: url(https://oldschool.runescape.wiki/images/Redirect-arrow.svg) no-repeat 50% 50% / contain;
+    display: inline-block;
+    width: 47px;
+    height: 20px;
+}
+
+.questdetails {
+    width: 100%;
+    border-collapse: separate;
+}
+
+.questdetails-header {
+    padding: 0.5em 1em;
+    background-color: var(--questdetails-header-background);
+    width: 125px;
+}
+
+.questdetails tr:nth-child(odd) .questdetails-header {
+    background-color: var(--questdetails-header-background-alt);
+}
+
+.inventorytable {
+    background-image: url(https://oldschool.runescape.wiki/images/Inventory_tab.png);
+}
+
+.lootingbagtable {
+    background-image: url(https://oldschool.runescape.wiki/images/Looting_bag_tab.png);
+}
+
+.menagerietable {
+    background-image: url(https://oldschool.runescape.wiki/images/Menagerie_interface.png);
+    width: 300px;
+    height: 250px;
+    padding: 56px 28px 34px 6px;
+    border-spacing: 0;
+}
+
+.menagerietable td {
+    position: relative;
+    width: 46px;
+    height: 32px;
+}
+
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small', monospace;
+    top: -8px;
+    left: 4px;
+    text-shadow: #000 1px 1px;
+    color: #ff0;
+}
+
+tr.mw-abusefilter-list-disabled {
+    color: var(--byline-color);
+    font-style: italic;
+}
+
+.tippy-tooltip.light-border-theme {
+    background-color: var(--body-light);
+    color: var(--text-color);
+    border: 1px solid var(--body-border);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.tippy-tooltip.light-border-theme .tippy-arrow {
+    border-top-color: var(--body-light);
+}
+
+.tippy-tooltip.light-border-theme .tippy-arrow:after {
+    border-top-color: var(--body-light) !important;
+}
+
+.js-tooltip-arrow.js-tooltip-arrow-pointright {
+    border-left-color: var(--body-border);
+    border-right-color: transparent;
+    border-right-width: 0;
+}
+
+.smw-ask-options fieldset {
+    border: 1px solid var(--sidebar);
+    border-radius: 4px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.strike > span:after {
+    background: var(--sidebar);
+    content: '';
+    display: inline-block;
+    height: 1px;
+    position: relative;
+    vertical-align: middle;
+    width: 50%;
+}
+
+.strike > span:before {
+    right: 0.5em;
+    margin-left: -50%;
+}
+
+.strike > span:after {
+    left: 0.5em;
+    margin-right: -50%;
+}
+
+.smw-ask-options-fields tr td {
+    background-color: var(--smw-ask-options-even-bg);
+    padding: 6px 10px;
+    border: 1px solid var(--body-border);
+}
+
+.smw-ask-options-fields tr:nth-child(odd) td {
+    background-color: var(--smw-ask-options-odd-bg);
+}
+
+.smw-property-page-results .smw-table .header-row {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.smwb-theme-light .smwb-prophead {
+    background-color: var(--body-mid);
+    padding: 4px 8px;
+    font-weight: bold;
+    border: 1px solid var(--body-border);
+}
+
+.smwb-theme-light .smwb-propval {
+    background-color: var(--body-light);
+    padding: 4px 8px;
+    border: 1px solid var(--body-border);
+}
+
+.pollbox table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.pollbox td {
+    padding: 0px;
+}
+
+.pollquestion td:first-child::before {
+    content: "";
+    background: url(/images/Poll_shield.png?c691a);
+    background-repeat: no-repeat;
+    background-position: top;
+    width: 10px;
+    height: 14px;
+    position: absolute;
+    top: 4px;
+    left: 0;
+}
+
+.pollquestion td:first-child {
+    position: relative;
+    width: 32%;
+    padding-right: 0.7em;
+    padding-left: 16px;
+}
+
+.pollquestion td.pollpercent {
+    box-sizing: border-box;
+    padding-left: 17px;
+    padding-right: 8px;
+}
+
+.pollquestion td:last-child {
+    width: 22%;
+    padding-left: 0.7em;
+}
+
+.pollquestion .pollnote td {
+    width: 100%;
+    padding: 20px 5px;
+    padding-bottom: 5px;
+}
+
+.pollquestion .pollnote td::before {
+    content: none;
+}
+
+.archivepollq th {
+    text-align: left;
+    font-weight: normal;
+    padding: 15px 0 0 0;
+}
+
+.archivepollq td:first-child {
+    position: relative;
+    width: 80%;
+    padding-right: 0.7em;
+    padding-left: 16px;
+}
+
+.archivepollq td.archivepollpercent {
+    box-sizing: border-box;
+    padding: 2px;
+    border: 1px solid var(--body-border);
+}
+
+.archivepollq td:last-child {
+    text-align: right;
+    padding-left: 0.7em;
+}
+
+.archivepollq .archivepollnote > td {
+    text-align: left;
+    width: 100%;
+    padding: 20px 5px;
+    padding-bottom: 5px;
+}
+
+.tdg-templateDataParamWidget-param-alias {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+}
+
+.tdg-templateDataParamWidget-param-description {
+    color: var(--subtle-color);
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+input[type='checkbox']:focus + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--text-color);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+.equipment-ikod strong {
+    font-weight: normal;
+    color: red;
+}
+
+.inventorytable {
+    background-image: url(/images/Inventory_tab.png?dd7c2);
+    width: 204px;
+    padding: 13px 16px 10px;
+}
+
+.lootingbagtable {
+    background-image: url(/images/Looting_bag_tab.png?4088f);
+    width: 204px;
+    padding: 31px 17px 20px 12px;
+}
+
+.menagerietable {
+    background-image: url(/images/Menagerie_interface.png?89434);
+    background-repeat: no-repeat;
+    background-position: top left;
+}
+
+.menagerietable td {
+    padding: 0;
+    border: 0;
+    text-align: center;
+}
+
+.runepouchtable {
+    background-image: url(/images/Rune_pouch_background.png?30a74);
+    width: 158px;
+    padding: 24px 7px 6px;
+}
+
+.runepouchtable.storage-left {
+    margin-left: 23px;
+}
+
+.runepouchtable.storage-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.runepouchtable.storage-right {
+    margin-right: 23px;
+}
+
+.runepouchtable td {
+    width: 32px;
+    height: 32px;
+    line-height: 1.6em;
+}
+
+.runepouchtable td.middle-rune {
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.divinerunepouch td.middle-rune {
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.divinerunepouch td.middle-rune + td.middle-rune {
+    padding-left: 0;
+}
+
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small';
+    font-size: 12pt;
+    position: absolute;
+    pointer-events: none;
+}
+
+.equipment .inv-quantity-text {
+    position: absolute;
+    top: -3px;
+}
+
+.runepouchtable .inv-quantity-text {
+    left: -1px;
+}
+
+.equipment .inv-quantity-text.qty-1 {
+    color: #ff0;
+}
+
+.equipment .inv-quantity-text.qty-100k {
+    color: #fff;
+}
+
+.equipment .inv-quantity-text.qty-10m {
+    color: #01ff80;
+}
+
+.runepouchtable td.middle-rune .inv-quantity-text {
+    left: 23px;
+}
+
+.divinerunepouch td.middle-rune .inv-quantity-text {
+    left: 5px;
+}
+
+.divinerunepouch td.middle-rune + td.middle-rune .inv-quantity-text {
+    left: 0;
+}
+
+.transcript {
+    background: var(--body-light);
+    border-radius: 0 0 120px 120px / 0 0 8px 8px;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+    max-width: 90ch;
+    overflow: hidden;
+    margin-bottom: 1em;
+    padding: 0.5em 1em 1em;
+    clear: left;
+}
+
+.transcript.godletter {
+    margin: 1em auto;
+    padding: 1em 1.5em;
+    max-width: 60ch;
+}
+
+.transcript-chatbox-image {
+    display: inline-block;
+    margin-right: 5px;
+    position: relative;
+    text-align: center;
+    width: 32px;
+}
+
+.transcript-chatbox-image + .transcript-chatbox-image {
+    left: -10px;
+    top: 10px;
+    margin-right: 0;
+}
+
+.transcript-opt::before {
+    display: inline-block;
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Black-chevron.svg?00549) no-repeat 50% 50% / contain;
+    mask: url(/images/Black-chevron.svg?00549) no-repeat 50% 50% / contain;
+    width: 7px;
+    height: 10px;
+    margin-right: 5px;
+}
+
+#toc li a span.toctext span span:nth-child(2) {
+    display: none;
+}
+
+.floornumber-setting-gb #toc li a span.toctext span span:nth-child(2) {
+    display: none;
+}
+
+.floornumber-setting-us #toc li a span.toctext span span:nth-child(1) {
+    display: none;
+}
+
+.floornumber-setting-gb #toc li a span.toctext span span:nth-child(1) {
+    display: inline;
+}
+
+.floornumber-setting-us #toc li a span.toctext span span:nth-child(2) {
+    display: inline;
+}
+
+.floornumber-override-gb #toc li a span.toctext span span:nth-child(2) {
+    display: none !important;
+}
+
+.floornumber-override-us #toc li a span.toctext span span:nth-child(1) {
+    display: none !important;
+}
+
+.floornumber-override-gb #toc li a span.toctext span span:nth-child(1) {
+    display: inline !important;
+}
+
+.floornumber-override-us #toc li a span.toctext span span:nth-child(2) {
+    display: inline !important;
+}
+
+.tdg-templateDataParamWidget-param-alias:first-child {
+    background-color: var(--ooui-normal);
+    border-color: var(--ooui-normal-border);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:focus {
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    border-color: transparent;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    border-color: #72777d;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    display: inline-block;
+    width: 47px;
+    height: 20px;
+}
+
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+}
+
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+}
+
+.highcharts-scrollbar-track {
+    stroke: var(--ooui-interface-border);
+}
+
+.mainpage-header .header-intro {
+    flex: 2;
+}
+
+.mainpage-header .header-intro p {
+    font-size: 1.1em;
+    line-height: 1.7em;
+}
+
+.skill-thieving span a {
+    background: #91689e;
+}
+
+.skill-smithing span a {
+    background: #d2b244;
+}
+
+.mainpage-trailblazer {
+    grid-area: event;
+}
+
+.mainpage-trailblazer .tb-logo {
+    margin-bottom: 0.9rem;
+}
+
+.mainpage-trailblazer .tile-row {
+    grid-template-columns: repeat(4,1fr);
+}
+
+.transcript-opt.disabled {
+    filter: opacity(0.5);
+}
+
+.transcript s {
+    text-decoration-color: var(--transcript-strikethrough-color);
+}
+
+.transcript .template-colour {
+    text-shadow: 1px 1px #000a;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    border-color: #72777d;
+}
+
+table.wikitable td.no-cell-spacing table {
+    height: calc(100% + 2px);
+}
+
+.table-na {
+    vertical-align: middle;
+    text-align: center;
+}
+
+.questdetails {
+    width: 100%;
+    border-collapse: separate;
+}
+
+.menagerietable {
+    width: 300px;
+    height: 250px;
+    padding: 56px 28px 34px 6px;
+    border-spacing: 0;
+}
+
+.menagerietable td {
+    position: relative;
+    width: 46px;
+    height: 32px;
+}
+
+.lootingbagtable .inv-quantity-text {
+    top: -8px;
+    left: 4px;
+    text-shadow: #000 1px 1px;
+    color: #ff0;
+}
+
+.highcharts-scrollbar-track {
+    fill: transparent;
+}
+
+table.wikitable td.no-cell-spacing table {
+    margin: -1px;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+}
+
+.table-na {
+    background: var(--table-na-background);
+    color: var(--table-na-color);
+    vertical-align: middle;
+    text-align: center;
+}
+
+.questdetails {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    width: 100%;
+    border-collapse: separate;
+}
+
+.highcharts-scrollbar-track {
+    stroke: var(--ooui-interface-border);
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:hover {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+.cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive:active {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+input[type='checkbox']:hover + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,24,73,0.02745098);
+    color: var(--text-color);
+    border-color: transparent;
+}
+
+input[type='checkbox']:active + .cdx-button.cdx-button--weight-quiet.cdx-button--action-destructive {
+    background-color: rgba(0,36,73,0.08235294);
+    color: var(--text-color);
+    border-color: #72777d;
+}
+
+.menagerietable {
+    background-image: url(/images/Menagerie_interface.png?89434);
+    background-repeat: no-repeat;
+    background-position: top left;
+    width: 300px;
+    height: 250px;
+    padding: 56px 28px 34px 6px;
+    border-spacing: 0;
+}
+
+.menagerietable td {
+    position: relative;
+    width: 46px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    text-align: center;
+}
+
+.lootingbagtable .inv-quantity-text {
+    font-family: 'RuneScape Small';
+    font-size: 12pt;
+    position: absolute;
+    pointer-events: none;
+    top: -8px;
+    left: 4px;
+    text-shadow: #000 1px 1px;
+    color: #ff0;
+}
+
+.client-js .mw-changeslist.mw-rcfilters-ui-changesListWrapperWidget-highlighted table.mw-enhanced-rc {
+    margin-left: 1.5em;
+}
+
+.smw-ask-options fieldset {
+    border-color: var(--sidebar);
+}
+
+.strike > span:after {
+    background: var(--sidebar);
+}
+
+.page-Special_ListFiles .TablePager_col_thumb {
+    text-align: center;
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+}
+
+a[href="/w/User:BotDiesel2m"] {
+    color: var(--awb-purple);
+}
+
+.mw-content-ltr .redirectText li:first-child::before {
+    content: '';
+    background: currentcolor;
+    -webkit-mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    mask: url(/images/Redirect-arrow.svg?d4dde) no-repeat 50% 50% / contain;
+    display: inline-block;
+    width: 47px;
+    height: 20px;
+}
+
+.wikitable > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.highcharts-scrollbar-track {
+    fill: transparent;
+    stroke: transparent;
+}
+
+.wikitable.sortable th {
+    cursor: pointer;
+    position: relative;
+}
+
+.wikitable.sortable th:hover {
+    background-color: var(--wikitable-header-bg);
+}
+
+.highcharts-scrollbar-track {
+    fill: transparent !important;
+    stroke: transparent !important;
+}
+

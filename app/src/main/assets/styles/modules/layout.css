@@ -1,0 +1,314 @@
+/*
+ * LAYOUT MODULE
+ * Page layout and structure
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 52
+ */
+
+.gloop-feedback-wrapper.tile {
+    margin-bottom: 0.75em;
+    padding-bottom: 1.5em;
+}
+
+.mainpage-header {
+    display: flex;
+    margin: 2.6em 1.75em 1.5em;
+}
+
+.mainpage-header .header-stats {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -1em;
+}
+
+.mainpage-left {
+    grid-area: left;
+    flex: 2;
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.mainpage-right {
+    grid-area: right;
+    flex: 1;
+    display: flex;
+    flex-flow: column wrap;
+}
+
+.mainpage-recent-updates {
+    grid-area: update;
+    grid-template-columns: repeat(3,1fr);
+}
+
+.mainpage-recent-updates .tile-halves {
+    flex: 1;
+    align-content: flex-start;
+}
+
+.mainpage-recent-updates .tile-halves .tile-top span {
+    width: 100%;
+}
+
+.mainpage-recent-updates p:not(.byline) {
+    font-size: 0.9em;
+    line-height: 1.75em;
+    color: var(--text-color);
+}
+
+.mainpage-contents {
+    grid-area: content;
+    grid-template-columns: repeat(6,1fr);
+}
+
+.mainpage-contents .tile-halves {
+    flex: 1;
+}
+
+.mainpage-contents .tile-top {
+    position: relative;
+}
+
+.tile-top {
+    width: 100%;
+    padding: 1.3rem 1.5rem 0.6rem;
+}
+
+.tile-top.tile-image {
+    display: flex;
+    align-items: center;
+    background-color: var(--byline-color);
+    overflow: hidden;
+    padding: 0;
+    height: 13vw;
+    max-height: 12em;
+    transition: 0.4s ease-out;
+}
+
+.tile-top.tile-image span {
+    width: 100%;
+}
+
+.mainpage-skills ul {
+    columns: 3 9em;
+    margin: 1em 0.7em 0.7em 1em;
+}
+
+.mainpage-skills li {
+    display: flex;
+    margin-bottom: 0.29em;
+}
+
+.mainpage-skills li span a {
+    border-radius: 2px;
+    padding: 4px;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.mainpage-skills li > a:last-child {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    padding-left: 0.7em;
+    text-decoration: none;
+}
+
+.mainpage-skills li:hover a:first-child {
+    border-radius: 2px 0 0 2px;
+}
+
+.mainpage-skills li:hover > a:last-child {
+    color: rgba(255,255,255,0.9);
+    border-radius: 0 2px 2px 0;
+}
+
+.mainpage-discord {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-discord .tile-top {
+    display: flex;
+    align-items: center;
+    background: #5865f2;
+    padding: 1em 1.75em;
+}
+
+.mainpage-discord .tile-top a {
+    flex: 1;
+    position: relative;
+    text-decoration: none;
+}
+
+.mainpage-discord .tile-top a:hover .arrow {
+    transform: translateX(50%);
+}
+
+.mainpage-discord .tile-bottom {
+    background: #525ee0;
+    border: none;
+    padding: 1em 1.75em;
+}
+
+.mainpage-discord .tile-bottom p {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0;
+}
+
+.mainpage-discord .partner-icon {
+    margin-right: 0.75em;
+}
+
+.mainpage-discord .server-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.25em;
+    margin: 0.5em 0 -0.15em;
+}
+
+.mainpage-discord .server-tagline {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0.5em;
+}
+
+.mainpage-discord .arrow {
+    position: absolute;
+    top: calc(50% - .5em);
+    right: 0;
+    height: 1em;
+    width: 0.7em;
+    background-size: 0.7em 1em;
+    transition: 0.3s ease-out;
+}
+
+.mainpage-twitter {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-twitter .tile-top {
+    display: flex;
+    align-items: center;
+    background: #15202b;
+    padding: 1em 1.75em;
+}
+
+.mainpage-twitter .tile-top a {
+    flex: 1;
+    position: relative;
+    text-decoration: none;
+}
+
+.mainpage-twitter .tile-top a:hover .arrow {
+    transform: translateX(50%);
+}
+
+.mainpage-twitter .tile-bottom {
+    background: #121c26;
+    border: none;
+    padding: 1em 1.75em;
+}
+
+.mainpage-twitter .tile-bottom p {
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.9em;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0;
+}
+
+.mainpage-twitter .twitter-logo {
+    margin-right: 0.75em;
+}
+
+.mainpage-twitter .twitter-name {
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.25em;
+    margin: 0.5em 0 -0.15em;
+}
+
+.mainpage-twitter .twitter-tagline {
+    color: rgba(255,255,255,0.9);
+    margin-bottom: 0.5em;
+}
+
+.mainpage-twitter .arrow {
+    position: absolute;
+    top: calc(50% - .5em);
+    right: 0;
+    height: 1em;
+    width: 0.7em;
+    background-size: 0.7em 1em;
+    transition: 0.3s ease-out;
+}
+
+.mainpage-editing {
+    border: none;
+    box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.3);
+}
+
+.mainpage-editing .tile-top {
+    background: #438ab5;
+}
+
+.mainpage-editing .tile-bottom {
+    background: #3980ab;
+    border: none;
+    padding: 0.8rem 1.5rem 0.4rem;
+}
+
+.mainpage-editing a {
+    color: #fff;
+}
+
+.mainpage-editing p {
+    color: rgba(255,255,255,0.9);
+}
+
+.mainpage-editing ul {
+    list-style-image: url(/images/Transparent-chevron.svg?20dcf);
+}
+
+.mainpage-poll .ajaxpoll {
+    border: none;
+    background: none;
+    padding: 0;
+    width: auto;
+}
+
+.tile.dark .byline {
+    color: var(--tile-dark-byline-color);
+}
+
+.tile {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+    margin: 0.5em 0;
+    border-radius: 4px;
+}
+
+.tile.dark {
+    background: var(--body-dark-shade);
+    color: var(--tile-dark-header-color);
+}
+
+.tile.dark a {
+    color: var(--tile-dark-header-color);
+}
+

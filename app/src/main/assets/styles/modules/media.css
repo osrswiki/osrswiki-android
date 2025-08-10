@@ -1,0 +1,126 @@
+/*
+ * MEDIA MODULE
+ * Images, galleries, and media handling
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 23
+ */
+
+.mw-mmv-post-image {
+    color: var(--text-color);
+    background-color: var(--body-main);
+}
+
+.scp img {
+    height: auto;
+    image-rendering: crisp-edges;
+    max-width: 32px;
+}
+
+.equipment-stats data img {
+    vertical-align: bottom;
+}
+
+.equipment-ikod img {
+    cursor: help;
+}
+
+.mainpage-recent-updates .tile-halves:hover .tile-top img {
+    transform: scale(1.04);
+}
+
+.tile-halves:hover .tile-top.tile-image img {
+    transform: scale(1.1);
+    transition: 0.5s ease-out;
+}
+
+.tile-top.tile-image img {
+    width: 100%;
+    object-fit: cover;
+    max-height: 200px;
+    transition: 0.4s ease-out;
+}
+
+.page-Special_ListFiles a.mw-file-description img {
+    width: inherit;
+    height: inherit;
+}
+
+.extimage div {
+    width: inherit;
+    height: inherit;
+}
+
+.filehistory a img {
+    border: 1px solid var(--body-border);
+}
+
+#file img {
+    max-width: 100%;
+    height: auto;
+}
+
+#file img:hover {
+    cursor: pointer;
+}
+
+.mw-mmv-image-metadata {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+}
+
+.mw-mmv-dialog {
+    background: var(--body-main);
+    border: 1px solid var(--body-border);
+}
+
+.mw-mmv-dialog .mw-mmv-dialog-down-arrow {
+    border-top-color: var(--body-border);
+}
+
+#file img {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M0 0h8v16h8V8H0z' opacity='.13'/%3E%3C/svg%3E") repeat;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--body-border);
+}
+
+#file img:hover {
+    background: none;
+    cursor: pointer;
+}
+
+.mw-mmv-image-metadata {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    border-color: var(--body-mid);
+    padding: 1em;
+}
+
+.mw-mmv-dialog {
+    background: var(--body-main);
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.mw-mmv-dialog .mw-mmv-dialog-down-arrow {
+    border-top-color: var(--body-border);
+    background-color: var(--body-light);
+}
+
+.extimage a {
+    display: inline-block;
+    border: 1px solid var(--body-border);
+    padding: 2px;
+}
+
+.extimage a:hover {
+    border-color: var(--ooui-progressive);
+}
+
+.extimage img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+

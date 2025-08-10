@@ -1,0 +1,612 @@
+/*
+ * BASE MODULE
+ * Base styles, resets, and global rules
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 114
+ */
+
+.mw-body-content .mw-heading3 {
+    font-family: 'PT Serif', 'Palatino', 'Georgia', serif;
+}
+
+::placeholder {
+    color: var(--subtle-color);
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.mw-body h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.wikitable > * > tr > td.table-noborder {
+    border-left-style: hidden;
+    border-right-style: hidden;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+table.mw-interwikitable.body td.mw-interwikitable-local-yes {
+    background-color: var(--table-yes-background);
+    color: var(--table-yes-color);
+}
+
+.mw-body-content h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.sitedir-ltr .mw-dismissable-notice-body {
+    margin: 0;
+}
+
+.cdx-text-input__input:enabled::placeholder {
+    color: var(--byline-color);
+}
+
+body td.mw-abusefilter-history-changed {
+    background: var(--table-no-background);
+    color: var(--table-no-color);
+}
+
+.mw-htmlform-ooui .mw-htmlform-matrix tbody tr:nth-child(even) td {
+    background-color: var(--body-light);
+}
+
+.mw-htmlform-ooui .mw-htmlform-matrix tbody tr:hover td {
+    background-color: var(--body-mid);
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.wikitable > * > tr > td.table-noborder {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+.mw-body-content h3 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+#bodyContent span.smwbrowse a {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwbrowse.svg);
+    filter: var(--filter-black-to-link);
+    background-repeat: no-repeat;
+    background-position: left center;
+    padding-left: 18px;
+    text-decoration: none;
+}
+
+#bodyContent span.smwbrowse a:hover {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwbrowse-hover.svg);
+    text-decoration: underline;
+}
+
+#bodyContent span.smwsearch a {
+    color: var(--text-color);
+    filter: var(--filter-black-to-link);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwsearch.svg);
+    background-repeat: no-repeat;
+    background-position: left center;
+    padding-left: 18px;
+    text-decoration: none;
+}
+
+#bodyContent span.smwsearch a:hover {
+    color: var(--text-color);
+    background-image: url(https://oldschool.runescape.wiki/images/Smwsearch-hover.svg);
+    text-decoration: underline;
+}
+
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey {
+    color: #444e5a;
+}
+
+body.wgl-theme-browntown .leaflet-vis-tooltip.lbl-bg-grey a.mw-selflink.selflink {
+    color: #444e5a;
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.wikitable > * > tr > td.table-noborder {
+    border-left-style: hidden;
+    border-right-style: hidden;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.page-Old_School_RuneScape_Wiki .mw-parser-output {
+    max-width: 75em;
+    margin: 0 auto;
+}
+
+body.page-Old_School_RuneScape_Wiki.action-view #siteNotice {
+    display: none;
+}
+
+.mainpage-body {
+    display: grid;
+    grid-template-areas: "update update update" "content content content" "left left right";
+    gap: 0.9rem;
+    grid-template-columns: repeat(3,1fr);
+}
+
+.mainpage-body:has(.mainpage-event) {
+    grid-template-areas: "event event event" "update update update" "content content content" "left left right";
+}
+
+.mainpage-body h2 a {
+    color: var(--text-color);
+}
+
+.mainpage-body .tile {
+    padding-left: 1.75em;
+    padding-right: 1.75em;
+    max-width: 100%;
+}
+
+.mainpage-body .tile-row {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.mainpage-left > * {
+    margin: 0 0 0.9rem;
+}
+
+.mainpage-right > * {
+    margin: 0 0 0.9rem;
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.gemw-body .gemw-property {
+    width: 30%;
+    border-top: 0.15em dotted var(--body-mid);
+    padding-top: 0.25em;
+    margin-bottom: 1.5em;
+}
+
+.gemw-body .gemw-property dt {
+    color: var(--byline-color);
+    font-weight: normal;
+}
+
+.gemw-body .gemw-property dd {
+    font-weight: bold;
+    margin: -0.25em 0 0;
+}
+
+#bodyContent span.smwbrowse a {
+    color: black;
+    background-image: url(/images/Smwbrowse.svg?87d2b);
+}
+
+#bodyContent span.smwbrowse a:hover {
+    color: black;
+    background-image: url(/images/Smwbrowse-hover.svg?73b79);
+}
+
+#bodyContent span.smwsearch a {
+    color: black;
+    background-image: url(/images/Smwsearch.svg?72b04);
+}
+
+#bodyContent span.smwsearch a:hover {
+    color: black;
+    background-image: url(/images/Smwsearch-hover.svg?62df0);
+}
+
+#preferences .mw-htmlform-submit-buttons {
+    background-color: var(--body-main);
+    border-top-color: var(--body-border);
+}
+
+.mw-body-content .mw-number-text h3 {
+    color: var(--text-color);
+}
+
+.mw-body-content .mw-echo-ui-datedSubGroupListWidget-title-secondary {
+    color: var(--byline-color);
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+#bodyContent span.smwbrowse a {
+    color: black;
+    background-image: url(/images/Smwbrowse.svg?87d2b);
+    filter: var(--filter-black-to-link);
+}
+
+#bodyContent span.smwbrowse a:hover {
+    color: black;
+    background-image: url(/images/Smwbrowse-hover.svg?73b79);
+    text-decoration: underline;
+}
+
+#bodyContent span.smwsearch a {
+    color: black;
+    background-image: url(/images/Smwsearch.svg?72b04);
+    filter: var(--filter-black-to-link);
+}
+
+#bodyContent span.smwsearch a:hover {
+    color: black;
+    background-image: url(/images/Smwsearch-hover.svg?62df0);
+    text-decoration: underline;
+}
+
+.mw-body-content .mw-collapsible-content {
+    overflow: hidden;
+}
+
+.mw-body-content .mw-collapsible.mw-collapsed .mw-collapsible-content {
+    display: none;
+}
+
+.mw-body-content .mw-collapsible-toggle {
+    cursor: pointer;
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.mw-body-content .mw-collapsible-toggle:hover {
+    text-decoration: underline;
+}
+
+.mw-body-content .mw-jump-link {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.mw-body-content .mw-jump-link:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    left: auto;
+    top: auto;
+    overflow: visible;
+    background: var(--body-light);
+    padding: 0.5em;
+    border: 1px solid var(--body-border);
+}
+
+.mw-body-content .mw-headline {
+    font-weight: bold;
+}
+
+.mw-body-content .mw-editsection {
+    font-weight: normal;
+    font-size: 0.8em;
+    margin-left: 0.5em;
+}
+
+.mw-body-content .mw-editsection-bracket {
+    color: var(--byline-color);
+}
+
+.mw-body-content .mw-toc-hidden {
+    display: none;
+}
+
+.mw-body-content .toc {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+    margin: 1em 0;
+}
+
+.mw-body-content .toc h2 {
+    font-size: 1.2em;
+    margin: 0 0 0.5em;
+    border: none;
+    color: var(--text-color);
+}
+
+.mw-body-content .toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mw-body-content .toc li {
+    margin: 0.2em 0;
+}
+
+.mw-body-content .toc a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.mw-body-content .toc a:hover {
+    text-decoration: underline;
+}
+
+.mw-body-content .thumb {
+    margin: 0.5em 0;
+}
+
+.mw-body-content .thumbinner {
+    background: var(--thumb-bg);
+    border: 1px solid var(--body-border);
+    padding: 3px;
+    text-align: center;
+}
+
+.mw-body-content .thumbcaption {
+    font-size: 0.9em;
+    color: var(--byline-color);
+    margin-top: 0.5em;
+    text-align: left;
+    line-height: 1.4em;
+}
+
+.mw-body-content .magnify {
+    display: none;
+}
+
+.mw-body-content .hlist {
+    margin: 0;
+}
+
+.mw-body-content .hlist li {
+    display: inline-block;
+    margin: 0;
+}
+
+.mw-body-content .hlist li:after {
+    content: " · ";
+    color: var(--byline-color);
+}
+
+.mw-body-content .hlist li:last-child:after {
+    content: "";
+}
+
+.mw-body-content .references {
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.mw-body-content .references li {
+    margin-bottom: 0.3em;
+}
+
+.mw-body-content .reference {
+    font-size: 0.8em;
+    vertical-align: super;
+    line-height: 1;
+}
+
+.mw-body-content .reference a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.mw-body-content .mw-code {
+    background: var(--mw-code-background-color);
+    border: 1px solid var(--body-border);
+    padding: 2px 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+}
+
+.mw-body-content pre {
+    background: var(--mw-code-background-color);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+    overflow-x: auto;
+    font-size: 0.9em;
+    line-height: 1.3em;
+}
+
+.mw-body-content .catlinks {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 0.5em;
+    margin-top: 1em;
+    font-size: 0.9em;
+}
+
+.mw-body-content .mw-normal-catlinks {
+    margin: 0;
+}
+
+.mw-body-content .mw-normal-catlinks a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.mw-body-content .mw-normal-catlinks a:hover {
+    text-decoration: underline;
+}
+
+.mw-body-content .mw-parser-output {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.mw-body-content .nowrap {
+    white-space: nowrap;
+}
+
+.mw-body-content .nowraplinks a {
+    white-space: nowrap;
+}
+
+.mw-body-content .wikitable {
+    font-size: 0.9em;
+    line-height: 1.3em;
+}
+
+.mw-body-content .wikitable th {
+    font-weight: bold;
+    text-align: center;
+}
+
+.mw-body-content .wikitable td {
+    padding: 0.3em 0.5em;
+}
+
+.mw-body-content .wikitable caption {
+    font-weight: bold;
+    padding: 0.5em;
+    background: var(--wikitable-header-bg);
+    color: var(--text-color);
+}
+
+.mw-body-content h6 {
+    font-family: inherit;
+    line-height: 1.3;
+    margin: 1em 0 0.5em;
+    padding: 0;
+    font-weight: bold;
+}
+
+.mw-body-content h1 {
+    font-size: 1.8em;
+    border-bottom: 2px solid var(--sidebar);
+    padding-bottom: 0.2em;
+}
+
+.mw-body-content h2 {
+    font-size: 1.5em;
+    border-bottom: 1px solid var(--sidebar);
+    padding-bottom: 0.2em;
+}
+
+.mw-body-content h3 {
+    font-size: 1.3em;
+}
+
+.mw-body-content h4 {
+    font-size: 1.1em;
+}
+
+.mw-body-content h6 {
+    font-size: 1em;
+}
+
+.mw-body-content b {
+    font-weight: bold;
+}
+
+.mw-body-content i {
+    font-style: italic;
+}
+
+.mw-body-content small {
+    font-size: 0.85em;
+    color: var(--byline-color);
+}
+
+.mw-body-content sup {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+
+.mw-body-content sup {
+    top: -0.5em;
+}
+
+.mw-body-content sub {
+    bottom: -0.25em;
+}
+
+.mw-body-content h1 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-body-content h2 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-body-content h3 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border);
+}
+
+.mw-body-content h6 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+.mw-body {
+    background-color: var(--body-main);
+    color: var(--text-color);
+    border-color: transparent;
+    box-shadow: 0 0 7px rgba(0,0,0,0.15);
+    margin-top: 0;
+}
+
+.mw-body-content .mw-heading6 {
+    font-family: 'PT Serif','Palatino','Georgia',serif;
+}
+
+body.wgl-stickyheader.action-view .mw-headline:target::before {
+    display: block;
+    content: '';
+    margin-top: -3rem;
+    height: 3rem;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@media (max-width: 768px) {
+    .pollbox {
+        width: 100%;
+        max-width: 100%;
+        margin: 0.5em 0;
+        padding: 0.8em;
+        font-size: 14px;
+    }
+
+    .mw-mmv-image-metadata {
+        padding: 0.5em;
+    }
+
+    .smw-factbox {
+        margin: 0.5em 0;
+        padding: 0.8em;
+    }
+}
+
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border) !important;
+}
+
+.mw-echo-ui-notificationItemWidget-content-message-body {
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.gemw-body .gemw-links {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 0.5em;
+}
+
+.gemw-body .gemw-links a {
+    color: var(--link-color);
+    margin-right: 1em;
+}
+

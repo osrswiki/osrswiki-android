@@ -1,0 +1,35 @@
+/*
+ * INTERACTIVE MODULE
+ * Interactive states and OOUI components
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 5
+ */
+
+.mwe-popups .mwe-popups-settings-icon:active {
+    background-color: var(--ooui-normal--hover);
+}
+
+#options-toggle:not(:checked) + #options-list .options-parameter-list:after {
+    background-image: linear-gradient(to bottom,transparent,var(--body-mid) 90%);
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    pointer-events: none;
+}
+
+.mp-popular-page-light:hover {
+    filter: brightness(115%);
+    transition: 100ms;
+}
+
+a:active {
+    color: var(--link-color);
+}
+
+.documentation-subheader a:active {
+    color: var(--documentation-link-color);
+}
+

@@ -1,0 +1,50 @@
+/*
+ * GAMING MODULE
+ * OSRS gaming-specific UI elements
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 9
+ */
+
+.item-drops .beast-version {
+    font-size: smaller;
+    font-style: italic;
+}
+
+.skill-melee span a {
+    background: #bc483d;
+}
+
+.skill-ranged span a {
+    background: #748d36;
+}
+
+.skill-magic span a {
+    background: #6274ab;
+}
+
+.skill-fletching span a {
+    background: #3e8e9a;
+}
+
+.skill-woodcutting span a {
+    background: #59924f;
+}
+
+.skill-mining span a {
+    background: #6385a8;
+}
+
+.combat-styles-icons a {
+    display: inline-block;
+    margin: 2px;
+    padding: 4px;
+    border: 1px solid var(--body-border);
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.combat-styles-icons a:hover {
+    background: var(--body-light);
+    border-color: var(--ooui-progressive);
+}
+
