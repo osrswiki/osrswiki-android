@@ -43,8 +43,8 @@
   function ensureStylesInjected() {
     if (document.getElementById('ge-charts-style')) return;
     const css = `
-      .GEdatachart.smallChart { width: 100% !important; max-width: 100% !important; }
-      .GEChartBox { width: 100%; }
+      .GEdatachart.smallChart { width: 100% !important; max-width: 100% !important; overflow: visible !important; height: auto !important; }
+      .GEChartBox { width: 100%; margin: 0 !important; padding: 0 !important; }
       /* Let Highcharts manage its own overflow; keep labels visible */
       .GEdatachart.smallChart svg { overflow: visible !important; }
     `;
@@ -70,13 +70,18 @@
 
     const id = container.id || undefined;
     const bodyColor = getComputedStyle(document.body).color || '#333';
-    const height = Math.max(container.clientHeight || 0, 160);
+    const cs = getComputedStyle(container);
+    const styleH = parseFloat(cs.height) || 0;
+    const inlineH = parseFloat((container.style && container.style.height) || '') || 0;
+    const height = Math.max(styleH, inlineH, container.clientHeight || 0, 160);
     const opts = {
       chart: {
         height,
         backgroundColor: 'white',
         reflow: true,
         marginLeft: 44,
+        marginRight: 8,
+        spacingBottom: 0,
         spacing: [4, 4, 4, 4],
         animation: false
       },
@@ -86,7 +91,7 @@
       rangeSelector: { enabled: false },
       legend: { enabled: false },
       navigator: { enabled: false },
-      scrollbar: { enabled: true },
+      scrollbar: { enabled: false },
       xAxis: {
         ordinal: false,
         lineWidth: 1,
@@ -101,8 +106,9 @@
         endOnTick: true,
         labels: {
           style: { color: bodyColor, fontSize: '11px' },
-          align: 'right',
-          x: -6,
+          align: 'left',
+          x: 0,
+          reserveSpace: true,
           formatter: function () { return formatCompact(this.value); }
         }
       },
