@@ -1,0 +1,126 @@
+/*
+ * NAVIGATION MODULE
+ * Navigation elements and menus
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 21
+ */
+
+#tab-smw-property-value:checked + label.nav-label .usage-count {
+    color: #fff;
+    background-color: var(--ooui-progressive);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+#tab-smw-property-value:checked + label.nav-label .usage-count.moderate {
+    color: #fff;
+    background-color: #b55e0c;
+    border-color: #b55e0c;
+}
+
+#tab-smw-property-value:checked + label.nav-label .usage-count.high {
+    color: #fff;
+    background-color: #9f261e;
+    border-color: #9f261e;
+}
+
+.mw-widget-titleWidget-menu .mw-widget-titleOptionWidget-description {
+    color: var(--byline-color);
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.mw-templateData-template-map-list-menu-panel {
+    border-right-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-tagItemWidget-popup-content {
+    color: var(--ooui-text);
+}
+
+.mw-rcfilters-ui-watchlistTopSectionWidget-separator {
+    border-color: var(--sidebar);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-header {
+    border-bottom-color: var(--ooui-interface);
+    background-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget:not(:last-child):not(.mw-rcfilters-ui-itemMenuOptionWidget-identifier-talk) {
+    border-bottom-color: var(--ooui-normal-border);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-label-desc {
+    color: var(--text-color);
+}
+
+.mw-rcfilters-ui-filterMenuSectionOptionWidget {
+    background-color: var(--body-mid);
+}
+
+.mw-rcfilters-ui-itemMenuOptionWidget-view-namespaces {
+    border-top-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-datePopupWidget {
+    border-color: var(--ooui-interface-border);
+}
+
+.mw-rcfilters-ui-datePopupWidget .mw-rcfilters-ui-valuePickerWidget-title {
+    color: var(--byline-color);
+}
+
+ul.tabbernav {
+    border: none;
+    margin-left: 2em;
+    margin-bottom: 0;
+    margin-right: 2em;
+    padding: 0;
+    font-family: inherit;
+}
+
+ul.tabbernav li.tabberactive > a {
+    background-color: var(--tabber-active-tab-bg);
+    color: var(--tabber-active-tab-color);
+    border-bottom: none;
+    position: relative;
+}
+
+ul.tabbernav li.tabberactive > a:hover {
+    color: var(--tabber-active-tab-hover-color);
+    background-color: var(--tabber-active-tab-hover-bg);
+    border-color: var(--tabber-active-tab-hover-border-color);
+    border-bottom: none;
+}
+
+ul.tabbernav li.tabberactive > a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    border-bottom: 2px solid var(--tabber-active-tab-border-hider-color);
+}
+
+ul.tabbernav li a {
+    background-color: var(--tabber-inactive-tab-bg);
+    border-bottom: transparent;
+    border-color: var(--tabber-inactive-tab-border-color);
+    color: var(--tabber-inactive-tab-color);
+    display: inline-block;
+    font-size: 110%;
+    padding: 0.5em 1em;
+}
+
+ul.tabbernav li a:hover {
+    background-color: var(--tabber-inactive-tab-hover-bg);
+    border-color: var(--tabber-inactive-tab-hover-border-color);
+}
+
+ul.tabbernav li a:visited {
+    color: var(--tabber-inactive-tab-color);
+}
+

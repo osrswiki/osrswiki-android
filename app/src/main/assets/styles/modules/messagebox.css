@@ -1,0 +1,150 @@
+/*
+ * MESSAGEBOX MODULE
+ * Message boxes and notifications
+ * Generated from: app/src/main/assets/styles/wiki-integration.css
+ * Rules: 25
+ */
+
+.messagebox {
+    width: 65%;
+    border-color: var(--body-border);
+    background-color: var(--wikitable-bg);
+}
+
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-border);
+    background-color: var(--wikitable-bg);
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+
+.messagebox.stub {
+    width: 40%;
+}
+
+.messagebox.hasdialogue {
+    padding: 0 10px;
+    width: auto;
+}
+
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+.messagebox.obsolete {
+    background-color: var(--messagebox-obsolete-background);
+    border-color: var(--messagebox-obsolete-border);
+    color: var(--messagebox-obsolete-color);
+}
+
+.messagebox.obsolete a:active {
+    color: var(--messagebox-obsolete-link-color);
+}
+
+.messagebox.info {
+    background-color: var(--messagebox-info-background);
+    border-color: var(--messagebox-info-border);
+    color: var(--messagebox-info-color);
+}
+
+.messagebox.info a:active {
+    color: var(--messagebox-info-link-color);
+}
+
+.messagebox.action {
+    background-color: var(--messagebox-action-background);
+    border-color: var(--messagebox-action-border);
+    color: var(--messagebox-action-color);
+}
+
+.messagebox.action a:active {
+    color: var(--messagebox-action-link-color);
+}
+
+.messagebox.warn {
+    background-color: var(--messagebox-warn-background);
+    border-color: var(--messagebox-warn-border);
+    color: var(--messagebox-warn-color);
+}
+
+.messagebox.warn a:active {
+    color: var(--messagebox-warn-link-color);
+}
+
+.messagebox.safe {
+    background-color: var(--messagebox-safe-background);
+    border-color: var(--messagebox-safe-border);
+    color: var(--messagebox-safe-color);
+}
+
+.messagebox.safe a:active {
+    color: var(--messagebox-safe-link-color);
+}
+
+.messagebox.disambig {
+    background-color: var(--messagebox-disambig-background);
+    border-color: var(--messagebox-disambig-border);
+    color: var(--messagebox-disambig-color);
+}
+
+.messagebox.disambig a:active {
+    color: var(--messagebox-disambig-link-color);
+}
+
+.messagebox.discord {
+    background-color: var(--messagebox-discord-background);
+    border-color: var(--messagebox-discord-border);
+    color: #fff;
+}
+
+.messagebox.discord a:active {
+    color: var(--messagebox-discord-link-color);
+}
+
+.messagebox.discord a:active.external {
+    font-style: italic;
+}
+
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+.messagebox {
+    width: 65%;
+    border-left: 15px solid;
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+}
+
+.mw-message-box {
+    border: 1px solid var(--body-border);
+    background-color: var(--body-light);
+    padding: 0.5em 1em;
+    margin: 0.5em 0;
+}
+
+.messagebox {
+    width: 65% !important;
+    border-left: 15px solid var(--body-dark) !important;
+    border-color: var(--body-dark) !important;
+    background-color: var(--body-light) !important;
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+
+.mw-message-box {
+    border: 1px solid var(--body-border);
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+    padding: 0.5em 1em;
+    margin: 0.5em 0;
+}
+
