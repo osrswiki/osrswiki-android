@@ -22,7 +22,6 @@ import com.omiyawaki.osrswiki.theme.ThemeAware
 abstract class BaseActivity : AppCompatActivity() {
 
     private var currentThemeId: Int = 0
-    private var isApplyingTheme: Boolean = false
     private var previousConfiguration: Configuration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,105 +107,22 @@ abstract class BaseActivity : AppCompatActivity() {
     }
     
     /**
-     * Applies a new theme dynamically without recreating the activity.
-     * This method updates the theme and refreshes UI elements to prevent FOUC.
+     * NUCLEAR OPTION: Forces complete activity recreation on theme changes.
+     * This fixes window surface corruption that occurs during live theme switching.
      */
     fun applyThemeDynamically() {
-        // Guard against multiple simultaneous theme applications
-        if (isApplyingTheme) {
-            android.util.Log.d("BaseActivity", "Theme application already in progress, skipping duplicate call")
-            return
-        }
-        
         val osrsWikiApp = applicationContext as OSRSWikiApp
         val newTheme = osrsWikiApp.getCurrentTheme()
         val newThemeId = newTheme.resourceId
         
-        // Only apply if theme actually changed
+        // Only recreate if theme actually changed
         if (currentThemeId != newThemeId) {
-            // Set guard flag
-            isApplyingTheme = true
+            android.util.Log.d("BaseActivity", "Forcing activity recreation for theme change from ${currentThemeId} to ${newThemeId}")
             
-            try {
-                android.util.Log.d("BaseActivity", "Applying theme dynamically from ${currentThemeId} to ${newThemeId}")
-                
-                // PHASE 1: Clear previous theme state
-                clearPreviousThemeState()
-                
-                // PHASE 2: Update theme ID and apply new theme
-                currentThemeId = newThemeId
-                setTheme(newThemeId)
-                
-                // PHASE 3: Allow theme to take effect before refreshing views
-                runOnUiThread {
-                    // Post to ensure setTheme() has taken effect
-                    window.decorView.post {
-                        try {
-                            // Refresh theme-dependent UI elements
-                            refreshThemeDependentElements()
-                            
-                            // Notify fragments of theme change
-                            notifyFragmentsOfThemeChange()
-                            
-                            android.util.Log.d("BaseActivity", "Dynamic theme application completed")
-                        } finally {
-                            // Clear guard flag after theme application is complete
-                            isApplyingTheme = false
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("BaseActivity", "Error during theme application", e)
-                // Clear guard flag if exception occurs
-                isApplyingTheme = false
-            }
-        }
-    }
-    
-    /**
-     * Clears previous theme state to prevent color mixing between themes.
-     * This ensures clean transitions from dark to light theme and vice versa.
-     */
-    private fun clearPreviousThemeState() {
-        try {
-            android.util.Log.d("BaseActivity", "Clearing previous theme state")
-            
-            // Clear any cached theme attribute values
-            val contentView = findViewById<ViewGroup>(android.R.id.content)
-            contentView?.let { clearViewThemeState(it) }
-            
-        } catch (e: Exception) {
-            android.util.Log.e("BaseActivity", "Error clearing previous theme state", e)
-        }
-    }
-    
-    /**
-     * Recursively clears theme-related state from views to prevent theme mixing.
-     */
-    private fun clearViewThemeState(view: View) {
-        try {
-            // Clear specific view type states
-            when (view) {
-                is TextView -> {
-                    // Don't clear text colors here as it might break the UI
-                    // The new theme will override them properly
-                }
-                is ImageView -> {
-                    // Clear any previously applied tints
-                    ImageViewCompat.setImageTintList(view, null)
-                }
-            }
-            
-            // If this is a ViewGroup, recursively clear children
-            if (view is ViewGroup) {
-                for (i in 0 until view.childCount) {
-                    val child = view.getChildAt(i)
-                    clearViewThemeState(child)
-                }
-            }
-            
-        } catch (e: Exception) {
-            // Ignore errors during state clearing - it's better to continue than crash
+            // NUCLEAR OPTION: Force complete activity recreation
+            // This creates a fresh window surface and completely new themed context
+            // Fixes MapLibre + floor controls corruption that live switching can't resolve
+            recreate()
         }
     }
     
