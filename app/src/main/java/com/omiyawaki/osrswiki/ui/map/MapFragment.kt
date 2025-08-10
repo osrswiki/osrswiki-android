@@ -7,11 +7,11 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentMapBinding
-import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +31,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 
-class MapFragment : Fragment(), ThemeAware {
+class MapFragment : Fragment() {
 
     private var _binding: FragmentMapBinding? = null
     private val binding get() = _binding!!
@@ -208,9 +208,6 @@ class MapFragment : Fragment(), ThemeAware {
         }
         if (maxFloor > 0) {
             binding.floorControls.visibility = View.VISIBLE
-            
-            // Apply font to floor control text
-            
             updateFloorControlStates()
             binding.floorControlUp.setOnClickListener {
                 if (currentFloor < maxFloor) showFloor(currentFloor + 1)
@@ -259,33 +256,8 @@ class MapFragment : Fragment(), ThemeAware {
         map = null
     }
 
-    override fun onThemeChanged() {
-        L.d("MapFragment: onThemeChanged called")
-        // Re-apply theme attributes to floor control elements
-        refreshThemeAttributes()
-    }
-
-    private fun refreshThemeAttributes() {
-        if (_binding != null) {
-            val typedValue = android.util.TypedValue()
-            val theme = requireContext().theme
-            
-            // Apply the new background color to the root layout
-            theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
-            binding.root.setBackgroundColor(typedValue.data)
-            
-            // Update floor control text color to use theme-appropriate color
-            if (binding.floorControls.visibility == View.VISIBLE) {
-                theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.primary_text_color, typedValue, true)
-                if (typedValue.resourceId != 0) {
-                    val textColor = requireContext().getColor(typedValue.resourceId)
-                    binding.floorControlText.setTextColor(textColor)
-                }
-            }
-            
-            L.d("MapFragment: Theme attributes refreshed")
-        }
-    }
+    // NUCLEAR OPTION: Removed ThemeAware interface and onThemeChanged
+    // Theme switching now forces complete activity recreation to avoid window surface corruption
 
     override fun onStart() { super.onStart(); mapView?.onStart() }
     override fun onResume() { super.onResume(); mapView?.onResume() }
