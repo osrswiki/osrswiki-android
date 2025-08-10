@@ -149,6 +149,10 @@
       // Prevent duplicate renders
       if (chartEl.dataset.rendered === '1') return;
       chartEl.dataset.rendered = '1';
+      // Install swipe-back guard so horizontal drags inside the chart
+      // don't trigger the app's back gesture.
+      installSwipeBackGuard(chartEl);
+
       fetchSeries(itemId)
         .then(series => {
           if (series.length) renderChart(chartEl, series);
@@ -185,4 +189,48 @@
   // Also observe late-added content
   const mo = new MutationObserver(() => initAll());
   ready(() => mo.observe(document.body, { childList: true, subtree: true }));
+
+  // --- Swipe-back guard helpers ---
+  function installSwipeBackGuard(el) {
+    if (!el || el.dataset.swipeGuard === '1') return;
+    el.dataset.swipeGuard = '1';
+    let down = false, startX = 0, startY = 0, sent = false, resetTimer = null;
+
+    const send = (flag) => {
+      if (!window.OsrsWikiBridge || typeof window.OsrsWikiBridge.setHorizontalScroll !== 'function') return;
+      try { window.OsrsWikiBridge.setHorizontalScroll(!!flag); } catch (_) {}
+    };
+    const resetSoon = () => {
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { sent = false; send(false); }, 400);
+    };
+
+    const onDown = (x, y) => { down = true; startX = x; startY = y; sent = false; };
+    const onMove = (x, y) => {
+      if (!down) return;
+      const dx = Math.abs(x - startX);
+      const dy = Math.abs(y - startY);
+      if (!sent && dx > 6 && dx > dy) { sent = true; send(true); }
+      if (sent) resetSoon();
+    };
+    const onUp = () => { down = false; if (sent) { sent = false; send(false); } };
+
+    // Pointer events preferred
+    if (window.PointerEvent) {
+      el.addEventListener('pointerdown', (e) => onDown(e.clientX, e.clientY), { passive: true });
+      el.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY), { passive: true });
+      el.addEventListener('pointerup', onUp, { passive: true });
+      el.addEventListener('pointercancel', onUp, { passive: true });
+      el.addEventListener('pointerleave', onUp, { passive: true });
+    } else {
+      // Touch/mouse fallback
+      el.addEventListener('touchstart', (e) => { const t = e.touches[0]; if (t) onDown(t.clientX, t.clientY); }, { passive: true });
+      el.addEventListener('touchmove', (e) => { const t = e.touches[0]; if (t) onMove(t.clientX, t.clientY); }, { passive: true });
+      el.addEventListener('touchend', onUp, { passive: true });
+      el.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY), { passive: true });
+      el.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY), { passive: true });
+      el.addEventListener('mouseup', onUp, { passive: true });
+      el.addEventListener('mouseleave', onUp, { passive: true });
+    }
+  }
 })();
