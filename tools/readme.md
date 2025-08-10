@@ -98,9 +98,43 @@ This will create `map_floor_0.mbtiles`, `map_floor_1.mbtiles`, etc., and place t
 
 ---
 
-## Automated Workflow (Recommended)
+## Meta Asset Updater (Recommended)
 
-For convenience, use the automated wrapper tool that handles the entire workflow with intelligent freshness checking:
+For maximum convenience, use the unified meta wrapper that orchestrates all asset generation tools:
+
+```bash
+# Update both map and CSS assets
+python3 asset-updater.py --all
+
+# Update only map assets with force regeneration
+python3 asset-updater.py --maps --force
+
+# Update only CSS assets
+python3 asset-updater.py --css
+
+# Preview what would be updated (dry-run for maps)
+python3 asset-updater.py --all --dry-run
+
+# Verify all assets exist and are up to date
+python3 asset-updater.py --all --verify
+
+# Check freshness of map assets only
+python3 asset-updater.py --maps --check-freshness
+```
+
+The meta updater:
+- ✅ **Unified Interface**: Single command for all asset types
+- ✅ **Automatic Environment**: Uses local micromamba with proper dependencies  
+- ✅ **Smart Orchestration**: Coordinates map and CSS tool execution
+- ✅ **Pass-through Arguments**: Forwards options to underlying tools
+- ✅ **Comprehensive Reporting**: Detailed progress and summary output
+- ✅ **Error Handling**: Graceful failure handling with clear diagnostics
+
+## Individual Tool Workflows
+
+### Map Assets Only
+
+For map-specific workflows, use the specialized map tool directly:
 
 ```bash
 # Run the complete workflow automatically (only updates if needed)
@@ -125,4 +159,13 @@ The automated tool:
 - ✅ Validates dependencies (Java, Python packages, required scripts)
 - ✅ Provides detailed progress reporting and colored output
 - ✅ Verifies that all expected mbtiles files are created successfully
+
+### CSS Assets Only
+
+For CSS-specific workflows, use the CSS perfect sync tool:
+
+```bash
+# Achieve perfect CSS parity with reference
+python3 css/css-perfect-sync.py
+```
 
