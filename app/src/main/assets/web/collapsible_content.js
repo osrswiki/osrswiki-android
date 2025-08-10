@@ -215,21 +215,17 @@
         transformSections();
         
         tryInitializeSwitcher();
+
+        // Signal to native that styling and transforms are complete,
+        // so the page can be revealed without FOUC.
+        if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+            window.RenderTimeline.log('Event: StylingScriptsComplete');
+        }
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initialize);
     } else {
         initialize();
-    }
-})();
-
-//
-// OSRSWiki App: Signal to the native layer that styling is complete.
-//
-(function() {
-    if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
-        // This is the signal our native code will wait for before revealing the page.
-        window.RenderTimeline.log('Event: StylingScriptsComplete');
     }
 })();
