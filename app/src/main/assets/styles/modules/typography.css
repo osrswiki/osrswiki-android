@@ -1,20 +1,15 @@
 /*
- * TYPOGRAPHY MODULE
- * Heading and text styling
- * Generated from: app/src/main/assets/styles/wiki-integration.css
- * Rules: 45
+ * TYPOGRAPHY MODULE (DEDUPLICATED)
+ * Removed 2 duplicate selectors
+ * Generated: typography.css
  */
 
-h1, .mw-heading1 {
-    border-color: var(--sidebar-color);
+.mw-heading1, .mw-heading2, h1, h1, .mw-heading1, h2, h2, .mw-heading2 {
+    border-color: var(--sidebar);
 }
 
-h2, .mw-heading2 {
-    border-color: var(--sidebar-color);
-}
-
-h3, h4, h5, h6 {
-    color: var(--heading-color);
+.mw-heading, h3, h4, h5, h6, h4, h5, h6 {
+    color: var(--text-color);
 }
 
 .mw-parser-output h2:first-of-type {
@@ -22,25 +17,22 @@ h3, h4, h5, h6 {
 }
 
 .font-runescape {
-    font-family: 'RuneScape', 'runescape_plain', sans-serif;
-}
-
-.font-runescape {
+    font-family: 'RuneScape';
     font-family: 'RuneScape', 'runescape_plain', sans-serif;
 }
 
 h1, h2 {
-    border-color: var(--sidebar);
+    border-color: var(--sidebar) !important;
 }
 
-h3 {
-    color: var(--text-color);
+h3, h4, h5, h6 {
+    color: var(--text-color) !important;
 }
 
 .cdx-text-input__input:enabled {
     background-color: var(--ooui-input);
-    color: var(--text-color);
     border-color: var(--ooui-input-border);
+    color: var(--text-color);
 }
 
 .cdx-text-input__input:enabled:hover {
@@ -52,28 +44,8 @@ h3 {
     box-shadow: inset 0 0 0 1px var(--ooui-accent);
 }
 
-.font-runescape {
-    font-family: 'RuneScape', 'runescape_plain', sans-serif;
-}
-
 .documentation h2 {
     border-color: var(--documentation-border);
-}
-
-h1 {
-    border-color: var(--sidebar);
-}
-
-h2 {
-    border-color: var(--sidebar);
-}
-
-h3 {
-    color: var(--text-color);
-}
-
-.font-runescape {
-    font-family: 'RuneScape';
 }
 
 .font-runescape-bold {
@@ -90,9 +62,9 @@ h3 {
 }
 
 .mainpage-header .header-intro h1 {
+    border: none;
     font-size: 2.5em;
     font-weight: bold;
-    border: none;
     margin: 0 0 0.15em;
 }
 
@@ -105,14 +77,14 @@ h3 {
     padding: 0;
 }
 
-.tile h2 {
+.tile h2, .tile-halves h2 {
+    border: none;
     font-size: 1.4em;
     font-weight: bold;
-    border: none;
     margin: 0 0 0.4em;
 }
 
-.tile .byline + h2 {
+.tile .byline + h2, .tile-halves .byline + h2 {
     margin-top: -0.5em;
 }
 
@@ -120,39 +92,12 @@ h3 {
     color: var(--tile-dark-header-color);
 }
 
-.tile-halves h2 {
-    font-size: 1.4em;
-    font-weight: bold;
-    border: none;
-    margin: 0 0 0.4em;
-}
-
-.tile-halves .byline + h2 {
-    margin-top: -0.5em;
-}
-
 .mainpage-editing h2 {
     color: #fff;
 }
 
-h1, h2 {
-    border-color: var(--sidebar);
-}
-
-h3 {
-    color: var(--text-color);
-}
-
-.font-runescape {
-    font-family: 'RuneScape';
-}
-
-h1, h2 {
-    border-color: var(--sidebar);
-}
-
-h3 {
-    color: var(--text-color);
+.ve-ui-specialCharacterPage h3 {
+    color: var(--byline-color);
 }
 
 h1 {
@@ -167,35 +112,28 @@ h3 {
     color: var(--text-color);
 }
 
-.font-runescape {
-    font-family: 'RuneScape';
-}
-
-h4, h5, h6 {
+h4 {
     color: var(--text-color);
 }
 
-.mw-heading1, .mw-heading2 {
-    border-color: var(--sidebar);
-}
-
-.mw-heading {
+h5 {
     color: var(--text-color);
 }
 
-.font-runescape {
-    font-family: 'RuneScape' !important;
+h6 {
+    color: var(--text-color);
 }
 
-h1, h2 {
-    border-color: var(--sidebar) !important;
+.mainpage-editing a, .mainpage-editing h2 {
+    color: #fff;
 }
 
-h3 {
-    color: var(--text-color) !important;
+.mainpage-body h2 a {
+    color: var(--text-color);
 }
 
-h4, h5, h6 {
-    color: var(--text-color) !important;
+.documentation h2, .documentation hr {
+    color: var(--text-color);
+    font-family: 'PT Serif','Palatino','Georgia',serif;
 }
 
