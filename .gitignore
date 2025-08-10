@@ -51,6 +51,9 @@ app/src/main/assets/pois.json
 tools/map/openrs2_cache/
 tools/map/map-dumper/jagexcache/
 tools/map/map-dumper/output/
+tools/map/map-dumper/build/
+tools/map/map-dumper/.gradle/
+tools/map/map-dumper/xtea.json
 
 # CSS tool outputs (generated reports and analysis)
 tools/css/output/
