@@ -148,11 +148,12 @@ class InlineThemeSelectionAdapter(
                         deviceDensity=${dm.density} densityDpi=${dm.densityDpi}
                         """.trimIndent())
                         
-                        // EXPERT CANONICAL: Fixed container with FIT_XY (final bitmap matches view px exactly)
-                        imageView.layoutParams?.width = (96 * dm.density).roundToInt()
-                        imageView.layoutParams?.height = (192 * dm.density).roundToInt()
+                        // Square container with centerInside for proper proportional scaling
+                        val squareSize = (192 * dm.density).roundToInt()
+                        imageView.layoutParams?.width = squareSize
+                        imageView.layoutParams?.height = squareSize
                         imageView.adjustViewBounds = false
-                        imageView.scaleType = ImageView.ScaleType.FIT_XY
+                        imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     }
                     
                     Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
