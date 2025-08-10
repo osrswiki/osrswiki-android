@@ -6,6 +6,7 @@
     // element within the WebView, such as a wide table.
 
     let isHorizontallyScrollable = false;
+    let geChartTouchActive = false;
     
     // Helper function to log to Android
     function log(message) {
@@ -150,12 +151,20 @@
      * Touch start event listener.
      * Checks if the touch is on a scrollable element and notifies the native app.
      */
+    function isInGEChart(target) {
+        return !!(target && target.closest && (target.closest('.GEdatachart') || target.closest('.GEChartBox')));
+    }
+
     document.addEventListener('touchstart', function(event) {
         const target = event.target;
-        // If interacting within a GE chart, let the chart's guard manage horizontal scroll state
-        if (target && (target.closest && (target.closest('.GEdatachart') || target.closest('.GEChartBox')))) {
-            log('Touch within GE chart: skipping horizontal scroll check');
-            return;
+        // Force-disable app back swipe for GE chart interactions
+        if (isInGEChart(target)) {
+            geChartTouchActive = true;
+            if (window.OsrsWikiBridge && typeof window.OsrsWikiBridge.setHorizontalScroll === 'function') {
+                window.OsrsWikiBridge.setHorizontalScroll(true);
+                log('GE chart touchstart: setHorizontalScroll(true)');
+            }
+            return; // don't run generic check to avoid flipping state
         }
         log('Touch on: ' + target.tagName + ' ' + (target.className || '') + 
             ' at (' + Math.round(event.touches[0].clientX) + ', ' + Math.round(event.touches[0].clientY) + ')');
@@ -175,6 +184,15 @@
      * Resets the scroll state when the touch gesture ends.
      */
     function resetScrollState() {
+        if (geChartTouchActive) {
+            geChartTouchActive = false;
+            log('GE chart touchend: setHorizontalScroll(false)');
+            if (window.OsrsWikiBridge && typeof window.OsrsWikiBridge.setHorizontalScroll === 'function') {
+                window.OsrsWikiBridge.setHorizontalScroll(false);
+            }
+            isHorizontallyScrollable = false;
+            return;
+        }
         // Only send a reset call if the state was previously true, to avoid unnecessary calls.
         if (isHorizontallyScrollable) {
             log('Resetting scroll state to false');
