@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Rect
 import android.util.DisplayMetrics
@@ -293,9 +294,9 @@ object ThemePreviewRenderer {
             
             Log.d(TAG, "🔧 SIMPLIFIED: Stub data setup completed")
             
-            // Get target dimensions (96dp × 192dp container)
+            // Get target dimensions (192dp × 192dp square container)
             val dm = context.resources.displayMetrics
-            val targetPxW = (96 * dm.density).roundToInt()
+            val targetPxW = (192 * dm.density).roundToInt()
             val targetPxH = (192 * dm.density).roundToInt()
             
             // Use device screen size for initial render (simple approach)
@@ -326,20 +327,9 @@ object ThemePreviewRenderer {
             
             Log.d(TAG, "🔧 SIMPLIFIED: Initial render completed - ${rendered.width}×${rendered.height}")
             
-            // Use the existing cropToAspect function to properly fit the content
-            val cropped = cropToAspect(rendered, targetPxW, targetPxH, topBias = 0.15f)
+            // Use proper proportional scaling - no cropping, just fit to square container
+            val final = scaleProportionallyToSquare(rendered, targetPxW, themedContext)
             rendered.recycle()
-            
-            Log.d(TAG, "🔧 SIMPLIFIED: Cropped to aspect - ${cropped.width}×${cropped.height}")
-            
-            // Final scale to exact target size
-            val final = if (cropped.width != targetPxW || cropped.height != targetPxH) {
-                val scaled = Bitmap.createScaledBitmap(cropped, targetPxW, targetPxH, true)
-                cropped.recycle()
-                scaled
-            } else {
-                cropped
-            }
             
             // Set proper density to prevent ImageView auto-scaling
             final.density = DisplayMetrics.DENSITY_DEFAULT
@@ -405,6 +395,40 @@ object ThemePreviewRenderer {
     }
     
     /**
+     * Scales screen content proportionally to fit within square container.
+     * No cropping - just proper proportional scaling based on aspect ratios.
+     */
+    private fun scaleProportionallyToSquare(src: Bitmap, squareSize: Int, themedContext: Context): Bitmap {
+        val srcRatio = src.width / src.height.toFloat()
+        val containerRatio = 1.0f // Square container (1:1 aspect ratio)
+        
+        Log.d(TAG, "🔧 PROPORTIONAL: Source ${src.width}×${src.height} (ratio=$srcRatio) → Square ${squareSize}×${squareSize}")
+        
+        // Calculate final dimensions based on aspect ratio comparison
+        val (finalW, finalH) = if (srcRatio > containerRatio) {
+            // Source is wider than square → scale to fit width, height will be smaller
+            val scale = squareSize / src.width.toFloat()
+            val scaledH = (src.height * scale).roundToInt()
+            Log.d(TAG, "🔧 PROPORTIONAL: Source wider → fit to width, scale=$scale")
+            Pair(squareSize, scaledH)
+        } else {
+            // Source is taller than square → scale to fit height, width will be smaller  
+            val scale = squareSize / src.height.toFloat()
+            val scaledW = (src.width * scale).roundToInt()
+            Log.d(TAG, "🔧 PROPORTIONAL: Source taller → fit to height, scale=$scale")
+            Pair(scaledW, squareSize)
+        }
+        
+        Log.d(TAG, "🔧 PROPORTIONAL: Final scaled size: ${finalW}×${finalH}")
+        
+        // Create proportionally scaled bitmap - ImageView will center it
+        val final = Bitmap.createScaledBitmap(src, finalW, finalH, true)
+        final.density = DisplayMetrics.DENSITY_DEFAULT
+        
+        return final
+    }
+    
+    /**
      * Expert's cropToAspect function - crops bitmap to target aspect ratio with top bias.
      * This fixes aspect ratio mismatch between rendered content and display container.
      */
@@ -429,10 +453,9 @@ object ThemePreviewRenderer {
      * Creates a fallback bitmap with theme-appropriate color when generation fails.
      */
     private fun generateFallbackBitmap(context: Context): Bitmap {
-        // Use fixed 96dp × 192dp dimensions
-        val width = (96 * context.resources.displayMetrics.density).roundToInt()
-        val height = (192 * context.resources.displayMetrics.density).roundToInt()
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        // Use fixed 192dp × 192dp square dimensions
+        val size = (192 * context.resources.displayMetrics.density).roundToInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         
         // Try to get current theme's surface color, fallback to neutral gray
