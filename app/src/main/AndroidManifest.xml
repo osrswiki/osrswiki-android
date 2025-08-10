@@ -85,7 +85,6 @@
             android:name=".settings.AppearanceSettingsActivity"
             android:configChanges="uiMode"
             android:exported="false"
-            android:label="@string/settings_category_appearance"
             android:theme="@style/Theme.OSRSWiki" />
         <activity
             android:name=".settings.OfflineSettingsActivity"

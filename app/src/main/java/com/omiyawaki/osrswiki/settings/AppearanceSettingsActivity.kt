@@ -50,7 +50,7 @@ class AppearanceSettingsActivity : BaseActivity() {
 
     private fun setupToolbar() {
         supportActionBar?.apply {
-            title = getString(R.string.settings_category_appearance)
+            title = ""
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
         }
