@@ -14,8 +14,8 @@
         word-break: break-word;
 }
 
-/* The main infobox should be full-width with a fixed layout. */
-.main-infobox {
+/* The main infobox should fill its container. */
+.collapsible-container .main-infobox {
         width: 100%;
         table-layout: fixed;
 }
@@ -123,12 +123,13 @@
 
 .collapsible-container {
         border-radius: 4px;
-        margin-top: 0; /* Set to 0 for consistent spacing across all collapsible types. */
-        margin-bottom: 1em;
-        width: 100%;
+        margin: 0.5em auto 1em auto; /* Center like infoboxes, with consistent vertical margins */
+        width: auto;
+        max-width: 450px; /* Match infobox max-width */
         overflow: hidden; /* This clips the corners for the border-radius */
         background-color: var(--colorsurfacevariant);
         color: var(--coloronsurfacevariant);
+        display: block;
 }
 
 .collapsible-header {
