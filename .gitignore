@@ -48,6 +48,13 @@ app/src/main/assets/map_tiles.zip
 app/src/main/assets/pois.json
 tools/map-dumper/output/
 
+# CSS tool outputs (generated reports and analysis)
+tools/css/output/
+*.css.backup
+css_gap_analysis.json
+css_sync_report_*.txt
+reference_wiki.css
+
 # Ignore temporary map tile directory used by slice_tiles.py
 /app/src/main/assets/map_tiles_temp/
 
