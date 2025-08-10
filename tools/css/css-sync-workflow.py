@@ -18,6 +18,7 @@ class CSSSyncWorkflow:
         self.analysis_file = "css_gap_analysis.json"
         self.app_css_dir = "app/src/main/assets/styles"
         self.log_file = "css_sync.log"
+        self.auto_generate_enabled = True
     
     def log(self, message: str):
         """Log a message with timestamp."""
@@ -51,10 +52,7 @@ class CSSSyncWorkflow:
         try:
             self.log("Running CSS gap analysis...")
             result = subprocess.run([
-                "python3", "css_analyzer.py",
-                "--wiki-css", self.wiki_css_file,
-                "--app-css-dir", self.app_css_dir,
-                "--output", self.analysis_file
+                "python3", "tools/css/css-rule-analyzer.py"
             ], capture_output=True, text=True)
             
             if result.returncode == 0:
@@ -104,6 +102,38 @@ class CSSSyncWorkflow:
         except Exception as e:
             self.log(f"Error checking for significant changes: {e}")
             return False, {}
+    
+    def auto_generate_css(self) -> bool:
+        """Automatically generate and integrate missing CSS."""
+        try:
+            # Step 1: Generate missing CSS
+            self.log("Generating missing CSS...")
+            result = subprocess.run([
+                "python3", "tools/css/css-generator.py"
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.log(f"CSS generation failed: {result.stderr}")
+                return False
+            
+            self.log("CSS generation completed")
+            
+            # Step 2: Integrate CSS into modules
+            self.log("Integrating CSS into modules...")
+            result = subprocess.run([
+                "python3", "tools/css/css-integrator.py"
+            ], capture_output=True, text=True)
+            
+            if result.returncode != 0:
+                self.log(f"CSS integration failed: {result.stderr}")
+                return False
+                
+            self.log("CSS integration completed")
+            return True
+            
+        except Exception as e:
+            self.log(f"Exception during CSS auto-generation: {e}")
+            return False
     
     def generate_summary_report(self) -> str:
         """Generate a human-readable summary report."""
@@ -192,8 +222,19 @@ class CSSSyncWorkflow:
             if changes.get('incomplete_total', False):
                 self.log(f"  - INCOMPLETE: {changes['stats']['incomplete_total']} incomplete selector implementations")
             
-            self.log("\\nConsider running: python3 generate_missing_css.py")
-            self.log("Then rebuild the app with: ./gradlew assembleDebug")
+            if self.auto_generate_enabled:
+                self.log("\\n🔧 Auto-generating missing CSS...")
+                if self.auto_generate_css():
+                    self.log("\\n✅ CSS auto-generation complete!")
+                    self.log("🚀 Ready to build the app with: ./gradlew assembleDebug")
+                else:
+                    self.log("\\n❌ CSS auto-generation failed!")
+                    self.log("Manual fallback: python3 tools/css/css-generator.py")
+                    self.log("Then: python3 tools/css/css-integrator.py")
+            else:
+                self.log("\\nConsider running: python3 tools/css/css-generator.py")
+                self.log("Then: python3 tools/css/css-integrator.py")
+                self.log("Then rebuild the app with: ./gradlew assembleDebug")
         else:
             self.log("\\n✅ No significant changes detected - CSS is mostly up to date")
         
@@ -210,10 +251,26 @@ class CSSSyncWorkflow:
 
 def main():
     """Main entry point."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="CSS Sync Workflow")
+    parser.add_argument("--cleanup-only", action="store_true", 
+                       help="Only clean up temporary files")
+    parser.add_argument("--no-auto-generate", action="store_true",
+                       help="Disable automatic CSS generation and integration")
+    
+    args = parser.parse_args()
+    
     workflow = CSSSyncWorkflow()
     
+    # Allow disabling auto-generation for manual workflow
+    if args.no_auto_generate:
+        workflow.auto_generate_enabled = False
+    else:
+        workflow.auto_generate_enabled = True
+    
     try:
-        if len(sys.argv) > 1 and sys.argv[1] == "--cleanup-only":
+        if args.cleanup_only:
             workflow.cleanup()
             return
         
