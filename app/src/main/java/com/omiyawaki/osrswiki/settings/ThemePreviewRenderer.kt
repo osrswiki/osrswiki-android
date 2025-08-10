@@ -79,7 +79,7 @@ object ThemePreviewRenderer {
     
     /**
      * Gets the actual device screen pixel dimensions.
-     * Returns Pair(widthPx, heightPx) in portrait orientation.
+     * Returns Pair(widthPx, heightPx) respecting current device orientation.
      */
     private fun getDeviceScreenPixels(context: Context): Pair<Int, Int> {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -88,26 +88,26 @@ object ThemePreviewRenderer {
         val height: Int
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Use modern API for Android R+
+            // Use modern API for Android R+ - respect actual orientation
             val bounds = windowManager.currentWindowMetrics.bounds
-            width = kotlin.math.min(bounds.width(), bounds.height())
-            height = kotlin.math.max(bounds.width(), bounds.height())
+            width = bounds.width()
+            height = bounds.height()
         } else {
-            // Fallback for older Android versions
+            // Fallback for older Android versions - respect actual orientation
             val displayMetrics = DisplayMetrics()
             @Suppress("DEPRECATION")
             windowManager.defaultDisplay.getMetrics(displayMetrics)
-            width = kotlin.math.min(displayMetrics.widthPixels, displayMetrics.heightPixels)
-            height = kotlin.math.max(displayMetrics.widthPixels, displayMetrics.heightPixels)
+            width = displayMetrics.widthPixels
+            height = displayMetrics.heightPixels
         }
         
-        Log.d(TAG, "Native device screen pixels: ${width}x${height}")
+        Log.d(TAG, "Native device screen pixels (actual orientation): ${width}x${height}")
         return Pair(width, height)
     }
 
     /**
      * Gets the app content area bounds excluding system UI (status bar, navigation bar).
-     * Returns Pair(widthPx, heightPx) of the actual displayable content area.
+     * Returns Pair(widthPx, heightPx) of the actual displayable content area respecting orientation.
      */
     private fun getAppContentBounds(context: Context): Pair<Int, Int> {
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -123,31 +123,41 @@ object ThemePreviewRenderer {
             )
             val bounds = metrics.bounds
             
-            // Calculate content area by subtracting system UI insets
-            val contentWidth = kotlin.math.min(bounds.width() - insets.left - insets.right, bounds.height() - insets.top - insets.bottom)
-            val contentHeight = kotlin.math.max(bounds.width() - insets.left - insets.right, bounds.height() - insets.top - insets.bottom)
+            // Calculate content area by subtracting system UI insets - respect actual orientation
+            val contentWidth = bounds.width() - insets.left - insets.right
+            val contentHeight = bounds.height() - insets.top - insets.bottom
             
             width = contentWidth
             height = contentHeight
             
-            Log.d(TAG, "App content bounds (API 30+): ${width}x${height}, insets: top=${insets.top}, bottom=${insets.bottom}")
+            Log.d(TAG, "App content bounds (API 30+): ${width}x${height}, insets: left=${insets.left}, right=${insets.right}, top=${insets.top}, bottom=${insets.bottom}")
         } else {
-            // Fallback for older Android versions - approximate by estimating system UI height
+            // Fallback for older Android versions - respect actual orientation
             val displayMetrics = DisplayMetrics()
             @Suppress("DEPRECATION")
             windowManager.defaultDisplay.getMetrics(displayMetrics)
             
-            val fullWidth = kotlin.math.min(displayMetrics.widthPixels, displayMetrics.heightPixels)
-            val fullHeight = kotlin.math.max(displayMetrics.widthPixels, displayMetrics.heightPixels)
+            val fullWidth = displayMetrics.widthPixels
+            val fullHeight = displayMetrics.heightPixels
             
-            // Estimate system UI height (status bar ~24dp, nav bar ~48dp on typical devices)
+            // Estimate system UI size based on orientation
             val density = displayMetrics.density
-            val estimatedSystemUIHeight = ((24 + 48) * density).roundToInt()  // Rough estimate
+            val isLandscape = fullWidth > fullHeight
             
-            width = fullWidth
-            height = fullHeight - estimatedSystemUIHeight
+            if (isLandscape) {
+                // Landscape: status bar on side, nav bar on side or bottom
+                val estimatedSystemUIWidth = (24 * density).roundToInt()  // Status bar width
+                val estimatedSystemUIHeight = (48 * density).roundToInt() // Nav bar height
+                width = fullWidth - estimatedSystemUIWidth
+                height = fullHeight - estimatedSystemUIHeight
+            } else {
+                // Portrait: status bar on top, nav bar on bottom
+                val estimatedSystemUIHeight = ((24 + 48) * density).roundToInt()  // Status + nav bar
+                width = fullWidth
+                height = fullHeight - estimatedSystemUIHeight
+            }
             
-            Log.d(TAG, "App content bounds (legacy): ${width}x${height}, estimated system UI: ${estimatedSystemUIHeight}px")
+            Log.d(TAG, "App content bounds (legacy): ${width}x${height}, isLandscape=$isLandscape")
         }
         
         return Pair(width, height)
@@ -182,7 +192,19 @@ object ThemePreviewRenderer {
     }
     
     /**
-     * Gets a theme preview bitmap, using cache when possible.
+     * Generates a display configuration identifier for cache keys.
+     * This includes screen dimensions, density, and orientation to distinguish between 
+     * folded/unfolded states and portrait/landscape orientations.
+     */
+    private fun getDisplayConfigurationId(context: Context): String {
+        val (width, height) = getAppContentBounds(context)
+        val density = context.resources.displayMetrics.densityDpi
+        val orientation = if (width > height) "landscape" else "portrait"
+        return "${width}x${height}-${density}dpi-${orientation}"
+    }
+    
+    /**
+     * Gets a theme preview bitmap, using configuration-aware cache when possible.
      * @param context Application context
      * @param theme Theme resource ID to apply
      * @param themeKey Unique key for this theme ("light", "dark", "auto")
@@ -192,73 +214,76 @@ object ThemePreviewRenderer {
         @StyleRes theme: Int,
         themeKey: String
     ): Bitmap = withContext(Dispatchers.Default) {
-        Log.d(TAG, "🔧 SIMPLIFIED: getPreview called for themeKey='$themeKey', theme=$theme")
+        val configId = getDisplayConfigurationId(context)
+        val fullCacheKey = "$themeKey-$configId"
+        
+        Log.d(TAG, "🔧 FOLDABLE: getPreview called for themeKey='$themeKey', configId='$configId', theme=$theme")
         
         try {
-            // Check memory cache first
-            memoryCache.get(themeKey)?.let { cached ->
-                Log.d(TAG, "🔧 SIMPLIFIED: Found cached bitmap for '$themeKey' - ${cached.width}×${cached.height}")
+            // Check memory cache first with configuration-aware key
+            memoryCache.get(fullCacheKey)?.let { cached ->
+                Log.d(TAG, "🔧 FOLDABLE: Found cached bitmap for '$fullCacheKey' - ${cached.width}×${cached.height}")
                 return@withContext cached 
             }
         
-            // Check disk cache
+            // Check disk cache with configuration-aware key
             val cacheDir = File(context.cacheDir, "theme_previews").apply { mkdirs() }
-            val cacheKey = "v${BuildConfig.VERSION_CODE}-$themeKey.webp"
+            val cacheKey = "v${BuildConfig.VERSION_CODE}-$fullCacheKey.webp"
             val cachedFile = File(cacheDir, cacheKey)
             
             if (cachedFile.exists()) {
-                Log.d(TAG, "🔧 SIMPLIFIED: Found disk cached file for '$themeKey'")
+                Log.d(TAG, "🔧 FOLDABLE: Found disk cached file for '$fullCacheKey'")
                 val bitmap = BitmapFactory.decodeFile(cachedFile.absolutePath)
                 if (bitmap != null && !bitmap.isRecycled) {
-                    Log.d(TAG, "🔧 SIMPLIFIED: Loaded disk cached bitmap - ${bitmap.width}×${bitmap.height}")
-                    memoryCache.put(themeKey, bitmap)
+                    Log.d(TAG, "🔧 FOLDABLE: Loaded disk cached bitmap - ${bitmap.width}×${bitmap.height}")
+                    memoryCache.put(fullCacheKey, bitmap)
                     return@withContext bitmap
                 } else {
-                    Log.w(TAG, "🔧 SIMPLIFIED: Disk cached bitmap was null or recycled, deleting cache file")
+                    Log.w(TAG, "🔧 FOLDABLE: Disk cached bitmap was null or recycled, deleting cache file")
                     cachedFile.delete()
                 }
             }
             
             // Generate new preview
-            Log.d(TAG, "🔧 SIMPLIFIED: Generating new bitmap for '$themeKey'")
+            Log.d(TAG, "🔧 FOLDABLE: Generating new bitmap for '$themeKey' with config '$configId'")
             val newBitmap = when (themeKey) {
                 "auto" -> {
-                    Log.d(TAG, "🔧 SIMPLIFIED: Calling generateSplitPreview for auto theme")
+                    Log.d(TAG, "🔧 FOLDABLE: Calling generateSplitPreview for auto theme")
                     generateSplitPreview(context)
                 }
                 else -> {
-                    Log.d(TAG, "🔧 SIMPLIFIED: Calling generateSinglePreview for theme $theme")
+                    Log.d(TAG, "🔧 FOLDABLE: Calling generateSinglePreview for theme $theme")
                     generateSinglePreview(context, theme)
                 }
             }
             
             if (newBitmap.isRecycled) {
-                Log.e(TAG, "🔧 SIMPLIFIED: Generated bitmap is recycled! This is a bug.")
+                Log.e(TAG, "🔧 FOLDABLE: Generated bitmap is recycled! This is a bug.")
                 return@withContext generateFallbackBitmap(context)
             }
         
-            // Cache in memory
-            memoryCache.put(themeKey, newBitmap)
-            Log.d(TAG, "🔧 SIMPLIFIED: Cached new bitmap in memory for '$themeKey'")
+            // Cache in memory with configuration-aware key
+            memoryCache.put(fullCacheKey, newBitmap)
+            Log.d(TAG, "🔧 FOLDABLE: Cached new bitmap in memory for '$fullCacheKey'")
             
             // Save to disk cache with error handling
             try {
                 cachedFile.outputStream().use { stream ->
                     val compressed = newBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, stream)
                     if (compressed) {
-                        Log.d(TAG, "🔧 SIMPLIFIED: Saved bitmap to disk cache for '$themeKey'")
+                        Log.d(TAG, "🔧 FOLDABLE: Saved bitmap to disk cache for '$fullCacheKey'")
                     } else {
-                        Log.w(TAG, "🔧 SIMPLIFIED: Failed to compress bitmap for disk cache")
+                        Log.w(TAG, "🔧 FOLDABLE: Failed to compress bitmap for disk cache")
                     }
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "🔧 SIMPLIFIED: Disk caching failed for '$themeKey': ${e.message}")
+                Log.w(TAG, "🔧 FOLDABLE: Disk caching failed for '$fullCacheKey': ${e.message}")
             }
             
-            Log.d(TAG, "🔧 SIMPLIFIED: Successfully generated ${newBitmap.width}×${newBitmap.height} bitmap for '$themeKey'")
+            Log.d(TAG, "🔧 FOLDABLE: Successfully generated ${newBitmap.width}×${newBitmap.height} bitmap for '$fullCacheKey'")
             newBitmap
         } catch (e: Exception) {
-            Log.e(TAG, "🔧 SIMPLIFIED: getPreview FAILED for '$themeKey'", e)
+            Log.e(TAG, "🔧 FOLDABLE: getPreview FAILED for '$themeKey' with config '$configId'", e)
             Log.e(TAG, "Exception details: ${e.javaClass.simpleName}: ${e.message}")
             e.printStackTrace()
             generateFallbackBitmap(context)
@@ -657,7 +682,7 @@ object ThemePreviewRenderer {
      * Clears all caches. Should be called when themes are updated.
      */
     fun clearCache(context: Context) {
-        Log.d(TAG, "🔧 SIMPLIFIED: Clearing all theme preview caches")
+        Log.d(TAG, "🔧 FOLDABLE: Clearing all theme preview caches")
         memoryCache.evictAll()
         
         // Clear disk cache
@@ -666,9 +691,73 @@ object ThemePreviewRenderer {
             val files = cacheDir.listFiles()
             files?.forEach { file ->
                 val deleted = file.delete()
-                Log.d(TAG, "🔧 SIMPLIFIED: Deleted cache file ${file.name}: $deleted")
+                Log.d(TAG, "🔧 FOLDABLE: Deleted cache file ${file.name}: $deleted")
             }
-            Log.d(TAG, "🔧 SIMPLIFIED: Cleared ${files?.size ?: 0} cache files")
+            Log.d(TAG, "🔧 FOLDABLE: Cleared ${files?.size ?: 0} cache files")
         }
+    }
+    
+    /**
+     * Clears cache for a specific display configuration.
+     * This is called when device fold state changes to remove previews for the old configuration.
+     */
+    fun clearCacheForConfiguration(context: Context, configId: String) {
+        Log.d(TAG, "🔧 FOLDABLE: Clearing cache for configuration: $configId")
+        
+        // Clear memory cache entries for this configuration
+        val keysToRemove = mutableListOf<String>()
+        val snapshot = memoryCache.snapshot()
+        for (key in snapshot.keys) {
+            if (key.endsWith("-$configId")) {
+                keysToRemove.add(key)
+            }
+        }
+        
+        for (key in keysToRemove) {
+            memoryCache.remove(key)
+            Log.d(TAG, "🔧 FOLDABLE: Removed memory cache entry: $key")
+        }
+        
+        // Clear disk cache files for this configuration
+        val cacheDir = File(context.cacheDir, "theme_previews")
+        if (cacheDir.exists()) {
+            val files = cacheDir.listFiles()
+            files?.forEach { file ->
+                if (file.name.contains("-$configId.webp")) {
+                    val deleted = file.delete()
+                    Log.d(TAG, "🔧 FOLDABLE: Deleted config-specific cache file ${file.name}: $deleted")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Called when device configuration changes (e.g., fold/unfold).
+     * Clears cache for the old configuration and triggers preview regeneration.
+     */
+    fun onConfigurationChanged(context: Context) {
+        val newConfigId = getDisplayConfigurationId(context)
+        Log.d(TAG, "🔧 FOLDABLE: Configuration changed to: $newConfigId")
+        
+        // Get all current configuration IDs in cache to find the old ones
+        val snapshot = memoryCache.snapshot()
+        val currentConfigIds = mutableSetOf<String>()
+        
+        for (key in snapshot.keys) {
+            val parts = key.split("-")
+            if (parts.size >= 4) { // format: "theme-widthxheight-densitydpi-orientation"
+                val configPart = parts.subList(1, parts.size).joinToString("-")
+                currentConfigIds.add(configPart)
+            }
+        }
+        
+        // Clear cache for all old configurations (keep only current one)
+        for (oldConfigId in currentConfigIds) {
+            if (oldConfigId != newConfigId) {
+                clearCacheForConfiguration(context, oldConfigId)
+            }
+        }
+        
+        Log.d(TAG, "🔧 FOLDABLE: Configuration change handling completed")
     }
 }
