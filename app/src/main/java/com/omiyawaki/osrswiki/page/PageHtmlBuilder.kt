@@ -112,7 +112,10 @@ class PageHtmlBuilder(private val context: Context) {
 
             // Build the JS list, conditionally appending the GE charts widget
             val dynamicJsAssets = if (needsGECharts) {
-                jsAssetPaths + listOf(\n                    "web/highcharts-stock.js",\n                    "web/ge_charts_init.js"\n                )
+                jsAssetPaths + listOf(
+                    "web/highcharts-stock.js",
+                    "web/ge_charts_init.js"
+                )
             } else jsAssetPaths
 
             val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
