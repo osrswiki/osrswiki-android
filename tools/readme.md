@@ -4,14 +4,13 @@ This directory contains a set of tools used to extract and process assets requir
 
 ## Overview
 
-The new native map system relies on several pre-processed assets generated from the OSRS game cache and the RuneLite open-source client. This toolchain is designed to be as automated and future-proof as possible.
+The new native map system relies on pre-processed assets generated from the OSRS game cache. This toolchain is designed to be as automated and future-proof as possible.
 
-The core asset generation workflow is a multi-step process:
+The core asset generation workflow is a 4-step process:
 1.  **Setup/Update Game Cache**: Automatically download the latest complete game cache from a public archive.
 2.  **Fetch Decryption Keys**: Automatically download the latest map decryption keys (XTEAs).
 3.  **Dump Complete Map Images**: Render the full game world from the cache.
 4.  **Slice Map Tiles**: Process the map images into `.mbtiles` assets for use in the app.
-5.  **Extract POIs (Optional)**: Parse the RuneLite source code to generate a JSON file of points of interest.
 
 ---
 
@@ -97,12 +96,33 @@ python3 slice_tiles.py
 ```
 This will create `map_floor_0.mbtiles`, `map_floor_1.mbtiles`, etc., and place them directly in the Android app's assets folder (`app/src/main/assets/`).
 
-### Step 5 (Optional): Extract POI Data
+---
 
-The `extract_pois.py` script parses a local copy of the RuneLite source code to extract locations for various points of interest.
+## Automated Workflow (Recommended)
+
+For convenience, use the automated wrapper tool that handles the entire workflow with intelligent freshness checking:
 
 ```bash
-# This script assumes a checkout of the RuneLite repo at /home/miyawaki/runelite
-python3 extract_pois.py
+# Run the complete workflow automatically (only updates if needed)
+python3 map/map-asset-generator.py
+
+# Force regeneration even if assets are up to date  
+python3 map/map-asset-generator.py --force
+
+# Preview what would be done without executing
+python3 map/map-asset-generator.py --dry-run
+
+# Just verify that all assets exist
+python3 map/map-asset-generator.py --verify
+
+# Check if local assets are up to date with OpenRS2
+python3 map/map-asset-generator.py --check-freshness
 ```
-This generates `pois.json` in the `tools/` directory, which should then be copied to the Android app's assets.
+
+The automated tool:
+- ✅ Checks OpenRS2 API for cache updates and only regenerates if needed
+- ✅ Runs all 4 steps in sequence with proper error handling
+- ✅ Validates dependencies (Java, Python packages, required scripts)
+- ✅ Provides detailed progress reporting and colored output
+- ✅ Verifies that all expected mbtiles files are created successfully
+
