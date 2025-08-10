@@ -245,6 +245,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
         gestureDetector = GestureDetector(requireContext(), gestureListener)
         binding.pageWebView.setOnTouchListener { _, event ->
+            // If JS signaled an active horizontal interaction (e.g., Highcharts),
+            // do not feed events into the back-swipe GestureDetector.
+            if (::nativeMapHandler.isInitialized && nativeMapHandler.isHorizontalScrollInProgress) {
+                return@setOnTouchListener false
+            }
             gestureDetector.onTouchEvent(event)
             false
         }
