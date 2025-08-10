@@ -1,11 +1,12 @@
 package com.omiyawaki.osrswiki.settings
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -14,6 +15,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentCustomSettingsBinding
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
@@ -30,6 +32,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
 
     private lateinit var viewModel: SettingsViewModel
     private lateinit var adapter: SettingsAdapter
+    private var previousConfiguration: Configuration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,6 +49,10 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         setupViewModel()
         setupRecyclerView()
         observeViewModel()
+        preWarmThemePreviewCache()
+        
+        // Store initial configuration for fold/unfold detection
+        previousConfiguration = Configuration(resources.configuration)
         
         L.d("CustomAppearanceSettingsFragment: Fragment created with proper Material3 styling")
     }
@@ -69,7 +76,13 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
             onListClick = { key ->
                 viewModel.onListSettingClicked(key)
                 L.d("CustomAppearanceSettingsFragment: List setting clicked - $key")
-            }
+            },
+            onThemeSelected = { themeKey ->
+                viewModel.onThemeSelected(themeKey)
+                notifyGlobalThemeChange()
+                L.d("CustomAppearanceSettingsFragment: Theme selected inline - $themeKey")
+            },
+            lifecycleScope = viewLifecycleOwner.lifecycleScope
         )
         
         binding.recyclerView.apply {
@@ -106,7 +119,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         
         val optionTitles = options.map { it.second }.toTypedArray()
         
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle("App theme")
             .setSingleChoiceItems(optionTitles, currentIndex) { dialog, which ->
                 val selectedTheme = options[which].first
@@ -128,7 +141,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
             .show()
     }
 
-    private fun notifyGlobalThemeChange() {
+    internal fun notifyGlobalThemeChange() {
         try {
             // Send local broadcast to notify other activities about theme change
             val intent = Intent(ACTION_THEME_CHANGED)
@@ -139,16 +152,95 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         }
     }
 
+    /**
+     * Pre-warms the theme preview cache by generating all theme screenshots in the background.
+     * This ensures smooth scrolling when the theme selection UI is displayed.
+     */
+    private fun preWarmThemePreviewCache() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                L.d("CustomAppearanceSettingsFragment: Pre-warming theme preview cache")
+                
+                // Generate previews for all themes in background
+                ThemePreviewRenderer.getPreview(requireContext(), R.style.Theme_OSRSWiki_OSRSLight, "light")
+                ThemePreviewRenderer.getPreview(requireContext(), R.style.Theme_OSRSWiki_OSRSDark, "dark") 
+                ThemePreviewRenderer.getPreview(requireContext(), 0, "auto") // Uses composite generation
+                
+                L.d("CustomAppearanceSettingsFragment: Theme preview cache pre-warming completed")
+            } catch (e: Exception) {
+                L.e("CustomAppearanceSettingsFragment: Error pre-warming theme preview cache: ${e.message}")
+            }
+        }
+    }
+
     override fun onThemeChanged() {
         if (!isAdded || view == null) {
             return
         }
         
-        L.d("CustomAppearanceSettingsFragment: onThemeChanged called - refreshing UI")
+        L.d("CustomAppearanceSettingsFragment: onThemeChanged called - clearing cache and refreshing UI")
+        
+        // Clear theme preview cache since themes have changed
+        ThemePreviewRenderer.clearCache(requireContext())
         
         // The RecyclerView and its items should automatically pick up the new theme
         // since they use theme attributes. Just notify the adapter to refresh.
         adapter.notifyDataSetChanged()
+        
+        // Re-warm the cache with new theme previews
+        preWarmThemePreviewCache()
+    }
+    
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        
+        if (!isAdded || view == null) {
+            return
+        }
+        
+        // Check for screen size or orientation changes that could indicate fold/unfold
+        val isScreenConfigurationChanged = previousConfiguration?.let { prevConfig ->
+            prevConfig.screenWidthDp != newConfig.screenWidthDp ||
+            prevConfig.screenHeightDp != newConfig.screenHeightDp ||
+            prevConfig.orientation != newConfig.orientation ||
+            prevConfig.densityDpi != newConfig.densityDpi
+        } ?: false
+        
+        if (isScreenConfigurationChanged) {
+            L.d("CustomAppearanceSettingsFragment: Screen configuration changed - refreshing theme previews")
+            L.d("CustomAppearanceSettingsFragment: Previous: ${previousConfiguration?.screenWidthDp}x${previousConfiguration?.screenHeightDp} ${previousConfiguration?.orientation}")
+            L.d("CustomAppearanceSettingsFragment: Current: ${newConfig.screenWidthDp}x${newConfig.screenHeightDp} ${newConfig.orientation}")
+            
+            // Handle theme preview cache invalidation and regeneration
+            handleConfigurationChangeForPreviews()
+        }
+        
+        // Update stored configuration for next comparison
+        previousConfiguration = Configuration(newConfig)
+    }
+    
+    /**
+     * Handles theme preview updates when device configuration changes (fold/unfold).
+     */
+    private fun handleConfigurationChangeForPreviews() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                L.d("CustomAppearanceSettingsFragment: Handling configuration change for theme previews")
+                
+                // Clear the old cache - ThemePreviewRenderer.onConfigurationChanged already handled cache clearing
+                // but we need to ensure the UI refreshes with new previews
+                
+                // Refresh the adapter to trigger new preview generation
+                adapter.notifyDataSetChanged()
+                
+                // Re-warm the cache with new device configuration previews
+                preWarmThemePreviewCache()
+                
+                L.d("CustomAppearanceSettingsFragment: Configuration change handling completed")
+            } catch (e: Exception) {
+                L.e("CustomAppearanceSettingsFragment: Error handling configuration change for previews: ${e.message}")
+            }
+        }
     }
 
     override fun onDestroyView() {

@@ -16,17 +16,22 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.ThemePreviewRenderer
 import com.omiyawaki.osrswiki.theme.ThemeAware
 
 abstract class BaseActivity : AppCompatActivity() {
 
     private var currentThemeId: Int = 0
     private var isApplyingTheme: Boolean = false
+    private var previousConfiguration: Configuration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply the selected theme BEFORE super.onCreate() and setContentView().
         applyCurrentTheme()
         super.onCreate(savedInstanceState)
+        
+        // Store initial configuration for fold/unfold detection
+        previousConfiguration = Configuration(resources.configuration)
     }
 
     override fun onResume() {
@@ -42,6 +47,28 @@ abstract class BaseActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        
+        // Check for screen size or orientation changes that could indicate fold/unfold
+        val isScreenConfigurationChanged = previousConfiguration?.let { prevConfig ->
+            prevConfig.screenWidthDp != newConfig.screenWidthDp ||
+            prevConfig.screenHeightDp != newConfig.screenHeightDp ||
+            prevConfig.orientation != newConfig.orientation ||
+            prevConfig.densityDpi != newConfig.densityDpi
+        } ?: false
+        
+        if (isScreenConfigurationChanged) {
+            android.util.Log.d("BaseActivity", "Screen configuration changed - possible fold/unfold detected")
+            android.util.Log.d("BaseActivity", "Previous: ${previousConfiguration?.screenWidthDp}x${previousConfiguration?.screenHeightDp} ${previousConfiguration?.orientation}")
+            android.util.Log.d("BaseActivity", "Current: ${newConfig.screenWidthDp}x${newConfig.screenHeightDp} ${newConfig.orientation}")
+            
+            // Notify ThemePreviewRenderer of configuration change
+            try {
+                ThemePreviewRenderer.onConfigurationChanged(this)
+            } catch (e: Exception) {
+                android.util.Log.e("BaseActivity", "Error handling theme preview configuration change", e)
+            }
+        }
+        
         // Check if the UI mode has changed (e.g., system light/dark theme switch).
         // If the app's theme is set to "auto", apply the new system-driven theme dynamically.
         if (Prefs.appThemeMode == "auto") {
@@ -50,6 +77,9 @@ abstract class BaseActivity : AppCompatActivity() {
             // state, so we can apply it dynamically without recreation.
             applyThemeDynamically()
         }
+        
+        // Update stored configuration for next comparison
+        previousConfiguration = Configuration(newConfig)
     }
 
     private fun applyCurrentTheme() {
