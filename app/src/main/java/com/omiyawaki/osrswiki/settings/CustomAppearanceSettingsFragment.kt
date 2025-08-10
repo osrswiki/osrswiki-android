@@ -230,8 +230,11 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
                 // Clear the old cache - ThemePreviewRenderer.onConfigurationChanged already handled cache clearing
                 // but we need to ensure the UI refreshes with new previews
                 
-                // Refresh the adapter to trigger new preview generation
+                // Refresh the adapter to trigger new preview generation and responsive layout recalculation
                 adapter.notifyDataSetChanged()
+                
+                // Handle responsive layout recalculation for theme selection
+                handleResponsiveLayoutRecalculation()
                 
                 // Re-warm the cache with new device configuration previews
                 preWarmThemePreviewCache()
@@ -240,6 +243,37 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
             } catch (e: Exception) {
                 L.e("CustomAppearanceSettingsFragment: Error handling configuration change for previews: ${e.message}")
             }
+        }
+    }
+    
+    /**
+     * Handles responsive layout recalculation for theme selection RecyclerViews
+     * when screen configuration changes.
+     */
+    private fun handleResponsiveLayoutRecalculation() {
+        try {
+            L.d("CustomAppearanceSettingsFragment: Handling responsive layout recalculation")
+            
+            // Find all theme selection RecyclerViews and trigger layout recalculation
+            binding.recyclerView.post {
+                // Iterate through visible items to find theme selection items
+                for (i in 0 until binding.recyclerView.childCount) {
+                    val childView = binding.recyclerView.getChildAt(i)
+                    val themeRecyclerView = childView?.findViewById<androidx.recyclerview.widget.RecyclerView>(
+                        com.omiyawaki.osrswiki.R.id.themePreviewRecyclerView
+                    )
+                    
+                    themeRecyclerView?.let { recyclerView ->
+                        val layoutManager = recyclerView.layoutManager
+                        if (layoutManager is ResponsiveThemeLayoutManager) {
+                            layoutManager.recalculateLayout()
+                            L.d("CustomAppearanceSettingsFragment: Triggered layout recalculation for theme RecyclerView")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            L.e("CustomAppearanceSettingsFragment: Error handling responsive layout recalculation: ${e.message}")
         }
     }
 
