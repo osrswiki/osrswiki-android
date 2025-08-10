@@ -82,8 +82,8 @@
         backgroundColor: 'white',
         reflow: true,
         marginLeft: 56,
-        marginRight: 8,
-        spacingBottom: 0,
+        marginRight: 16,
+        spacingBottom: 6,
         spacing: [4, 4, 4, 4],
         animation: false
       },
@@ -101,16 +101,19 @@
         labels: { style: { color: bodyColor, fontSize: '11px' } }
       },
       yAxis: {
+        opposite: false,
         title: { text: null },
         gridLineWidth: 1,
         tickAmount: 3,
         startOnTick: true,
         endOnTick: true,
+        lineWidth: 1,
+        lineColor: '#E0E0E0',
         showLastLabel: true,
         showFirstLabel: true,
         labels: {
           style: { color: bodyColor, fontSize: '11px' },
-          // default align ('right') for a left-side axis
+          align: 'right',
           x: -6,
           reserveSpace: true,
           formatter: function () { return formatCompact(this.value); }
