@@ -1,23 +1,20 @@
 /*
- * MESSAGEBOX MODULE
- * Message boxes and notifications
- * Generated from: app/src/main/assets/styles/wiki-integration.css
- * Rules: 25
+ * MESSAGEBOX MODULE (DEDUPLICATED)
+ * Removed 1 duplicate selectors
+ * Generated: messagebox.css
  */
 
 .messagebox {
-    width: 65%;
-    border-color: var(--body-border);
+    background-color: var(--body-light);
     background-color: var(--wikitable-bg);
-}
-
-.messagebox {
-    width: 65%;
+    border-color: var(--body-dark);
+    border-color: var(--body-dark) !important;
     border-left: 15px solid;
-    border-color: var(--body-border);
-    background-color: var(--wikitable-bg);
-    padding: 8px 12px;
+    border-left: 15px solid var(--body-dark) !important;
     margin: 8px 0;
+    padding: 8px 12px;
+    width: 65%;
+    width: 65% !important;
 }
 
 .messagebox.stub {
@@ -27,13 +24,6 @@
 .messagebox.hasdialogue {
     padding: 0 10px;
     width: auto;
-}
-
-.messagebox {
-    width: 65%;
-    border-left: 15px solid;
-    border-color: var(--body-dark);
-    background-color: var(--body-light);
 }
 
 .messagebox.obsolete {
@@ -110,41 +100,65 @@
     font-style: italic;
 }
 
-.messagebox {
-    width: 65%;
-    border-left: 15px solid;
-    border-color: var(--body-dark);
-    background-color: var(--body-light);
-}
-
-.messagebox {
-    width: 65%;
-    border-left: 15px solid;
-    border-color: var(--body-dark);
-    background-color: var(--body-light);
-}
-
 .mw-message-box {
-    border: 1px solid var(--body-border);
     background-color: var(--body-light);
-    padding: 0.5em 1em;
-    margin: 0.5em 0;
-}
-
-.messagebox {
-    width: 65% !important;
-    border-left: 15px solid var(--body-dark) !important;
-    border-color: var(--body-dark) !important;
-    background-color: var(--body-light) !important;
-    padding: 8px 12px;
-    margin: 8px 0;
-}
-
-.mw-message-box {
-    border: 1px solid var(--body-border);
     border-color: var(--body-dark);
-    background-color: var(--body-light);
-    padding: 0.5em 1em;
+    border: 1px solid var(--body-border);
     margin: 0.5em 0;
+    padding: 0.5em 1em;
+}
+
+.messagebox.discord a, .messagebox.discord a:active, .messagebox.discord a:visited {
+    background-color: #5865F2;
+    color: #fff;
+    text-decoration: underline;
+}
+
+.messagebox.obsolete a, .messagebox.obsolete a:active, .messagebox.obsolete a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.messagebox.action a, .messagebox.action a:active, .messagebox.action a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.messagebox.discord a.external, .messagebox.discord a:active.external, .messagebox.discord a:visited.external {
+    background-color: #5865F2;
+    color: #fff;
+    text-decoration: underline;
+}
+
+.messagebox.info a, .messagebox.info a:active, .messagebox.info a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.messagebox.safe a, .messagebox.safe a:active, .messagebox.safe a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.messagebox.disambig a, .messagebox.disambig a:active, .messagebox.disambig a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+.messagebox.warn a, .messagebox.warn a:active, .messagebox.warn a:visited {
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+    color: var(--link-color);
+    text-decoration: underline;
 }
 
