@@ -2,9 +2,9 @@
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="180dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="4dp"
+    android:layout_marginHorizontal="2dp"
     android:layout_marginVertical="4dp"
     android:checkable="true"
     android:clickable="true"
@@ -22,7 +22,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal"
-        android:padding="16dp">
+        android:padding="12dp">
 
         <!-- Theme Name and Description -->
         <LinearLayout
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="8dp">
             
             <TextView
                 android:id="@+id/textThemeName"
@@ -58,15 +58,15 @@
         <!-- Theme Preview Screenshot -->
         <FrameLayout
             android:id="@+id/previewContainer"
-            android:layout_width="148dp"
-            android:layout_height="148dp"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
             android:background="?attr/colorSurfaceVariant"
             android:clipToOutline="true">
             
             <ImageView
                 android:id="@+id/themePreviewImage"
-                android:layout_width="148dp"
-                android:layout_height="148dp"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
                 android:scaleType="centerInside"
                 android:adjustViewBounds="false"
                 android:background="@android:color/transparent"

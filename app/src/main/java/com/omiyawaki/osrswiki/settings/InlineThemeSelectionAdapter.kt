@@ -359,7 +359,7 @@ class InlineThemeSelectionAdapter(
                         """.trimIndent())
                         
                         // Square container with centerInside for proper proportional scaling (smaller size for horizontal)
-                        val squareSize = (148 * dm.density).roundToInt() // 148dp for horizontal layout
+                        val squareSize = (120 * dm.density).roundToInt() // 120dp for horizontal layout
                         imageView.layoutParams?.width = squareSize
                         imageView.layoutParams?.height = squareSize
                         imageView.adjustViewBounds = false
