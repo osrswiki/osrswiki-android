@@ -5519,3 +5519,316 @@ pre.mw-code {
         padding: 0.8em;
     }
 }
+
+/* ================================================ */
+/* PHASE 11A: Content-High Incomplete Fixes        */
+/* ================================================ */
+
+/* External Link Color Fix - Override duplicate implementations */
+.mw-parser-output a.external {
+    color: var(--link-color);
+    background-image: var(--external-icon);
+    background-repeat: no-repeat;
+    background-position: right center;
+    padding-right: 15px;
+}
+
+/* Message Box Complete Fix - Override all duplicates */
+.messagebox {
+    width: 65% !important;
+    border-left: 15px solid var(--body-dark) !important;
+    border-color: var(--body-dark) !important;
+    background-color: var(--body-light) !important;
+    padding: 8px 12px;
+    margin: 8px 0;
+}
+
+/* RuneScape Font Family Complete Fix */
+.font-runescape {
+    font-family: 'RuneScape' !important;
+}
+
+/* Wikitable Border Fixes - Ensure they take effect */
+.wikitable > tr > td,
+.wikitable > * > tr > td {
+    border-color: var(--wikitable-border) !important;
+}
+
+/* Heading Border & Color Fixes - Ensure they take effect */
+h1, h2 {
+    border-color: var(--sidebar) !important;
+}
+
+h3 {
+    color: var(--text-color) !important;
+}
+
+/* Other Category Incomplete Fixes */
+
+/* Heading Color Fixes */
+h4, h5, h6 {
+    color: var(--text-color) !important;
+}
+
+/* Link State Fixes */
+a:visited {
+    color: var(--link-color) !important;
+}
+
+a.new,
+a.new:visited {
+    color: var(--redlink-color) !important;
+}
+
+/* Message Box Border Fix */
+.mw-message-box {
+    border: 1px solid var(--body-border);
+    border-color: var(--body-dark);
+    background-color: var(--body-light);
+    padding: 0.5em 1em;
+    margin: 0.5em 0;
+}
+
+/* User Message Color Fix */
+.usermessage {
+    background-color: var(--messagebox-warn-background);
+    border: 1px solid var(--messagebox-warn-border);
+    color: var(--text-color);
+    padding: 5px;
+    margin: 5px 0;
+}
+
+/* File History & File Image Background Fixes */
+.filehistory a img,
+#file img {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M0 0h8v16h8V8H0z' opacity='.13'/%3E%3C/svg%3E") repeat;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--body-border);
+}
+
+#file img:hover {
+    background: none;
+    cursor: pointer;
+}
+
+/* MMV Component Fixes */
+.mw-mmv-image-metadata {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    border-color: var(--body-mid);
+    padding: 1em;
+}
+
+.mw-mmv-dialog {
+    background: var(--body-main);
+    background-color: var(--body-light);
+    border: 1px solid var(--body-border);
+}
+
+.mw-mmv-dialog .mw-mmv-dialog-down-arrow {
+    border-top-color: var(--body-border);
+    background-color: var(--body-light);
+}
+
+/* Chart Component Fix */
+.rsw-chartjs.rsw-chartjs-config {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+    display: none;
+}
+
+/* Content-Medium Incomplete Fix */
+.highcharts-scrollbar-track {
+    fill: transparent !important;
+    stroke: transparent !important;
+}
+
+/* ================================================ */
+/* PHASE 11B: Strategic High-Value Missing Selectors */
+/* ================================================ */
+
+/* Echo Notification System - Complete UX */
+.mw-echo-ui-crossWikiUnreadFilterWidget {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 0.5em;
+}
+
+.mw-echo-ui-crossWikiUnreadFilterWidget-subtitle {
+    color: var(--byline-color);
+    font-size: 0.9em;
+}
+
+.mw-echo-ui-notificationItemWidget {
+    background: var(--body-main);
+    border-bottom: 1px solid var(--body-border);
+    padding: 1em;
+}
+
+.mw-echo-ui-notificationItemWidget:not(:last-child) {
+    margin-bottom: 1px;
+}
+
+.mw-echo-ui-notificationItemWidget:hover {
+    background: var(--body-light);
+}
+
+.mw-echo-ui-notificationItemWidget-unread {
+    background: var(--messagebox-info-background);
+    border-left: 3px solid var(--ooui-progressive);
+}
+
+.mw-echo-ui-notificationItemWidget-unread:hover {
+    background: var(--body-light);
+}
+
+.mw-echo-ui-notificationItemWidget-content-message-header {
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 0.5em;
+}
+
+.mw-echo-ui-notificationItemWidget-content-message-body {
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+/* Enhanced Gaming Features - OSRS-specific UX */
+.mw-widget-calendarWidget-item:hover {
+    background: var(--ooui-progressive);
+    color: #fff;
+    cursor: pointer;
+}
+
+.mw-widget-calendarWidget-item-selected {
+    background: var(--ooui-accent);
+    color: #fff;
+    font-weight: bold;
+}
+
+.combat-styles-icons a {
+    display: inline-block;
+    margin: 2px;
+    padding: 4px;
+    border: 1px solid var(--body-border);
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.combat-styles-icons a:hover {
+    background: var(--body-light);
+    border-color: var(--ooui-progressive);
+}
+
+/* Tile System Enhancement */
+.tile {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 1em;
+    margin: 0.5em 0;
+    border-radius: 4px;
+}
+
+.tile.dark {
+    background: var(--body-dark-shade);
+    color: var(--tile-dark-header-color);
+}
+
+.tile.dark a {
+    color: var(--tile-dark-header-color);
+}
+
+/* Interactive UI Polish & Content Layout Enhancement */
+
+/* Enhanced SMW Button States */
+.smw-ask-action-btn.smw-ask-action-btn-dblue:visited {
+    background-color: var(--ooui-accent);
+    color: #fff;
+}
+
+.smw-ask-query textarea,
+.smw-ask-actions textarea {
+    background: var(--ooui-input);
+    border: 1px solid var(--ooui-input-border);
+    color: var(--text-color);
+    padding: 0.5em;
+    font-family: inherit;
+}
+
+.smw-ask-query textarea:focus,
+.smw-ask-actions textarea:focus {
+    border-color: var(--ooui-progressive);
+    outline: none;
+}
+
+/* Enhanced Link States for SMW */
+a.smw-ask-action-btn.smw-ask-action-btn-lblue,
+a.smw-ask-action-btn.smw-ask-action-btn-lblue:visited,
+a.smw-ask-action-btn.smw-ask-action-btn-lblue:hover {
+    background-color: var(--ooui-progressive);
+    color: #fff !important;
+    text-decoration: none;
+    border: 1px solid var(--ooui-progressive);
+    padding: 0.5em 1em;
+    display: inline-block;
+}
+
+a.smw-ask-action-btn.smw-ask-action-btn-lblue:hover {
+    background-color: var(--ooui-progressive--hover);
+    border-color: var(--ooui-progressive--hover);
+}
+
+/* Enhanced Media Handling */
+.extimage a {
+    display: inline-block;
+    border: 1px solid var(--body-border);
+    padding: 2px;
+}
+
+.extimage a:hover {
+    border-color: var(--ooui-progressive);
+}
+
+.extimage img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* Enhanced Tables & Data */
+.smwb-ifactbox .smwb-cell,
+.smwb-factbox .smwb-cell {
+    background: var(--wikitable-bg);
+    border: 1px solid var(--wikitable-border);
+    padding: 0.5em;
+}
+
+.arrow {
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+/* Enhanced Navigation */
+.mw-rcfilters-ui-menuSelectWidget-footer {
+    background: var(--body-light);
+    border-top: 1px solid var(--body-border);
+    padding: 0.5em;
+}
+
+.gemw-body .gemw-links {
+    background: var(--body-light);
+    border: 1px solid var(--body-border);
+    padding: 0.5em;
+}
+
+.gemw-body .gemw-links a {
+    color: var(--link-color);
+    margin-right: 1em;
+}
+
+.highcharts-navigator-outline {
+    stroke: var(--body-border);
+    fill: none;
+}
