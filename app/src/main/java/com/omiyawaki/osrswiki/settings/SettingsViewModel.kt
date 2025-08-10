@@ -30,11 +30,11 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                 val collapseTablesEnabled = state[SettingsRepository.KEY_COLLAPSE_TABLES] as Boolean
 
                 val items = listOf(
-                    SettingItem.CategoryHeader("Appearance"),
-                    SettingItem.ListSetting(
+                    SettingItem.InlineThemeSelection(
                         key = SettingsRepository.KEY_APP_THEME_MODE,
                         title = "App theme",
-                        displayValue = repository.getThemeDisplayName(appThemeMode)
+                        themes = repository.getThemeOptions(),
+                        currentSelection = appThemeMode
                     ),
                     SettingItem.CategoryHeader("Content"),
                     SettingItem.SwitchSetting(
