@@ -32,6 +32,27 @@ sealed class SettingItem {
         val iconResId: Int? = null
     ) : SettingItem()
 
+    /**
+     * Inline theme selection with visual previews
+     */
+    data class InlineThemeSelection(
+        val key: String,
+        val title: String,
+        val themes: List<Pair<String, String>>, // (themeKey, displayName)
+        val currentSelection: String
+    ) : SettingItem()
+
+    /**
+     * Inline table preview selection with visual article previews
+     * Shows horizontal comparison of collapsed vs expanded table states
+     */
+    data class InlineTablePreviewSelection(
+        val key: String,
+        val title: String,
+        val options: List<Pair<Boolean, String>>, // (collapseTablesValue, displayName)
+        val currentSelection: Boolean
+    ) : SettingItem()
+
     // Future extensibility for more setting types
     // data class NavigationSetting(...)
     // data class SliderSetting(...)
