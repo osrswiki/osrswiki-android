@@ -54,6 +54,7 @@ tools/map/map-dumper/output/
 tools/map/map-dumper/build/
 tools/map/map-dumper/.gradle/
 tools/map/map-dumper/xtea.json
+tools/map/map-dumper/src/
 
 # CSS tool outputs (generated reports and analysis)
 tools/css/output/
