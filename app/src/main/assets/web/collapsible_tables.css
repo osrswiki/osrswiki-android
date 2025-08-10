@@ -132,21 +132,6 @@
         display: block;
 }
 
-/* Infobox containers should float right on wide screens */
-.collapsible-container:has(table.infobox) {
-        float: right;
-        clear: right;
-        margin: 0.5em 0 1em 1em; /* Spacing for floating right: top right bottom left */
-}
-
-/* On narrow screens, center infobox containers instead of floating */
-@media (max-width: 768px) {
-        .collapsible-container:has(table.infobox) {
-                float: none;
-                clear: both;
-                margin: 0.5em auto 1em auto; /* Centered like default */
-        }
-}
 
 .collapsible-header {
         display: flex;

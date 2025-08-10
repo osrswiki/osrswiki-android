@@ -106,11 +106,17 @@ th[aria-sort="descending"]::after {
     font-size: 0.85em;
     width: auto;
     max-width: 450px;
-    margin: 0.5em auto 1em auto; /* Match web vertical margins, but keep horizontal centering */
-    float: none;
+    float: right;
+    margin: 0.5em 0 1em 1em; /* Match web exactly */
     clear: both;
     box-shadow: 0 0.25rem 0.35rem -0.25rem rgba(0,0,0,0.1);
 }
+
+.infobox.skill-info {
+    float: none;
+    margin: 1em 0; /* Match web exactly */
+}
+
 .infobox th, .infobox td {
     padding: 0.3em 0.5em;
     text-align: left;
