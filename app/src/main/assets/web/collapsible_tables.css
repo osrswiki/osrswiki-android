@@ -123,23 +123,28 @@
 
 .collapsible-container {
         border-radius: 4px;
-        margin: 0.5em 0 1em 1em; /* Spacing for floating right: top right bottom left */
+        margin: 0.5em auto 1em auto; /* Centered by default */
         width: auto;
         max-width: 450px; /* Match infobox max-width */
         overflow: hidden; /* This clips the corners for the border-radius */
         background-color: var(--colorsurfacevariant);
         color: var(--coloronsurfacevariant);
         display: block;
-        float: right;
-        clear: right; /* Stack properly with other right-floated elements */
 }
 
-/* On narrow screens, center the collapsible container instead of floating */
+/* Infobox containers should float right on wide screens */
+.collapsible-container:has(table.infobox) {
+        float: right;
+        clear: right;
+        margin: 0.5em 0 1em 1em; /* Spacing for floating right: top right bottom left */
+}
+
+/* On narrow screens, center infobox containers instead of floating */
 @media (max-width: 768px) {
-        .collapsible-container {
+        .collapsible-container:has(table.infobox) {
                 float: none;
                 clear: both;
-                margin: 0.5em auto 1em auto; /* Centered like before */
+                margin: 0.5em auto 1em auto; /* Centered like default */
         }
 }
 
