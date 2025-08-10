@@ -48,6 +48,11 @@ app/src/main/assets/map_tiles.zip
 app/src/main/assets/pois.json
 tools/map-dumper/output/
 
+# Map generation cache files (downloaded from OpenRS2)
+tools/map/openrs2_cache/
+tools/map/map-dumper/jagexcache/
+tools/map/map-dumper/output/
+
 # CSS tool outputs (generated reports and analysis)
 tools/css/output/
 *.css.backup
