@@ -46,7 +46,6 @@ file_backups/
 *.mbtiles
 app/src/main/assets/map_tiles.zip
 app/src/main/assets/pois.json
-tools/map-dumper/output/
 
 # Map generation cache files (downloaded from OpenRS2)
 tools/map/openrs2_cache/
@@ -70,4 +69,4 @@ reference_wiki.css
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.jar
-!tools/map-dumper/gradle/wrapper/gradle-wrapper.jar
+!tools/map/map-dumper/gradle/wrapper/gradle-wrapper.jar
