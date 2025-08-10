@@ -205,7 +205,7 @@
       resetTimer = setTimeout(() => { sent = false; send(false); }, 400);
     };
 
-    const onDown = (x, y) => { down = true; startX = x; startY = y; sent = false; };
+    const onDown = (x, y) => { down = true; startX = x; startY = y; sent = true; send(true); };
     const onMove = (x, y) => {
       if (!down) return;
       const dx = Math.abs(x - startX);
@@ -213,7 +213,10 @@
       if (!sent && dx > 6 && dx > dy) { sent = true; send(true); }
       if (sent) resetSoon();
     };
-    const onUp = () => { down = false; if (sent) { sent = false; send(false); } };
+    const onUp = () => { down = false; if (sent) { // keep guard for a short delay to beat fling race
+        if (resetTimer) clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => { sent = false; send(false); }, 250);
+      } };
 
     // Pointer events preferred
     if (window.PointerEvent) {
