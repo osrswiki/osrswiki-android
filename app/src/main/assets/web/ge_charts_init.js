@@ -47,6 +47,8 @@
       .GEChartBox { width: 100%; margin: 0 !important; padding: 0 !important; }
       /* Let Highcharts manage its own overflow; keep labels visible */
       .GEdatachart.smallChart svg { overflow: visible !important; }
+      /* Ensure container doesn't clip labels */
+      .GEdatachart.smallChart .highcharts-container { overflow: visible !important; }
     `;
     const style = document.createElement('style');
     style.id = 'ge-charts-style';
@@ -79,7 +81,7 @@
         height,
         backgroundColor: 'white',
         reflow: true,
-        marginLeft: 44,
+        marginLeft: 56,
         marginRight: 8,
         spacingBottom: 0,
         spacing: [4, 4, 4, 4],
@@ -101,13 +103,15 @@
       yAxis: {
         title: { text: null },
         gridLineWidth: 1,
-        tickAmount: 2,
+        tickAmount: 3,
         startOnTick: true,
         endOnTick: true,
+        showLastLabel: true,
+        showFirstLabel: true,
         labels: {
           style: { color: bodyColor, fontSize: '11px' },
-          align: 'left',
-          x: 0,
+          // default align ('right') for a left-side axis
+          x: -6,
           reserveSpace: true,
           formatter: function () { return formatCompact(this.value); }
         }
