@@ -97,27 +97,24 @@ class PageHtmlBuilder(private val context: Context) {
                 else -> "" // OSRS Light is the default theme in CSS, no class needed.
             }
 
-            // Detect presence of GE price charts in the content and include widget script when needed
-            val needsGECharts = cleanedBodyContent.contains("GEChartBox") ||
-                    cleanedBodyContent.contains("GEdatachart") ||
-                    cleanedBodyContent.contains("GEdataprices")
-            if (needsGECharts) {
-                Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
-            }
-
             val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
                 // The URL must match the path handled by WebViewAssetLoader.
                 "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
             }
 
-            // Build the JS list, conditionally appending the GE charts widget
-            val dynamicJsAssets = if (needsGECharts) {
-                jsAssetPaths + listOf(
-                    "web/external/highcharts-stock.js"
-                    // TODO: Replace with extracted ext.gadget.GECharts module
-                    // "web/ge_charts_init.js"  // Removed - replaced by automated extraction
-                )
-            } else jsAssetPaths
+            // Get required external modules based on content analysis (native pre-scan)
+            val externalModules = ExternalModuleManager.getRequiredModules(context, cleanedBodyContent)
+            if (externalModules.isNotEmpty()) {
+                Log.d(logTag, "Including ${externalModules.size} external modules (pre-scan): ${externalModules.joinToString()}")
+            } else {
+                Log.d(logTag, "No external modules found by pre-scan; runtime autoloader will handle detection.")
+            }
+
+            // Build the JS list: core assets → compatibility layer (always) → runtime autoloader (always) → external modules (from pre-scan)
+            val dynamicJsAssets = jsAssetPaths + listOf(
+                "web/app/mw_compatibility_shared.js",      // Provides mw.* and dynamic loader
+                "web/app/external_module_autoloader.js"      // Runtime DOM-based detection & loading fallback
+            ) + externalModules
 
             val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
                 // The URL must match the path handled by WebViewAssetLoader.
