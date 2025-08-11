@@ -22,6 +22,7 @@ import com.omiyawaki.osrswiki.page.PageRemoteDataSource
 import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.search.SearchRepository
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
 import com.omiyawaki.osrswiki.theme.Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -131,6 +132,9 @@ class OSRSWikiApp : Application() {
             )
 
             initializeNetworkCallback()
+            
+            // Initialize background preview generation for instant loading
+            initializeBackgroundPreviewGeneration()
         } catch (e: Exception) {
             logCrashManually(e, "Failed to initialize dependencies")
             throw e // Re-throw to prevent app from continuing in broken state
@@ -140,6 +144,21 @@ class OSRSWikiApp : Application() {
     override fun onTerminate() {
         super.onTerminate()
         unregisterNetworkCallback()
+        PreviewGenerationManager.cancelGeneration()
+    }
+
+    /**
+     * Initialize background preview generation for instant loading.
+     * Called after core dependencies are ready.
+     */
+    private fun initializeBackgroundPreviewGeneration() {
+        try {
+            val currentTheme = getCurrentTheme()
+            PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
+        } catch (e: Exception) {
+            // Don't fail app startup if preview generation fails
+            logCrashManually(e, "Failed to initialize background preview generation")
+        }
     }
 
     fun getCurrentTheme(): Theme {
