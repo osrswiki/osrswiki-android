@@ -50,10 +50,6 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         setupRecyclerView()
         observeViewModel()
         
-        // Initialize background preview generation with Activity context
-        // This will generate previews if not already done, or use cached ones instantly
-        initializePreviewGeneration()
-        
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
         

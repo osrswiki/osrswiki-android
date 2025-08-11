@@ -30,6 +30,8 @@ import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
 import android.widget.TextView
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
+import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
 
 // Debug extension to trace all programmatic tab changes
 fun BottomNavigationView.debugSelect(id: Int, src: String = "") {
@@ -375,6 +377,15 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         Log.d(LIFECYCLE_TAG, "onResume() called.")
         super.onResume() // This handles theme changes in BaseActivity
+        
+        // Capture live content bounds for theme previews (expert's solution)
+        ContentBoundsProvider.publishFrom(this)
+        
+        // Initialize background preview generation as soon as Activity context is available
+        // This ensures previews are ready when users navigate to appearance settings
+        val app = application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
