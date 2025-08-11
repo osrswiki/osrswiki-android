@@ -166,6 +166,27 @@
         float: none;
 }
 
+/* ========================================================================
+   Mobile Responsive Behavior - Override floating on narrow screens
+   Matches MediaWiki's body.skin--responsive responsive system
+   ========================================================================*/
+@media screen and (max-width: 768px) {
+        /* Override all floating containers to be non-floating on mobile */
+        .collapsible-container:has([class*="floatright"], [class*="-right"], .archivelist, .shortcut, .mw-halign-right, .infobox:not(.skill-info):not(.infobox-bonuses), .multi-infobox),
+        .collapsible-container:has([class*="floatleft"], [class*="-left"], .mw-halign-left) {
+                float: none !important;
+                clear: both !important;
+                margin: 1em auto !important; /* Center on mobile like web */
+                width: fit-content;
+        }
+        
+        /* Ensure all containers are properly centered on mobile */
+        .collapsible-container {
+                margin-left: auto;
+                margin-right: auto;
+        }
+}
+
 
 .collapsible-header {
         display: flex;
