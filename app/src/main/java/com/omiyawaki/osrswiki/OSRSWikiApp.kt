@@ -133,8 +133,8 @@ class OSRSWikiApp : Application() {
 
             initializeNetworkCallback()
             
-            // Initialize background preview generation for instant loading
-            initializeBackgroundPreviewGeneration()
+            // Reset preview generation state to ensure fresh generation with Activity context
+            PreviewGenerationManager.resetState()
         } catch (e: Exception) {
             logCrashManually(e, "Failed to initialize dependencies")
             throw e // Re-throw to prevent app from continuing in broken state
@@ -145,20 +145,6 @@ class OSRSWikiApp : Application() {
         super.onTerminate()
         unregisterNetworkCallback()
         PreviewGenerationManager.cancelGeneration()
-    }
-
-    /**
-     * Initialize background preview generation for instant loading.
-     * Called after core dependencies are ready.
-     */
-    private fun initializeBackgroundPreviewGeneration() {
-        try {
-            val currentTheme = getCurrentTheme()
-            PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
-        } catch (e: Exception) {
-            // Don't fail app startup if preview generation fails
-            logCrashManually(e, "Failed to initialize background preview generation")
-        }
     }
 
     fun getCurrentTheme(): Theme {
