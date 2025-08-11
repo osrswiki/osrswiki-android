@@ -64,8 +64,7 @@ css_sync_report_*.txt
 reference_wiki.css
 
 # JS module extraction outputs (contains extracted third-party code)
-tools/js_modules/out/
-tools/wiki_widgets/out/
+tools/js/out/
 
 # Extracted third-party JavaScript/CSS (not owned by this project)
 app/src/main/assets/web/external/
