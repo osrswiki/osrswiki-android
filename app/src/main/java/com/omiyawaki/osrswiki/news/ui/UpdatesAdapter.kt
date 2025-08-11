@@ -6,14 +6,14 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.image.ImageLoader
 import com.omiyawaki.osrswiki.news.model.UpdateItem
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
 
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
+    private val imageLoader: ImageLoader,
     private val onItemClicked: (UpdateItem) -> Unit
 ) : RecyclerView.Adapter<UpdatesAdapter.ViewHolder>() {
 
@@ -29,7 +29,7 @@ class UpdatesAdapter(
 
     override fun getItemCount(): Int = items.size
 
-    class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imageView: ImageView = itemView.findViewById(R.id.news_item_image)
         private val titleView: TextView = itemView.findViewById(R.id.news_item_title)
         private val snippetView: TextView = itemView.findViewById(R.id.news_item_snippet)
@@ -41,21 +41,11 @@ class UpdatesAdapter(
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {
             titleView.text = item.title
-            snippetView.text = item.snippet.replace('’', '\'')
+            snippetView.text = item.snippet.replace("'", "'")
 
-            val app = itemView.context.applicationContext as OSRSWikiApp
-            val cachedBitmap = app.imageCache.get(item.imageUrl)
-
-            if (cachedBitmap != null) {
-                imageView.setImageBitmap(cachedBitmap)
-            } else {
-                Glide.with(itemView.context)
-                    .load(item.imageUrl)
-                    .placeholder(R.drawable.ic_placeholder_image)
-                    .error(R.drawable.ic_error_image)
-                    .dontAnimate()
-                    .into(imageView)
-            }
+            // Use injected ImageLoader instead of direct Glide calls
+            // This enables dependency injection for preview vs production contexts
+            imageLoader.load(imageView, item.imageUrl)
 
             itemView.setOnClickListener {
                 onItemClicked(item)

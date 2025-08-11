@@ -29,6 +29,9 @@
     
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+    <color name="gray_very_light">#fbfbfb</color>
+    <color name="gray_very_light_alpha">#50fbfbfb</color>
+    <color name="gray_very_light_disabled">#61fbfbfb</color>
     <color name="color_error">#B00020</color>
     <color name="ic_launcher_background">#20252c</color>
     <color name="text_input_primary">#DE000000</color>

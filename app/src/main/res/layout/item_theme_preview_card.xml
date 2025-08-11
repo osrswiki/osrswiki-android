@@ -53,17 +53,17 @@
         <!-- Theme Preview Screenshot -->
         <FrameLayout
             android:id="@+id/previewContainer"
-            android:layout_width="192dp"
-            android:layout_height="192dp"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
             android:layout_marginHorizontal="16dp"
             android:background="?attr/colorSurfaceVariant"
             android:clipToOutline="true">
             
             <ImageView
                 android:id="@+id/themePreviewImage"
-                android:layout_width="192dp"
-                android:layout_height="192dp"
-                android:scaleType="centerInside"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:scaleType="fitStart"
                 android:adjustViewBounds="false"
                 android:background="@android:color/transparent"
                 android:importantForAccessibility="no" />

@@ -63,6 +63,16 @@ css_gap_analysis.json
 css_sync_report_*.txt
 reference_wiki.css
 
+# JS module extraction outputs (contains extracted third-party code)
+tools/js_modules/out/
+tools/wiki_widgets/out/
+
+# Extracted third-party JavaScript/CSS (not owned by this project)
+app/src/main/assets/web/external/
+
+# Micromamba environments and caches
+.mamba/
+
 # Ignore temporary map tile directory used by slice_tiles.py
 /app/src/main/assets/map_tiles_temp/
 
