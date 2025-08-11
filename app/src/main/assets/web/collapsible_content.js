@@ -80,7 +80,10 @@
         }
 
         var container = document.createElement('div');
-        container.className = 'collapsible-container collapsed';
+        // Check global preference variable for initial collapse state
+        const shouldStartCollapsed = (typeof window.OSRS_TABLE_COLLAPSED !== 'undefined') ? 
+            window.OSRS_TABLE_COLLAPSED : true; // Default to collapsed if not set
+        container.className = shouldStartCollapsed ? 'collapsible-container collapsed' : 'collapsible-container';
         var header = document.createElement('div');
         header.className = 'collapsible-header';
         var titleWrapper = document.createElement('div');
@@ -133,8 +136,11 @@
                 return;
             }
 
-            // Determine initial state
-            const shouldStartCollapsed = collapsibleDiv.classList.contains('mw-collapsed');
+            // Determine initial state - check global preference first, then fallback to mw-collapsed class
+            const globalPreference = (typeof window.OSRS_TABLE_COLLAPSED !== 'undefined') ? window.OSRS_TABLE_COLLAPSED : null;
+            const shouldStartCollapsed = (globalPreference !== null) ? 
+                globalPreference : 
+                collapsibleDiv.classList.contains('mw-collapsed');
 
             // Create container structure
             var container = document.createElement('div');
