@@ -88,9 +88,9 @@ class DynamicReferenceAnalyzer:
         self.config = config
         self.cache_file = Path("tools/css/output/reference_profile_cache.json")
         
-    def fetch_and_analyze_reference(self, reference_url: str) -> ReferenceProfile:
-        """Fetch reference CSS and create dynamic profile."""
-        print(f"📡 Fetching reference CSS from: {reference_url}")
+    def fetch_and_analyze_reference(self, reference_urls: List[str]) -> ReferenceProfile:
+        """Fetch reference CSS from multiple sources and create dynamic profile."""
+        print(f"📡 Fetching reference CSS from {len(reference_urls)} sources")
         
         # Check cache first
         cached_profile = self._load_cached_profile()
@@ -98,32 +98,33 @@ class DynamicReferenceAnalyzer:
             print(f"📋 Using cached reference profile: {cached_profile.total_rules} rules")
             return cached_profile
         
-        # Fetch fresh reference using curl
-        try:
-            result = subprocess.run([
-                'curl', '-s', '--max-time', '30', reference_url
-            ], capture_output=True, text=True, check=True)
-            css_content = result.stdout
-            
-            if not css_content.strip():
-                raise Exception("Empty response from reference URL")
-                
-        except subprocess.CalledProcessError as e:
-            print(f"❌ Failed to fetch reference CSS: {e}")
-            if cached_profile:
-                print("📋 Falling back to cached profile")
-                return cached_profile
-            raise
-        except Exception as e:
-            print(f"❌ Failed to fetch reference CSS: {e}")
-            if cached_profile:
-                print("📋 Falling back to cached profile")
-                return cached_profile
-            raise
+        # Fetch fresh reference from all URLs
+        combined_css_content = ""
+        for i, url in enumerate(reference_urls):
+            print(f"📡 Fetching source {i+1}/{len(reference_urls)}: {url[:80]}...")
+            try:
+                result = subprocess.run([
+                    'curl', '-s', '--max-time', '30', url
+                ], capture_output=True, text=True, check=True)
+                css_content = result.stdout
+                if css_content.strip():
+                    combined_css_content += f"\n/* Source {i+1}: {url} */\n{css_content}\n"
+                else:
+                    print(f"⚠️ Empty response from source {i+1}, continuing with other sources")
+            except subprocess.CalledProcessError as e:
+                print(f"⚠️ Failed to fetch source {i+1}: {e} (continuing with other sources)")
+                continue
         
-        # Analyze reference CSS
-        print("🔍 Analyzing reference CSS structure...")
-        profile = self._analyze_css_content(css_content)
+        if not combined_css_content.strip():
+            print(f"❌ No CSS content retrieved from any source")
+            if cached_profile:
+                print("📋 Falling back to cached profile")
+                return cached_profile
+            raise Exception("No CSS content retrieved from any source")
+        
+        # Analyze combined reference CSS
+        print("🔍 Analyzing combined reference CSS structure...")
+        profile = self._analyze_css_content(combined_css_content)
         
         # Cache the profile
         self._cache_profile(profile)
@@ -686,7 +687,13 @@ def load_config(config_path: str = "tools/css/css-perfect-sync.yml") -> Dict:
             'local_enhancements': 'remove_all'
         },
         'reference_source': {
-            'url': 'https://oldschool.runescape.wiki/load.php?lang=en&modules=site.styles&only=styles',
+            'urls': [
+                'https://oldschool.runescape.wiki/load.php?lang=en&modules=site.styles&only=styles',
+                'https://oldschool.runescape.wiki/w/MediaWiki:Vector.css?action=raw',
+                'https://oldschool.runescape.wiki/w/MediaWiki:Common.css?action=raw',
+                'https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=ext.cite.styles%7Cext.embedVideo.styles%7Cext.visualEditor.desktopArticleTarget.noscript%7Cjquery.makeCollapsible.styles%7Cjquery.tablesorter.styles%7Cskins.vector.search.codex.styles%7Cskins.vector.styles.legacy&only=styles&skin=vector',
+                'https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=ext.gadget.articlefeedback-styles%2CfalseSubpage%2CheaderTargetHighlight%2CstickyTableHeaders%2Cswitch-infobox-styles&only=styles&skin=vector'
+            ],
             'auto_update': True,
             'cache_duration': '1h'
         },
@@ -721,7 +728,7 @@ def main():
         # Step 1: Analyze reference CSS dynamically
         print("\n🔍 Step 1: Analyzing Reference CSS")
         reference_profile = reference_analyzer.fetch_and_analyze_reference(
-            config['reference_source']['url']
+            config['reference_source']['urls']
         )
         
         # Step 2: Analyze current coverage
