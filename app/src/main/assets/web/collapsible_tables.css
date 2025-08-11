@@ -123,13 +123,47 @@
 
 .collapsible-container {
         border-radius: 4px;
-        margin: 0.5em auto 1em auto; /* Centered by default */
+        /* Remove forced dimensions - let child determine size */
         width: auto;
-        max-width: 450px; /* Match infobox max-width */
+        /* No max-width override - child content controls size */
         overflow: hidden; /* This clips the corners for the border-radius */
         background-color: var(--colorsurfacevariant);
         color: var(--coloronsurfacevariant);
         display: block;
+        /* Default fallback for unmatched content */
+        margin: 1em 0;
+        width: fit-content;
+        /* margin and float handled by specific rules below */
+}
+
+/* True transparent wrapper behavior - containers inherit exact child positioning */
+
+/* Float Right: Match child's right-floating behavior exactly */
+.collapsible-container:has([class*="floatright"], [class*="-right"], .archivelist, .shortcut, .mw-halign-right, .infobox:not(.skill-info):not(.infobox-bonuses), .multi-infobox) {
+        float: right;
+        margin: 0.5em 0 1em 1em; /* Match typical right-floating margin */
+        width: fit-content; /* Wrap around child exactly */
+}
+
+/* Float Left: Match child's left-floating behavior exactly */
+.collapsible-container:has([class*="floatleft"], [class*="-left"], .mw-halign-left) {
+        float: left;
+        margin: 0.5em 1em 1em 0; /* Match typical left-floating margin */
+        width: fit-content; /* Wrap around child exactly */
+}
+
+/* No Float: Match child's normal document flow positioning */
+.collapsible-container:has(.infobox.skill-info, .infobox-bonuses, [class*="-center"], .mw-halign-center, .mw-halign-none) {
+        float: none;
+        margin: 1em 0; /* Normal document flow - NOT centered */
+        width: fit-content; /* Wrap around child exactly */
+}
+
+/* Full Width Content (navboxes, large tables) */
+.collapsible-container:has(.navbox, .wikitable) {
+        width: 100%; /* Match full-width content */
+        margin: 1em auto 0; /* Match navbox margins */
+        float: none;
 }
 
 
