@@ -6,8 +6,8 @@ Uses Playwright to load OSRS Wiki pages and capture all network requests
 to identify where JavaScript modules are actually hosted.
 
 Usage:
-  python tools/js_modules/network_tracer.py --pages "Grand_Exchange" "Nightmare_Zone"
-  python tools/js_modules/network_tracer.py --auto-from-scan tools/wiki_widgets/out/report.json
+  python tools/js_modules/deploy/network_tracer.py --pages "Grand_Exchange" "Nightmare_Zone"
+  python tools/js_modules/deploy/network_tracer.py --auto-from-scan tools/js_modules/out/report.json
 """
 
 from __future__ import annotations
