@@ -1,0 +1,20 @@
+{
+  "extracted_at": 1754929204.509686,
+  "total_modules": 1,
+  "modules": {
+    "ext.gadget.GECharts-core": {
+      "name": "ext.gadget.GECharts-core",
+      "original_name": "ext.gadget.GECharts-core",
+      "type": "gadget",
+      "dependencies": [
+        "mw_config_",
+        "mw_loader_",
+        "$(",
+        "jquery"
+      ],
+      "source_length": 22837,
+      "output_file": "tools/js_modules/out/ext_gadget_GECharts-core.js",
+      "extracted_at": 1754929204.509571
+    }
+  }
+}

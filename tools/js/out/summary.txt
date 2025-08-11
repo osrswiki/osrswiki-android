@@ -1,0 +1,35 @@
+Base: https://oldschool.runescape.wiki
+Pages scanned: 1
+Blacklisted modules: ext.kartographer.frame, ext.kartographer.link
+Blacklisted classes: kartographer-map, map-container, mw-kartographer-container, mw-kartographer-interactive, mw-kartographer-map, mw-kartographer-mapDialog-foot, rsmap
+
+Top 20 modules:
+- ext.cite.ux-enhancements [extension]: 1 (e.g., Logs)
+- ext.scribunto.logs [extension]: 1 (e.g., Logs)
+
+Modules by category:
+- Extension: 2 modules, 2 total uses (top: ext.cite.ux-enhancements, ext.scribunto.logs)
+
+JavaScript modules found: 2
+Top 10 JavaScript modules (extractable):
+- ext.cite.ux-enhancements: 1 (e.g., Logs)
+- ext.scribunto.logs: 1 (e.g., Logs)
+
+CSS-only modules found: 2
+Top 10 CSS modules (styles only):
+- ext.cite.styles: 1 (e.g., Logs)
+- ext.kartographer.style: 1 (e.g., Logs)
+
+Top 20 missing widget-like classes (heuristic):
+- infobox-quantity: 14 (e.g., Logs, Logs, Logs)
+- infobox-quantity-replace: 14 (e.g., Logs, Logs, Logs)
+- infobox-cell-shown: 9 (e.g., Logs, Logs, Logs)
+- navbox-group-split: 5 (e.g., Logs, Logs, Logs)
+- navbox-group-title-hidden: 5 (e.g., Logs, Logs, Logs)
+- infobox-smw-data: 3 (e.g., Logs, Logs, Logs)
+- navbox-autocollapse: 2 (e.g., Logs, Logs)
+- navbox-title-name: 2 (e.g., Logs, Logs)
+- infobox-cell-hidden: 1 (e.g., Logs)
+- infobox-image: 1 (e.g., Logs)
+- infobox-item: 1 (e.g., Logs)
+- infobox-resources-Skill_info: 1 (e.g., Logs)
