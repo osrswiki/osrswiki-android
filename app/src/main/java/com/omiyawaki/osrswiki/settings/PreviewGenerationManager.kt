@@ -40,8 +40,9 @@ object PreviewGenerationManager {
     private val generatedThemePreviews = mutableSetOf<String>()
     
     /**
-     * Initialize background preview generation on app launch.
-     * Should be called after core dependencies are initialized.
+     * Initialize background preview generation when Activity context is available.
+     * Should be called from CustomAppearanceSettingsFragment with Activity context.
+     * Safe to call multiple times - will only run once.
      */
     fun initializeBackgroundGeneration(context: Context, currentTheme: Theme) {
         if (!isInitialized.compareAndSet(false, true)) {

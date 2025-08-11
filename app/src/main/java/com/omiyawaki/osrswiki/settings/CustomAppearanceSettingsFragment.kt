@@ -50,8 +50,9 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         setupRecyclerView()
         observeViewModel()
         
-        // Preview pre-warming is now handled by PreviewGenerationManager in the background
-        // No need for on-demand generation when navigating to settings
+        // Initialize background preview generation with Activity context
+        // This will generate previews if not already done, or use cached ones instantly
+        initializePreviewGeneration()
         
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
@@ -179,6 +180,19 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         }
     }
 
+    /**
+     * Initialize background preview generation with Activity context for WebView rendering.
+     * Safe to call multiple times - PreviewGenerationManager handles deduplication.
+     */
+    private fun initializePreviewGeneration() {
+        val app = requireContext().applicationContext as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        
+        // Pass Activity context (requireActivity()) instead of Application context
+        // This ensures WebView rendering has proper Activity context
+        PreviewGenerationManager.initializeBackgroundGeneration(requireActivity(), currentTheme)
+    }
+    
     /**
      * Pre-warms the table preview cache by generating the table collapse comparison in the background.
      * This ensures smooth scrolling when the table preview UI is displayed.
