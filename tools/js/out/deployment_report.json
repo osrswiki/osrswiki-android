@@ -1,0 +1,155 @@
+{
+  "deployment_timestamp": 1754930058.790091,
+  "deployed_modules": [
+    {
+      "extracted_name": "ext_gadget_GECharts.js",
+      "deployed_name": "ge_charts_loader.js",
+      "config": {
+        "target_name": "ge_charts_loader.js",
+        "conditional": ".GEdatachart,.GEChartBox,.GEdataprices",
+        "description": "Grand Exchange chart loader stub",
+        "priority": "high"
+      },
+      "analysis": {
+        "file_size": 3426,
+        "has_mw_compatibility": true,
+        "has_jquery": true,
+        "has_embedded_css": false,
+        "mw_apis_used": [
+          "loader"
+        ],
+        "external_dependencies": [
+          "jquery.js"
+        ],
+        "module_dependencies": [
+          "ext.gadget.GECharts-core"
+        ],
+        "estimated_runtime_size": 88
+      }
+    },
+    {
+      "extracted_name": "ext_gadget_GECharts-core.js",
+      "deployed_name": "ge_charts_core.js",
+      "config": {
+        "target_name": "ge_charts_core.js",
+        "conditional": ".GEdatachart,.GEChartBox,.GEdataprices",
+        "description": "Grand Exchange chart implementation core",
+        "priority": "high"
+      },
+      "analysis": {
+        "file_size": 26179,
+        "has_mw_compatibility": true,
+        "has_jquery": true,
+        "has_embedded_css": false,
+        "mw_apis_used": [
+          "config",
+          "loader"
+        ],
+        "external_dependencies": [
+          "highcharts-stock.js",
+          "chart.js",
+          "jquery.js"
+        ],
+        "module_dependencies": [],
+        "estimated_runtime_size": 22836
+      }
+    },
+    {
+      "extracted_name": "ext_cite_ux-enhancements.js",
+      "deployed_name": "citation_enhancements.js",
+      "config": {
+        "target_name": "citation_enhancements.js",
+        "conditional": ".reference",
+        "description": "Reference and citation UX improvements",
+        "priority": "medium"
+      },
+      "analysis": {
+        "file_size": 6889,
+        "has_mw_compatibility": true,
+        "has_jquery": true,
+        "has_embedded_css": true,
+        "mw_apis_used": [
+          "config",
+          "loader"
+        ],
+        "external_dependencies": [
+          "jquery.js"
+        ],
+        "module_dependencies": [
+          "ext.eventLogging"
+        ],
+        "estimated_runtime_size": 3547
+      }
+    },
+    {
+      "extracted_name": "ext_Tabber.js",
+      "deployed_name": "tabber.js",
+      "config": {
+        "target_name": "tabber.js",
+        "conditional": ".tabber",
+        "description": "Interactive tabbed interfaces",
+        "priority": "high"
+      },
+      "analysis": {
+        "file_size": 5484,
+        "has_mw_compatibility": true,
+        "has_jquery": true,
+        "has_embedded_css": true,
+        "mw_apis_used": [
+          "util"
+        ],
+        "external_dependencies": [
+          "jquery.js"
+        ],
+        "module_dependencies": [],
+        "estimated_runtime_size": 2156
+      }
+    }
+  ],
+  "deployment_log": [
+    "[INFO] Starting deployment of 4 modules",
+    "[INFO] Deploying ext_gadget_GECharts.js -> ge_charts_loader.js",
+    "[INFO]   Description: Grand Exchange chart loader stub",
+    "[INFO]   Conditional loading: .GEdatachart,.GEChartBox,.GEdataprices",
+    "[INFO]   File size: 3426 bytes",
+    "[INFO]   Actual module size: ~88 bytes",
+    "[INFO]   MediaWiki APIs used: loader",
+    "[INFO]   \u2705 Copied to /Users/miyawaki/Android/osrswiki/app/src/main/assets/web/external/ge_charts_loader.js",
+    "[INFO] Deploying ext_gadget_GECharts-core.js -> ge_charts_core.js",
+    "[INFO]   Description: Grand Exchange chart implementation core",
+    "[INFO]   Conditional loading: .GEdatachart,.GEChartBox,.GEdataprices",
+    "[INFO]   File size: 26179 bytes",
+    "[INFO]   Actual module size: ~22836 bytes",
+    "[INFO]   MediaWiki APIs used: config, loader",
+    "[INFO]   \u2705 Copied to /Users/miyawaki/Android/osrswiki/app/src/main/assets/web/external/ge_charts_core.js",
+    "[INFO] Deploying ext_cite_ux-enhancements.js -> citation_enhancements.js",
+    "[INFO]   Description: Reference and citation UX improvements",
+    "[INFO]   Conditional loading: .reference",
+    "[INFO]   File size: 6889 bytes",
+    "[INFO]   Actual module size: ~3547 bytes",
+    "[INFO]   MediaWiki APIs used: config, loader",
+    "[INFO]   \u2705 Copied to /Users/miyawaki/Android/osrswiki/app/src/main/assets/web/external/citation_enhancements.js",
+    "[INFO] Deploying ext_Tabber.js -> tabber.js",
+    "[INFO]   Description: Interactive tabbed interfaces",
+    "[INFO]   Conditional loading: .tabber",
+    "[INFO]   File size: 5484 bytes",
+    "[INFO]   Actual module size: ~2156 bytes",
+    "[INFO]   MediaWiki APIs used: util",
+    "[INFO]   \u2705 Copied to /Users/miyawaki/Android/osrswiki/app/src/main/assets/web/external/tabber.js",
+    "[INFO] Deployment complete: 4/4 modules successful",
+    "[INFO] Updating app integration (PageHtmlBuilder.kt)...",
+    "[INFO] \u26a0\ufe0f  Manual integration required:",
+    "[INFO]    1. Update PageHtmlBuilder.kt to include deployed modules",
+    "[INFO]    2. Add conditional loading logic for each module:",
+    "[INFO]       - ge_charts_loader.js: when .GEdatachart,.GEChartBox,.GEdataprices present",
+    "[INFO]       - ge_charts_core.js: when .GEdatachart,.GEChartBox,.GEdataprices present",
+    "[INFO]       - citation_enhancements.js: when .reference present",
+    "[INFO]       - tabber.js: when .tabber present",
+    "[INFO]    3. Test modules in WebView environment"
+  ],
+  "summary": {
+    "total_deployed": 4,
+    "total_size": 41978,
+    "integration_pending": true
+  }
+}
