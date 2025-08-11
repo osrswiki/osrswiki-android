@@ -723,6 +723,13 @@ if (typeof window.$ === 'undefined') {
                 if module_name and (not priority_only or module_name in PRIORITY_MODULES):
                     modules.append(module_name)
                     
+        # Include suggested modules inferred from widget markers
+        if 'suggested_modules' in report:
+            for module_name in report['suggested_modules']:
+                if module_name and (not priority_only or module_name in PRIORITY_MODULES):
+                    if module_name not in modules:
+                        modules.append(module_name)
+
         # Also check categorized modules
         if 'modules_by_category' in report:
             for category, module_list in report['modules_by_category'].items():
