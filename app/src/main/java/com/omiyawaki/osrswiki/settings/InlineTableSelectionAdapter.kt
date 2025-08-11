@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemTablePreviewCardBinding
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import kotlinx.coroutines.launch
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -112,10 +113,15 @@ class InlineTableSelectionAdapter(
                 try {
                     Log.d(TAG, "Starting table preview request for collapseTablesEnabled=$collapseTablesEnabled")
                     
+                    // Get current theme from the app
+                    val app = binding.root.context.applicationContext as OSRSWikiApp
+                    val currentTheme = app.getCurrentTheme()
+                    
                     // Get the side-by-side preview bitmap from TablePreviewRenderer
                     val bitmap = TablePreviewRenderer.getPreview(
                         binding.root.context,
-                        collapseTablesEnabled
+                        collapseTablesEnabled,
+                        currentTheme
                     )
                     
                     Log.d(TAG, "Received table preview bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")

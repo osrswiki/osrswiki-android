@@ -187,9 +187,13 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
             try {
                 L.d("CustomAppearanceSettingsFragment: Pre-warming table preview cache")
                 
-                // Generate the side-by-side table preview in background
-                // We only need to call it once since it generates both states in a single bitmap
-                TablePreviewRenderer.getPreview(requireContext(), true) // Value doesn't matter, it generates both states
+                // Get current theme from app
+                val app = requireContext().applicationContext as OSRSWikiApp
+                val currentTheme = app.getCurrentTheme()
+                
+                // Generate table previews for both states (collapsed and expanded) for the current theme
+                TablePreviewRenderer.getPreview(requireContext(), true, currentTheme) // Collapsed state
+                TablePreviewRenderer.getPreview(requireContext(), false, currentTheme) // Expanded state
                 
                 L.d("CustomAppearanceSettingsFragment: Table preview cache pre-warming completed")
             } catch (e: Exception) {

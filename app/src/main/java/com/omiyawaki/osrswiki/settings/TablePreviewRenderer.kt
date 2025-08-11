@@ -83,12 +83,14 @@ object TablePreviewRenderer {
      * Gets a table preview bitmap showing the specific table collapse state.
      * @param context Application context
      * @param collapseTablesEnabled Whether tables should be collapsed in this preview
+     * @param theme The theme to use for the preview rendering
      */
     suspend fun getPreview(
         context: Context,
-        collapseTablesEnabled: Boolean
+        collapseTablesEnabled: Boolean,
+        theme: Theme
     ): Bitmap = withContext(Dispatchers.Default) {
-        val cacheKey = "table-preview-${if (collapseTablesEnabled) "collapsed" else "expanded"}-v${BuildConfig.VERSION_CODE}"
+        val cacheKey = "table-preview-${theme.tag}-${if (collapseTablesEnabled) "collapsed" else "expanded"}-v${BuildConfig.VERSION_CODE}"
         
         Log.d(TAG, "getPreview called for collapseTablesEnabled=$collapseTablesEnabled")
         
@@ -120,11 +122,11 @@ object TablePreviewRenderer {
             previewGenerationMutex.withLock {
                 // Generate new preview
                 Log.d(TAG, "Generating new table preview for collapseTablesEnabled=$collapseTablesEnabled (serialized)")
-                val newBitmap = generateSingleTablePreview(context, collapseTablesEnabled)
+                val newBitmap = generateSingleTablePreview(context, collapseTablesEnabled, theme)
                 
                 if (newBitmap.isRecycled) {
                     Log.e(TAG, "Generated bitmap is recycled! This is a bug.")
-                    return@withContext generateFallbackBitmap(context, collapseTablesEnabled)
+                    return@withContext generateFallbackBitmap(context, collapseTablesEnabled, theme)
                 }
                 
                 // Cache in memory
@@ -151,7 +153,7 @@ object TablePreviewRenderer {
         } catch (e: Exception) {
             Log.e(TAG, "getPreview FAILED", e)
             e.printStackTrace()
-            generateFallbackBitmap(context, collapseTablesEnabled)
+            generateFallbackBitmap(context, collapseTablesEnabled, theme)
         }
     }
     
@@ -161,7 +163,8 @@ object TablePreviewRenderer {
      */
     private suspend fun generateSingleTablePreview(
         context: Context,
-        collapseTablesEnabled: Boolean
+        collapseTablesEnabled: Boolean,
+        theme: Theme
     ): Bitmap = withContext(Dispatchers.Main) {
         try {
             Log.d(TAG, "Starting generateSingleTablePreview for collapseTablesEnabled=$collapseTablesEnabled")
@@ -170,7 +173,7 @@ object TablePreviewRenderer {
             val articleHtml = loadVarrockArticleHtml(context, collapseTablesEnabled)
             
             // Render using WebView with proper callback
-            val bitmap = renderHtmlWithWebView(context, articleHtml, collapseTablesEnabled)
+            val bitmap = renderHtmlWithWebView(context, articleHtml, collapseTablesEnabled, theme)
             
             Log.d(TAG, "Single table preview generated - ${bitmap.width}×${bitmap.height}")
             bitmap
@@ -178,7 +181,7 @@ object TablePreviewRenderer {
         } catch (e: Exception) {
             Log.e(TAG, "generateSingleTablePreview FAILED for collapseTablesEnabled=$collapseTablesEnabled", e)
             e.printStackTrace()
-            generateFallbackBitmap(context, collapseTablesEnabled)
+            generateFallbackBitmap(context, collapseTablesEnabled, theme)
         }
     }
     
@@ -258,7 +261,7 @@ object TablePreviewRenderer {
         webView: WebView, container: FrameLayout, rootView: FrameLayout,
         fullScreenW: Int, fullScreenH: Int, targetPreviewW: Int, targetPreviewH: Int,
         continuation: kotlinx.coroutines.CancellableContinuation<Bitmap>,
-        context: Context, collapseTablesEnabled: Boolean
+        context: Context, collapseTablesEnabled: Boolean, theme: Theme
     ) {
         try {
             Log.d(TAG, "Capturing bitmap with JS-variable-controlled collapse state")
@@ -300,7 +303,7 @@ object TablePreviewRenderer {
             Log.e(TAG, "Error capturing bitmap after visual changes", e)
             rootView.removeView(container)
             webView.destroy()
-            continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled))
+            continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled, theme))
         }
     }
     
@@ -312,7 +315,8 @@ object TablePreviewRenderer {
     private suspend fun renderHtmlWithWebView(
         context: Context,
         htmlContent: String,
-        collapseTablesEnabled: Boolean
+        collapseTablesEnabled: Boolean,
+        theme: Theme
     ): Bitmap = withContext(Dispatchers.Main) {
         suspendCancellableCoroutine { continuation ->
             var isCompleted = false // Guard against multiple completion calls
@@ -332,15 +336,19 @@ object TablePreviewRenderer {
                     Log.e(TAG, "Cannot find Activity context for WebView rendering")
                     if (!isCompleted) {
                         isCompleted = true
-                        continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled))
+                        continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled, theme))
                     }
                     return@suspendCancellableCoroutine
                 }
                 
                 Log.d(TAG, "Creating Activity-attached WebView using PageWebViewManager")
                 
-                // Create themed context with Activity
-                val themedContext = ContextThemeWrapper(activity, R.style.Theme_OSRSWiki_OSRSLight)
+                // Create themed context with Activity using provided theme
+                val themeResourceId = when (theme) {
+                    Theme.OSRS_DARK -> R.style.Theme_OSRSWiki_OSRSDark
+                    else -> R.style.Theme_OSRSWiki_OSRSLight
+                }
+                val themedContext = ContextThemeWrapper(activity, themeResourceId)
                 
                 // Create ObservableWebView exactly like PageFragment does
                 val webView = ObservableWebView(themedContext)
@@ -375,7 +383,7 @@ object TablePreviewRenderer {
                     constructionContext = themedContext,
                     coroutineScope = previewScope, 
                     pageRepository = pageRepository,
-                    theme = Theme.OSRS_LIGHT
+                    theme = theme
                 )
                 
                 // Need to create a minimal NativeMapHandler for JS interface
@@ -419,7 +427,7 @@ object TablePreviewRenderer {
                                 capturePreviewBitmap(
                                     webView, container, rootView,
                                     fullScreenW, fullScreenH, targetPreviewW, targetPreviewH,
-                                    continuation, context, collapseTablesEnabled
+                                    continuation, context, collapseTablesEnabled, theme
                                 )
                             }
                         }
@@ -445,7 +453,7 @@ object TablePreviewRenderer {
                 // Use PageHtmlBuilder like the main app does - no manual URL manipulation
                 // The htmlContent from PageAssetDownloader is already properly processed
                 val pageHtmlBuilder = PageHtmlBuilder(themedContext)
-                var fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT)
+                var fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, theme)
                 
                 // Inject global JavaScript variable to control collapsible_content.js behavior
                 val collapsePreferenceScript = """
@@ -481,7 +489,7 @@ object TablePreviewRenderer {
                 Log.e(TAG, "Error setting up PageWebViewManager", e)
                 if (!isCompleted) {
                     isCompleted = true
-                    continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled))
+                    continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled, theme))
                 }
             }
         }
@@ -550,7 +558,7 @@ object TablePreviewRenderer {
     /**
      * Creates a fallback bitmap when table preview generation fails.
      */
-    private fun generateFallbackBitmap(context: Context, collapseTablesEnabled: Boolean): Bitmap {
+    private fun generateFallbackBitmap(context: Context, collapseTablesEnabled: Boolean, theme: Theme): Bitmap {
         val dm = context.resources.displayMetrics
         val width = (TARGET_W_DP * dm.density).roundToInt()
         val height = (TARGET_H_DP * dm.density).roundToInt()
