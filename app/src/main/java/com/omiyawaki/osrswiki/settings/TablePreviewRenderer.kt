@@ -248,193 +248,11 @@ object TablePreviewRenderer {
         }
     }
     
-    /**
-     * Applies table collapse state to WebView via JavaScript after page load.
-     * Waits for collapsible_content.js to finish before applying state changes.
-     */
-    private fun applyTableCollapseState(webView: WebView, collapseTablesEnabled: Boolean, onFinished: () -> Unit) {
-        val previewId = System.currentTimeMillis() % 10000 // Unique ID for this preview
-        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: collapseTablesEnabled=$collapseTablesEnabled")
-        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: About to select script branch...")
-        
-        val script = if (collapseTablesEnabled) {
-            Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: SELECTED COLLAPSED BRANCH (collapseTablesEnabled=true)")
-            // Keep tables collapsed (they start collapsed by default)
-            """
-            (function() {
-                function waitForContainersAndApplyState() {
-                    const containers = document.querySelectorAll('.collapsible-container');
-                    if (containers.length === 0) {
-                        // collapsible_content.js hasn't finished yet, wait a bit more
-                        setTimeout(waitForContainersAndApplyState, 50);
-                        return;
-                    }
-                    
-                    console.log('TablePreview [ID:$previewId]: Found ' + containers.length + ' containers, keeping collapsed');
-                    containers.forEach(function(container, index) {
-                        // Debug: Log current state before changes
-                        const content = container.querySelector('.collapsible-content');
-                        console.log('TablePreview: Container ' + index + ' before - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
-                        
-                        container.classList.add('collapsed');
-                        // Ensure content is hidden
-                        if (content) {
-                            content.style.height = '0px';
-                            content.style.display = 'none';
-                        }
-                        
-                        // Debug: Log state after changes
-                        console.log('TablePreview: Container ' + index + ' after - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
-                    });
-                    console.log('TablePreview: Ensured ' + containers.length + ' containers remain collapsed');
-                }
-                waitForContainersAndApplyState();
-            })();
-            """.trimIndent()
-        } else {
-            Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: SELECTED EXPANDED BRANCH (collapseTablesEnabled=false)")
-            // Expand all tables by removing collapsed class
-            """
-            (function() {
-                function waitForContainersAndExpand() {
-                    const containers = document.querySelectorAll('.collapsible-container');
-                    if (containers.length === 0) {
-                        // collapsible_content.js hasn't finished yet, wait a bit more
-                        setTimeout(waitForContainersAndExpand, 50);
-                        return;
-                    }
-                    
-                    console.log('TablePreview [ID:$previewId]: Found ' + containers.length + ' containers, expanding all');
-                    containers.forEach(function(container, index) {
-                        // Debug: Log current state before changes
-                        const content = container.querySelector('.collapsible-content');
-                        console.log('TablePreview: Container ' + index + ' before - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
-                        
-                        // Remove collapsed class AND explicitly expand content
-                        container.classList.remove('collapsed');
-                        if (content) {
-                            // Explicitly set expanded styles instead of relying on CSS
-                            content.style.height = 'auto';
-                            content.style.display = 'block';
-                            content.style.overflow = 'visible';
-                        }
-                        
-                        // Debug: Log state after changes
-                        console.log('TablePreview: Container ' + index + ' after - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
-                    });
-                    console.log('TablePreview: Explicitly expanded ' + containers.length + ' containers with height=auto');
-                }
-                waitForContainersAndExpand();
-            })();
-            """.trimIndent()
-        }
-        
-        val stateDescription = if (collapseTablesEnabled) "COLLAPSED" else "EXPANDED" 
-        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: Script created, length=${script.length} chars")
-        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: Script starts with: ${script.take(100)}...")
-        Log.d(TAG, "Applying table collapse state: $stateDescription (collapseTablesEnabled=$collapseTablesEnabled)")
-        webView.evaluateJavascript(script) { result ->
-            Log.d(TAG, "Table collapse state applied [ID:$previewId]: $stateDescription, JavaScript result: $result")
-            onFinished()
-        }
-    }
+    
     
     /**
-     * Waits for visual layout changes to be applied after DOM manipulation.
-     * Uses requestAnimationFrame and getComputedStyle to detect when changes are visually rendered.
-     */
-    private fun waitForVisualChangesApplied(webView: WebView, expectedExpanded: Boolean, onComplete: () -> Unit) {
-        val previewId = System.currentTimeMillis() % 10000
-        Log.d(TAG, "waitForVisualChangesApplied [ID:$previewId]: expectedExpanded=$expectedExpanded")
-        
-        val checkScript = """
-            (function() {
-                // Use requestAnimationFrame to wait for next paint cycle
-                requestAnimationFrame(function() {
-                    const containers = document.querySelectorAll('.collapsible-container');
-                    console.log('Visual check [ID:$previewId]: Found ' + containers.length + ' containers');
-                    
-                    if (containers.length === 0) {
-                        window.visualChangesResult = 'NO_CONTAINERS';
-                        return;
-                    }
-                    
-                    // Check if visual changes match expected state
-                    let changesApplied = true;
-                    let expandedCount = 0;
-                    
-                    for (let i = 0; i < containers.length; i++) {
-                        const container = containers[i];
-                        const content = container.querySelector('.collapsible-content');
-                        if (!content) continue;
-                        
-                        // Check computed style to verify visual rendering
-                        const computedHeight = window.getComputedStyle(content).height;
-                        const computedDisplay = window.getComputedStyle(content).display;
-                        const isVisuallyExpanded = (computedHeight !== '0px' && computedDisplay !== 'none');
-                        
-                        if (isVisuallyExpanded) expandedCount++;
-                        
-                        console.log('Visual check [ID:$previewId]: Container ' + i + ' - height: ' + computedHeight + ', display: ' + computedDisplay + ', expanded: ' + isVisuallyExpanded);
-                    }
-                    
-                    const allExpanded = expandedCount === containers.length;
-                    const allCollapsed = expandedCount === 0;
-                    const expectedState = $expectedExpanded;
-                    
-                    if (expectedState && allExpanded) {
-                        changesApplied = true;
-                        console.log('Visual check [ID:$previewId]: All containers expanded as expected');
-                    } else if (!expectedState && allCollapsed) {
-                        changesApplied = true;
-                        console.log('Visual check [ID:$previewId]: All containers collapsed as expected');
-                    } else {
-                        changesApplied = false;
-                        console.log('Visual check [ID:$previewId]: State mismatch - expected: ' + expectedState + ', expanded: ' + expandedCount + '/' + containers.length);
-                    }
-                    
-                    window.visualChangesResult = changesApplied ? 'COMPLETE' : 'INCOMPLETE';
-                });
-            })();
-        """.trimIndent()
-        
-        fun pollForVisualChanges(attempt: Int = 1) {
-            if (attempt > 15) { // Maximum 15 attempts (750ms total)
-                Log.w(TAG, "Visual changes timeout after ${attempt-1} attempts [ID:$previewId], proceeding anyway")
-                onComplete()
-                return
-            }
-            
-            webView.evaluateJavascript(checkScript) { _ ->
-                // Check the result
-                webView.evaluateJavascript("window.visualChangesResult") { result ->
-                    Log.d(TAG, "Visual changes check attempt $attempt [ID:$previewId]: $result")
-                    when (result?.replace("\"", "")) {
-                        "COMPLETE" -> {
-                            Log.d(TAG, "Visual changes applied after $attempt attempts [ID:$previewId]")
-                            onComplete()
-                        }
-                        "NO_CONTAINERS" -> {
-                            Log.w(TAG, "No containers found for visual check [ID:$previewId], proceeding anyway")
-                            onComplete()
-                        }
-                        else -> {
-                            // Changes not applied yet, poll again in 50ms
-                            webView.postDelayed({
-                                pollForVisualChanges(attempt + 1)
-                            }, 50)
-                        }
-                    }
-                }
-            }
-        }
-        
-        pollForVisualChanges()
-    }
-    
-    /**
-     * Captures the preview bitmap after visual changes are applied.
-     * Extracted to a separate function to simplify callback nesting.
+     * Captures the preview bitmap after page is ready.
+     * The collapse state was set during collapsible_content.js initialization via global JS variable.
      */
     private fun capturePreviewBitmap(
         webView: WebView, container: FrameLayout, rootView: FrameLayout,
@@ -443,7 +261,7 @@ object TablePreviewRenderer {
         context: Context, collapseTablesEnabled: Boolean
     ) {
         try {
-            Log.d(TAG, "Capturing bitmap after visual changes applied")
+            Log.d(TAG, "Capturing bitmap with JS-variable-controlled collapse state")
             
             // Force layout update
             container.measure(
@@ -591,24 +409,18 @@ object TablePreviewRenderer {
                         pageWebViewManagerRef?.finalizeAndRevealPage {
                             Log.d(TAG, "PageWebViewManager: Page finalized and revealed")
                             
-                            // Apply table collapse state immediately after finalization
-                            applyTableCollapseState(webView, collapseTablesEnabled) {
-                                Log.d(TAG, "Table collapse state applied, now waiting for visual changes")
-                                
-                                // Wait for visual changes using true event-driven detection
-                                waitForVisualChangesApplied(webView, !collapseTablesEnabled) {
-                                    Log.d(TAG, "Visual changes applied, capturing bitmap")
-                                    
-                                    // Check completion guard and capture bitmap
-                                    if (!isCompleted) {
-                                        isCompleted = true
-                                        capturePreviewBitmap(
-                                            webView, container, rootView,
-                                            fullScreenW, fullScreenH, targetPreviewW, targetPreviewH,
-                                            continuation, context, collapseTablesEnabled
-                                        )
-                                    }
-                                }
+                            // Collapse state is set by global JavaScript variable during collapsible_content.js initialization
+                            // No post-processing needed - capture bitmap directly
+                            Log.d(TAG, "Table collapse state handled by global JS variable, capturing bitmap")
+                            
+                            // Check completion guard and capture bitmap immediately
+                            if (!isCompleted) {
+                                isCompleted = true
+                                capturePreviewBitmap(
+                                    webView, container, rootView,
+                                    fullScreenW, fullScreenH, targetPreviewW, targetPreviewH,
+                                    continuation, context, collapseTablesEnabled
+                                )
                             }
                         }
                     }
@@ -633,9 +445,21 @@ object TablePreviewRenderer {
                 // Use PageHtmlBuilder like the main app does - no manual URL manipulation
                 // The htmlContent from PageAssetDownloader is already properly processed
                 val pageHtmlBuilder = PageHtmlBuilder(themedContext)
-                val fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT)
+                var fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT)
                 
-                Log.d(TAG, "Using PageWebViewManager.render() with same base URL as main app")
+                // Inject global JavaScript variable to control collapsible_content.js behavior
+                val collapsePreferenceScript = """
+                    <script>
+                        // Global variable for table collapse preference that collapsible_content.js can read
+                        window.OSRS_TABLE_COLLAPSED = $collapseTablesEnabled;
+                        console.log('TablePreview: Set global collapse preference to ' + window.OSRS_TABLE_COLLAPSED);
+                    </script>
+                """.trimIndent()
+                
+                // Insert the preference script right after <head> tag
+                fullHtml = fullHtml.replace("<head>", "<head>\n$collapsePreferenceScript")
+                
+                Log.d(TAG, "Using PageWebViewManager.render() with collapse preference: $collapseTablesEnabled")
                 
                 // Use PageWebViewManager.render() exactly like PageFragment does
                 // The AssetCache is a singleton so we should have access to cached images
