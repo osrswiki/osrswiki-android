@@ -47,6 +47,9 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.CancellableContinuation
 import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 import java.io.File
@@ -60,6 +63,9 @@ object TablePreviewRenderer {
     private const val TARGET_W_DP = 160 // Width for individual preview
     private const val TARGET_H_DP = 120 // Height for individual preview
     private const val TAG = "TablePreviewRenderer"
+    
+    // Mutex to prevent concurrent preview generation (prevents DOM interference)
+    private val previewGenerationMutex = Mutex()
     
     // Memory cache for table previews
     private val memoryCache = object : LruCache<String, Bitmap>(getMaxCacheSize()) {
@@ -110,35 +116,38 @@ object TablePreviewRenderer {
                 }
             }
             
-            // Generate new preview
-            Log.d(TAG, "Generating new table preview for collapseTablesEnabled=$collapseTablesEnabled")
-            val newBitmap = generateSingleTablePreview(context, collapseTablesEnabled)
-            
-            if (newBitmap.isRecycled) {
-                Log.e(TAG, "Generated bitmap is recycled! This is a bug.")
-                return@withContext generateFallbackBitmap(context, collapseTablesEnabled)
-            }
-            
-            // Cache in memory
-            memoryCache.put(cacheKey, newBitmap)
-            Log.d(TAG, "Cached new table preview in memory")
-            
-            // Save to disk cache
-            try {
-                cachedFile.outputStream().use { stream ->
-                    val compressed = newBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, stream)
-                    if (compressed) {
-                        Log.d(TAG, "Saved table preview to disk cache")
-                    } else {
-                        Log.w(TAG, "Failed to compress table preview for disk cache")
-                    }
+            // Serialize preview generation to prevent DOM interference
+            previewGenerationMutex.withLock {
+                // Generate new preview
+                Log.d(TAG, "Generating new table preview for collapseTablesEnabled=$collapseTablesEnabled (serialized)")
+                val newBitmap = generateSingleTablePreview(context, collapseTablesEnabled)
+                
+                if (newBitmap.isRecycled) {
+                    Log.e(TAG, "Generated bitmap is recycled! This is a bug.")
+                    return@withContext generateFallbackBitmap(context, collapseTablesEnabled)
                 }
-            } catch (e: Exception) {
-                Log.w(TAG, "Disk caching failed for table preview: ${e.message}")
+                
+                // Cache in memory
+                memoryCache.put(cacheKey, newBitmap)
+                Log.d(TAG, "Cached new table preview in memory")
+                
+                // Save to disk cache
+                try {
+                    cachedFile.outputStream().use { stream ->
+                        val compressed = newBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, stream)
+                        if (compressed) {
+                            Log.d(TAG, "Saved table preview to disk cache")
+                        } else {
+                            Log.w(TAG, "Failed to compress table preview for disk cache")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Disk caching failed for table preview: ${e.message}")
+                }
+                
+                Log.d(TAG, "Successfully generated ${newBitmap.width}×${newBitmap.height} table preview")
+                newBitmap
             }
-            
-            Log.d(TAG, "Successfully generated ${newBitmap.width}×${newBitmap.height} table preview")
-            newBitmap
         } catch (e: Exception) {
             Log.e(TAG, "getPreview FAILED", e)
             e.printStackTrace()
@@ -244,7 +253,12 @@ object TablePreviewRenderer {
      * Waits for collapsible_content.js to finish before applying state changes.
      */
     private fun applyTableCollapseState(webView: WebView, collapseTablesEnabled: Boolean, onFinished: () -> Unit) {
+        val previewId = System.currentTimeMillis() % 10000 // Unique ID for this preview
+        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: collapseTablesEnabled=$collapseTablesEnabled")
+        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: About to select script branch...")
+        
         val script = if (collapseTablesEnabled) {
+            Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: SELECTED COLLAPSED BRANCH (collapseTablesEnabled=true)")
             // Keep tables collapsed (they start collapsed by default)
             """
             (function() {
@@ -256,14 +270,21 @@ object TablePreviewRenderer {
                         return;
                     }
                     
-                    console.log('TablePreview: Found ' + containers.length + ' containers, keeping collapsed');
-                    containers.forEach(function(container) {
+                    console.log('TablePreview [ID:$previewId]: Found ' + containers.length + ' containers, keeping collapsed');
+                    containers.forEach(function(container, index) {
+                        // Debug: Log current state before changes
+                        const content = container.querySelector('.collapsible-content');
+                        console.log('TablePreview: Container ' + index + ' before - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
+                        
                         container.classList.add('collapsed');
                         // Ensure content is hidden
-                        const content = container.querySelector('.collapsible-content');
                         if (content) {
                             content.style.height = '0px';
+                            content.style.display = 'none';
                         }
+                        
+                        // Debug: Log state after changes
+                        console.log('TablePreview: Container ' + index + ' after - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
                     });
                     console.log('TablePreview: Ensured ' + containers.length + ' containers remain collapsed');
                 }
@@ -271,6 +292,7 @@ object TablePreviewRenderer {
             })();
             """.trimIndent()
         } else {
+            Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: SELECTED EXPANDED BRANCH (collapseTablesEnabled=false)")
             // Expand all tables by removing collapsed class
             """
             (function() {
@@ -282,140 +304,185 @@ object TablePreviewRenderer {
                         return;
                     }
                     
-                    console.log('TablePreview: Found ' + containers.length + ' containers, expanding all');
-                    containers.forEach(function(container) {
-                        // Remove collapsed class - this automatically shows content due to CSS rules
-                        container.classList.remove('collapsed');
-                        // Clear any inline height that might override CSS
+                    console.log('TablePreview [ID:$previewId]: Found ' + containers.length + ' containers, expanding all');
+                    containers.forEach(function(container, index) {
+                        // Debug: Log current state before changes
                         const content = container.querySelector('.collapsible-content');
+                        console.log('TablePreview: Container ' + index + ' before - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
+                        
+                        // Remove collapsed class AND explicitly expand content
+                        container.classList.remove('collapsed');
                         if (content) {
-                            content.style.height = '';
+                            // Explicitly set expanded styles instead of relying on CSS
+                            content.style.height = 'auto';
+                            content.style.display = 'block';
+                            content.style.overflow = 'visible';
                         }
+                        
+                        // Debug: Log state after changes
+                        console.log('TablePreview: Container ' + index + ' after - classList: ' + container.className + ', content height: ' + (content ? content.style.height : 'N/A'));
                     });
-                    console.log('TablePreview: Expanded ' + containers.length + ' containers');
+                    console.log('TablePreview: Explicitly expanded ' + containers.length + ' containers with height=auto');
                 }
                 waitForContainersAndExpand();
             })();
             """.trimIndent()
         }
         
-        Log.d(TAG, "Applying table collapse state: collapseTablesEnabled=$collapseTablesEnabled")
+        val stateDescription = if (collapseTablesEnabled) "COLLAPSED" else "EXPANDED" 
+        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: Script created, length=${script.length} chars")
+        Log.d(TAG, "applyTableCollapseState DEBUG [ID:$previewId]: Script starts with: ${script.take(100)}...")
+        Log.d(TAG, "Applying table collapse state: $stateDescription (collapseTablesEnabled=$collapseTablesEnabled)")
         webView.evaluateJavascript(script) { result ->
-            Log.d(TAG, "Table collapse state applied, result: $result")
+            Log.d(TAG, "Table collapse state applied [ID:$previewId]: $stateDescription, JavaScript result: $result")
             onFinished()
         }
     }
     
     /**
-     * Waits for all images in the WebView to finish loading (or fail) before calling callback.
-     * Uses JavaScript injection to track image load events with a reasonable timeout.
+     * Waits for visual layout changes to be applied after DOM manipulation.
+     * Uses requestAnimationFrame and getComputedStyle to detect when changes are visually rendered.
      */
-    private fun waitForImagesToLoad(webView: WebView, onComplete: () -> Unit) {
-        val script = """
+    private fun waitForVisualChangesApplied(webView: WebView, expectedExpanded: Boolean, onComplete: () -> Unit) {
+        val previewId = System.currentTimeMillis() % 10000
+        Log.d(TAG, "waitForVisualChangesApplied [ID:$previewId]: expectedExpanded=$expectedExpanded")
+        
+        val checkScript = """
             (function() {
-                console.log('ImageLoader: Starting to track image loading');
-                
-                // Find all img elements
-                const images = Array.from(document.querySelectorAll('img'));
-                console.log('ImageLoader: Found ' + images.length + ' images to track');
-                
-                if (images.length === 0) {
-                    console.log('ImageLoader: No images found, completing immediately');
-                    return 'IMAGES_COMPLETE';
-                }
-                
-                let completedCount = 0;
-                const totalImages = images.length;
-                
-                function checkCompletion() {
-                    if (completedCount >= totalImages) {
-                        console.log('ImageLoader: All images completed (' + completedCount + '/' + totalImages + ')');
-                        return 'IMAGES_COMPLETE';
-                    }
-                    return 'IMAGES_PENDING';
-                }
-                
-                function onImageComplete(img, success) {
-                    completedCount++;
-                    console.log('ImageLoader: Image ' + (success ? 'loaded' : 'failed') + ' (' + completedCount + '/' + totalImages + '): ' + img.src);
+                // Use requestAnimationFrame to wait for next paint cycle
+                requestAnimationFrame(function() {
+                    const containers = document.querySelectorAll('.collapsible-container');
+                    console.log('Visual check [ID:$previewId]: Found ' + containers.length + ' containers');
                     
-                    if (completedCount >= totalImages) {
-                        console.log('ImageLoader: All images completed!');
-                        // Signal completion back to Android
-                        setTimeout(function() {
-                            window.imageLoadingComplete = true;
-                        }, 10);
+                    if (containers.length === 0) {
+                        window.visualChangesResult = 'NO_CONTAINERS';
+                        return;
                     }
-                }
-                
-                // Set up listeners for each image
-                images.forEach(function(img, index) {
-                    // Check if image is already loaded
-                    if (img.complete) {
-                        if (img.naturalWidth > 0) {
-                            console.log('ImageLoader: Image ' + index + ' already loaded: ' + img.src);
-                            onImageComplete(img, true);
-                        } else {
-                            console.log('ImageLoader: Image ' + index + ' already failed: ' + img.src);
-                            onImageComplete(img, false);
-                        }
-                    } else {
-                        // Image still loading, add listeners
-                        img.addEventListener('load', function() {
-                            onImageComplete(img, true);
-                        }, { once: true });
+                    
+                    // Check if visual changes match expected state
+                    let changesApplied = true;
+                    let expandedCount = 0;
+                    
+                    for (let i = 0; i < containers.length; i++) {
+                        const container = containers[i];
+                        const content = container.querySelector('.collapsible-content');
+                        if (!content) continue;
                         
-                        img.addEventListener('error', function() {
-                            onImageComplete(img, false);
-                        }, { once: true });
+                        // Check computed style to verify visual rendering
+                        const computedHeight = window.getComputedStyle(content).height;
+                        const computedDisplay = window.getComputedStyle(content).display;
+                        const isVisuallyExpanded = (computedHeight !== '0px' && computedDisplay !== 'none');
+                        
+                        if (isVisuallyExpanded) expandedCount++;
+                        
+                        console.log('Visual check [ID:$previewId]: Container ' + i + ' - height: ' + computedHeight + ', display: ' + computedDisplay + ', expanded: ' + isVisuallyExpanded);
                     }
+                    
+                    const allExpanded = expandedCount === containers.length;
+                    const allCollapsed = expandedCount === 0;
+                    const expectedState = $expectedExpanded;
+                    
+                    if (expectedState && allExpanded) {
+                        changesApplied = true;
+                        console.log('Visual check [ID:$previewId]: All containers expanded as expected');
+                    } else if (!expectedState && allCollapsed) {
+                        changesApplied = true;
+                        console.log('Visual check [ID:$previewId]: All containers collapsed as expected');
+                    } else {
+                        changesApplied = false;
+                        console.log('Visual check [ID:$previewId]: State mismatch - expected: ' + expectedState + ', expanded: ' + expandedCount + '/' + containers.length);
+                    }
+                    
+                    window.visualChangesResult = changesApplied ? 'COMPLETE' : 'INCOMPLETE';
                 });
-                
-                return checkCompletion();
             })();
         """.trimIndent()
         
-        Log.d(TAG, "Injecting image loading tracker JavaScript")
-        
-        // First, inject the tracking script
-        webView.evaluateJavascript(script) { result ->
-            Log.d(TAG, "Image tracking script result: $result")
-            
-            if (result == "\"IMAGES_COMPLETE\"") {
-                // No images or all already loaded
-                Log.d(TAG, "All images already complete, proceeding immediately")
+        fun pollForVisualChanges(attempt: Int = 1) {
+            if (attempt > 15) { // Maximum 15 attempts (750ms total)
+                Log.w(TAG, "Visual changes timeout after ${attempt-1} attempts [ID:$previewId], proceeding anyway")
                 onComplete()
-            } else {
-                // Images are loading, poll for completion
-                pollForImageCompletion(webView, onComplete, System.currentTimeMillis())
+                return
+            }
+            
+            webView.evaluateJavascript(checkScript) { _ ->
+                // Check the result
+                webView.evaluateJavascript("window.visualChangesResult") { result ->
+                    Log.d(TAG, "Visual changes check attempt $attempt [ID:$previewId]: $result")
+                    when (result?.replace("\"", "")) {
+                        "COMPLETE" -> {
+                            Log.d(TAG, "Visual changes applied after $attempt attempts [ID:$previewId]")
+                            onComplete()
+                        }
+                        "NO_CONTAINERS" -> {
+                            Log.w(TAG, "No containers found for visual check [ID:$previewId], proceeding anyway")
+                            onComplete()
+                        }
+                        else -> {
+                            // Changes not applied yet, poll again in 50ms
+                            webView.postDelayed({
+                                pollForVisualChanges(attempt + 1)
+                            }, 50)
+                        }
+                    }
+                }
             }
         }
+        
+        pollForVisualChanges()
     }
     
     /**
-     * Polls the WebView to check if image loading is complete, with a timeout.
+     * Captures the preview bitmap after visual changes are applied.
+     * Extracted to a separate function to simplify callback nesting.
      */
-    private fun pollForImageCompletion(webView: WebView, onComplete: () -> Unit, startTime: Long) {
-        val timeout = 5000 // 5 seconds max wait
-        val elapsed = System.currentTimeMillis() - startTime
-        
-        if (elapsed > timeout) {
-            Log.w(TAG, "Image loading timeout after ${elapsed}ms, proceeding anyway")
-            onComplete()
-            return
-        }
-        
-        // Check if images are complete
-        webView.evaluateJavascript("window.imageLoadingComplete === true") { result ->
-            if (result == "true") {
-                Log.d(TAG, "Image loading completed after ${elapsed}ms")
-                onComplete()
-            } else {
-                // Keep polling every 100ms
-                webView.postDelayed({
-                    pollForImageCompletion(webView, onComplete, startTime)
-                }, 100)
-            }
+    private fun capturePreviewBitmap(
+        webView: WebView, container: FrameLayout, rootView: FrameLayout,
+        fullScreenW: Int, fullScreenH: Int, targetPreviewW: Int, targetPreviewH: Int,
+        continuation: kotlinx.coroutines.CancellableContinuation<Bitmap>,
+        context: Context, collapseTablesEnabled: Boolean
+    ) {
+        try {
+            Log.d(TAG, "Capturing bitmap after visual changes applied")
+            
+            // Force layout update
+            container.measure(
+                View.MeasureSpec.makeMeasureSpec(fullScreenW, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(fullScreenH, View.MeasureSpec.EXACTLY)
+            )
+            container.layout(0, 0, fullScreenW, fullScreenH)
+            
+            // Create and capture bitmap
+            val fullBitmap = Bitmap.createBitmap(fullScreenW, fullScreenH, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(fullBitmap)
+            canvas.drawColor(android.graphics.Color.WHITE)
+            container.draw(canvas)
+            
+            Log.d(TAG, "Full bitmap captured - ${fullBitmap.width}×${fullBitmap.height}")
+            
+            // Scale down preserving aspect ratio
+            val scaledBitmap = createAspectRatioPreservingBitmap(
+                fullBitmap, 
+                targetPreviewW, 
+                targetPreviewH
+            )
+            
+            scaledBitmap.density = DisplayMetrics.DENSITY_DEFAULT
+            
+            Log.d(TAG, "Scaled preview created - ${scaledBitmap.width}×${scaledBitmap.height}")
+            
+            // Clean up
+            rootView.removeView(container)
+            webView.destroy()
+            fullBitmap.recycle()
+            
+            continuation.resume(scaledBitmap)
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error capturing bitmap after visual changes", e)
+            rootView.removeView(container)
+            webView.destroy()
+            continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled))
         }
     }
     
@@ -509,6 +576,9 @@ object TablePreviewRenderer {
                     }
                 }
                 
+                // Variable to hold pageWebViewManager reference for callback
+                var pageWebViewManagerRef: PageWebViewManager? = null
+                
                 val renderCallback = object : RenderCallback {
                     override fun onWebViewLoadFinished() {
                         Log.d(TAG, "PageWebViewManager: WebView load finished")
@@ -517,58 +587,29 @@ object TablePreviewRenderer {
                     override fun onPageReadyForDisplay() {
                         Log.d(TAG, "PageWebViewManager: Page ready for display")
                         
-                        // Apply table collapse state, then wait for images to load before capturing
-                        applyTableCollapseState(webView, collapseTablesEnabled) {
-                            // Create a completion wrapper that ensures only one call
-                            val safeComplete = {
-                                if (!isCompleted) {
-                                    isCompleted = true
-                                    try {
-                                        Log.d(TAG, "Images loaded, capturing bitmap using PageWebViewManager pipeline")
-                                        
-                                        // Force layout update
-                                        container.measure(
-                                            View.MeasureSpec.makeMeasureSpec(fullScreenW, View.MeasureSpec.EXACTLY),
-                                            View.MeasureSpec.makeMeasureSpec(fullScreenH, View.MeasureSpec.EXACTLY)
+                        // First finalize and reveal the page (like real page loading does)
+                        pageWebViewManagerRef?.finalizeAndRevealPage {
+                            Log.d(TAG, "PageWebViewManager: Page finalized and revealed")
+                            
+                            // Apply table collapse state immediately after finalization
+                            applyTableCollapseState(webView, collapseTablesEnabled) {
+                                Log.d(TAG, "Table collapse state applied, now waiting for visual changes")
+                                
+                                // Wait for visual changes using true event-driven detection
+                                waitForVisualChangesApplied(webView, !collapseTablesEnabled) {
+                                    Log.d(TAG, "Visual changes applied, capturing bitmap")
+                                    
+                                    // Check completion guard and capture bitmap
+                                    if (!isCompleted) {
+                                        isCompleted = true
+                                        capturePreviewBitmap(
+                                            webView, container, rootView,
+                                            fullScreenW, fullScreenH, targetPreviewW, targetPreviewH,
+                                            continuation, context, collapseTablesEnabled
                                         )
-                                        container.layout(0, 0, fullScreenW, fullScreenH)
-                                        
-                                        // Create and capture bitmap
-                                        val fullBitmap = Bitmap.createBitmap(fullScreenW, fullScreenH, Bitmap.Config.ARGB_8888)
-                                        val canvas = Canvas(fullBitmap)
-                                        canvas.drawColor(android.graphics.Color.WHITE)
-                                        container.draw(canvas)
-                                        
-                                        Log.d(TAG, "Full bitmap captured - ${fullBitmap.width}×${fullBitmap.height}")
-                                        
-                                        // Scale down preserving aspect ratio
-                                        val scaledBitmap = createAspectRatioPreservingBitmap(
-                                            fullBitmap, 
-                                            targetPreviewW, 
-                                            targetPreviewH
-                                        )
-                                        
-                                        scaledBitmap.density = DisplayMetrics.DENSITY_DEFAULT
-                                        
-                                        Log.d(TAG, "Scaled preview created - ${scaledBitmap.width}×${scaledBitmap.height}")
-                                        
-                                        // Clean up
-                                        rootView.removeView(container)
-                                        webView.destroy()
-                                        fullBitmap.recycle()
-                                        
-                                        continuation.resume(scaledBitmap)
-                                        
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Error capturing bitmap", e)
-                                        rootView.removeView(container)
-                                        webView.destroy()
-                                        continuation.resume(generateFallbackBitmap(context, collapseTablesEnabled))
                                     }
                                 }
                             }
-                            // Now wait for all images to finish loading with the safe completion wrapper
-                            waitForImagesToLoad(webView, safeComplete)
                         }
                     }
                 }
@@ -583,6 +624,9 @@ object TablePreviewRenderer {
                     renderCallback = renderCallback,
                     onRenderProgress = { /* No-op for preview */ }
                 )
+                
+                // Set the reference for the callback to use
+                pageWebViewManagerRef = pageWebViewManager
                 
                 Log.d(TAG, "Using PageHtmlBuilder exactly like main app (no URL manipulation)")
                 
