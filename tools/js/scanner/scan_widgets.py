@@ -414,6 +414,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         for m, count in sorted(css_modules_filtered.items(), key=lambda x: (-x[1], x[0]))
     ]
 
+    # Heuristic suggestions: map widget markers to modules
+    suggested_modules: List[str] = []
+    def suggest(module: str):
+        if module not in suggested_modules:
+            suggested_modules.append(module)
+
+    # GE charts
+    ge_markers = {"GEdatachart", "GEChartBox", "GEdataprices"}
+    if ge_markers & set(classes_hist.keys()):
+        suggest("ext.gadget.GECharts")
+        suggest("ext.gadget.GECharts-core")
+
+    # Tabber
+    if "tabber" in classes_hist:
+        suggest("ext.Tabber")
+
     report = {
         "meta": {
             "base": base,
@@ -427,6 +443,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         "modules_by_category": categorized_reports,
         "javascript_modules": js_modules_report,
         "css_modules": css_modules_report,
+        "suggested_modules": suggested_modules,
         "top_classes": [
             {
                 "class": c,
