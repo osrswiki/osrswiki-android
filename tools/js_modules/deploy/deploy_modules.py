@@ -32,6 +32,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EXTRACTION_OUT_DIR = PROJECT_ROOT / "tools/js_modules/out"
 APP_ASSETS_WEB_DIR = PROJECT_ROOT / "app/src/main/assets/web"
 APP_ASSETS_EXTERNAL_DIR = PROJECT_ROOT / "app/src/main/assets/web/external"  # Third-party extracted code
+APP_ASSETS_DIR = PROJECT_ROOT / "app/src/main/assets"  # Main assets directory
 
 # Module deployment configuration
 DEPLOYMENT_CONFIG = {
@@ -46,6 +47,12 @@ DEPLOYMENT_CONFIG = {
         "target_name": "ge_charts_loader.js", 
         "conditional": ".GEdatachart,.GEChartBox,.GEdataprices",  # Current GE chart detection logic
         "description": "Grand Exchange chart loader stub",
+        "priority": "high"
+    },
+    "ext_gadget_GECharts-core.js": {
+        "target_name": "ge_charts_core.js",
+        "conditional": ".GEdatachart,.GEChartBox,.GEdataprices",  # Load with GE charts
+        "description": "Grand Exchange chart implementation core",
         "priority": "high"
     },
     "ext_cite_ux-enhancements.js": {
@@ -111,6 +118,8 @@ class ModuleDeployer:
                 'has_jquery': '$(function' in content or 'jQuery' in content,
                 'has_embedded_css': '{"css":' in content,
                 'mw_apis_used': [],
+                'external_dependencies': [],
+                'module_dependencies': [],
                 'estimated_runtime_size': 0
             }
             
@@ -127,6 +136,34 @@ class ModuleDeployer:
                 if re.search(pattern, content):
                     api_name = pattern.replace(r'mw\.', '').replace(r'\.', '')
                     analysis['mw_apis_used'].append(api_name)
+            
+            # Detect external library dependencies
+            library_patterns = {
+                'highcharts-stock.js': [r'\bHighcharts\b', r'\.highcharts\(', r'Highcharts\.'],
+                'chart.js': [r'\bChart\.js\b', r'new Chart\(', r'Chart\.'],
+                'd3.js': [r'\bd3\b', r'd3\.select', r'd3\.'],
+                'jquery.js': [r'\bjQuery\b', r'\$\(', r'jQuery\.'],
+                'moment.js': [r'\bmoment\b', r'moment\(', r'moment\.']
+            }
+            
+            for lib_file, patterns in library_patterns.items():
+                for pattern in patterns:
+                    if re.search(pattern, content):
+                        if lib_file not in analysis['external_dependencies']:
+                            analysis['external_dependencies'].append(lib_file)
+                        break  # Found this library, move to next
+            
+            # Detect MediaWiki module dependencies (mw.loader.load calls)
+            module_load_patterns = [
+                r'mw\.loader\.load\([\'"]([^\'\"]+)[\'"]',  # mw.loader.load('module.name')
+                r'mw\.loader\.using\([\'"]([^\'\"]+)[\'"]'   # mw.loader.using('module.name')
+            ]
+            
+            for pattern in module_load_patterns:
+                matches = re.findall(pattern, content)
+                for match in matches:
+                    if match not in analysis['module_dependencies']:
+                        analysis['module_dependencies'].append(match)
                     
             # Estimate actual module size (excluding compatibility layer)
             if analysis['has_mw_compatibility']:
@@ -259,8 +296,17 @@ class ModuleDeployer:
             with open(report_file, 'w') as f:
                 json.dump(report, f, indent=2)
             self.log(f"Deployment report saved: {report_file}")
+            
+            # Also copy deployment report to app assets for runtime access
+            app_report_file = APP_ASSETS_DIR / "deployment_report.json"
+            try:
+                shutil.copy2(report_file, app_report_file)
+                self.log(f"Deployment report copied to app assets: {app_report_file}")
+            except Exception as e:
+                self.log(f"Failed to copy deployment report to app assets: {e}", 'warn')
         else:
             self.log(f"[DRY-RUN] Would save deployment report to {report_file}")
+            self.log(f"[DRY-RUN] Would copy deployment report to {APP_ASSETS_DIR / 'deployment_report.json'}")
             
 
 def main(argv: Optional[List[str]] = None) -> int:

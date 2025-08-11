@@ -243,7 +243,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--limit", type=int, default=200, help="Max pages to scan via AllPages")
     ap.add_argument("--namespace", type=int, default=0, help="Namespace for AllPages (default: 0)")
     ap.add_argument("--pages", nargs="*", help="Explicit page titles to scan (bypass AllPages)")
-    ap.add_argument("--out", default="tools/wiki_widgets/out", help="Output directory for reports")
+    ap.add_argument("--out", default="tools/js_modules/out", help="Output directory for reports")
     ap.add_argument("--blacklist-modules", nargs="*", default=["ext.kartographer.frame", "ext.kartographer.link"], 
                     help="Modules to exclude from missing widgets report (default: map-related modules)")
     ap.add_argument("--blacklist-classes", nargs="*", default=["rsmap", "map-container", "kartographer-map", "mw-kartographer-container", "mw-kartographer-map", "mw-kartographer-interactive", "mw-kartographer-mapDialog-foot"], 

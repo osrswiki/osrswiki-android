@@ -1,19 +1,35 @@
 # JS Modules Automation Tools
 
-Tools for automatically extracting and adapting MediaWiki ResourceLoader modules for standalone use in the OSRS Wiki Android app.
+Unified toolkit for scanning, extracting, adapting, and deploying MediaWiki ResourceLoader modules for standalone use in the OSRS Wiki Android app.
 
 ## Components
 
-### 1. Module Extractor (`extract_modules.py`)
+### 1. Widget Scanner (`scanner/`)
+Discovers pages' JS modules and widget-like HTML markers, and compares with local assets.
+
+Usage:
+```
+# Basic scan (first 200 mainspace pages)
+./tools/js_modules/scanner/scan_widgets.sh --limit 200 --out tools/js_modules/out
+
+# Scan specific pages
+./tools/js_modules/scanner/scan_widgets.sh --pages "Grand_Exchange" "Magic" "The_Gauntlet"
+```
+
+Outputs:
+- `tools/js_modules/out/report.json`
+- `tools/js_modules/out/summary.txt`
+
+### 2. Module Extractor (`extractor/`)
 Automatically extracts JavaScript modules from the OSRS Wiki and adapts them for app use.
 
 **Usage:**
 ```bash
 # Extract specific modules
-./extract_modules.sh --modules ext.gadget.calc ext.gadget.switch-infobox
+./extractor/extract_modules.sh --modules ext.gadget.calc ext.gadget.switch-infobox
 
 # Auto-extract from widget scan results  
-./extract_modules.sh --auto-from-scan ../wiki_widgets/out/report.json
+./extractor/extract_modules.sh --auto-from-scan tools/js_modules/out/report.json
 
 # Extract only priority modules
 ./extract_modules.sh --priority-only
@@ -25,7 +41,7 @@ Automatically extracts JavaScript modules from the OSRS Wiki and adapts them for
 - Automatic MediaWiki API compatibility injection
 - Module categorization and registry tracking
 
-### 2. MediaWiki Compatibility Layer (`mw_compatibility.js`)
+### MediaWiki Compatibility Layer (`extractor/mw_compatibility.js`)
 Standalone JavaScript library that provides essential MediaWiki APIs for extracted modules.
 
 **Features:**
@@ -53,12 +69,12 @@ mw.config.set('wgPageName', 'Current_Page_Title');
 
 1. **Scan for missing modules:**
    ```bash
-   ../wiki_widgets/scan_widgets.sh --limit 100 --out ../wiki_widgets/out
+   ./tools/js_modules/scanner/scan_widgets.sh --limit 100 --out tools/js_modules/out
    ```
 
 2. **Extract priority modules:**
    ```bash
-   ./extract_modules.sh --auto-from-scan ../wiki_widgets/out/report.json --priority-only
+   ./tools/js_modules/extractor/extract_modules.sh --auto-from-scan tools/js_modules/out/report.json --priority-only
    ```
 
 3. **Include in app assets:**
@@ -87,14 +103,23 @@ mw.config.set('wgPageName', 'Current_Page_Title');
 
 ```
 tools/js_modules/
-├── extract_modules.py          # Main extraction tool
-├── extract_modules.sh          # Wrapper script with environment
-├── mw_compatibility.js         # MediaWiki API polyfills
+├── scanner/                    # Widget scanner
+│   ├── scan_widgets.py         # Scans wiki pages and local assets
+│   └── scan_widgets.sh         # Wrapper script with environment
+├── extractor/                  # Module extraction
+│   ├── extract_modules.py      # Main extraction tool
+│   ├── extract_modules.sh      # Wrapper script with environment
+│   └── mw_compatibility.js     # MediaWiki API polyfills
+├── deploy/                     # Deployment and tracing
+│   ├── deploy_modules.py       # Copy to app assets + report
+│   ├── network_tracer.py       # Optional: trace load.php bundles
+│   └── network_tracer.sh       # Wrapper script
 ├── README.md                   # This documentation
-└── out/                        # Extracted modules output
-    ├── module_registry.json    # Metadata and dependencies
-    ├── ext_gadget_calc.js      # Adapted calculator gadget
-    └── ext_Tabber.js           # Adapted tabbed interface
+└── out/                        # Outputs
+    ├── module_registry.json    # Extraction metadata
+    ├── report.json             # Scanner report
+    ├── summary.txt             # Scanner summary
+    └── *.js                    # Extracted modules
 ```
 
 ## Future Enhancements

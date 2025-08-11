@@ -6,9 +6,9 @@ Automatically extracts and adapts MediaWiki ResourceLoader modules for standalon
 Focuses on gadgets and extensions that provide interactive functionality missing from the app.
 
 Usage:
-  python tools/js_modules/extract_modules.py --modules ext.Tabber ext.cite.ux-enhancements
-  python tools/js_modules/extract_modules.py --auto-from-scan tools/wiki_widgets/out/report.json
-  python tools/js_modules/extract_modules.py --priority-only
+  python tools/js_modules/extractor/extract_modules.py --modules ext.Tabber ext.cite.ux-enhancements
+  python tools/js_modules/extractor/extract_modules.py --auto-from-scan tools/js_modules/out/report.json
+  python tools/js_modules/extractor/extract_modules.py --priority-only
 
 Features:
 - Automatic module discovery from widget scan reports
@@ -43,12 +43,7 @@ PRIORITY_MODULES = [
     "mediawiki.page.gallery"
 ]
 
-# Complex modules requiring manual review (defer to later phases)
-COMPLEX_MODULES = [
-    "ext.gadget.GECharts-core",  # Core module still complex due to dependencies
-    "oojs-ui-core",
-    "mediawiki.widgets"
-]
+# All modules are handled uniformly by the automated extraction system
 
 # MediaWiki core APIs that need polyfills
 MW_API_PATTERNS = [
@@ -601,10 +596,6 @@ if (typeof window.$ === 'undefined') {
         if module in self.extracted_modules:
             self.log(f"Module {module} already extracted")
             return True
-            
-        if module in COMPLEX_MODULES:
-            self.log(f"Skipping complex module {module} (requires manual review)", 'warn')
-            return False
             
         # Expert 1's fix: Verify and correct module name case
         verified_module = self.verify_module_name(module)
