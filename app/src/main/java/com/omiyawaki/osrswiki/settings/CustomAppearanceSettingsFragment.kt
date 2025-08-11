@@ -49,8 +49,9 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         setupViewModel()
         setupRecyclerView()
         observeViewModel()
-        preWarmThemePreviewCache()
-        preWarmTablePreviewCache()
+        
+        // Preview pre-warming is now handled by PreviewGenerationManager in the background
+        // No need for on-demand generation when navigating to settings
         
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
@@ -207,19 +208,36 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
             return
         }
         
-        L.d("CustomAppearanceSettingsFragment: onThemeChanged called - clearing cache and refreshing UI")
+        L.d("CustomAppearanceSettingsFragment: onThemeChanged called - using smart cache swapping")
         
-        // Clear preview caches since themes have changed
-        ThemePreviewRenderer.clearCache(requireContext())
-        TablePreviewRenderer.clearCache(requireContext())
-        
-        // The RecyclerView and its items should automatically pick up the new theme
-        // since they use theme attributes. Just notify the adapter to refresh.
-        adapter.notifyDataSetChanged()
-        
-        // Re-warm the cache with new theme and table previews
-        preWarmThemePreviewCache()
-        preWarmTablePreviewCache()
+        // Use smart cache swapping instead of clearing immediately
+        // This generates new theme previews in background while keeping old ones available
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val app = requireContext().applicationContext as OSRSWikiApp
+                val newTheme = app.getCurrentTheme()
+                
+                // Smart cache swapping - no immediate clearing, seamless transition
+                PreviewGenerationManager.handleThemeChange(requireContext(), newTheme)
+                
+                // The RecyclerView and its items should automatically pick up the new theme
+                // since they use theme attributes. Just notify the adapter to refresh.
+                adapter.notifyDataSetChanged()
+                
+                L.d("CustomAppearanceSettingsFragment: Theme change completed with smart cache swapping")
+            } catch (e: Exception) {
+                L.e("CustomAppearanceSettingsFragment: Smart cache swapping failed, falling back to cache clearing", e)
+                
+                // Fallback to original behavior if smart swapping fails
+                ThemePreviewRenderer.clearCache(requireContext())
+                TablePreviewRenderer.clearCache(requireContext())
+                adapter.notifyDataSetChanged()
+                
+                // Re-warm the cache with new theme and table previews
+                preWarmThemePreviewCache()
+                preWarmTablePreviewCache()
+            }
+        }
     }
     
     override fun onConfigurationChanged(newConfig: Configuration) {
