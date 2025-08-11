@@ -319,10 +319,10 @@ object ThemePreviewRenderer {
             
             Log.d(TAG, "🔧 SIMPLIFIED: Stub data setup completed")
             
-            // Get target dimensions (192dp × 192dp square container)
+            // Get target dimensions (96dp × 96dp square container)
             val dm = context.resources.displayMetrics
-            val targetPxW = (192 * dm.density).roundToInt()
-            val targetPxH = (192 * dm.density).roundToInt()
+            val targetPxW = (96 * dm.density).roundToInt()
+            val targetPxH = (96 * dm.density).roundToInt()
             
             // Use device screen size for initial render (simple approach)
             val (deviceWidth, deviceHeight) = getAppContentBounds(context)
@@ -478,8 +478,8 @@ object ThemePreviewRenderer {
      * Creates a fallback bitmap with theme-appropriate color when generation fails.
      */
     private fun generateFallbackBitmap(context: Context): Bitmap {
-        // Use fixed 192dp × 192dp square dimensions
-        val size = (192 * context.resources.displayMetrics.density).roundToInt()
+        // Use fixed 96dp × 96dp square dimensions
+        val size = (96 * context.resources.displayMetrics.density).roundToInt()
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         

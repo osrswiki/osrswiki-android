@@ -49,7 +49,6 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                         themes = repository.getThemeOptions(),
                         currentSelection = appThemeMode
                     ),
-                    SettingItem.CategoryHeader("Content"),
                     tablePreviewItem
                 )
                 

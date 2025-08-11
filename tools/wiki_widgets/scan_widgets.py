@@ -84,11 +84,27 @@ def get_allpages(base: str, limit: int = 200, apnamespace: int = 0) -> List[str]
     return titles
 
 
-def parse_page(base: str, title: str, session: Optional[requests.Session] = None) -> Tuple[List[str], str]:
+def categorize_module(module_name: str) -> str:
+    """Categorize a MediaWiki ResourceLoader module by type."""
+    if module_name.startswith('ext.gadget.'):
+        return 'gadget'
+    elif module_name.startswith('ext.'):
+        return 'extension'
+    elif module_name.startswith('mediawiki.'):
+        return 'core'
+    elif 'chart' in module_name.lower() or 'graph' in module_name.lower():
+        return 'visualization'
+    elif 'ui' in module_name.lower() or 'oojs' in module_name.lower():
+        return 'interface'
+    else:
+        return 'other'
+
+
+def parse_page(base: str, title: str, session: Optional[requests.Session] = None) -> Tuple[List[str], str, Dict[str, List[str]], Dict[str, List[str]]]:
     params = {
         "action": "parse",
         "page": title,
-        "prop": "modules|text",
+        "prop": "modules|modulescripts|modulestyles|text",
         "disableeditsection": "1",
         "disablelimitreport": "1",
         "disabletoc": "1",
@@ -97,8 +113,35 @@ def parse_page(base: str, title: str, session: Optional[requests.Session] = None
     data = api_get(base, params, session)
     parse = data.get("parse") or {}
     modules = parse.get("modules") or []
+    module_scripts = parse.get("modulescripts") or []
+    module_styles = parse.get("modulestyles") or []
     html = parse.get("text", {}).get("*") or ""
-    return modules, html
+    
+    # Separate JavaScript modules from CSS-only modules (Expert 1's fix)
+    js_modules = list(set(modules + module_scripts))  # JavaScript modules
+    css_modules = list(set(module_styles))            # CSS-only modules
+    
+    # Create module type mapping
+    module_types = {
+        'javascript': js_modules,
+        'css': css_modules
+    }
+    
+    # Categorize JavaScript modules only (CSS modules tracked separately)
+    categorized_modules = {
+        'gadget': [],
+        'extension': [], 
+        'core': [],
+        'visualization': [],
+        'interface': [],
+        'other': []
+    }
+    
+    for module in js_modules:
+        category = categorize_module(module)
+        categorized_modules[category].append(module)
+    
+    return modules, html, categorized_modules, module_types
 
 
 CLASS_RE = re.compile(r'class\s*=\s*"([^"]+)"', re.IGNORECASE)
@@ -151,9 +194,19 @@ def scan_local_assets(root: Path) -> Tuple[Set[str], List[Path]]:
 
 
 def is_widgety_class(name: str) -> bool:
-    # Heuristic: classes commonly associated with dynamic widgets on the wiki
+    # Stricter heuristic to avoid layout-only classes like ge-column.
+    # 1) Known GE widget classes
+    known = {
+        "GEChartBox",
+        "GEChartItems",
+        "GEdatachart",
+        "GEdataprices",
+    }
+    if name in known:
+        return True
+
+    # 2) Common interactive features
     patterns = [
-        r"^GE",
         r"(^|-)map($|-)",
         r"(^|-)chart($|-)",
         r"(^|-)collapsible($|-)",
@@ -173,7 +226,15 @@ def is_widgety_class(name: str) -> bool:
         r"(^|-)rsmap($|-)",
         r"(^|-)mw-collapsible($|-)",
     ]
-    return any(re.search(p, name, re.IGNORECASE) for p in patterns)
+    if any(re.search(p, name, re.IGNORECASE) for p in patterns):
+        return True
+
+    # 3) Exclude commonly noisy classes explicitly
+    excludes = {"ge-column"}
+    if name.lower() in excludes:
+        return False
+
+    return False
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -183,6 +244,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--namespace", type=int, default=0, help="Namespace for AllPages (default: 0)")
     ap.add_argument("--pages", nargs="*", help="Explicit page titles to scan (bypass AllPages)")
     ap.add_argument("--out", default="tools/wiki_widgets/out", help="Output directory for reports")
+    ap.add_argument("--blacklist-modules", nargs="*", default=["ext.kartographer.frame", "ext.kartographer.link"], 
+                    help="Modules to exclude from missing widgets report (default: map-related modules)")
+    ap.add_argument("--blacklist-classes", nargs="*", default=["rsmap", "map-container", "kartographer-map", "mw-kartographer-container", "mw-kartographer-map", "mw-kartographer-interactive", "mw-kartographer-mapDialog-foot"], 
+                    help="CSS classes to exclude from missing widgets report (default: map-related classes)")
     args = ap.parse_args(argv)
 
     base = args.base
@@ -203,20 +268,63 @@ def main(argv: Optional[List[str]] = None) -> int:
     classes_hist: Dict[str, int] = collections.Counter()
     classes_pages: Dict[str, List[str]] = collections.defaultdict(list)
     data_attrs_hist: Dict[str, int] = collections.Counter()
+    
+    # Track categorized modules
+    module_categories: Dict[str, Dict[str, int]] = {
+        'gadget': collections.Counter(),
+        'extension': collections.Counter(), 
+        'core': collections.Counter(),
+        'visualization': collections.Counter(),
+        'interface': collections.Counter(),
+        'other': collections.Counter()
+    }
+    module_category_pages: Dict[str, Dict[str, List[str]]] = {
+        'gadget': collections.defaultdict(list),
+        'extension': collections.defaultdict(list),
+        'core': collections.defaultdict(list),
+        'visualization': collections.defaultdict(list),
+        'interface': collections.defaultdict(list),
+        'other': collections.defaultdict(list)
+    }
+    
+    # Track module types separately (Expert 1's recommendation)
+    js_modules_hist: Dict[str, int] = collections.Counter()
+    css_modules_hist: Dict[str, int] = collections.Counter()
+    js_modules_pages: Dict[str, List[str]] = collections.defaultdict(list)
+    css_modules_pages: Dict[str, List[str]] = collections.defaultdict(list)
 
     per_page: List[Dict[str, object]] = []
 
     for i, title in enumerate(titles, 1):
         try:
-            modules, html = parse_page(base, title, session)
+            modules, html, categorized_modules, module_types = parse_page(base, title, session)
         except Exception as e:
             print(f"[warn] Failed to parse {title}: {e}", file=sys.stderr)
             continue
 
+        # Track all modules (backward compatibility)
         for m in modules or []:
             modules_hist[m] += 1
             if len(modules_pages[m]) < 5:
                 modules_pages[m].append(title)
+        
+        # Track JavaScript and CSS modules separately (Expert 1's fix)
+        for js_module in module_types.get('javascript', []):
+            js_modules_hist[js_module] += 1
+            if len(js_modules_pages[js_module]) < 5:
+                js_modules_pages[js_module].append(title)
+                
+        for css_module in module_types.get('css', []):
+            css_modules_hist[css_module] += 1
+            if len(css_modules_pages[css_module]) < 5:
+                css_modules_pages[css_module].append(title)
+        
+        # Track categorized modules
+        for category, module_list in categorized_modules.items():
+            for module in module_list:
+                module_categories[category][module] += 1
+                if len(module_category_pages[category][module]) < 5:
+                    module_category_pages[category][module].append(title)
 
         classes = extract_classes(html)
         for c in classes:
@@ -240,7 +348,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     repo_root = Path(__file__).resolve().parents[2]
     local_classes, asset_files = scan_local_assets(repo_root)
 
-    widgety_classes = {c for c, n in classes_hist.items() if is_widgety_class(c)}
+    # Filter out blacklisted items
+    blacklist_modules = set(args.blacklist_modules)
+    blacklist_classes = set(args.blacklist_classes)
+    
+    widgety_classes = {c for c, n in classes_hist.items() if is_widgety_class(c) and c not in blacklist_classes}
     missing_candidates = [
         {
             "class": c,
@@ -250,13 +362,56 @@ def main(argv: Optional[List[str]] = None) -> int:
         for c in sorted(widgety_classes - local_classes, key=lambda x: (-classes_hist[x], x))
     ]
 
+    # Filter modules report to exclude blacklisted modules
+    filtered_modules = {m: count for m, count in modules_hist.items() if m not in blacklist_modules}
     modules_report = [
         {
             "module": m,
-            "count": modules_hist[m],
+            "count": filtered_modules[m],
             "sample_pages": modules_pages[m][:5],
+            "category": categorize_module(m),
         }
-        for m in sorted(modules_hist.keys(), key=lambda x: (-modules_hist[x], x))
+        for m in sorted(filtered_modules.keys(), key=lambda x: (-filtered_modules[x], x))
+    ]
+    
+    # Generate categorized module reports
+    categorized_reports = {}
+    for category, modules in module_categories.items():
+        if not modules:
+            continue
+        # Filter out blacklisted modules from each category
+        filtered_category_modules = {m: count for m, count in modules.items() if m not in blacklist_modules}
+        categorized_reports[category] = [
+            {
+                "module": m,
+                "count": count,
+                "sample_pages": module_category_pages[category][m][:5],
+            }
+            for m, count in sorted(filtered_category_modules.items(), key=lambda x: (-x[1], x[0]))
+        ]
+
+    # Generate JavaScript vs CSS module reports (Expert 1's critical fix)
+    js_modules_filtered = {m: count for m, count in js_modules_hist.items() if m not in blacklist_modules}
+    css_modules_filtered = {m: count for m, count in css_modules_hist.items() if m not in blacklist_modules}
+    
+    js_modules_report = [
+        {
+            "module": m,
+            "count": count,
+            "type": "javascript",
+            "sample_pages": js_modules_pages[m][:5],
+        }
+        for m, count in sorted(js_modules_filtered.items(), key=lambda x: (-x[1], x[0]))
+    ]
+    
+    css_modules_report = [
+        {
+            "module": m,
+            "count": count,
+            "type": "css",
+            "sample_pages": css_modules_pages[m][:5],
+        }
+        for m, count in sorted(css_modules_filtered.items(), key=lambda x: (-x[1], x[0]))
     ]
 
     report = {
@@ -265,8 +420,13 @@ def main(argv: Optional[List[str]] = None) -> int:
             "scanned_pages": len(titles),
             "duration_sec": round(time.time() - start, 2),
             "timestamp": dt.datetime.utcnow().isoformat() + "Z",
+            "blacklisted_modules": sorted(blacklist_modules),
+            "blacklisted_classes": sorted(blacklist_classes),
         },
         "modules": modules_report,
+        "modules_by_category": categorized_reports,
+        "javascript_modules": js_modules_report,
+        "css_modules": css_modules_report,
         "top_classes": [
             {
                 "class": c,
@@ -293,11 +453,39 @@ def main(argv: Optional[List[str]] = None) -> int:
     summary_lines = []
     summary_lines.append(f"Base: {base}")
     summary_lines.append(f"Pages scanned: {len(titles)}")
+    if blacklist_modules or blacklist_classes:
+        summary_lines.append(f"Blacklisted modules: {', '.join(sorted(blacklist_modules)) if blacklist_modules else 'none'}")
+        summary_lines.append(f"Blacklisted classes: {', '.join(sorted(blacklist_classes)) if blacklist_classes else 'none'}")
     summary_lines.append("")
     summary_lines.append("Top 20 modules:")
     for row in modules_report[:20]:
+        category = row.get('category', 'unknown')
+        summary_lines.append(f"- {row['module']} [{category}]: {row['count']} (e.g., {', '.join(row['sample_pages'])})")
+    summary_lines.append("")
+    
+    # Add categorized module summary
+    summary_lines.append("Modules by category:")
+    for category in ['gadget', 'extension', 'visualization', 'interface', 'core', 'other']:
+        if category in categorized_reports and categorized_reports[category]:
+            count = len(categorized_reports[category])
+            total_usage = sum(item['count'] for item in categorized_reports[category])
+            top_modules = [item['module'] for item in categorized_reports[category][:3]]
+            summary_lines.append(f"- {category.title()}: {count} modules, {total_usage} total uses (top: {', '.join(top_modules)})")
+    summary_lines.append("")
+    
+    # Add JavaScript vs CSS module breakdown (Expert 1's critical insight)
+    summary_lines.append(f"JavaScript modules found: {len(js_modules_report)}")
+    summary_lines.append("Top 10 JavaScript modules (extractable):")
+    for row in js_modules_report[:10]:
         summary_lines.append(f"- {row['module']}: {row['count']} (e.g., {', '.join(row['sample_pages'])})")
     summary_lines.append("")
+    
+    summary_lines.append(f"CSS-only modules found: {len(css_modules_report)}")  
+    summary_lines.append("Top 10 CSS modules (styles only):")
+    for row in css_modules_report[:10]:
+        summary_lines.append(f"- {row['module']}: {row['count']} (e.g., {', '.join(row['sample_pages'])})")
+    summary_lines.append("")
+    
     summary_lines.append("Top 20 missing widget-like classes (heuristic):")
     for row in missing_candidates[:20]:
         summary_lines.append(f"- {row['class']}: {row['count']} (e.g., {', '.join(row['sample_pages'])})")
@@ -310,4 +498,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

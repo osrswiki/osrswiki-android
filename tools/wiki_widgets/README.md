@@ -18,12 +18,18 @@ What it does
 
 Usage
 -----
+**Recommended: Use the wrapper script (automatically handles environment):**
 - Basic scan (first 200 mainspace pages):
-  - `python tools/wiki_widgets/scan_widgets.py --limit 200 --out tools/wiki_widgets/out`
+  - `./tools/wiki_widgets/scan_widgets.sh --limit 200 --out tools/wiki_widgets/out`
 - Scan specific pages:
-  - `python tools/wiki_widgets/scan_widgets.py --pages Logs "Magic" "The_Gauntlet"`
+  - `./tools/wiki_widgets/scan_widgets.sh --pages "Grand_Exchange" "Magic" "The_Gauntlet"`
+- Custom blacklists (exclude modules/classes you've already implemented):
+  - `./tools/wiki_widgets/scan_widgets.sh --blacklist-modules "ext.custom" --blacklist-classes "my-widget"`
 - Change base wiki URL (if needed):
-  - `python tools/wiki_widgets/scan_widgets.py --base https://oldschool.runescape.wiki`
+  - `./tools/wiki_widgets/scan_widgets.sh --base https://oldschool.runescape.wiki`
+
+**Alternative: Direct Python execution (requires manual environment activation):**
+- `micromamba run -n osrs-tools python3 tools/wiki_widgets/scan_widgets.py --limit 200`
 
 Outputs
 -------
@@ -32,7 +38,9 @@ Outputs
 
 Notes
 -----
-- The “missing widget-like classes” list is heuristic-based; it’s a starting point to spot gaps, not a definitive truth.
+- The "missing widget-like classes" list is heuristic-based; it's a starting point to spot gaps, not a definitive truth.
 - You can tune the heuristics in `is_widgety_class()` in `scan_widgets.py`.
+- Map-related modules (`ext.kartographer.*`) and classes are blacklisted by default since the app uses MapLibre instead.
+- Use `--blacklist-modules` and `--blacklist-classes` to exclude widgets you've already implemented or don't need.
 - Network access is required to query the wiki API.
 

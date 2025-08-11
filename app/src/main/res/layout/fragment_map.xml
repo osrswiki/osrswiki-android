@@ -25,9 +25,12 @@
         android:layout_marginStart="16dp"
         android:layout_marginTop="16dp"
         android:background="@drawable/control_background_themed"
+        android:backgroundTint="@null"
         android:elevation="4dp"
+        android:forceDarkAllowed="false"
         android:orientation="vertical"
         android:padding="4dp"
+        app:backgroundTint="@null"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:visibility="visible">
@@ -39,7 +42,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/map_floor_up"
             android:src="@drawable/ic_arrow_up"
-            app:tint="?attr/primary_text_color" />
+            app:tint="?attr/map_control_text" />
 
         <TextView
             android:id="@+id/floor_control_text"
@@ -49,7 +52,7 @@
             android:paddingTop="4dp"
             android:paddingBottom="4dp"
             android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/primary_text_color"
+            android:textColor="?attr/map_control_text"
             tools:text="0" />
 
         <ImageButton
@@ -59,7 +62,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/map_floor_down"
             android:src="@drawable/ic_arrow_down"
-            app:tint="?attr/primary_text_color" />
+            app:tint="?attr/map_control_text" />
 
     </LinearLayout>
 

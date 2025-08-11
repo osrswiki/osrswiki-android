@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.image.GlideImageLoader
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.random.RandomPageRepository
@@ -200,6 +201,7 @@ class NewsFragment : Fragment(), ThemeAware {
 
     private fun setupRecyclerView(view: View) {
         newsFeedAdapter = NewsFeedAdapter(
+            imageLoader = GlideImageLoader(requireContext()),
             onUpdateItemClicked = { updateItem ->
                 L.d("NewsFragment: UpdateItem clicked!")
                 L.d("  updateItem.title: '${updateItem.title}'")
@@ -233,6 +235,9 @@ class NewsFragment : Fragment(), ThemeAware {
         viewModel.feedItems.observe(viewLifecycleOwner) { feedItems ->
             // Pass the fetched data to the adapter.
             newsFeedAdapter.setItems(feedItems)
+            
+            // Expert-recommended: Update live snapshot for theme preview zero-maintenance
+            LiveSnapshotStore.updateSnapshot(feedItems)
         }
     }
 

@@ -58,16 +58,16 @@
         <!-- Theme Preview Screenshot -->
         <FrameLayout
             android:id="@+id/previewContainer"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:background="?attr/colorSurfaceVariant"
             android:clipToOutline="true">
             
             <ImageView
                 android:id="@+id/themePreviewImage"
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:scaleType="centerInside"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:scaleType="fitStart"
                 android:adjustViewBounds="false"
                 android:background="@android:color/transparent"
                 android:importantForAccessibility="no" />

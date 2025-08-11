@@ -14,4 +14,9 @@
     <attr name="primary_text_color" format="color" />
     <attr name="base_color" format="color" />
     <attr name="secondary_text_color" format="color" />
+    
+    <!-- Map control attributes -->
+    <attr name="map_control_background" format="color" />
+    <attr name="map_control_text" format="color" />
+    <attr name="map_control_text_disabled" format="color" />
 </resources>

@@ -19,8 +19,8 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/components.css",
         "styles/wiki-integration.css",
         "styles/navbox_styles.css",
-        "web/collapsible_tables.css",
-        "web/collapsible_sections.css",
+        "web/app/collapsible_tables.css",
+        "web/app/collapsible_sections.css",
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(),
         "styles/fixes.css"
     )
@@ -28,13 +28,13 @@ class PageHtmlBuilder(private val context: Context) {
     private val jsAssetPaths = listOf(
         "js/tablesort.min.js",
         "js/tablesort_init.js", // Add the initialization script
-        "web/collapsible_content.js",
+        "web/app/collapsible_content.js",
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
-        "web/horizontal_scroll_interceptor.js",
-        "web/responsive_videos.js", // Make video embeds responsive
-        "web/clipboard_bridge.js", // Android clipboard bridge for iframe support
-        "web/clipboard_debug.js" // Debug clipboard API availability
+        "web/app/horizontal_scroll_interceptor.js",
+        "web/app/responsive_videos.js", // Make video embeds responsive
+        "web/app/clipboard_bridge.js", // Android clipboard bridge for iframe support
+        "web/app/clipboard_debug.js" // Debug clipboard API availability
     )
 
     private val timelineLoggerScript = """
@@ -113,8 +113,9 @@ class PageHtmlBuilder(private val context: Context) {
             // Build the JS list, conditionally appending the GE charts widget
             val dynamicJsAssets = if (needsGECharts) {
                 jsAssetPaths + listOf(
-                    "web/highcharts-stock.js",
-                    "web/ge_charts_init.js"
+                    "web/external/highcharts-stock.js"
+                    // TODO: Replace with extracted ext.gadget.GECharts module
+                    // "web/ge_charts_init.js"  // Removed - replaced by automated extraction
                 )
             } else jsAssetPaths
 

@@ -20,6 +20,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.image.ImageLoader
 import com.omiyawaki.osrswiki.util.applyAlegreyaSmallCaps
 import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
@@ -101,6 +102,7 @@ sealed class FeedItem {
  * RecyclerView.Adapter for the main news feed in NewsFragment.
  */
 class NewsFeedAdapter(
+    private val imageLoader: ImageLoader,
     private val onUpdateItemClicked: (UpdateItem) -> Unit,
     private val onLinkClicked: (url: String) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -160,7 +162,7 @@ class NewsFeedAdapter(
 
     override fun getItemCount(): Int = items.size
 
-    class UpdatesViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    inner class UpdatesViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val sectionTitle: TextView = itemView.findViewById(R.id.updates_section_title)
         private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.updates_recycler_view)
         
@@ -170,7 +172,7 @@ class NewsFeedAdapter(
         }
         
         fun bind(items: List<UpdateItem>, listener: (UpdateItem) -> Unit) {
-            nestedRecyclerView.adapter = UpdatesAdapter(items, listener)
+            nestedRecyclerView.adapter = UpdatesAdapter(items, imageLoader, listener)
         }
     }
 

@@ -178,12 +178,12 @@ class InlineThemeSelectionAdapter(
                         deviceDensity=${dm.density} densityDpi=${dm.densityDpi}
                         """.trimIndent())
                         
-                        // Square container with centerInside for proper proportional scaling
-                        val squareSize = (192 * dm.density).roundToInt()
+                        // Square container with fitStart for top-aligned scaling
+                        val squareSize = (96 * dm.density).roundToInt()
                         imageView.layoutParams?.width = squareSize
                         imageView.layoutParams?.height = squareSize
                         imageView.adjustViewBounds = false
-                        imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                        imageView.scaleType = ImageView.ScaleType.FIT_START
                     }
                     
                     Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
@@ -358,12 +358,12 @@ class InlineThemeSelectionAdapter(
                         deviceDensity=${dm.density} densityDpi=${dm.densityDpi}
                         """.trimIndent())
                         
-                        // Square container with centerInside for proper proportional scaling (smaller size for horizontal)
-                        val squareSize = (120 * dm.density).roundToInt() // 120dp for horizontal layout
+                        // Square container with fitStart for top-aligned scaling (smaller size for horizontal)
+                        val squareSize = (60 * dm.density).roundToInt() // 60dp for horizontal layout (half of 120dp)
                         imageView.layoutParams?.width = squareSize
                         imageView.layoutParams?.height = squareSize
                         imageView.adjustViewBounds = false
-                        imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                        imageView.scaleType = ImageView.ScaleType.FIT_START
                     }
                     
                     Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
