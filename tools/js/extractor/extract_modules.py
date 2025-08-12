@@ -60,12 +60,15 @@ MW_API_PATTERNS = [
 class ModuleExtractor:
     """Extracts and adapts MediaWiki ResourceLoader modules."""
     
-    def __init__(self, base_url: str = DEFAULT_BASE, output_dir: str = DEFAULT_OUT):
+    def __init__(self, base_url: str = DEFAULT_BASE, output_dir: str = DEFAULT_OUT, resourceloader_mode: bool = False):
         self.base_url = base_url.rstrip('/')
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'OSRS-Wiki-App-Module-Extractor/1.0'})
+        
+        # NEW: ResourceLoader mode extracts modules to work with real MediaWiki infrastructure
+        self.resourceloader_mode = resourceloader_mode
         
         # Module registry for tracking dependencies and metadata
         self.registry: Dict[str, Dict] = {}
@@ -591,6 +594,26 @@ if (typeof window.$ === 'undefined') {
         
         return '\n'.join(adaptations)
         
+    def adapt_for_resourceloader(self, source: str, module: str, dependencies: List[str]) -> str:
+        """Adapt module source to work with real MediaWiki ResourceLoader."""
+        adaptations = []
+        
+        # Add header comment
+        adaptations.append(f"/**")
+        adaptations.append(f" * MediaWiki ResourceLoader Module: {module}")
+        adaptations.append(f" * ")
+        adaptations.append(f" * Extracted from OSRS Wiki server to work with real MediaWiki infrastructure.")
+        adaptations.append(f" * Dependencies: {', '.join(dependencies) if dependencies else 'none'}")
+        adaptations.append(f" */")
+        adaptations.append("")
+        
+        # In ResourceLoader mode, preserve the original source structure
+        # The module should be loaded via mw.loader.implement() by the ResourceLoader system
+        adaptations.append("// Original module source (to be loaded via ResourceLoader)")
+        adaptations.append(source)
+        
+        return '\n'.join(adaptations)
+        
     def extract_module(self, module: str, include_deps: bool = True) -> bool:
         """Extract a single module with optional dependency resolution."""
         if module in self.extracted_modules:
@@ -602,7 +625,7 @@ if (typeof window.$ === 'undefined') {
         if verified_module != module:
             self.log(f"Using corrected module name: {module} -> {verified_module}")
         
-        self.log(f"Extracting module: {verified_module}")
+        self.log(f"Extracting module: {verified_module} (ResourceLoader mode: {self.resourceloader_mode})")
         
         # Get raw source using verified name
         source = self.extract_raw_source(verified_module)
@@ -613,14 +636,14 @@ if (typeof window.$ === 'undefined') {
         # Analyze dependencies
         dependencies = self.analyze_dependencies(source, verified_module)
         
-        # Create compatibility shim
-        shim = self.create_compatibility_shim(dependencies, verified_module)
-        
-        # Adapt source
-        adapted_source = self.adapt_module_source(source, verified_module)
-        
-        # Combine shim + adapted source
-        final_source = shim + "\n\n" + adapted_source
+        if self.resourceloader_mode:
+            # ResourceLoader mode: preserve original module structure for ResourceLoader
+            final_source = self.adapt_for_resourceloader(source, verified_module, dependencies)
+        else:
+            # Standalone mode: create compatibility shim + adapted source
+            shim = self.create_compatibility_shim(dependencies, verified_module)
+            adapted_source = self.adapt_module_source(source, verified_module)
+            final_source = shim + "\n\n" + adapted_source
         
         # Save to file using verified name
         safe_name = verified_module.replace('.', '_').replace(':', '_')
@@ -761,9 +784,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--auto-from-scan", help="Auto-extract from widget scan report JSON")
     ap.add_argument("--priority-only", action="store_true", help="Only extract priority modules")
     ap.add_argument("--list-gadgets", action="store_true", help="List available gadgets and exit")
+    ap.add_argument("--resourceloader-mode", action="store_true", help="Extract modules for real MediaWiki ResourceLoader (no compatibility layer)")
     args = ap.parse_args(argv)
     
-    extractor = ModuleExtractor(args.base, args.out)
+    extractor = ModuleExtractor(args.base, args.out, args.resourceloader_mode)
     
     # Handle gadget listing
     if args.list_gadgets:

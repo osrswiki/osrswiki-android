@@ -45,6 +45,7 @@ class NetworkTracer:
         self.all_requests: List[Dict] = []
         self.js_requests: List[Dict] = []
         self.module_requests: List[Dict] = []
+        self.external_libraries: List[Dict] = []  # NEW: Track external JS libraries
         self.external_hosts: Set[str] = set()
         
     def log(self, msg: str, level: str = 'info') -> None:
@@ -74,6 +75,96 @@ class NetworkTracer:
             return True
             
         return False
+        
+    def is_external_library(self, url: str, headers: Dict[str, str]) -> Optional[Dict]:
+        """Identify external JavaScript libraries from any external host."""
+        parsed = urlparse(url)
+        
+        # Must be JavaScript file from external host
+        if not parsed.path.endswith('.js') or parsed.netloc == urlparse(self.base_url).netloc:
+            return None
+            
+        # Check if this looks like a JavaScript library based on content-type or URL patterns
+        content_type = headers.get('content-type', '').lower()
+        is_javascript = (
+            'javascript' in content_type or 
+            'application/javascript' in content_type or
+            parsed.path.endswith('.js')
+        )
+        
+        if not is_javascript:
+            return None
+            
+        # Known CDN hosts (preferred for reliability)
+        preferred_cdn_hosts = [
+            'cdnjs.cloudflare.com',
+            'cdn.jsdelivr.net', 
+            'unpkg.com',
+            'code.highcharts.com',
+            'ajax.googleapis.com',
+            'maxcdn.bootstrapcdn.com',
+            'stackpath.bootstrapcdn.com',
+            'cdn.plot.ly',
+            'd3js.org'
+        ]
+        
+        # Custom/specialized hosts that serve libraries (like Weird Gloop infrastructure)
+        custom_library_hosts = [
+            'chisel.weirdgloop.org',  # Weird Gloop CDN for Highcharts
+            'static.wikia.nocookie.net',
+            'assets.wikimedia.org'
+        ]
+        
+        is_known_host = (parsed.netloc in preferred_cdn_hosts or 
+                        parsed.netloc in custom_library_hosts)
+        
+        # For unknown hosts, be more selective - look for library-like patterns
+        if not is_known_host:
+            library_indicators = [
+                '/static/', '/lib/', '/libs/', '/assets/', '/js/',
+                'min.js', 'bundle.js', 'library.js', 'lib.js'
+            ]
+            if not any(indicator in url.lower() for indicator in library_indicators):
+                return None
+            
+        # Extract library information from URL path
+        path_parts = parsed.path.lower().split('/')
+        filename = path_parts[-1] if path_parts else ''
+        
+        # Common library patterns
+        library_patterns = {
+            'highcharts': ['highcharts', 'highstock', 'highmaps'],
+            'chart.js': ['chart.js', 'chart.min.js'],
+            'd3.js': ['d3.js', 'd3.min.js', 'd3.v'],
+            'jquery': ['jquery', 'jquery.min.js'],
+            'moment.js': ['moment', 'moment.min.js'],
+            'lodash': ['lodash', 'lodash.min.js'],
+            'three.js': ['three', 'three.min.js'],
+            'plotly.js': ['plotly', 'plotly.min.js']
+        }
+        
+        detected_library = None
+        for library, patterns in library_patterns.items():
+            if any(pattern in filename or pattern in parsed.path.lower() for pattern in patterns):
+                detected_library = library
+                break
+                
+        if not detected_library:
+            # Generic detection for common JS libraries
+            if any(term in filename for term in ['.min.js', 'bundle.js', 'lib.js']):
+                # Try to infer library name from path
+                for part in reversed(path_parts):
+                    if part and not part.endswith('.js'):
+                        detected_library = part
+                        break
+                        
+        return {
+            'library': detected_library or 'unknown',
+            'url': url,
+            'host': parsed.netloc,
+            'filename': filename,
+            'path': parsed.path
+        } if detected_library else None
         
     def analyze_request(self, request: Request) -> Dict:
         """Analyze a network request and extract useful information."""
@@ -158,7 +249,14 @@ class NetworkTracer:
                     if req_info.get('detected_modules'):
                         self.module_requests.append(req_info)
                         self.log(f"  Found module request: {req_info.get('detected_modules')} -> {request.url}")
-                        
+                
+                # Check if this is an external JavaScript library
+                external_lib = self.is_external_library(request.url, dict(request.headers))
+                if external_lib:
+                    external_lib.update(req_info)  # Add request details
+                    self.external_libraries.append(external_lib)
+                    self.log(f"  Found external library: {external_lib['library']} -> {external_lib['url']}")
+                    
             def handle_response(response: Response):
                 resp_info = self.analyze_response(response)
                 page_responses.append(resp_info)
@@ -185,6 +283,7 @@ class NetworkTracer:
             'total_requests': len(page_requests),
             'js_requests': [r for r in page_requests if self.is_js_module_request(r['url'], r['headers'])],
             'module_requests': [r for r in page_requests if r.get('detected_modules')],
+            'external_libraries': [lib for lib in self.external_libraries if lib['url'] in [r['url'] for r in page_requests]],
             'external_hosts': list({urlparse(r['url']).netloc for r in page_requests if r['is_external']}),
             'requests': page_requests,
             'responses': page_responses
@@ -192,9 +291,41 @@ class NetworkTracer:
         
         self.log(f"  Total requests: {len(page_requests)}")
         self.log(f"  JS/module requests: {len(page_result['js_requests'])}")
+        self.log(f"  External libraries: {len(page_result['external_libraries'])}")
         self.log(f"  External hosts: {len(page_result['external_hosts'])}")
         
         return page_result
+    
+    def generate_cdn_mapping(self) -> Dict[str, Dict[str, str]]:
+        """Generate CDN mapping for automatic redirection in Kotlin."""
+        cdn_mapping = {}
+        
+        for lib_info in self.external_libraries:
+            library_name = lib_info['library'] 
+            cdn_host = lib_info['host']
+            filename = lib_info['filename']
+            
+            # Skip non-library requests (ads, analytics, etc.)
+            if library_name in ['17138', 'latest', 'csync']:
+                continue
+                
+            # Create mapping entry for this CDN host if not exists
+            if cdn_host not in cdn_mapping:
+                cdn_mapping[cdn_host] = {}
+            
+            # Map the specific file to local asset path
+            # Remove query parameters and version numbers for cleaner mapping
+            clean_filename = filename.split('?')[0]
+            local_asset_path = f"web/external/{clean_filename}"
+            
+            cdn_mapping[cdn_host][clean_filename] = local_asset_path
+            
+            self.log(f"  CDN mapping: {cdn_host}/{clean_filename} -> {local_asset_path}")
+        
+        if cdn_mapping:
+            self.log(f"Generated CDN mappings for {len(cdn_mapping)} hosts")
+        
+        return cdn_mapping
         
     def trace_multiple_pages(self, page_titles: List[str]) -> Dict:
         """Trace network requests for multiple pages."""
@@ -213,6 +344,25 @@ class NetworkTracer:
         # Aggregate results
         all_external_hosts = sorted(self.external_hosts)
         all_js_hosts = sorted({urlparse(r['url']).netloc for r in self.js_requests})
+        
+        # Aggregate external libraries
+        external_library_summary = {}
+        for lib in self.external_libraries:
+            lib_name = lib['library']
+            if lib_name not in external_library_summary:
+                external_library_summary[lib_name] = {
+                    'urls': [],
+                    'hosts': [],
+                    'count': 0
+                }
+            external_library_summary[lib_name]['urls'].append(lib['url'])
+            external_library_summary[lib_name]['hosts'].append(lib['host'])
+            external_library_summary[lib_name]['count'] += 1
+            
+        # Deduplicate external library data
+        for lib_name, data in external_library_summary.items():
+            data['urls'] = list(set(data['urls']))
+            data['hosts'] = list(set(data['hosts']))
         
         # Find most common module hosting patterns
         module_hosts = {}
@@ -240,17 +390,23 @@ class NetworkTracer:
                 'total_requests': len(hosts)
             }
         
+        # Generate CDN mapping for automated redirection
+        cdn_mapping = self.generate_cdn_mapping()
+        
         results = {
             'meta': {
                 'pages_traced': len(page_titles),
                 'total_requests': len(self.all_requests),
                 'js_requests': len(self.js_requests),
                 'module_requests': len(self.module_requests),
+                'external_libraries': len(self.external_libraries),
                 'timestamp': time.time()
             },
             'external_hosts': all_external_hosts,
             'js_hosts': all_js_hosts,
+            'external_library_summary': external_library_summary,
             'module_hosting': module_summary,
+            'cdn_mapping': cdn_mapping,  # NEW: Automated CDN mapping for Kotlin
             'page_results': page_results
         }
         

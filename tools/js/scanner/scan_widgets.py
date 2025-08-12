@@ -100,6 +100,198 @@ def categorize_module(module_name: str) -> str:
         return 'other'
 
 
+def extract_core_modules(base: str, session: Optional[requests.Session] = None) -> Dict[str, str]:
+    """Extract core MediaWiki ResourceLoader infrastructure modules."""
+    core_modules = {}
+    
+    # Core infrastructure modules that load on every page
+    infrastructure_modules = [
+        'startup',           # Contains real mw.loader.implement() and ResourceLoader core
+        'jquery',            # jQuery library
+        'oojs',              # OOjs library  
+        'mediawiki.base',    # Core MediaWiki JavaScript APIs
+        'mediawiki.util',    # Common utility functions
+        'mediawiki.Uri',     # URL handling utilities
+        'site',              # Site-specific configuration
+    ]
+    
+    print(f"[INFO] Extracting {len(infrastructure_modules)} core infrastructure modules...")
+    
+    for module in infrastructure_modules:
+        try:
+            # Get the actual module content from ResourceLoader
+            module_url = f"{base.rstrip('/')}/load.php?lang=en-gb&modules={module}&only=scripts&raw=1&skin=vector"
+            response = session.get(module_url) if session else requests.get(module_url)
+            
+            if response.status_code == 200 and response.text.strip():
+                core_modules[module] = {
+                    'url': module_url,
+                    'content_length': len(response.text),
+                    'type': 'core-infrastructure'
+                }
+                print(f"[INFO]   Extracted core module: {module} ({len(response.text)} bytes)")
+            else:
+                print(f"[WARN]   Failed to extract core module: {module} (status: {response.status_code})")
+        except Exception as e:
+            print(f"[ERROR]  Error extracting core module {module}: {e}")
+    
+    return core_modules
+
+
+def extract_complete_mediawiki_infrastructure(base: str, session: Optional[requests.Session] = None) -> Dict[str, Any]:
+    """Extract complete MediaWiki ResourceLoader system using proper API endpoints instead of pattern matching."""
+    if session is None:
+        session = requests.Session()
+    
+    print(f"[INFO] Extracting complete MediaWiki infrastructure via ResourceLoader API from: {base}")
+    
+    infrastructure = {}
+    
+    try:
+        # STEP 1: Extract complete startup module with all ResourceLoader methods
+        print("[INFO]   🔄 Extracting complete startup module...")
+        startup_url = f"{base}/load.php"
+        startup_params = {
+            'debug': 'true',
+            'lang': 'en-gb', 
+            'modules': 'startup',
+            'only': 'scripts',
+            'skin': 'vector'
+        }
+        
+        startup_response = session.get(startup_url, params=startup_params, timeout=30)
+        startup_response.raise_for_status()
+        startup_content = startup_response.text
+        
+        if startup_content and 'mw.loader' in startup_content:
+            infrastructure['complete_startup'] = startup_content
+            print(f"[INFO]   ✅ Extracted complete startup module ({len(startup_content)} chars)")
+            
+            # Check if startup contains mw.loader.using method
+            if 'mw.loader.using' in startup_content:
+                print("[INFO]   ✅ Startup contains mw.loader.using method")
+            else:
+                print("[WARN]   ⚠️  Startup missing mw.loader.using - will need to add compatibility layer")
+        else:
+            print("[ERROR]  ❌ Failed to extract valid startup module")
+            infrastructure['complete_startup'] = ''
+        
+        # STEP 2: Extract module registry via ResourceLoader API
+        print("[INFO]   🔄 Extracting module registry...")
+        registry_params = {
+            'action': 'query',
+            'meta': 'siteinfo',
+            'siprop': 'general|namespaces|statistics|usergroups',
+            'format': 'json'
+        }
+        
+        # Get site info first to understand the MediaWiki version and capabilities
+        registry_response = session.get(f"{base}/api.php", params=registry_params, timeout=30)
+        registry_response.raise_for_status()
+        site_info = registry_response.json()
+        
+        if 'query' in site_info:
+            infrastructure['site_info'] = site_info['query']
+            print("[INFO]   ✅ Extracted site information")
+        
+        # STEP 3: Extract page-specific ResourceLoader configuration from a real page
+        print("[INFO]   🔄 Extracting page-specific ResourceLoader configuration...")
+        page_response = session.get(f"{base}/w/Exchange:Logs", timeout=30)
+        page_response.raise_for_status()
+        html_content = page_response.text
+        
+        # Extract the ResourceLoader configuration variables (more comprehensively)
+        config_extractions = {}
+        
+        # Extract RLCONF (ResourceLoader configuration)
+        rlconf_match = re.search(r'RLCONF\s*=\s*(\{.*?\});', html_content, re.DOTALL)
+        if rlconf_match:
+            config_extractions['rlconf'] = rlconf_match.group(1)
+            print("[INFO]   ✅ Extracted RLCONF configuration")
+        
+        # Extract RLSTATE (ResourceLoader state)  
+        rlstate_match = re.search(r'RLSTATE\s*=\s*(\{.*?\});', html_content, re.DOTALL)
+        if rlstate_match:
+            config_extractions['rlstate'] = rlstate_match.group(1)
+            print("[INFO]   ✅ Extracted RLSTATE configuration")
+        
+        # Extract RLPAGEMODULES (ResourceLoader page modules)
+        rlpagemodules_match = re.search(r'RLPAGEMODULES\s*=\s*(\[.*?\]);', html_content, re.DOTALL)
+        if rlpagemodules_match:
+            config_extractions['rlpagemodules'] = rlpagemodules_match.group(1)
+            print("[INFO]   ✅ Extracted RLPAGEMODULES configuration")
+        
+        # Extract all mw.loader.register calls (module registry data)
+        register_calls = re.findall(r'mw\.loader\.register\s*\(\s*(\[.*?\])\s*\);', html_content, re.DOTALL)
+        if register_calls:
+            config_extractions['module_registry_calls'] = register_calls
+            print(f"[INFO]   ✅ Extracted {len(register_calls)} module registry calls")
+        
+        # Extract all mw.loader.addSource calls
+        source_calls = re.findall(r'mw\.loader\.addSource\s*\(\s*(\{.*?\})\s*\);', html_content, re.DOTALL)
+        if source_calls:
+            config_extractions['source_calls'] = source_calls
+            print(f"[INFO]   ✅ Extracted {len(source_calls)} source configuration calls")
+        
+        infrastructure.update(config_extractions)
+        
+        # STEP 4: Extract ResourceLoader queue initialization
+        rlq_match = re.search(r'(RLQ\s*=\s*window\.RLQ\s*\|\|\s*\[\])', html_content)
+        if rlq_match:
+            infrastructure['rlq_init'] = rlq_match.group(1)
+            print("[INFO]   ✅ Extracted RLQ initialization")
+        
+        # STEP 5: Extract core modules individually to avoid UMD conflicts
+        print("[INFO]   🔄 Extracting core MediaWiki modules individually...")
+        core_modules_url = f"{base}/load.php"
+        
+        # Define modules and their expected formats
+        modules_to_extract = [
+            ('jquery', 'raw'),           # Raw JavaScript, no wrapper
+            ('oojs', 'raw'),            # Raw JavaScript, no wrapper
+            ('mediawiki.base', 'impl'),  # Package module with mw.loader.impl()
+            ('mediawiki.util', 'impl'),  # Package module with mw.loader.impl()
+        ]
+        
+        infrastructure['core_modules'] = {}
+        
+        for module_name, expected_format in modules_to_extract:
+            module_params = {
+                'debug': 'true',
+                'lang': 'en-gb',
+                'modules': module_name,
+                'only': 'scripts',
+                'skin': 'vector'
+            }
+            
+            try:
+                module_response = session.get(core_modules_url, params=module_params, timeout=30)
+                if module_response.status_code == 200 and module_response.text:
+                    content = module_response.text
+                    
+                    # Verify the format matches expectations
+                    if expected_format == 'impl' and 'mw.loader.impl(' in content:
+                        infrastructure['core_modules'][module_name] = content
+                        print(f"[INFO]   ✅ Extracted {module_name} as package module ({len(content)} chars)")
+                    elif expected_format == 'raw' and 'mw.loader.impl(' not in content:
+                        infrastructure['core_modules'][module_name] = content
+                        print(f"[INFO]   ✅ Extracted {module_name} as raw module ({len(content)} chars)")
+                    else:
+                        print(f"[WARN]   ⚠️  {module_name} format mismatch (expected {expected_format})")
+                        infrastructure['core_modules'][module_name] = content
+                else:
+                    print(f"[WARN]   ⚠️  Could not extract {module_name}: HTTP {module_response.status_code}")
+            except Exception as e:
+                print(f"[WARN]   ⚠️  Could not extract {module_name}: {e}")
+        
+        print(f"[INFO] Infrastructure extraction complete: {len(infrastructure)} components")
+        return infrastructure
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to extract MediaWiki infrastructure: {e}")
+        return {}
+
+
 def parse_page(base: str, title: str, session: Optional[requests.Session] = None) -> Tuple[List[str], str, Dict[str, List[str]], Dict[str, List[str]]]:
     params = {
         "action": "parse",
@@ -262,7 +454,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         titles = get_allpages(base, limit=args.limit, apnamespace=args.namespace)
 
     session = requests.Session()
-
+    
+    # PHASE 1: Extract core MediaWiki infrastructure modules (NEW)
+    print(f"\n=== EXTRACTING CORE INFRASTRUCTURE ===")
+    core_modules = extract_core_modules(base, session)
+    print(f"Extracted {len(core_modules)} core infrastructure modules\n")
+    
+    # PHASE 1.5: Extract complete MediaWiki coordination infrastructure (NEW)
+    print(f"=== EXTRACTING MEDIAWIKI COORDINATION INFRASTRUCTURE ===")
+    mw_infrastructure = extract_complete_mediawiki_infrastructure(base, session)
+    print(f"Extracted {len(mw_infrastructure)} infrastructure components\n")
+    
+    # PHASE 2: Scan pages for page-specific modules
+    print(f"=== SCANNING {len(titles)} PAGES ===")
     modules_hist: Dict[str, int] = collections.Counter()
     modules_pages: Dict[str, List[str]] = collections.defaultdict(list)
     classes_hist: Dict[str, int] = collections.Counter()
@@ -439,6 +643,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             "blacklisted_modules": sorted(blacklist_modules),
             "blacklisted_classes": sorted(blacklist_classes),
         },
+        "core_infrastructure_modules": core_modules,  # NEW: Core MediaWiki modules
+        "mediawiki_infrastructure": mw_infrastructure,  # NEW: Complete coordination infrastructure
         "modules": modules_report,
         "modules_by_category": categorized_reports,
         "javascript_modules": js_modules_report,
@@ -474,7 +680,21 @@ def main(argv: Optional[List[str]] = None) -> int:
         summary_lines.append(f"Blacklisted modules: {', '.join(sorted(blacklist_modules)) if blacklist_modules else 'none'}")
         summary_lines.append(f"Blacklisted classes: {', '.join(sorted(blacklist_classes)) if blacklist_classes else 'none'}")
     summary_lines.append("")
-    summary_lines.append("Top 20 modules:")
+    
+    # Add core infrastructure modules summary
+    summary_lines.append(f"Core infrastructure modules: {len(core_modules)}")
+    for module_name, module_info in core_modules.items():
+        size_kb = module_info['content_length'] // 1024
+        summary_lines.append(f"- {module_name}: {size_kb}KB ({module_info['type']})")
+    summary_lines.append("")
+    
+    # Add MediaWiki infrastructure summary
+    summary_lines.append(f"MediaWiki coordination infrastructure: {len(mw_infrastructure)} components")
+    for component_name in mw_infrastructure.keys():
+        summary_lines.append(f"- {component_name}")
+    summary_lines.append("")
+    
+    summary_lines.append("Top 20 page-specific modules:")
     for row in modules_report[:20]:
         category = row.get('category', 'unknown')
         summary_lines.append(f"- {row['module']} [{category}]: {row['count']} (e.g., {', '.join(row['sample_pages'])})")

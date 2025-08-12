@@ -10,15 +10,15 @@ Discovers pages' JS modules and widget-like HTML markers, and compares with loca
 Usage:
 ```
 # Basic scan (first 200 mainspace pages)
-./tools/js_modules/scanner/scan_widgets.sh --limit 200 --out tools/js_modules/out
+./tools/js/scanner/scan_widgets.sh --limit 200 --out tools/js/out
 
 # Scan specific pages
-./tools/js_modules/scanner/scan_widgets.sh --pages "Grand_Exchange" "Magic" "The_Gauntlet"
+./tools/js/scanner/scan_widgets.sh --pages "Grand_Exchange" "Magic" "The_Gauntlet"
 ```
 
 Outputs:
-- `tools/js_modules/out/report.json`
-- `tools/js_modules/out/summary.txt`
+- `tools/js/out/report.json`
+- `tools/js/out/summary.txt`
 
 ### 2. Module Extractor (`extractor/`)
 Automatically extracts JavaScript modules from the OSRS Wiki and adapts them for app use.
@@ -29,7 +29,7 @@ Automatically extracts JavaScript modules from the OSRS Wiki and adapts them for
 ./extractor/extract_modules.sh --modules ext.gadget.calc ext.gadget.switch-infobox
 
 # Auto-extract from widget scan results  
-./extractor/extract_modules.sh --auto-from-scan tools/js_modules/out/report.json
+./extractor/extract_modules.sh --auto-from-scan tools/js/out/report.json
 
 # Extract only priority modules
 ./extract_modules.sh --priority-only
@@ -69,12 +69,12 @@ mw.config.set('wgPageName', 'Current_Page_Title');
 
 1. **Scan for missing modules:**
    ```bash
-   ./tools/js_modules/scanner/scan_widgets.sh --limit 100 --out tools/js_modules/out
+   ./tools/js/scanner/scan_widgets.sh --limit 100 --out tools/js/out
    ```
 
 2. **Extract priority modules:**
    ```bash
-   ./tools/js_modules/extractor/extract_modules.sh --auto-from-scan tools/js_modules/out/report.json --priority-only
+   ./tools/js/extractor/extract_modules.sh --auto-from-scan tools/js/out/report.json --priority-only
    ```
 
 3. **Include in app assets:**
@@ -102,7 +102,7 @@ mw.config.set('wgPageName', 'Current_Page_Title');
 ## Architecture
 
 ```
-tools/js_modules/
+tools/js/
 ├── scanner/                    # Widget scanner
 │   ├── scan_widgets.py         # Scans wiki pages and local assets
 │   └── scan_widgets.sh         # Wrapper script with environment

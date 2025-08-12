@@ -9,10 +9,15 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.omiyawaki.osrswiki.page.cache.AssetCache
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayInputStream
 
 open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClient() {
     private val logTag = "PageLoadTrace"
+    private lateinit var cdnRedirector: UniversalCdnRedirector
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
@@ -33,8 +38,14 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
 
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
+        
+        // Initialize CDN redirector if needed
+        if (!::cdnRedirector.isInitialized) {
+            cdnRedirector = UniversalCdnRedirector.getInstance(view.context)
+        }
+        
+        // 1. First check AssetCache for existing cached resources
         val cachedAsset = AssetCache.get(url)
-
         if (cachedAsset != null) {
             Log.i(logTag, "  -> INTERCEPT [HIT] in AssetCache for: $url")
             val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
@@ -47,9 +58,21 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
                 ByteArrayInputStream(cachedAsset)
             )
         }
+        
+        // 2. Check for CDN redirection using automated mapping
+        try {
+            val cdnResponse = runBlocking {
+                cdnRedirector.shouldRedirectRequest(request)
+            }
+            if (cdnResponse != null) {
+                return cdnResponse
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "CDN redirector error for $url: ${e.message}")
+        }
 
-        // This log will be hit for local assets (handled by WebViewAssetLoader) and real network requests.
-        Log.w(logTag, "  -> INTERCEPT [MISS] in AssetCache for: $url")
+        // 3. Fallback to default behavior (local assets via WebViewAssetLoader or network)
+        Log.w(logTag, "  -> INTERCEPT [MISS] in AssetCache and CDN mapping for: $url")
         return super.shouldInterceptRequest(view, request)
     }
 

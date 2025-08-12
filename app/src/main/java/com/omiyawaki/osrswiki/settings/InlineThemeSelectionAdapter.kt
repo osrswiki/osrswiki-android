@@ -178,30 +178,15 @@ class InlineThemeSelectionAdapter(
                         deviceDensity=${dm.density} densityDpi=${dm.densityDpi}
                         """.trimIndent())
                         
-                        // Square container with fitStart for top-aligned scaling
-                        val squareSize = (96 * dm.density).roundToInt()
-                        imageView.layoutParams?.width = squareSize
-                        imageView.layoutParams?.height = squareSize
-                        imageView.adjustViewBounds = false
-                        imageView.scaleType = ImageView.ScaleType.FIT_START
+                        // Let ImageView handle scaling of 111x234 bitmaps naturally
+                        // Use centerInside for fit-to-width, top-aligned behavior
+                        imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     }
                     
                     Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
                     
-                    // Expert sanity check: bitmap must exactly match ImageView dimensions
-                    themePreviewImage?.let { imageView ->
-                        bitmap?.let { bmp ->
-                            try {
-                                check(bmp.width == imageView.width && bmp.height == imageView.height) {
-                                    "EXPERT VALIDATION FAILED: Bitmap ${bmp.width}x${bmp.height} must equal view ${imageView.width}x${imageView.height}"
-                                }
-                                Log.d("PreviewDiagnosis", "✓ Expert validation passed: bitmap=${bmp.width}x${bmp.height} matches view=${imageView.width}x${imageView.height}")
-                            } catch (e: IllegalStateException) {
-                                Log.e("PreviewDiagnosis", "✗ ${e.message}")
-                                // Continue anyway, but this indicates a scaling issue
-                            }
-                        }
-                    }
+                    // Allow ImageView to handle scaling - 111x234 bitmaps are correct app captures
+                    Log.d("PreviewDiagnosis", "Setting bitmap ${bitmap?.width}x${bitmap?.height} in ${themePreviewImage?.width}x${themePreviewImage?.height} ImageView")
                     
                     themePreviewImage?.setImageBitmap(bitmap)
                     Log.d("PreviewDiagnosis", "setImageBitmap() completed successfully")
@@ -358,30 +343,15 @@ class InlineThemeSelectionAdapter(
                         deviceDensity=${dm.density} densityDpi=${dm.densityDpi}
                         """.trimIndent())
                         
-                        // Square container with fitStart for top-aligned scaling (smaller size for horizontal)
-                        val squareSize = (60 * dm.density).roundToInt() // 60dp for horizontal layout (half of 120dp)
-                        imageView.layoutParams?.width = squareSize
-                        imageView.layoutParams?.height = squareSize
-                        imageView.adjustViewBounds = false
-                        imageView.scaleType = ImageView.ScaleType.FIT_START
+                        // Let ImageView handle scaling of 111x234 bitmaps naturally
+                        // Use centerInside for fit-to-width, top-aligned behavior  
+                        imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     }
                     
                     Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
                     
-                    // Expert sanity check: bitmap must exactly match ImageView dimensions
-                    themePreviewImage?.let { imageView ->
-                        bitmap?.let { bmp ->
-                            try {
-                                check(bmp.width == imageView.width && bmp.height == imageView.height) {
-                                    "EXPERT VALIDATION FAILED: Bitmap ${bmp.width}x${bmp.height} must equal view ${imageView.width}x${imageView.height}"
-                                }
-                                Log.d("PreviewDiagnosis", "✓ Expert validation passed: bitmap=${bmp.width}x${bmp.height} matches view=${imageView.width}x${imageView.height}")
-                            } catch (e: IllegalStateException) {
-                                Log.e("PreviewDiagnosis", "✗ ${e.message}")
-                                // Continue anyway, but this indicates a scaling issue
-                            }
-                        }
-                    }
+                    // Allow ImageView to handle scaling - 111x234 bitmaps are correct app captures
+                    Log.d("PreviewDiagnosis", "Setting bitmap ${bitmap?.width}x${bitmap?.height} in ${themePreviewImage?.width}x${themePreviewImage?.height} ImageView")
                     
                     themePreviewImage?.setImageBitmap(bitmap)
                     Log.d("PreviewDiagnosis", "setImageBitmap() completed successfully")

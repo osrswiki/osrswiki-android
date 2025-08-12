@@ -42,17 +42,22 @@
 
   function injectExternalScript(filename, onload) {
     if (!filename) return;
-    // Skip libraries we polyfill or do not bundle
-    var skip = { 'jquery.js': true };
-    if (skip[filename]) {
-      log('Skipping external dependency (polyfilled):', filename);
-      if (onload) { onload(); }
-      return;
-    }
     if (injectedExternals[filename]) {
       if (onload) { onload(); }
       return;
     }
+    
+    // Check if script is already loaded in DOM (from pre-scan)
+    var scriptUrl = ASSET_BASE + EXTERNAL_DIR + filename;
+    var existingScripts = document.querySelectorAll('script[src="' + scriptUrl + '"]');
+    if (existingScripts.length > 0) {
+      log('External script already loaded by pre-scan:', filename);
+      injectedExternals[filename] = true;
+      if (onload) { onload(); }
+      return;
+    }
+    
+    
     injectedExternals[filename] = true;
     var script = document.createElement('script');
     script.src = ASSET_BASE + EXTERNAL_DIR + filename;
@@ -112,12 +117,37 @@
     }
     var remaining = deps.length;
     function afterDeps() {
-      // Trigger module load via mw.loader
-      if (window.mw && window.mw.loader && typeof window.mw.loader.load === 'function') {
-        log('Loading module via mw.loader:', moduleKey);
-        try { window.mw.loader.load(moduleKey); } catch (e) { warn('mw.loader.load failed for', moduleKey, e); }
+      // Trigger module load via ResourceLoader bridge (ensures proper timing)
+      if (window.mwLoaderBridge) {
+        // Gadgets need to execute immediately, so use using() instead of load()
+        if (moduleKey.startsWith('ext.gadget.')) {
+          log('Executing gadget via ResourceLoader bridge:', moduleKey);
+          window.mwLoaderBridge.using(moduleKey, function() {
+            log('Gadget executed successfully:', moduleKey);
+          }, function(error) {
+            warn('Gadget execution failed:', moduleKey, error);
+          });
+        } else {
+          log('Loading module via ResourceLoader bridge:', moduleKey);
+          window.mwLoaderBridge.load(moduleKey);
+        }
+      } else if (window.mw && window.mw.loader) {
+        // Fallback to direct calls
+        if (moduleKey.startsWith('ext.gadget.') && typeof window.mw.loader.using === 'function') {
+          log('Executing gadget via direct mw.loader (fallback):', moduleKey);
+          try { 
+            window.mw.loader.using(moduleKey, function() {
+              log('Gadget executed successfully:', moduleKey);
+            }, function(error) {
+              warn('Gadget execution failed:', moduleKey, error);
+            });
+          } catch (e) { warn('mw.loader.using failed for', moduleKey, e); }
+        } else if (typeof window.mw.loader.load === 'function') {
+          log('Loading module via direct mw.loader (fallback):', moduleKey);
+          try { window.mw.loader.load(moduleKey); } catch (e) { warn('mw.loader.load failed for', moduleKey, e); }
+        }
       } else {
-        warn('mw.loader not available when loading', moduleKey);
+        warn('Neither ResourceLoader bridge nor mw.loader available when loading', moduleKey);
       }
     }
     if (!remaining) {

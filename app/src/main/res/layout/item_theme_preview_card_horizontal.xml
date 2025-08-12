@@ -67,7 +67,7 @@
                 android:id="@+id/themePreviewImage"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
-                android:scaleType="fitStart"
+                android:scaleType="centerInside"
                 android:adjustViewBounds="false"
                 android:background="@android:color/transparent"
                 android:importantForAccessibility="no" />
