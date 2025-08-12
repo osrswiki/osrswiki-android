@@ -5,6 +5,6 @@
     This ensures that when system dark mode is triggered, we use the full OSRS dark theme
     with all proper attributes, instead of a basic dark theme that misses some styling.
     -->
-    <style name="Theme.OSRSWiki" parent="@style/Theme.OSRSWiki.OSRSDark" />
+    <style name="Theme.OSRSWiki" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
 
 </resources>

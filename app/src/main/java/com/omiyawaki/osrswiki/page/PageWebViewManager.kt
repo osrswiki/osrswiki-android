@@ -12,6 +12,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
 import android.net.Uri
+import android.os.Build
 import android.os.Message
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -166,7 +167,11 @@ class PageWebViewManager(
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
-                val crashDetails = if (detail?.didCrash() == true) "CRASHED" else "KILLED_BY_OS_OR_OTHER"
+                val crashDetails = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true) {
+                    "CRASHED"
+                } else {
+                    "KILLED_BY_OS_OR_OTHER"
+                }
                 Log.e(logTag, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 Log.e(logTag, "!!! WebView RENDERER PROCESS GONE. Reason: $crashDetails")
                 Log.e(logTag, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

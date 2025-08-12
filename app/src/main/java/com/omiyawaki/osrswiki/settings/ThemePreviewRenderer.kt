@@ -269,7 +269,12 @@ object ThemePreviewRenderer {
             // Save to disk cache with error handling
             try {
                 cachedFile.outputStream().use { stream ->
-                    val compressed = newBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, stream)
+                    val compressed = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        newBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSLESS, 100, stream)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        newBitmap.compress(Bitmap.CompressFormat.WEBP, 100, stream)
+                    }
                     if (compressed) {
                         Log.d(TAG, "🔧 FOLDABLE: Saved bitmap to disk cache for '$fullCacheKey'")
                     } else {
