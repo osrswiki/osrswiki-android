@@ -28,10 +28,13 @@ import com.omiyawaki.osrswiki.ui.map.MapFragment
 import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import android.widget.TextView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
 import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
+import com.omiyawaki.osrswiki.settings.ActivityContextPool
 
 // Debug extension to trace all programmatic tab changes
 fun BottomNavigationView.debugSelect(id: Int, src: String = "") {
@@ -67,6 +70,7 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(LIFECYCLE_TAG, "onCreate() called. Saved state is ${if (savedInstanceState == null) "null" else "present"}")
+        Log.i("StartupTiming", "MainActivity.onCreate() - Main activity starting")
         super.onCreate(savedInstanceState)
         
         // Enable edge-to-edge but respect the theme's status bar settings
@@ -191,6 +195,8 @@ class MainActivity : BaseActivity() {
         binding.bottomNav.debugSelect(selectedNavId, "MainActivity#onCreate")
         setupThemeChangeReceiver()
         handleIntentExtras(intent)
+        
+        Log.i("StartupTiming", "MainActivity.onCreate() completed - Activity ready for display")
     }
     
     private fun setupFonts() {
@@ -376,16 +382,22 @@ class MainActivity : BaseActivity() {
     
     override fun onResume() {
         Log.d(LIFECYCLE_TAG, "onResume() called.")
+        Log.i("StartupTiming", "MainActivity.onResume() - Activity becoming available for preview generation")
         super.onResume() // This handles theme changes in BaseActivity
         
         // Capture live content bounds for theme previews (expert's solution)
         ContentBoundsProvider.publishFrom(this)
         
-        // Initialize background preview generation as soon as Activity context is available
-        // This ensures previews are ready when users navigate to appearance settings
-        val app = application as OSRSWikiApp
-        val currentTheme = app.getCurrentTheme()
-        PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
+        // Register this Activity for WebView context pooling
+        Log.i("StartupTiming", "MainActivity registering with ActivityContextPool...")
+        lifecycleScope.launch {
+            ActivityContextPool.registerActivity(this@MainActivity)
+            Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
+            
+            // Preview generation is now handled by WorkManager from Application.onCreate()
+            // This eliminates race conditions with activity lifecycle and theme changes
+            Log.i("StartupTiming", "Preview generation handled by WorkManager - no longer triggered from MainActivity")
+        }
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
@@ -402,6 +414,11 @@ class MainActivity : BaseActivity() {
     override fun onPause() {
         super.onPause()
         Log.d(LIFECYCLE_TAG, "onPause() called.")
+        
+        // Unregister this Activity from WebView context pooling
+        lifecycleScope.launch {
+            ActivityContextPool.unregisterActivity(this@MainActivity)
+        }
     }
     
     override fun onStop() {
