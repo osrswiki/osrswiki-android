@@ -18,22 +18,40 @@ function safeLog(message, isError = false) {
     }
 }
 
-window.mw = {
-    log: function(message) {
-        safeLog(JSON.stringify(message));
-    },
-    hook: function(eventName) {
-        return {
-            add: function(callback) {
-                if (eventName === 'wikipage.content') {
-                    safeLog('mw.hook.add called. Storing callback.');
-                    window.infoboxSwitcherCallback = callback;
-                }
-            },
-            fire: function() {}
+// Only create minimal mw object if none exists (shared compatibility layer should create the full one)
+if (typeof window.mw === 'undefined') {
+    window.mw = {
+        log: function(message) {
+            safeLog(JSON.stringify(message));
+        },
+        hook: function(eventName) {
+            return {
+                add: function(callback) {
+                    if (eventName === 'wikipage.content') {
+                        safeLog('mw.hook.add called. Storing callback.');
+                        window.infoboxSwitcherCallback = callback;
+                    }
+                },
+                fire: function() {}
+            };
+        }
+    };
+} else {
+    // Extend existing mw object with hook functionality if needed
+    if (!window.mw.hook) {
+        window.mw.hook = function(eventName) {
+            return {
+                add: function(callback) {
+                    if (eventName === 'wikipage.content') {
+                        safeLog('mw.hook.add called. Storing callback.');
+                        window.infoboxSwitcherCallback = callback;
+                    }
+                },
+                fire: function() {}
+            };
         };
     }
-};
+}
 
 function initializeInfoboxSwitcher() {
     safeLog('Initializer called.');

@@ -90,7 +90,7 @@ object TablePreviewRenderer {
         collapseTablesEnabled: Boolean,
         theme: Theme
     ): Bitmap = withContext(Dispatchers.Default) {
-        val cacheKey = "table-preview-${theme.tag}-${if (collapseTablesEnabled) "collapsed" else "expanded"}-v${BuildConfig.VERSION_CODE}"
+        val cacheKey = "table-preview-${theme.tag}-${if (collapseTablesEnabled) "collapsed" else "expanded"}-v${BuildConfig.VERSION_CODE}-simple"
         
         Log.d(TAG, "getPreview called for collapseTablesEnabled=$collapseTablesEnabled")
         
@@ -250,8 +250,6 @@ object TablePreviewRenderer {
             throw e
         }
     }
-    
-    
     
     /**
      * Captures the preview bitmap after page is ready.

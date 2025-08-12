@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="224dp"
+    android:layout_height="140dp"
     android:layout_marginHorizontal="0dp"
     android:layout_marginVertical="4dp"
     android:checkable="true"
@@ -63,7 +63,7 @@
                 android:id="@+id/themePreviewImage"
                 android:layout_width="96dp"
                 android:layout_height="96dp"
-                android:scaleType="fitStart"
+                android:scaleType="centerInside"
                 android:adjustViewBounds="false"
                 android:background="@android:color/transparent"
                 android:importantForAccessibility="no" />

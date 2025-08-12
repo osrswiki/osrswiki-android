@@ -420,37 +420,62 @@ object ThemePreviewRenderer {
     }
     
     /**
-     * Scales screen content proportionally to fit within square container.
-     * No cropping - just proper proportional scaling based on aspect ratios.
+     * Scales screen content to fill square container with top-aligned cropping.
+     * Similar to table previews - scales to fit width and crops from top for "fit-to-width" behavior.
      */
     private fun scaleProportionallyToSquare(src: Bitmap, squareSize: Int, themedContext: Context): Bitmap {
-        val srcRatio = src.width / src.height.toFloat()
-        val containerRatio = 1.0f // Square container (1:1 aspect ratio)
+        val sourceWidth = src.width.toFloat()
+        val sourceHeight = src.height.toFloat()
+        val targetWidth = squareSize
+        val targetHeight = squareSize
+        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat() // 1.0 for square
+        val sourceRatio = sourceWidth / sourceHeight
         
-        Log.d(TAG, "🔧 PROPORTIONAL: Source ${src.width}×${src.height} (ratio=$srcRatio) → Square ${squareSize}×${squareSize}")
+        Log.d(TAG, "🔧 FIT_TO_WIDTH: Source ${src.width}×${src.height} (ratio=$sourceRatio) → Square ${squareSize}×${squareSize}")
         
-        // Calculate final dimensions based on aspect ratio comparison
-        val (finalW, finalH) = if (srcRatio > containerRatio) {
-            // Source is wider than square → scale to fit width, height will be smaller
-            val scale = squareSize / src.width.toFloat()
-            val scaledH = (src.height * scale).roundToInt()
-            Log.d(TAG, "🔧 PROPORTIONAL: Source wider → fit to width, scale=$scale")
-            Pair(squareSize, scaledH)
+        // Calculate scaling factor to fill the target container (same logic as table previews)
+        val scale = if (sourceRatio > targetRatio) {
+            // Source is wider - scale to fit height, crop width
+            targetHeight / sourceHeight
         } else {
-            // Source is taller than square → scale to fit height, width will be smaller  
-            val scale = squareSize / src.height.toFloat()
-            val scaledW = (src.width * scale).roundToInt()
-            Log.d(TAG, "🔧 PROPORTIONAL: Source taller → fit to height, scale=$scale")
-            Pair(scaledW, squareSize)
+            // Source is taller - scale to fit width, crop height  
+            targetWidth / sourceWidth
         }
         
-        Log.d(TAG, "🔧 PROPORTIONAL: Final scaled size: ${finalW}×${finalH}")
+        // Calculate scaled dimensions
+        val scaledWidth = (sourceWidth * scale).roundToInt()
+        val scaledHeight = (sourceHeight * scale).roundToInt()
         
-        // Create proportionally scaled bitmap - ImageView will center it
-        val final = Bitmap.createScaledBitmap(src, finalW, finalH, true)
-        final.density = DisplayMetrics.DENSITY_DEFAULT
+        Log.d(TAG, "🔧 FIT_TO_WIDTH: Scale factor=$scale, scaled=${scaledWidth}×${scaledHeight}")
         
-        return final
+        // Create scaled bitmap
+        val scaledBitmap = Bitmap.createScaledBitmap(src, scaledWidth, scaledHeight, true)
+        
+        // Calculate crop offsets - center horizontally, top-aligned vertically
+        val cropX = maxOf(0, (scaledWidth - targetWidth) / 2)
+        val cropY = 0 // Start from top to show header content (like table previews)
+        
+        // Crop to final target size
+        val croppedBitmap = Bitmap.createBitmap(
+            scaledBitmap,
+            cropX,
+            cropY,
+            minOf(targetWidth, scaledWidth),
+            minOf(targetHeight, scaledHeight),
+            null,
+            false
+        )
+        
+        // Clean up intermediate bitmap
+        if (scaledBitmap != croppedBitmap) {
+            scaledBitmap.recycle()
+        }
+        
+        croppedBitmap.density = DisplayMetrics.DENSITY_DEFAULT
+        
+        Log.d(TAG, "🔧 FIT_TO_WIDTH: Final preview ${croppedBitmap.width}×${croppedBitmap.height} - fit to width with top alignment")
+        
+        return croppedBitmap
     }
     
     /**

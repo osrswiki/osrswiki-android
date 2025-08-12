@@ -1,102 +1,11 @@
+/**
+ * MediaWiki ResourceLoader Module: ext.gadget.GECharts-core
+ * 
+ * Extracted from OSRS Wiki server to work with real MediaWiki infrastructure.
+ * Dependencies: jquery, mw_loader_, $(, mw_config_
+ */
 
-// MediaWiki API Compatibility Layer
-if (typeof window.mw === 'undefined') {
-    window.mw = {
-        config: {
-            get: function(key, fallback) {
-                const configs = {
-                    'wgPageName': document.title || 'Unknown_Page',
-                    'wgNamespaceNumber': 0,
-                    'wgTitle': document.title || 'Unknown Page',
-                    'wgUserGroups': ['*'],
-                    'wgUserName': null
-                };
-                return configs[key] !== undefined ? configs[key] : fallback;
-            }
-        },
-        loader: {
-            using: function(modules, callback) {
-                // Simple implementation - assume modules are already loaded
-                if (typeof callback === 'function') {
-                    setTimeout(callback, 0);
-                }
-                return Promise.resolve();
-            },
-            load: function(modules) {
-                console.log('[MW-COMPAT] Module load requested:', modules);
-            }
-        },
-        util: {
-            getUrl: function(title, params) {
-                // Basic URL construction for wiki links
-                return '#' + encodeURIComponent(title.replace(/ /g, '_'));
-            },
-            addCSS: function(css) {
-                const style = document.createElement('style');
-                style.textContent = css;
-                document.head.appendChild(style);
-            }
-        },
-        message: function(key) {
-            // Basic message implementation - return the key
-            return {
-                text: function() { return key; },
-                parse: function() { return key; }
-            };
-        },
-        cookie: {
-            get: function(name, defaultValue) {
-                const value = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-                return value ? decodeURIComponent(value[2]) : defaultValue;
-            },
-            set: function(name, value, expires) {
-                document.cookie = name + '=' + encodeURIComponent(value) + 
-                    (expires ? '; expires=' + expires : '') + '; path=/';
-            }
-        },
-        user: {
-            getName: function() { return null; },
-            isAnon: function() { return true; },
-            options: {
-                get: function(key, fallback) { return fallback; }
-            }
-        }
-    };
-}
-
-// jQuery compatibility (if not already loaded)
-if (typeof window.$ === 'undefined' && typeof window.jQuery !== 'undefined') {
-    window.$ = window.jQuery;
-}
-
-
-// Basic jQuery-like functionality for simple cases
-if (typeof window.$ === 'undefined') {
-    window.$ = function(selector) {
-        if (typeof selector === 'function') {
-            // Document ready
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                setTimeout(selector, 0);
-            } else {
-                document.addEventListener('DOMContentLoaded', selector);
-            }
-            return;
-        }
-        // Basic element selection
-        return {
-            ready: function(fn) { $(fn); },
-            length: 0,
-            each: function() { return this; }
-        };
-    };
-    window.jQuery = window.$;
-}
-
-
-// Adapted module: ext.gadget.GECharts-core
-(function() {
-'use strict';
-
+// Original module source (to be loaded via ResourceLoader)
 'use strict';var conf=mw.config.get(['wgNamespaceNumber','wgPageName','wgTitle','wgSiteName']),isOSRS=conf.wgSiteName=="Old School RuneScape Wiki",volumeLabel=isOSRS?"Daily volume":"7-day volume",gameVersion=isOSRS?'osrs':'rs',gec={},_GEC={AIQueue:[],AILoaded:[],AIData:[],addedData:[],average:parseInt((location.hash.match(/#a=([^#]*)/)||[])[1],10)||'',urlCache:{}},self={deps:function(){if(!mw.loader.getState('rs.highcharts')){mw.loader.implement('rs.highcharts',['https://chisel.weirdgloop.org/static/highcharts-stock.js'],{},{});}mw.loader.using(['mediawiki.util','mediawiki.api','rs.highcharts','oojs-ui-core','oojs-ui.styles.icons-media'],self.init);},init:function(req){window.Highcharts=req('rs.highcharts');(function(){var newhash=location.hash.replace(/\.([0-9a-f]{2})/gi,function(_,first){return String.fromCharCode(parseInt(first,16));}).replace(/ /g,'_');if(newhash&&newhash.match(/#[aiz]=/)){location.hash=newhash;}}());$('.GEdatachart').attr('id',function(c){return'GEdatachart'+c;});
 $('.GEdataprices').attr('id',function(c){return'GEdataprices'+c;});$('.GEChartBox').each(function(c){$(this).find('.GEChartItems').attr('id','GEChartItems'+c);});Highcharts.setOptions({lang:{resetZoom:null,numericSymbols:['K','M','B','T','Qd','Qt'],}});window._GEC=_GEC;window.popupChart=popupChart;window.addItem=chart.addItem;window.removeGraphItem=chart.removeItem;self.buildPopup();self.setupCharts();},makeOOUI:function(c){var averageRangeInput,addItemInput,submitButton,resetButton,fieldset,permalink;averageRangeInput=new OO.ui.NumberInputWidget({min:1,value:30,id:'average'+c});averageRangeInput.$element.data('ooui-elem',averageRangeInput);addItemInput=new OO.ui.TextInputWidget({id:'extraItem'+c});addItemInput.$element.data('ooui-elem',addItemInput);submitButton=new OO.ui.ButtonInputWidget({label:'Submit',flags:['primary','progressive']});resetButton=new OO.ui.ButtonInputWidget({label:'Reset'});permalink=new OO.ui.ButtonInputWidget({label:'Permanent link',title:'Permanent link to the current chart settings and items. Right click to copy the url.',
 id:'GEPermLink'+c});permalink.$element.data('ooui-elem',permalink);permalink.setData('/w/RuneScape:Grand_Exchange_Market_Watch/Chart');permalink.on('click',function(){window.open(permalink.getData(),'_blank');});averageRangeInput.on('enter',function(){addItem(c);});addItemInput.on('enter',function(){addItem(c);});submitButton.on('click',function(){addItem(c);});resetButton.on('click',function(){addItemInput.setValue('');averageRangeInput.setValue(30);});fieldset=new OO.ui.FieldsetLayout();fieldset.addItems([new OO.ui.FieldLayout(averageRangeInput,{label:'Average (days)'}),new OO.ui.FieldLayout(addItemInput,{label:'Add new item'})]);fieldset.$element.append(submitButton.$element).append(resetButton.$element).append(permalink.$element);fieldset.$element.css('max-width','320px');return fieldset.$element;},buildPopup:function(){var close;close=new OO.ui.ButtonWidget({icon:'close'});close.on('click',function(){popupChart(false);});$('body').append($('<div>').attr('id','GEchartpopup').css('display','none')
@@ -122,6 +31,3 @@ $popup.attr('data-chartid',i);options={};getData(i,false,false,'popup',function(
 for(i=0;i<prices.length;i++){data.push([prices[i][0],prices[i][1]]);if(prices[i][2]&&!isSmall){volumes.push([prices[i][0],prices[i][2]*volumeMultiplier]);}}dataList=[{name:itemName,data:data,lineWidth:isSmall?2:3}];if(itemName.toLowerCase()==='blank'&&!chartLoaded){dataList[0].color='#000000';}if(!isSmall&&!isMedium&&(itemName.toLowerCase()!=='blank'||chartLoaded)){inputAvg=$('#average'+avginput).data('ooui-elem').getNumericValue();if(inputAvg){newhash=location.hash.replace(/#a=[^#]*|$/,'#a='+inputAvg).replace(/ /g,'_');if(newhash.length){location.hash=newhash;}}inputAvg=inputAvg||30;dataList.push({name:inputAvg+'-day average',data:util.avg(data,inputAvg,isIndexChart?2:0),lineWidth:2,dashStyle:'shortdash',});if(volumes.length>=10){dataList.push({name:volumeLabel,data:volumes,type:'area',color:'#cc8400',fillColor:{linearGradient:{x1:0,y1:0,x2:0,y2:1},stops:[[0,'#ffa500'],[1,'white']],},yAxis:1,});}}yAxis={title:{text:isSmall?null:(isIndexChart?'Index history':'Price history'),offset:60,
 rotation:270,style:{color:'black',fontSize:'12px',},},opposite:false,labels:{align:'right',x:-8,y:4,},allowDecimals:false,minTickInterval:1,showLastLabel:1,lineWidth:1,lineColor:'#E0E0E0'};if(volumes.length>=10&&!isSmall){yAxis.height=200;yAxis=[yAxis,{title:{text:volumeLabel,offset:60,rotation:270,style:{color:'black',fontSize:'12px'}},opposite:false,labels:{align:'right',x:-8,y:4,},showEmpty:0,showLastLabel:1,offset:0,lineWidth:1,lineColor:'#E0E0E0',height:50,top:325,min:0}];}return[dataList,yAxis];}
 var isPopup=!isSmall&&!isMedium;var dataType=isPopup?'all':'sample';var url="https://api.weirdgloop.org/exchange/history/"+gameVersion+"/"+dataType+"?compress=true&id="+dataItemId;var pricesPromise;if(chartLoaded&&itemName.toLowerCase()==='blank'){chartPageData=_GEC['chart'+c].series[getSeriesIndex(c,$('#addedItems'+c).find('a').data('item'))];for(i=0;i<chartPageData.xData.length;i++){prices.push(chartPageData.xData[i]+':'+chartPageData.yData[i]);}pricesPromise=Promise.resolve(prices);}else{if(_GEC.urlCache[url]){return callback(pricesToDataList(_GEC.urlCache[url]))}$.getJSON(url).then(pricesToDataList).then(callback)}}$(self.deps);
-
-
-})();

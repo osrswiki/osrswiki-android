@@ -1,0 +1,61 @@
+{
+  "extraction_timestamp": "2025-08-11T22:53:07.115181Z",
+  "core_modules": {
+    "startup": {
+      "original_name": "startup",
+      "deployed_filename": "startup.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=startup&only=scripts&raw=1&skin=vector",
+      "content_length": 50342,
+      "type": "core-infrastructure",
+      "order": 1
+    },
+    "jquery": {
+      "original_name": "jquery",
+      "deployed_filename": "jquery.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=jquery&only=scripts&raw=1&skin=vector",
+      "content_length": 140614,
+      "type": "core-infrastructure",
+      "order": 2
+    },
+    "oojs": {
+      "original_name": "oojs",
+      "deployed_filename": "oojs.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=oojs&only=scripts&raw=1&skin=vector",
+      "content_length": 15224,
+      "type": "core-infrastructure",
+      "order": 3
+    },
+    "mediawiki.base": {
+      "original_name": "mediawiki.base",
+      "deployed_filename": "mediawiki_base.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=mediawiki.base&only=scripts&raw=1&skin=vector",
+      "content_length": 21005,
+      "type": "core-infrastructure",
+      "order": 4
+    },
+    "mediawiki.util": {
+      "original_name": "mediawiki.util",
+      "deployed_filename": "mediawiki_util.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=mediawiki.util&only=scripts&raw=1&skin=vector",
+      "content_length": 15836,
+      "type": "core-infrastructure",
+      "order": 5
+    },
+    "mediawiki.Uri": {
+      "original_name": "mediawiki.Uri",
+      "deployed_filename": "mediawiki_Uri.js",
+      "url": "https://oldschool.runescape.wiki/load.php?lang=en-gb&modules=mediawiki.Uri&only=scripts&raw=1&skin=vector",
+      "content_length": 4766,
+      "type": "core-infrastructure",
+      "order": 6
+    }
+  },
+  "load_order": [
+    "startup",
+    "jquery",
+    "oojs",
+    "mediawiki.base",
+    "mediawiki.util",
+    "mediawiki.Uri"
+  ]
+}

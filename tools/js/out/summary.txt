@@ -1,35 +1,65 @@
 Base: https://oldschool.runescape.wiki
-Pages scanned: 1
+Pages scanned: 200
 Blacklisted modules: ext.kartographer.frame, ext.kartographer.link
 Blacklisted classes: kartographer-map, map-container, mw-kartographer-container, mw-kartographer-interactive, mw-kartographer-map, mw-kartographer-mapDialog-foot, rsmap
 
-Top 20 modules:
-- ext.cite.ux-enhancements [extension]: 1 (e.g., Logs)
-- ext.scribunto.logs [extension]: 1 (e.g., Logs)
+Core infrastructure modules: 6
+- startup: 49KB (core-infrastructure)
+- jquery: 137KB (core-infrastructure)
+- oojs: 14KB (core-infrastructure)
+- mediawiki.base: 20KB (core-infrastructure)
+- mediawiki.util: 15KB (core-infrastructure)
+- mediawiki.Uri: 4KB (core-infrastructure)
+
+MediaWiki coordination infrastructure: 7 components
+- complete_startup
+- site_info
+- rlconf
+- rlstate
+- rlpagemodules
+- rlq_init
+- core_modules
+
+Top 20 page-specific modules:
+- ext.scribunto.logs [extension]: 18 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beefy' Burns, 'Betty' B.Boppin, 'Birds-Eye' Jack)
+- ext.cite.ux-enhancements [extension]: 2 (e.g., 'No fingers', (uncharged))
+- ext.smw.tooltip [extension]: 1 (e.g., 'Squawking' Steve Beanie)
 
 Modules by category:
-- Extension: 2 modules, 2 total uses (top: ext.cite.ux-enhancements, ext.scribunto.logs)
+- Extension: 3 modules, 21 total uses (top: ext.scribunto.logs, ext.cite.ux-enhancements, ext.smw.tooltip)
 
-JavaScript modules found: 2
+JavaScript modules found: 3
 Top 10 JavaScript modules (extractable):
-- ext.cite.ux-enhancements: 1 (e.g., Logs)
-- ext.scribunto.logs: 1 (e.g., Logs)
+- ext.scribunto.logs: 18 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beefy' Burns, 'Betty' B.Boppin, 'Birds-Eye' Jack)
+- ext.cite.ux-enhancements: 2 (e.g., 'No fingers', (uncharged))
+- ext.smw.tooltip: 1 (e.g., 'Squawking' Steve Beanie)
 
-CSS-only modules found: 2
+CSS-only modules found: 5
 Top 10 CSS modules (styles only):
-- ext.cite.styles: 1 (e.g., Logs)
-- ext.kartographer.style: 1 (e.g., Logs)
+- mediawiki.action.view.redirectPage: 119 (e.g., !, ! commands, !kc, !lvl, !pb)
+- ext.kartographer.style: 14 (e.g., 'Beedy-eye' Jones, 'Beefy' Burns, 'Betty' B.Boppin, 'Birds-Eye' Jack, 'Black-eye')
+- ext.cite.styles: 2 (e.g., 'No fingers', (uncharged))
+- ext.smw.styles: 1 (e.g., 'Squawking' Steve Beanie)
+- ext.smw.tooltip.styles: 1 (e.g., 'Squawking' Steve Beanie)
 
 Top 20 missing widget-like classes (heuristic):
-- infobox-quantity: 14 (e.g., Logs, Logs, Logs)
-- infobox-quantity-replace: 14 (e.g., Logs, Logs, Logs)
-- infobox-cell-shown: 9 (e.g., Logs, Logs, Logs)
-- navbox-group-split: 5 (e.g., Logs, Logs, Logs)
-- navbox-group-title-hidden: 5 (e.g., Logs, Logs, Logs)
-- infobox-smw-data: 3 (e.g., Logs, Logs, Logs)
-- navbox-autocollapse: 2 (e.g., Logs, Logs)
-- navbox-title-name: 2 (e.g., Logs, Logs)
-- infobox-cell-hidden: 1 (e.g., Logs)
-- infobox-image: 1 (e.g., Logs)
-- infobox-item: 1 (e.g., Logs)
-- infobox-resources-Skill_info: 1 (e.g., Logs)
+- navbox-group: 627 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- navbox-list: 627 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- navbox-group-title: 593 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- infobox-padding: 146 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- mw-collapsible: 103 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- navbox: 99 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- navbox-autocollapse: 99 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- navbox-title: 99 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- navbox-title-name: 99 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- infobox-nested: 90 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- infobox-subheader: 57 (e.g., '24-carat' sword, '24-carat' sword, '24-carat' sword)
+- infobox-full-width-content: 35 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beedy-eye' Jones)
+- navbox-group-split: 34 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beedy-eye' Jones)
+- navbox-group-title-hidden: 34 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beedy-eye' Jones)
+- navbox-parent: 34 (e.g., 'Beedy-eye' Jones, 'Beedy-eye' Jones, 'Beefy' Burns)
+- navbox-subgroup: 34 (e.g., 'Beedy-eye' Jones, 'Beedy-eye' Jones, 'Beefy' Burns)
+- infobox: 27 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- infobox-smw-data: 27 (e.g., '24-carat' sword, '24-carat' sword, 'Beedy-eye' Jones)
+- infobox-header: 24 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beefy' Burns)
+- infobox-image: 20 (e.g., '24-carat' sword, 'Beedy-eye' Jones, 'Beefy' Burns)

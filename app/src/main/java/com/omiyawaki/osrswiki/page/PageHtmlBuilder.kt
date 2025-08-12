@@ -25,18 +25,35 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/fixes.css"
     )
 
-    private val jsAssetPaths = listOf(
+    // ResourceLoader startup module - must load directly as it contains the ResourceLoader system itself
+    private val startupModule = "web/core/startup.js"
+    
+    // Individual core modules loaded through ResourceLoader (proper server pattern)
+    private val coreResourceLoaderModules = listOf(
+        "web/core/mediawiki_base.js",     // Contains mw.loader.using and core MediaWiki functionality
+        "web/core/mediawiki_util.js",     // MediaWiki utility functions  
+        "web/core/oojs.js"                // OOjs library for OOUI support
+    )
+    
+    // Expert recommendation: Remove complex coordination infrastructure
+    // The browser's sequential script execution provides all the coordination we need
+    
+    // Essential app-specific functionality (simplified)
+    private val appSpecificModules = listOf(
         "js/tablesort.min.js",
-        "js/tablesort_init.js", // Add the initialization script
+        "js/tablesort_init.js",
         "web/app/collapsible_content.js",
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
         "web/app/horizontal_scroll_interceptor.js",
-        "web/app/responsive_videos.js", // Make video embeds responsive
-        "web/app/clipboard_bridge.js", // Android clipboard bridge for iframe support
-        "web/app/clipboard_debug.js" // Debug clipboard API availability
+        "web/app/responsive_videos.js",
+        "web/app/clipboard_bridge.js"
     )
+    
+    // Expert recommendation: Remove complex asset categorization
+    // Use simple sequential loading instead of deferred/direct/bridge patterns
 
+    
     private val timelineLoggerScript = """
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -102,24 +119,120 @@ class PageHtmlBuilder(private val context: Context) {
                 "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
             }
 
-            // Get required external modules based on content analysis (native pre-scan)
-            val externalModules = ExternalModuleManager.getRequiredModules(context, cleanedBodyContent)
-            if (externalModules.isNotEmpty()) {
-                Log.d(logTag, "Including ${externalModules.size} external modules (pre-scan): ${externalModules.joinToString()}")
-            } else {
-                Log.d(logTag, "No external modules found by pre-scan; runtime autoloader will handle detection.")
-            }
+            // Phase 1 Simplification: Remove two-phase loading system per expert recommendations
+            // Expert consensus: Pre-scanning creates race conditions between gadget execution and ResourceLoader initialization
+            Log.d(logTag, "Using simplified single-phase loading (expert-recommended architecture)")
 
-            // Build the JS list: core assets → compatibility layer (always) → runtime autoloader (always) → external modules (from pre-scan)
-            val dynamicJsAssets = jsAssetPaths + listOf(
-                "web/app/mw_compatibility_shared.js",      // Provides mw.* and dynamic loader
-                "web/app/external_module_autoloader.js"      // Runtime DOM-based detection & loading fallback
-            ) + externalModules
-
-            val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
-                // The URL must match the path handled by WebViewAssetLoader.
-                "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+            // Expert-recommended single-phase loading: Use browser's sequential script execution
+            // Order: jQuery → dependency_normalizer → startup.js → bind_normalizer → package_executor → mediawiki.base → external deps → gadgets
+            
+            // 1. Foundation: jQuery and dependency resolution
+            val foundationAssets = listOf(
+                "web/external/jquery.js",                    // Must be first - foundation for everything
+                "web/app/dependency_normalizer.js"           // Must be BEFORE startup.js to intercept register calls
+            )
+            
+            // 2. ResourceLoader startup (will call our normalizer)
+            val startupAssets = listOf(
+                startupModule                               // Creates mw.loader and calls register with numeric deps
+            )
+            
+            // 3. Package module executor (will run after dependencies are normalized)
+            // Note: dependency_normalizer.js auto-binds when startup.js loads
+            
+            // 4. Package module executor (Expert 2's minimal approach + Expert 1's dependency fix)
+            val packageExecutor = listOf(
+                "web/app/package_module_executor.js"          // Enhances mw.loader.impl for package modules
+            )
+            
+            // 5. Core MediaWiki modules (contains mw.loader.using)
+            val coreAssets = coreResourceLoaderModules
+            
+            // 6. External dependencies (Highcharts, etc.) - bundled as assets
+            val externalDependencies = listOf(
+                "web/external/highcharts-stock.js", // Bundle Highcharts instead of URL loading
+                "web/external/chart.js"              // Additional chart dependencies
+            )
+            
+            // 7. Gadget modules (will be registered but not executed immediately)
+            val gadgetAssets = listOf(
+                "web/external/ge_charts_core.js",   // GE Charts core functionality
+                "web/external/ge_charts_loader.js", // GE Charts main gadget
+                "web/external/citation_enhancements.js" // Citation improvements
+            )
+            
+            // Expert recommendation: Use ordered script tags for deterministic, synchronous loading
+            // Browser guarantees sequential execution without async/defer attributes
+            // Order: jQuery → dependency_normalizer → startup → package_executor → core → external deps → gadgets → app-specific
+            val allScriptsInOrder = foundationAssets + startupAssets + packageExecutor + coreAssets + externalDependencies + gadgetAssets + appSpecificModules
+            
+            val sequentialScripts = allScriptsInOrder.joinToString("\n") { assetPath ->
+                if (assetPath.startsWith("inline:")) {
+                    // Handle inline JavaScript code
+                    val jsCode = assetPath.substring(7) // Remove "inline:" prefix
+                    "<script>$jsCode</script>"
+                } else {
+                    // Handle external script files
+                    "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+                }
             }
+            
+            // Debug trigger: Check MediaWiki's actual dependency resolution
+            val executionTrigger = """
+                <script>
+                    // Debug MediaWiki dependency resolution
+                    function debugMediaWikiDependencies() {
+                        console.log('[DEBUG] Checking MediaWiki dependency resolution...');
+                        
+                        if (window.mw && window.mw.loader && typeof window.mw.loader.using === 'function') {
+                            console.log('[DEBUG] mw.loader.using is available!');
+                            
+                            // Check jQuery module in registry
+                            const jqueryMod = window.mw.loader.moduleRegistry['jquery'];
+                            console.log('[DEBUG] jQuery module in registry:', jqueryMod);
+                            
+                            // Check mediawiki.base dependencies
+                            const mediawikiBase = window.mw.loader.moduleRegistry['mediawiki.base'];
+                            console.log('[DEBUG] mediawiki.base dependencies:', mediawikiBase ? mediawikiBase.deps : 'not found');
+                            
+                            // Check ext.gadget.GECharts dependencies  
+                            const geCharts = window.mw.loader.moduleRegistry['ext.gadget.GECharts'];
+                            console.log('[DEBUG] ext.gadget.GECharts dependencies:', geCharts ? geCharts.deps : 'not found');
+                            
+                            // Test jQuery dependency resolution directly
+                            console.log('[DEBUG] Testing mw.loader.using([\"jquery\"])...');
+                            window.mw.loader.using(['jquery'], function() {
+                                console.log('[DEBUG] SUCCESS: jQuery loaded via mw.loader.using');
+                                
+                                // Now test GE Charts after jQuery works
+                                if (document.querySelector('.GEChartBox, .GEdatachart, .GEdataprices')) {
+                                    console.log('[DEBUG] GE chart elements found, testing GE charts...');
+                                    window.mw.loader.using(['ext.gadget.GECharts'], function() {
+                                        console.log('[DEBUG] SUCCESS: GE Charts loaded!');
+                                    }, function(error) {
+                                        console.error('[DEBUG] ERROR: GE Charts failed:', error);
+                                    });
+                                }
+                            }, function(error) {
+                                console.error('[DEBUG] ERROR: jQuery failed to load:', error);
+                            });
+                        } else {
+                            console.log('[DEBUG] mw.loader.using not ready, retrying in 50ms...');
+                            setTimeout(debugMediaWikiDependencies, 50);
+                        }
+                    }
+                    
+                    // Start debugging after DOM is ready
+                    document.addEventListener('DOMContentLoaded', function() {
+                        console.log('[DEBUG] DOM ready, starting MediaWiki dependency debug...');
+                        debugMediaWikiDependencies();
+                    });
+                </script>
+            """
+            
+            // Expert-recommended approach: Simple concatenation of sequential scripts + execution trigger
+            // No complex coordination, timing delays, or polling - just ordered execution
+            val allScripts = sequentialScripts + "\n" + executionTrigger
 
             // Experiment: Preload the main web font to improve rendering performance.
             val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
@@ -136,7 +249,7 @@ class PageHtmlBuilder(private val context: Context) {
                 </head>
                 <body class="$themeClass" style="visibility: hidden;">
                     ${finalBodyContent}
-                    ${jsScripts}
+                    ${allScripts}
                     ${timelineLoggerScript}
                 </body>
                 </html>

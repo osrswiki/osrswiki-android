@@ -52,10 +52,15 @@ object ExternalModuleManager {
         
         // Add all external dependencies at the beginning for proper load order
         val dependencyPaths = allExternalDependencies.map { "web/external/$it" }
-        val finalModules = dependencyPaths + requiredModules
         
-        if (dependencyPaths.isNotEmpty()) {
-            Log.d(TAG, "Added external dependencies: ${dependencyPaths.joinToString()}")
+        // Use only dependencies specified in deployment report (no hardcoded assumptions)
+        // ResourceLoader will handle oojs, mediawiki.* modules through proper MediaWiki infrastructure
+        val finalDependencies = dependencyPaths
+        
+        val finalModules = finalDependencies + requiredModules
+        
+        if (finalDependencies.isNotEmpty()) {
+            Log.d(TAG, "Added external dependencies: ${finalDependencies.joinToString()}")
         }
         
         return finalModules
