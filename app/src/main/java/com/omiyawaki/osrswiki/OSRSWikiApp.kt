@@ -12,6 +12,9 @@ import android.os.Build
 import android.util.Log
 import android.webkit.WebView
 import androidx.collection.LruCache
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.network.RetrofitClient
@@ -23,6 +26,8 @@ import com.omiyawaki.osrswiki.page.PageRepository
 import com.omiyawaki.osrswiki.search.SearchRepository
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
+import com.omiyawaki.osrswiki.settings.PreviewGenerationWorker
+import com.omiyawaki.osrswiki.settings.ActivityContextPool
 import com.omiyawaki.osrswiki.theme.Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +79,9 @@ class OSRSWikiApp : Application() {
     }
 
     override fun onCreate() {
+        val startupStartTime = System.currentTimeMillis()
+        Log.i("StartupTiming", "OSRSWikiApp.onCreate() - App startup begins")
+        
         super.onCreate()
         instance = this
 
@@ -83,26 +91,47 @@ class OSRSWikiApp : Application() {
 
         // Pre-warm database on background thread to prevent main thread blocking
         applicationScope.launch(Dispatchers.IO) {
+            Log.d("StartupTiming", "Database pre-warming started in background")
+            val dbStartTime = System.currentTimeMillis()
             AppDatabase.instance // Force database creation/migration on background thread
+            val dbEndTime = System.currentTimeMillis()
+            Log.d("StartupTiming", "Database pre-warming completed in ${dbEndTime - dbStartTime}ms")
         }
 
+        Log.d("StartupTiming", "Starting initializeDependencies() after ${System.currentTimeMillis() - startupStartTime}ms")
         initializeDependencies()
+        Log.i("StartupTiming", "OSRSWikiApp.onCreate() completed in ${System.currentTimeMillis() - startupStartTime}ms")
     }
 
     private fun initializeDependencies() {
+        val initStartTime = System.currentTimeMillis()
+        Log.d("StartupTiming", "initializeDependencies() - Starting dependency initialization")
+        
         val appContext = this.applicationContext
         
         // Access pre-warmed database instance (should be ready from background thread)
+        Log.d("StartupTiming", "Accessing database instance...")
+        val dbAccessStartTime = System.currentTimeMillis()
         val appDb = AppDatabase.instance
+        Log.d("StartupTiming", "Database accessed in ${System.currentTimeMillis() - dbAccessStartTime}ms")
+        
+        Log.d("StartupTiming", "Creating network services...")
+        val networkStartTime = System.currentTimeMillis()
         val mediaWikiApiService = RetrofitClient.apiService
         // Correctly get the shared OkHttpClient from the factory.
         val okHttpClient = OkHttpClientFactory.offlineClient
+        Log.d("StartupTiming", "Network services created in ${System.currentTimeMillis() - networkStartTime}ms")
 
         try {
             // Create PageHtmlBuilder first
+            Log.d("StartupTiming", "Creating PageHtmlBuilder...")
+            val htmlBuilderStartTime = System.currentTimeMillis()
             pageHtmlBuilder = PageHtmlBuilder(this)
+            Log.d("StartupTiming", "PageHtmlBuilder created in ${System.currentTimeMillis() - htmlBuilderStartTime}ms")
 
             // Create PageRepository
+            Log.d("StartupTiming", "Creating PageRepository...")
+            val pageRepoStartTime = System.currentTimeMillis()
             val pageLocalDataSource = PageLocalDataSource(
                 articleMetaDao = appDb.articleMetaDao(),
                 applicationContext = appContext
@@ -116,11 +145,17 @@ class OSRSWikiApp : Application() {
                 htmlBuilder = pageHtmlBuilder,
                 readingListPageDao = appDb.readingListPageDao()
             )
+            Log.d("StartupTiming", "PageRepository created in ${System.currentTimeMillis() - pageRepoStartTime}ms")
             
             // Instantiate PageAssetDownloader with PageRepository for cache checking
+            Log.d("StartupTiming", "Creating PageAssetDownloader...")
+            val assetDownloaderStartTime = System.currentTimeMillis()
             pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository)
+            Log.d("StartupTiming", "PageAssetDownloader created in ${System.currentTimeMillis() - assetDownloaderStartTime}ms")
 
             // Instantiate the SearchRepository with all its DAO dependencies.
+            Log.d("StartupTiming", "Creating SearchRepository...")
+            val searchRepoStartTime = System.currentTimeMillis()
             val articleMetaDaoForSearchRepo = appDb.articleMetaDao()
             val offlinePageFtsDao = appDb.offlinePageFtsDao()
             val recentSearchDao = appDb.recentSearchDao() // Get the new DAO from the database.
@@ -130,21 +165,64 @@ class OSRSWikiApp : Application() {
                 offlinePageFtsDao = offlinePageFtsDao,
                 recentSearchDao = recentSearchDao // Provide the new DAO to the repository.
             )
+            Log.d("StartupTiming", "SearchRepository created in ${System.currentTimeMillis() - searchRepoStartTime}ms")
 
+            Log.d("StartupTiming", "Initializing network callback...")
+            val networkCallbackStartTime = System.currentTimeMillis()
             initializeNetworkCallback()
+            Log.d("StartupTiming", "Network callback initialized in ${System.currentTimeMillis() - networkCallbackStartTime}ms")
             
-            // Reset preview generation state to ensure fresh generation with Activity context
-            PreviewGenerationManager.resetState()
+            // Schedule background preview generation using WorkManager
+            // This ensures generation happens early and survives activity lifecycle changes
+            val workManagerStartTime = System.currentTimeMillis()
+            scheduleBackgroundPreviewGeneration()
+            Log.d("StartupTiming", "Preview generation WorkManager scheduled in ${System.currentTimeMillis() - workManagerStartTime}ms")
+            Log.i("StartupTiming", "Dependencies initialized - preview generation scheduled in background")
+            
         } catch (e: Exception) {
             logCrashManually(e, "Failed to initialize dependencies")
             throw e // Re-throw to prevent app from continuing in broken state
         }
+        
+        Log.i("StartupTiming", "initializeDependencies() completed in ${System.currentTimeMillis() - initStartTime}ms")
     }
 
     override fun onTerminate() {
         super.onTerminate()
         unregisterNetworkCallback()
         PreviewGenerationManager.cancelGeneration()
+    }
+
+    /**
+     * Schedule background preview generation using WorkManager.
+     * This ensures previews are generated early in the app lifecycle,
+     * independent of activity states and surviving theme changes.
+     */
+    private fun scheduleBackgroundPreviewGeneration() {
+        try {
+            val currentTheme = getCurrentTheme()
+            Log.i("StartupTiming", "Scheduling preview generation for theme: ${currentTheme.tag}")
+            
+            // Create WorkManager request for background preview generation
+            val previewWorkRequest = OneTimeWorkRequestBuilder<PreviewGenerationWorker>()
+                .setInputData(PreviewGenerationWorker.createInputData(currentTheme))
+                .addTag("preview_generation")
+                .build()
+            
+            // Schedule with REPLACE policy to avoid duplicate work
+            WorkManager.getInstance(this)
+                .enqueueUniqueWork(
+                    PreviewGenerationWorker.WORK_NAME,
+                    ExistingWorkPolicy.REPLACE, // Replace any existing work
+                    previewWorkRequest
+                )
+            
+            Log.d("OSRSWikiApp", "Preview generation work scheduled successfully")
+            
+        } catch (e: Exception) {
+            Log.e("OSRSWikiApp", "Failed to schedule preview generation work", e)
+            // Don't throw - this shouldn't prevent app startup
+        }
     }
 
     fun getCurrentTheme(): Theme {
@@ -190,6 +268,12 @@ class OSRSWikiApp : Application() {
             .build()
         connectivityManager?.registerNetworkCallback(networkRequest, networkCallback!!)
     }
+
+    /**
+     * Wait for an available Activity context for WebView creation.
+     * Used by background preview generation that runs in Application scope.
+     */
+    suspend fun waitForActivityContext() = ActivityContextPool.waitForActivityContext()
 
     private fun unregisterNetworkCallback() {
         networkCallback?.let { callback ->

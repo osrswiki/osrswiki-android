@@ -68,6 +68,9 @@ tools/js/out/
 
 # Extracted third-party JavaScript/CSS (not owned by this project)
 app/src/main/assets/web/external/
+app/src/main/assets/web/infrastructure/
+app/src/main/assets/web/gadgets/
+app/src/main/assets/web/core/
 
 # Micromamba environments and caches
 .mamba/

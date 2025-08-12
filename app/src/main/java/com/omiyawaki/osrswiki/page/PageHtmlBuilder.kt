@@ -28,30 +28,30 @@ class PageHtmlBuilder(private val context: Context) {
 
     // Captured MediaWiki artifacts. The loading order is critical.
     private val mediawikiArtifacts = listOf(
-        "web/mediawiki/startup.js",         // 1. The core ResourceLoader engine.
-        "web/mediawiki/page_bootstrap.js",  // 2. Page-specific config (RLCONF, RLSTATE, RLPAGEMODULES).
-        "web/mediawiki/page_modules.js"     // 3. The bundle of modules for the page.
+        "web/mediawiki/shims/dependency_normalizer.js", // 1. Dependency normalization shim.
+        "web/mediawiki/startup.js",                     // 2. The core ResourceLoader engine.
+        "web/mediawiki/shims/package_module_executor.js", // 3. Package module execution shim.
+        "web/mediawiki/page_bootstrap.js",              // 4. Page-specific config (RLCONF, RLSTATE, RLPAGEMODULES).
+        "web/mediawiki/page_modules.js"                 // 5. The bundle of modules for the page.
     )
 
     fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
         val documentTitle = title.ifBlank { "OSRS Wiki" }
         val themeClass = if (theme == Theme.OSRS_DARK) "theme-osrs-dark" else ""
 
+        // Corrected: Removed unnecessary escaping from string literals.
         val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
-            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath">".trimIndent()
+            "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">".trimIndent()
         }
 
-        // Load the captured MediaWiki engine first.
         val mediawikiScripts = mediawikiArtifacts.joinToString("\n") { assetPath ->
             "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>".trimIndent()
         }
 
-        // Load our app-specific utilities last.
         val appScripts = appSpecificModules.joinToString("\n") { assetPath ->
             "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>".trimIndent()
         }
 
-        // A simple script to prevent Flash of Unstyled Content (FOUC).
         val foucFix = "<script>document.body.style.visibility = 'visible';</script>"
 
         return """

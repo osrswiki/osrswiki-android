@@ -132,10 +132,15 @@ class InlineThemeSelectionAdapter(
             val description = getThemeDescription(themeKey)
             themePreviewImage?.contentDescription = "${getThemeName(themeKey)} theme preview. $description"
             
-            // Load dynamic screenshot
+            // PHASE 1: Show static placeholder immediately (instant display)
+            val staticPlaceholder = getThemeStaticPlaceholder(themeKey)
+            themePreviewImage?.setImageResource(staticPlaceholder)
+            Log.d("🔧 ADAPTER_DEBUG", "Displayed static placeholder immediately for theme: $themeKey")
+            
+            // PHASE 2: Load high-quality theme preview asynchronously and upgrade
             lifecycleScope.launch {
                 try {
-                    Log.d("🔧 ADAPTER_DEBUG", "Starting theme preview request for: $themeKey")
+                    Log.d("🔧 ADAPTER_DEBUG", "Starting enhanced theme preview request for: $themeKey")
                     Log.d("PreviewDiagnosis", "Requesting theme preview for: $themeKey")
                     val bitmap = when (themeKey) {
                         "light" -> ThemePreviewRenderer.getPreview(
@@ -183,24 +188,29 @@ class InlineThemeSelectionAdapter(
                         imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     }
                     
-                    Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
-                    
-                    // Allow ImageView to handle scaling - 111x234 bitmaps are correct app captures
-                    Log.d("PreviewDiagnosis", "Setting bitmap ${bitmap?.width}x${bitmap?.height} in ${themePreviewImage?.width}x${themePreviewImage?.height} ImageView")
-                    
-                    themePreviewImage?.setImageBitmap(bitmap)
-                    Log.d("PreviewDiagnosis", "setImageBitmap() completed successfully")
-                } catch (e: Exception) {
-                    Log.e("PreviewDiagnosis", "Exception during theme preview setup - falling back to placeholder", e)
-                    // Fall back to placeholder drawables on error
-                    val fallbackDrawable = when (themeKey) {
-                        "dark" -> R.drawable.ic_placeholder_dark
-                        "auto" -> R.drawable.ic_placeholder_auto
-                        else -> R.drawable.ic_placeholder_light
+                    // Replace static placeholder with high-quality generated preview
+                    bitmap?.let {
+                        themePreviewImage?.setImageBitmap(it)
+                        Log.d("🔧 ADAPTER_DEBUG", "Upgraded to high-quality theme preview for: $themeKey")
+                        Log.d("PreviewDiagnosis", "Applied enhanced bitmap for theme: $themeKey")
+                    } ?: run {
+                        Log.w("🔧 ADAPTER_DEBUG", "Generated preview was null, keeping static placeholder for: $themeKey")
                     }
-                    themePreviewImage?.setImageResource(fallbackDrawable)
-                    Log.d("PreviewDiagnosis", "Set fallback drawable for theme: $themeKey")
+                } catch (e: Exception) {
+                    Log.e("🔧 ADAPTER_DEBUG", "Exception during enhanced theme preview loading - keeping static placeholder", e)
+                    // Static placeholder already displayed, no need to change anything
                 }
+            }
+        }
+        
+        /**
+         * Gets the appropriate static placeholder for instant display.
+         */
+        private fun getThemeStaticPlaceholder(themeKey: String): Int {
+            return when (themeKey) {
+                "dark" -> R.drawable.ic_placeholder_dark
+                "auto" -> R.drawable.ic_placeholder_auto
+                else -> R.drawable.ic_placeholder_light
             }
         }
         
@@ -297,10 +307,15 @@ class InlineThemeSelectionAdapter(
             val description = getThemeDescription(themeKey)
             themePreviewImage?.contentDescription = "${getThemeName(themeKey)} theme preview. $description"
             
-            // Load dynamic screenshot
+            // PHASE 1: Show static placeholder immediately (instant display)
+            val staticPlaceholder = getThemeStaticPlaceholder(themeKey)
+            themePreviewImage?.setImageResource(staticPlaceholder)
+            Log.d("🔧 ADAPTER_DEBUG", "Displayed static placeholder immediately for theme: $themeKey")
+            
+            // PHASE 2: Load high-quality theme preview asynchronously and upgrade
             lifecycleScope.launch {
                 try {
-                    Log.d("🔧 ADAPTER_DEBUG", "Starting theme preview request for: $themeKey")
+                    Log.d("🔧 ADAPTER_DEBUG", "Starting enhanced theme preview request for: $themeKey")
                     Log.d("PreviewDiagnosis", "Requesting theme preview for: $themeKey")
                     val bitmap = when (themeKey) {
                         "light" -> ThemePreviewRenderer.getPreview(
@@ -348,24 +363,29 @@ class InlineThemeSelectionAdapter(
                         imageView.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     }
                     
-                    Log.d("PreviewDiagnosis", "About to call setImageBitmap() with bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
-                    
-                    // Allow ImageView to handle scaling - 111x234 bitmaps are correct app captures
-                    Log.d("PreviewDiagnosis", "Setting bitmap ${bitmap?.width}x${bitmap?.height} in ${themePreviewImage?.width}x${themePreviewImage?.height} ImageView")
-                    
-                    themePreviewImage?.setImageBitmap(bitmap)
-                    Log.d("PreviewDiagnosis", "setImageBitmap() completed successfully")
-                } catch (e: Exception) {
-                    Log.e("PreviewDiagnosis", "Exception during theme preview setup - falling back to placeholder", e)
-                    // Fall back to placeholder drawables on error
-                    val fallbackDrawable = when (themeKey) {
-                        "dark" -> R.drawable.ic_placeholder_dark
-                        "auto" -> R.drawable.ic_placeholder_auto
-                        else -> R.drawable.ic_placeholder_light
+                    // Replace static placeholder with high-quality generated preview
+                    bitmap?.let {
+                        themePreviewImage?.setImageBitmap(it)
+                        Log.d("🔧 ADAPTER_DEBUG", "Upgraded to high-quality theme preview for: $themeKey")
+                        Log.d("PreviewDiagnosis", "Applied enhanced bitmap for theme: $themeKey")
+                    } ?: run {
+                        Log.w("🔧 ADAPTER_DEBUG", "Generated preview was null, keeping static placeholder for: $themeKey")
                     }
-                    themePreviewImage?.setImageResource(fallbackDrawable)
-                    Log.d("PreviewDiagnosis", "Set fallback drawable for theme: $themeKey")
+                } catch (e: Exception) {
+                    Log.e("🔧 ADAPTER_DEBUG", "Exception during enhanced theme preview loading - keeping static placeholder", e)
+                    // Static placeholder already displayed, no need to change anything
                 }
+            }
+        }
+        
+        /**
+         * Gets the appropriate static placeholder for instant display.
+         */
+        private fun getThemeStaticPlaceholder(themeKey: String): Int {
+            return when (themeKey) {
+                "dark" -> R.drawable.ic_placeholder_dark
+                "auto" -> R.drawable.ic_placeholder_auto
+                else -> R.drawable.ic_placeholder_light
             }
         }
         

@@ -6,6 +6,7 @@ Deploys the captured MediaWiki artifacts to the Android app's assets directory.
 """
 
 import shutil
+import os
 from pathlib import Path
 
 # Define source and destination directories
@@ -13,34 +14,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SOURCE_DIR = PROJECT_ROOT / "tools/js/artifacts"
 DEST_DIR = PROJECT_ROOT / "app/src/main/assets/web/mediawiki"
 
-EXPECTED_ARTIFACTS = [
-    "startup.js",
-    "page_bootstrap.js",
-    "page_modules.js",
-]
-
 def main():
     """
     Main deployment function.
     """
     print("--- Starting MediaWiki Artifact Deployment ---")
 
-    # 1. Check if the source directory and all artifacts exist
+    # 1. Check if the source directory exists
     print(f"[INFO] Source directory: {SOURCE_DIR}")
     if not SOURCE_DIR.exists():
         print(f"[ERROR] Source directory not found. Run the capture script first.")
         return 1
-
-    missing_artifacts = False
-    for artifact in EXPECTED_ARTIFACTS:
-        if not (SOURCE_DIR / artifact).exists():
-            print(f"[ERROR] Missing required artifact: {artifact}")
-            missing_artifacts = True
-    if missing_artifacts:
-        print("[ERROR] Halting deployment due to missing artifacts.")
-        return 1
-    
-    print("[SUCCESS] All required artifacts found in source directory.")
 
     # 2. Clear and recreate the destination directory
     print(f"[INFO] Destination directory: {DEST_DIR}")
@@ -59,21 +43,20 @@ def main():
         print(f"[ERROR] Failed to create destination directory: {e}")
         return 1
 
-    # 3. Copy artifact files to the destination
-    print("[INFO] Copying artifacts...")
+    # 3. Copy artifact files and subdirectories recursively
+    print("[INFO] Copying artifacts and shims recursively...")
     copied_count = 0
-    for artifact in EXPECTED_ARTIFACTS:
-        source_file = SOURCE_DIR / artifact
-        dest_file = DEST_DIR / artifact
-        try:
-            shutil.copy2(source_file, dest_file)
-            print(f"  -> Copied {artifact}")
-            copied_count += 1
-        except Exception as e:
-            print(f"[ERROR] Failed to copy {artifact}: {e}")
-            return 1
+    try:
+        # Use shutil.copytree for recursive copy
+        shutil.copytree(SOURCE_DIR, DEST_DIR, dirs_exist_ok=True) # dirs_exist_ok=True is for Python 3.8+
+        # Count files copied (simple way, not perfect but good enough)
+        for root, dirs, files in os.walk(DEST_DIR):
+            copied_count += len(files)
+        print(f"\n[SUCCESS] Deployment complete. {copied_count} artifacts and shims deployed.")
+    except Exception as e:
+        print(f"[ERROR] Failed to copy artifacts recursively: {e}")
+        return 1
 
-    print(f"\n[SUCCESS] Deployment complete. {copied_count} artifacts deployed.")
     print("--- MediaWiki Artifact Deployment Finished ---")
     return 0
 

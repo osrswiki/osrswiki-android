@@ -108,35 +108,63 @@ class InlineTableSelectionAdapter(
             val description = getTableSettingDescription(collapseTablesEnabled)
             tablePreviewImage.contentDescription = "${getTableSettingName(collapseTablesEnabled)} table setting preview. $description"
             
-            // Load dynamic table preview
+            // Get current theme for progressive loading
+            val app = binding.root.context.applicationContext as OSRSWikiApp
+            val currentTheme = app.getCurrentTheme()
+            
+            // PHASE 1: Show static preview immediately (instant display)
+            val staticPreviewRes = getStaticPreviewResource(collapseTablesEnabled, currentTheme)
+            tablePreviewImage.setImageResource(staticPreviewRes)
+            Log.d(TAG, "Displayed static preview immediately for collapseTablesEnabled=$collapseTablesEnabled, theme=${currentTheme.tag}")
+            
+            // PHASE 2: Load cached/generated preview asynchronously and upgrade
             lifecycleScope.launch {
                 try {
-                    Log.d(TAG, "Starting table preview request for collapseTablesEnabled=$collapseTablesEnabled")
+                    Log.d(TAG, "Starting enhanced table preview request for collapseTablesEnabled=$collapseTablesEnabled")
                     
-                    // Get current theme from the app
-                    val app = binding.root.context.applicationContext as OSRSWikiApp
-                    val currentTheme = app.getCurrentTheme()
-                    
-                    // Get the side-by-side preview bitmap from TablePreviewRenderer
+                    // Get the high-quality generated preview from TablePreviewRenderer
                     val bitmap = TablePreviewRenderer.getPreview(
                         binding.root.context,
                         collapseTablesEnabled,
                         currentTheme
                     )
                     
-                    Log.d(TAG, "Received table preview bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
+                    Log.d(TAG, "Received enhanced table preview bitmap: ${bitmap?.width ?: "null"}x${bitmap?.height ?: "null"}")
                     
-                    // Display the complete side-by-side preview
-                    tablePreviewImage.setImageBitmap(bitmap)
+                    // Replace static preview with high-quality generated one
+                    bitmap?.let {
+                        tablePreviewImage.setImageBitmap(it)
+                        Log.d(TAG, "Upgraded to high-quality table preview for collapseTablesEnabled=$collapseTablesEnabled")
+                    } ?: run {
+                        Log.w(TAG, "Generated preview was null, keeping static preview")
+                    }
                     
-                    Log.d(TAG, "Table preview loaded successfully for collapseTablesEnabled=$collapseTablesEnabled")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Exception during table preview setup - using fallback", e)
-                    
-                    // Fall back to simple placeholder
-                    val placeholderText = if (collapseTablesEnabled) "Collapsed" else "Expanded"
-                    tablePreviewImage.setImageDrawable(null) // Clear any existing image
-                    // In a real implementation, you might want to create a simple placeholder drawable
+                    Log.e(TAG, "Exception during enhanced table preview loading - keeping static preview", e)
+                    // Static preview already displayed, no need to change anything
+                }
+            }
+        }
+        
+        /**
+         * Gets the appropriate static preview resource for instant display.
+         * These are always available and provide immediate visual feedback.
+         */
+        private fun getStaticPreviewResource(collapseTablesEnabled: Boolean, theme: com.omiyawaki.osrswiki.theme.Theme): Int {
+            return when (theme) {
+                com.omiyawaki.osrswiki.theme.Theme.OSRS_LIGHT -> {
+                    if (collapseTablesEnabled) {
+                        com.omiyawaki.osrswiki.R.drawable.preview_table_light_collapsed
+                    } else {
+                        com.omiyawaki.osrswiki.R.drawable.preview_table_light_expanded
+                    }
+                }
+                com.omiyawaki.osrswiki.theme.Theme.OSRS_DARK -> {
+                    if (collapseTablesEnabled) {
+                        com.omiyawaki.osrswiki.R.drawable.preview_table_dark_collapsed
+                    } else {
+                        com.omiyawaki.osrswiki.R.drawable.preview_table_dark_expanded
+                    }
                 }
             }
         }

@@ -184,9 +184,17 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         val app = requireContext().applicationContext as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
         
-        // Pass Activity context (requireActivity()) instead of Application context
-        // This ensures WebView rendering has proper Activity context
-        PreviewGenerationManager.initializeBackgroundGeneration(requireActivity(), currentTheme)
+        // Launch in coroutine since initializeBackgroundGeneration is now a suspend function
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Pass Application context for Application-scoped generation
+                // The Activity context will be obtained through the ActivityContextPool
+                PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
+                L.d("CustomAppearanceSettingsFragment: Background preview generation completed")
+            } catch (e: Exception) {
+                L.e("CustomAppearanceSettingsFragment: Background preview generation failed: ${e.message}")
+            }
+        }
     }
     
     /**
@@ -228,7 +236,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
                 val newTheme = app.getCurrentTheme()
                 
                 // Smart cache swapping - no immediate clearing, seamless transition
-                PreviewGenerationManager.handleThemeChange(requireContext(), newTheme)
+                PreviewGenerationManager.handleThemeChange(app, newTheme)
                 
                 // The RecyclerView and its items should automatically pick up the new theme
                 // since they use theme attributes. Just notify the adapter to refresh.
