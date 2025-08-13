@@ -393,39 +393,26 @@ class MainActivity : BaseActivity() {
         // Capture live content bounds for theme previews (expert's solution)
         ContentBoundsProvider.publishFrom(this)
         
+        // Capture live content bounds for theme previews (expert's solution)
+        ContentBoundsProvider.publishFrom(this)
+        
         // Reset state to allow generation even if WorkManager ran first
         PreviewGenerationManager.resetState()
         Log.i("StartupTiming", "MainActivity reset preview generation state")
         
-        // Register this Activity for WebView context pooling and start preview generation
+        // Register this Activity for WebView context pooling
         Log.i("StartupTiming", "MainActivity registering with ActivityContextPool...")
         lifecycleScope.launch {
             ActivityContextPool.registerActivity(this@MainActivity)
             Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
-            
-            // Force generation for BOTH themes to eliminate theme switching latency
-            val app = application as OSRSWikiApp
-            Log.i("StartupTiming", "MainActivity starting preview generation for ALL themes")
-            
-            try {
-                // Always generate all previews - the unified generator creates both themes
-                PreviewGenerationManager.initializeBackgroundGeneration(app, Theme.OSRS_LIGHT)
-                Log.i("StartupTiming", "MainActivity unified preview generation completed")
-                
-                // Ensure both theme previews are cached by explicitly accessing them
-                withContext(Dispatchers.IO) {
-                    Log.i("StartupTiming", "MainActivity warming cache for both theme previews")
-                    ThemePreviewRenderer.getPreview(this@MainActivity, R.style.Theme_OSRSWiki_OSRSLight, "light")
-                    ThemePreviewRenderer.getPreview(this@MainActivity, R.style.Theme_OSRSWiki_OSRSDark, "dark")
-                    Log.i("StartupTiming", "MainActivity both theme previews cached successfully")
-                }
-                
-                Log.i("StartupTiming", "MainActivity ALL preview generation completed successfully")
-            } catch (e: Exception) {
-                Log.w("StartupTiming", "MainActivity preview generation failed: ${e.message}")
-                Log.w("StartupTiming", "Preview generation failure details", e)
-            }
         }
+        
+        // Initialize background preview generation as soon as Activity context is available
+        // This ensures previews are ready when users navigate to appearance settings
+        val app = application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        Log.i("StartupTiming", "MainActivity starting preview generation for theme: ${currentTheme.tag}")
+        PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
