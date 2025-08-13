@@ -389,29 +389,27 @@ class MainActivity : BaseActivity() {
         // Capture live content bounds for theme previews (expert's solution)
         ContentBoundsProvider.publishFrom(this)
         
-        // Register this Activity for WebView context pooling
-        Log.i("StartupTiming", "MainActivity registering with ActivityContextPool...")
-        lifecycleScope.launch {
-            ActivityContextPool.registerActivity(this@MainActivity)
-            Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
-        }
-        
         // Reset state to allow generation even if WorkManager ran first
         PreviewGenerationManager.resetState()
         Log.i("StartupTiming", "MainActivity reset preview generation state")
         
-        // Initialize background preview generation synchronously with Activity context
-        // This ensures previews are ready when users navigate to appearance settings
-        val app = application as OSRSWikiApp
-        val currentTheme = app.getCurrentTheme()
-        Log.i("StartupTiming", "MainActivity starting synchronous preview generation for theme: ${currentTheme.tag}")
-        
-        runBlocking {
+        // Register this Activity for WebView context pooling and start preview generation
+        Log.i("StartupTiming", "MainActivity registering with ActivityContextPool...")
+        lifecycleScope.launch {
+            ActivityContextPool.registerActivity(this@MainActivity)
+            Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
+            
+            // Initialize background preview generation with Activity context
+            // This ensures previews are ready when users navigate to appearance settings
+            val app = application as OSRSWikiApp
+            val currentTheme = app.getCurrentTheme()
+            Log.i("StartupTiming", "MainActivity starting preview generation for theme: ${currentTheme.tag}")
+            
             try {
                 PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
-                Log.i("StartupTiming", "MainActivity synchronous preview generation completed successfully")
+                Log.i("StartupTiming", "MainActivity preview generation completed successfully")
             } catch (e: Exception) {
-                Log.w("StartupTiming", "MainActivity synchronous preview generation failed: ${e.message}")
+                Log.w("StartupTiming", "MainActivity preview generation failed: ${e.message}")
                 // This is now our primary method, so log more details if it fails
                 Log.w("StartupTiming", "Preview generation failure details", e)
             }
