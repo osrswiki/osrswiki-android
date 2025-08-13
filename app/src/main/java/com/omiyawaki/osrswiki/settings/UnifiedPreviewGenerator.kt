@@ -82,12 +82,21 @@ class UnifiedPreviewGenerator {
         Log.i(TAG, "Starting unified preview generation (render-once, capture-many)")
         val startTime = System.currentTimeMillis()
         
-        // Get Activity context before entering suspendCancellableCoroutine
-        val app = context.applicationContext as OSRSWikiApp
-        val activity = app.waitForActivityContext()
-        
-        if (activity == null) {
-            throw Exception("Cannot find Activity context for WebView rendering")
+        // Use passed context directly if it's an Activity, otherwise try to get one
+        val activity = when (context) {
+            is Activity -> {
+                Log.i(TAG, "Using passed Activity context directly for WebView rendering")
+                context
+            }
+            else -> {
+                Log.i(TAG, "Context is not Activity, trying to get one from pool")
+                val app = context.applicationContext as OSRSWikiApp
+                val activityFromPool = app.waitForActivityContext()
+                if (activityFromPool == null) {
+                    throw Exception("Cannot find Activity context for WebView rendering")
+                }
+                activityFromPool
+            }
         }
         
         suspendCancellableCoroutine { continuation ->
