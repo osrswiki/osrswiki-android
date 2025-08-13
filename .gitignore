@@ -70,7 +70,7 @@ tools/js/out/
 node_modules/
 
 # JavaScript analysis temporary files
-tools/js/logs_*.json
+tools/js/**/logs_*.json
 tools/js/startup_registry*.json
 
 # Extracted third-party JavaScript/CSS (not owned by this project)
