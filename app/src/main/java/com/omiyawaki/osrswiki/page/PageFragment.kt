@@ -162,10 +162,14 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             { thumbnailUrlArg }
         )
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, pageWebViewManager) { this }
+        val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
+        val pageAssetDownloader = PageAssetDownloader(OkHttpClientFactory.offlineClient, pageRepository)
 
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
             pageRepository = pageRepository,
+            pageAssetDownloader = pageAssetDownloader,
+            pageHtmlBuilder = pageHtmlBuilder,
             pageViewModel = pageViewModel,
             coroutineScope = viewLifecycleOwner.lifecycleScope
         ) {
@@ -175,7 +179,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             }
         }
 
-        pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater, pageWebViewManager) { this }
+        pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
         pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
         binding.errorTextView.setOnClickListener {
             pageLoadCoordinator.initiatePageLoad(

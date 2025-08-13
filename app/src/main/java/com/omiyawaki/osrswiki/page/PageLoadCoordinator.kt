@@ -9,10 +9,8 @@ class PageLoadCoordinator(
     private val pageViewModel: PageViewModel,
     private val pageContentLoader: PageContentLoader,
     private val uiUpdater: PageUiUpdater,
-    private val pageWebViewManager: PageWebViewManager,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
-    
     fun initiatePageLoad(theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageLoadCoordinator.initiatePageLoad: Starting page load.")
         val fragment = fragmentContextProvider() ?: return
@@ -34,56 +32,47 @@ class PageLoadCoordinator(
             }
         }
 
-        // Skip preloaded content for now - use direct loading for everything
-        // This ensures consistent behavior and eliminates the old HTML rendering path
-        // (Disabled preloaded content check)
+        // Check for preloaded content first (if not forcing network)
+        if (idToLoad != null && !forceNetwork) {
+            val preloadedPage = PreloadedPageCache.consume(idToLoad)
+            if (preloadedPage != null) {
+                L.d("PageLoadCoordinator: Using preloaded content for page ID $idToLoad.")
+                // Update UI state with preloaded data and transition to rendering phase
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = true, // Still "loading" as it needs to be rendered
+                    error = null,
+                    pageId = preloadedPage.pageId,
+                    title = preloadedPage.displayTitle ?: preloadedPage.plainTextTitle,
+                    plainTextTitle = preloadedPage.plainTextTitle,
+                    htmlContent = preloadedPage.finalHtml,
+                    wikiUrl = preloadedPage.wikiUrl,
+                    revisionId = preloadedPage.revisionId,
+                    lastFetchedTimestamp = preloadedPage.lastFetchedTimestamp,
+                    isCurrentlyOffline = false,
+                    progress = 50, // Jump to rendering progress
+                    progressText = "Rendering page..."
+                )
+                uiUpdater.updateUi()
+                // The rest of the rendering pipeline will now take over automatically
+                return
+            }
+        }
 
-        // Skip HTML content caching check for consistent direct loading behavior
-        // All pages will load fresh from the wiki
-        val contentAlreadyLoaded = false // Disable old caching logic
+        val contentAlreadyLoaded = pageViewModel.uiState.htmlContent != null && !pageViewModel.uiState.error.isNullOrEmpty()
+        if (!forceNetwork && contentAlreadyLoaded) {
+            if ((idToLoad != null && pageViewModel.uiState.pageId == idToLoad) ||
+                (!pageTitleArg.isNullOrBlank() && pageViewModel.uiState.plainTextTitle == pageTitleArg)
+            ) {
+                pageViewModel.uiState = pageViewModel.uiState.copy(isLoading = false)
+                uiUpdater.updateUi()
+                return
+            }
+        }
 
-        // Use direct loading for ALL pages - simpler and more maintainable
-        L.d("PageLoadCoordinator: Using direct loading for all pages")
-        
         if (idToLoad != null) {
-            // Generate wiki URL by page ID and load directly
-            val directWikiUrl = "https://oldschool.runescape.wiki/?curid=$idToLoad"
-            L.d("PageLoadCoordinator: Loading page by ID $idToLoad via direct URL: $directWikiUrl")
-            
-            // Update UI state for direct loading
-            pageViewModel.uiState = pageViewModel.uiState.copy(
-                isLoading = true,
-                error = null,
-                progress = 10,
-                progressText = "Loading from wiki...",
-                wikiUrl = directWikiUrl,
-                pageId = idToLoad,
-                title = pageTitleArg,
-                isDirectLoading = true
-            )
-            uiUpdater.updateUi()
-            
-            // PageUiUpdater will handle calling loadUrlDirectly() when it sees isDirectLoading = true
-            
+            pageContentLoader.loadPageById(idToLoad, pageTitleArg, theme, forceNetwork)
         } else if (!pageTitleArg.isNullOrBlank()) {
-            // Generate wiki URL by title and load directly
-            val directWikiUrl = "https://oldschool.runescape.wiki/w/" + pageTitleArg.replace(" ", "_")
-            L.d("PageLoadCoordinator: Loading page '$pageTitleArg' via direct URL: $directWikiUrl")
-            
-            // Update UI state for direct loading
-            pageViewModel.uiState = pageViewModel.uiState.copy(
-                isLoading = true,
-                error = null,
-                progress = 10,
-                progressText = "Loading from wiki...",
-                wikiUrl = directWikiUrl,
-                title = pageTitleArg,
-                isDirectLoading = true
-            )
-            uiUpdater.updateUi()
-            
-            // PageUiUpdater will handle calling loadUrlDirectly() when it sees isDirectLoading = true
-            
+            pageContentLoader.loadPageByTitle(pageTitleArg, theme, forceNetwork)
         } else {
             val errorMsg = fragment.getString(R.string.error_no_article_identifier)
             val titleMsg = fragment.getString(R.string.title_page_not_specified)

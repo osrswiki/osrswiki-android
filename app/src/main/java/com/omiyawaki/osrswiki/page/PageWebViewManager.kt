@@ -22,10 +22,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
-import com.omiyawaki.osrswiki.page.cache.WikiPageCache
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 interface RenderCallback {
     fun onWebViewLoadFinished()
@@ -46,7 +42,6 @@ class PageWebViewManager(
     private val managerTag = "PageWebViewManager"
     private var renderStartTime: Long = 0
     private var pageLoaded = false
-    private val pageCache = WikiPageCache.getInstance(webView.context)
 
     private val localAssetDomain = "appassets.androidplatform.net"
 
@@ -170,20 +165,8 @@ class PageWebViewManager(
                     }
                 }
                 
-                // If this is a direct wiki page load, cache the page and inject minimal features
-                if (url?.contains("oldschool.runescape.wiki") == true && view != null) {
-                    injectMinimalAppFeatures(view)
-                    cacheCurrentPage(view, url)
-                    
-                    // For direct loading, immediately mark as ready for display
-                    // This will trigger the completion sequence and hide the loading overlay
-                    pageLoaded = true
-                    renderCallback.onPageReadyForDisplay()
-                } else {
-                    // For HTML-based loading (if any remains), use the old flow
-                    pageLoaded = true
-                    renderCallback.onWebViewLoadFinished()
-                }
+                pageLoaded = true
+                renderCallback.onWebViewLoadFinished()
                 
                 super.onPageFinished(view, url)
             }
@@ -379,92 +362,11 @@ class PageWebViewManager(
         Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL().")
     }
 
-    // New method for direct wiki page loading
-    fun loadUrlDirectly(url: String) {
-        pageLoaded = false
-        renderStartTime = System.currentTimeMillis()
-        Log.d(logTag, "==> Event: loadUrlDirectly() called for: $url")
-        
-        webView.loadUrl(url)
-        Log.d(logTag, "<<< Returned from webView.loadUrl().")
-    }
-
-
     private fun revealBody(onComplete: () -> Unit) {
         val revealBodyJs = "document.body.style.visibility = 'visible';"
         webView.evaluateJavascript(revealBodyJs) {
             // This completion handler for evaluateJavascript runs after the JS has executed.
             onComplete()
-        }
-    }
-    
-    /**
-     * Inject minimal app-specific features into a directly loaded wiki page
-     * Only includes non-invasive theme integration and clipboard functionality
-     */
-    private fun injectMinimalAppFeatures(webView: WebView?) {
-        webView ?: return
-        
-        Log.d(logTag, "Injecting minimal app features into wiki page")
-        
-        // Apply theme colors via CSS variables (non-invasive)
-        applyThemeColors(webView) {
-            Log.d(logTag, "Theme colors applied to wiki page")
-        }
-        
-        // Enhance clipboard functionality with native bridge
-        val clipboardBridgeIntegration = """
-            (function() {
-                // Enhance existing copy functionality with our native bridge
-                if (window.ClipboardBridge && window.ClipboardBridge.writeText) {
-                    // Override any existing clipboard functionality to use our bridge
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        const originalWriteText = navigator.clipboard.writeText;
-                        navigator.clipboard.writeText = function(text) {
-                            try {
-                                if (window.ClipboardBridge.writeText(text)) {
-                                    return Promise.resolve();
-                                } else {
-                                    return originalWriteText.call(this, text);
-                                }
-                            } catch (e) {
-                                return originalWriteText.call(this, text);
-                            }
-                        };
-                    }
-                }
-            })();
-        """.trimIndent()
-        
-        webView.evaluateJavascript(clipboardBridgeIntegration) { 
-            Log.d(logTag, "Clipboard bridge integration completed")
-        }
-    }
-    
-    /**
-     * Cache the current page HTML for offline access
-     */
-    private fun cacheCurrentPage(webView: WebView, url: String) {
-        webView.evaluateJavascript("document.documentElement.outerHTML") { html ->
-            // Remove JavaScript wrapper quotes and unescape the HTML
-            val cleanHtml = html?.let { 
-                if (it.startsWith("\"") && it.endsWith("\"")) {
-                    it.substring(1, it.length - 1)
-                        .replace("\\\"", "\"")
-                        .replace("\\n", "\n")
-                        .replace("\\r", "\r")
-                        .replace("\\t", "\t")
-                        .replace("\\\\", "\\")
-                } else {
-                    it
-                }
-            }
-            
-            if (!cleanHtml.isNullOrEmpty()) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    pageCache.cachePage(url, cleanHtml)
-                }
-            }
         }
     }
 }
