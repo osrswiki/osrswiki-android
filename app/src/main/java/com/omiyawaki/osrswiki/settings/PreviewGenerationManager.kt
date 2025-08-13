@@ -187,7 +187,10 @@ object PreviewGenerationManager {
         
         try {
             val unifiedGenerator = UnifiedPreviewGenerator()
-            val result = unifiedGenerator.generateAllPreviews(app)
+            val result = unifiedGenerator.generateAllPreviews(context)
+            
+            // Get OSRSWikiApp for storing results
+            val app = context.applicationContext as OSRSWikiApp
             
             Log.i(TAG, "UNIFIED GENERATION: All previews generated, storing in caches")
             
