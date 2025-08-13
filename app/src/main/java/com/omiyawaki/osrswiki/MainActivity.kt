@@ -399,18 +399,26 @@ class MainActivity : BaseActivity() {
             ActivityContextPool.registerActivity(this@MainActivity)
             Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
             
-            // Initialize background preview generation with Activity context
-            // This ensures previews are ready when users navigate to appearance settings
+            // Force generation for BOTH themes to eliminate theme switching latency
             val app = application as OSRSWikiApp
-            val currentTheme = app.getCurrentTheme()
-            Log.i("StartupTiming", "MainActivity starting preview generation for theme: ${currentTheme.tag}")
+            Log.i("StartupTiming", "MainActivity starting preview generation for ALL themes")
             
             try {
-                PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
-                Log.i("StartupTiming", "MainActivity preview generation completed successfully")
+                // Always generate all previews - the unified generator creates both themes
+                PreviewGenerationManager.initializeBackgroundGeneration(app, Theme.OSRS_LIGHT)
+                Log.i("StartupTiming", "MainActivity unified preview generation completed")
+                
+                // Ensure both theme previews are cached by explicitly accessing them
+                withContext(Dispatchers.IO) {
+                    Log.i("StartupTiming", "MainActivity warming cache for both theme previews")
+                    ThemePreviewRenderer.getPreview(this@MainActivity, R.style.Theme_OSRSWiki_OSRSLight, "light")
+                    ThemePreviewRenderer.getPreview(this@MainActivity, R.style.Theme_OSRSWiki_OSRSDark, "dark")
+                    Log.i("StartupTiming", "MainActivity both theme previews cached successfully")
+                }
+                
+                Log.i("StartupTiming", "MainActivity ALL preview generation completed successfully")
             } catch (e: Exception) {
                 Log.w("StartupTiming", "MainActivity preview generation failed: ${e.message}")
-                // This is now our primary method, so log more details if it fails
                 Log.w("StartupTiming", "Preview generation failure details", e)
             }
         }
