@@ -388,16 +388,23 @@ class MainActivity : BaseActivity() {
         // Capture live content bounds for theme previews (expert's solution)
         ContentBoundsProvider.publishFrom(this)
         
+        // Reset state to allow generation even if WorkManager ran first
+        PreviewGenerationManager.resetState()
+        Log.i("StartupTiming", "MainActivity reset preview generation state")
+        
         // Register this Activity for WebView context pooling
         Log.i("StartupTiming", "MainActivity registering with ActivityContextPool...")
         lifecycleScope.launch {
             ActivityContextPool.registerActivity(this@MainActivity)
             Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
-            
-            // Preview generation is now handled by WorkManager from Application.onCreate()
-            // This eliminates race conditions with activity lifecycle and theme changes
-            Log.i("StartupTiming", "Preview generation handled by WorkManager - no longer triggered from MainActivity")
         }
+        
+        // Initialize background preview generation as soon as Activity context is available
+        // This ensures previews are ready when users navigate to appearance settings
+        val app = application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        Log.i("StartupTiming", "MainActivity starting preview generation for theme: ${currentTheme.tag}")
+        PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
