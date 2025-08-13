@@ -132,6 +132,10 @@ class PageWebViewManager(
             setSupportMultipleWindows(true)
             // Enable focus management for better iframe interaction
             setNeedInitialFocus(true)
+            
+            // Mobile viewport settings for proper rendering
+            loadWithOverviewMode = true  // Fits page content to screen width
+            useWideViewPort = true       // Enables viewport meta tag support
         }
 
         webView.webViewClient = object : AppWebViewClient(linkHandler) {
@@ -166,9 +170,9 @@ class PageWebViewManager(
                     }
                 }
                 
-                // If this is a direct wiki page load, inject app-specific features and cache the page
+                // If this is a direct wiki page load, cache the page and inject minimal features
                 if (url?.contains("oldschool.runescape.wiki") == true && view != null) {
-                    injectAppFeatures(view)
+                    injectMinimalAppFeatures(view)
                     cacheCurrentPage(view, url)
                     
                     // For direct loading, immediately mark as ready for display
@@ -395,48 +399,20 @@ class PageWebViewManager(
     }
     
     /**
-     * Inject app-specific CSS and JavaScript features into a directly loaded wiki page
+     * Inject minimal app-specific features into a directly loaded wiki page
+     * Only includes non-invasive theme integration and clipboard functionality
      */
-    private fun injectAppFeatures(webView: WebView?) {
+    private fun injectMinimalAppFeatures(webView: WebView?) {
         webView ?: return
         
-        Log.d(logTag, "Injecting app-specific features into wiki page")
+        Log.d(logTag, "Injecting minimal app features into wiki page")
         
-        // Inject app-specific CSS for theme integration and mobile optimization
-        val appCssInjection = """
-            (function() {
-                const style = document.createElement('style');
-                style.textContent = `
-                    /* App-specific theme integration */
-                    .theme-osrs-dark .mw-body,
-                    .theme-osrs-dark .vector-menu-content {
-                        background: var(--colorsurface, #1a1a1a) !important;
-                        color: var(--coloronsurface, #ffffff) !important;
-                    }
-                    
-                    /* Mobile optimization for app */
-                    @media (max-width: 720px) {
-                        .infobox {
-                            width: 100% !important;
-                            max-width: none !important;
-                        }
-                        
-                        .navbox {
-                            font-size: 0.9em;
-                        }
-                    }
-                    
-                    /* Enhanced clipboard functionality styling */
-                    .clipboard-success {
-                        background: rgba(0, 255, 0, 0.1);
-                        transition: background 0.3s ease;
-                    }
-                `;
-                document.head.appendChild(style);
-            })();
-        """.trimIndent()
+        // Apply theme colors via CSS variables (non-invasive)
+        applyThemeColors(webView) {
+            Log.d(logTag, "Theme colors applied to wiki page")
+        }
         
-        // Inject clipboard bridge integration for wiki content
+        // Enhance clipboard functionality with native bridge
         val clipboardBridgeIntegration = """
             (function() {
                 // Enhance existing copy functionality with our native bridge
@@ -459,11 +435,6 @@ class PageWebViewManager(
                 }
             })();
         """.trimIndent()
-        
-        // Execute the injections
-        webView.evaluateJavascript(appCssInjection) { 
-            Log.d(logTag, "App CSS injection completed")
-        }
         
         webView.evaluateJavascript(clipboardBridgeIntegration) { 
             Log.d(logTag, "Clipboard bridge integration completed")
