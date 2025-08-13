@@ -170,10 +170,17 @@ class PageWebViewManager(
                 if (url?.contains("oldschool.runescape.wiki") == true && view != null) {
                     injectAppFeatures(view)
                     cacheCurrentPage(view, url)
+                    
+                    // For direct loading, immediately mark as ready for display
+                    // This will trigger the completion sequence and hide the loading overlay
+                    pageLoaded = true
+                    renderCallback.onPageReadyForDisplay()
+                } else {
+                    // For HTML-based loading (if any remains), use the old flow
+                    pageLoaded = true
+                    renderCallback.onWebViewLoadFinished()
                 }
                 
-                pageLoaded = true
-                renderCallback.onWebViewLoadFinished()
                 super.onPageFinished(view, url)
             }
 
@@ -196,7 +203,10 @@ class PageWebViewManager(
                 val elapsed = System.currentTimeMillis() - renderStartTime
                 val cappedProgress = newProgress.coerceAtMost(95)
                 Log.d(logTag, "--> WebView Progress: ${newProgress}%. Capped at ${cappedProgress}%. Elapsed: ${elapsed}ms.")
-                val uiProgress = 50 + (cappedProgress / 2)
+                
+                // For direct loading, map WebView progress (0-100%) to UI progress (10-95%)
+                // Start from 10% (initial state) and cap at 95% to leave room for completion
+                val uiProgress = 10 + (cappedProgress * 0.85).toInt()
                 if (uiProgress < 100) {
                     onRenderProgress(uiProgress)
                 }
