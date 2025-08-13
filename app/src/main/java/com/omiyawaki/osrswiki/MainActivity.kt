@@ -404,7 +404,7 @@ class MainActivity : BaseActivity() {
         val app = application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
         Log.i("StartupTiming", "MainActivity starting preview generation for theme: ${currentTheme.tag}")
-        PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
+        PreviewGenerationManager.initializeBackgroundGeneration(this, currentTheme)
         
         // Post the theme change notification to ensure fragments are fully restored
         // and in a proper lifecycle state before receiving the notification
