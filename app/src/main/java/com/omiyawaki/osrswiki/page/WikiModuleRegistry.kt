@@ -153,7 +153,7 @@ object WikiModuleRegistry {
         val toProcess = moduleList.toMutableList()
         
         while (toProcess.isNotEmpty()) {
-            val module = toProcess.removeFirst()
+            val module = toProcess.removeAt(0)  // Compatible with older Android versions
             if (module in resolved) continue
             
             resolved.add(module)
