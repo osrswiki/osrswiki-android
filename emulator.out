@@ -81,3 +81,5 @@ WARNING      | adb command '/Users/miyawaki/Library/Android/sdk/platform-tools/a
 INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=184.827,567.168 gbl=184.827,567.168 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-184.827,-567.168 last=-184.827,-567.168 Δ 184.827,567.168) : no target window (:0, )
 INFO         | Boot completed in 16906 ms
 INFO         | Increasing screen off timeout, logcat buffer size to 2M.
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1639.65,33.1356 gbl=1639.65,33.1356 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1639.65,-33.1356 last=-1639.65,-33.1356 Δ 1639.65,33.1356) : no target window (:0, )
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=1650.36,498.096 gbl=1650.36,498.096 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-1650.36,-498.096 last=-1650.36,-498.096 Δ 1650.36,498.096) : no target window (:0, )

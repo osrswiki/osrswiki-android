@@ -1,0 +1,65 @@
+{
+  "GECharts": {
+    "name": "GECharts",
+    "options": {
+      "ResourceLoader|type": "general|default"
+    },
+    "dependencies": [],
+    "scripts": [
+      "MediaWiki:Gadget-GECharts.js"
+    ],
+    "styles": [],
+    "section": "Core"
+  },
+  "GECharts-core": {
+    "name": "GECharts-core",
+    "options": {
+      "ResourceLoader|dependencies": "ext.gadget.rsw-util",
+      "oojs-ui-core": true,
+      "oojs-ui-widgets": true,
+      "oojs-ui-windows|type": "general|hidden"
+    },
+    "dependencies": [],
+    "scripts": [
+      "MediaWiki:Gadget-GECharts-core.js"
+    ],
+    "styles": [],
+    "section": "Core"
+  },
+  "Charts": {
+    "name": "Charts",
+    "options": {
+      "ResourceLoader|type": "general|default"
+    },
+    "dependencies": [],
+    "scripts": [
+      "MediaWiki:Gadget-Charts.js"
+    ],
+    "styles": [],
+    "section": "Core"
+  },
+  "Charts-core": {
+    "name": "Charts-core",
+    "options": {
+      "ResourceLoader|type": "general|hidden|dependencies=ext.gadget.rsw-util"
+    },
+    "dependencies": [],
+    "scripts": [
+      "MediaWiki:Gadget-Charts-core.js"
+    ],
+    "styles": [],
+    "section": "Core"
+  },
+  "rsw-util": {
+    "name": "rsw-util",
+    "options": {
+      "ResourceLoader|dependencies": "mediawiki.util|type=general|default|hidden"
+    },
+    "dependencies": [],
+    "scripts": [
+      "MediaWiki:Gadget-rsw-util.js"
+    ],
+    "styles": [],
+    "section": "Core"
+  }
+}
