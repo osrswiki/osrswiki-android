@@ -1,6 +1,8 @@
 package com.omiyawaki.osrswiki.page
 
 import android.content.Context
+import android.net.Uri
+import android.webkit.WebView
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
@@ -18,6 +20,59 @@ class PageContentLoader(
     private val coroutineScope: CoroutineScope,
     private val onStateUpdated: () -> Unit
 ) {
+    
+    // New method for direct wiki page loading
+    fun loadPageDirectly(articleQueryTitle: String, theme: Theme, webView: WebView) {
+        L.d("PageContentLoader: Loading page directly from wiki: '$articleQueryTitle', theme: $theme")
+        
+        // Generate the wiki URL for direct loading
+        val directWikiUrl = WikiSite.OSRS_WIKI.url + "/w/" + Uri.encode(articleQueryTitle)
+        L.d("PageContentLoader: Generated direct wiki URL: $directWikiUrl")
+        
+        // Update UI state to show loading
+        coroutineScope.launch {
+            withContext(Dispatchers.Main) {
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = true,
+                    error = null,
+                    progress = 10,
+                    progressText = "Loading from wiki...",
+                    wikiUrl = directWikiUrl
+                )
+                onStateUpdated()
+                
+                // Load the wiki page directly in WebView
+                webView.loadUrl(directWikiUrl)
+            }
+        }
+    }
+    
+    fun loadPageDirectlyById(pageId: Int, initialDisplayTitle: String?, theme: Theme, webView: WebView) {
+        L.d("PageContentLoader: Loading page directly by ID: $pageId, displayTitle: '$initialDisplayTitle', theme: $theme")
+        
+        // Generate the wiki URL for direct loading by page ID
+        val directWikiUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
+        L.d("PageContentLoader: Generated direct wiki URL by ID: $directWikiUrl")
+        
+        // Update UI state to show loading
+        coroutineScope.launch {
+            withContext(Dispatchers.Main) {
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    isLoading = true,
+                    error = null,
+                    progress = 10,
+                    progressText = "Loading from wiki...",
+                    wikiUrl = directWikiUrl,
+                    pageId = pageId,
+                    title = initialDisplayTitle
+                )
+                onStateUpdated()
+                
+                // Load the wiki page directly in WebView
+                webView.loadUrl(directWikiUrl)
+            }
+        }
+    }
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
         val mobileUrl = WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)
