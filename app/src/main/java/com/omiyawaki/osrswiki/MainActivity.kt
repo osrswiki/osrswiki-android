@@ -35,8 +35,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
 import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
-import com.omiyawaki.osrswiki.settings.ThemePreviewRenderer
-import com.omiyawaki.osrswiki.theme.Theme
 
 // Debug extension to trace all programmatic tab changes
 fun BottomNavigationView.debugSelect(id: Int, src: String = "") {
