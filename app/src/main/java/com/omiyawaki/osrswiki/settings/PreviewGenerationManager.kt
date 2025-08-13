@@ -180,7 +180,7 @@ object PreviewGenerationManager {
      * This replaces the separate generation of current and alternative theme previews
      * with a single unified operation that's 5-8x faster.
      */
-    private suspend fun generateAllPreviewsUnified(app: OSRSWikiApp, currentTheme: Theme) {
+    private suspend fun generateAllPreviewsUnified(context: Context, currentTheme: Theme) {
         Log.i(TAG, "UNIFIED GENERATION: Starting unified preview generation (render-once, capture-many)")
         Log.i("StartupTiming", "UNIFIED_START current_theme=${currentTheme.tag}")
         val unifiedStartTime = System.currentTimeMillis()
