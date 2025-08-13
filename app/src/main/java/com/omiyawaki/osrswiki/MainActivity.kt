@@ -29,6 +29,7 @@ import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import androidx.lifecycle.lifecycleScope
 import android.widget.TextView
 import com.google.android.material.bottomnavigation.BottomNavigationView
