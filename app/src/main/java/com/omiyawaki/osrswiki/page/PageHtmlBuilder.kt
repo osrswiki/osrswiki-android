@@ -21,7 +21,7 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/wiki-integration.css",
         "styles/navbox_styles.css",                         // Restored: Navbox styling
         JavaScriptActionHandler.getCollapsibleTableCssPath(), // Restored: Collapsible tables CSS
-        "web/app/collapsible_sections.css",                 // Restored: Collapsible sections CSS
+        "web/collapsible_sections.css",                 // Restored: Collapsible sections CSS
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(), // Restored: Infobox switcher CSS
         "styles/fixes.css"
     )
@@ -31,16 +31,16 @@ class PageHtmlBuilder(private val context: Context) {
         "startup.js"                                    // Core MediaWiki module loader - RLPAGEMODULES now inlined above
     )
     
-    // App-specific utility scripts (preserved from working version)
-    private val appSpecificModules = listOf(
+    // Base JavaScript assets (before conditional GE charts addition)
+    private val jsAssetPaths = listOf(
         "js/tablesort.min.js",
         "js/tablesort_init.js",
-        "web/app/collapsible_content.js",
+        "web/collapsible_content.js",
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(), // Restored: Infobox switcher bootstrap
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),          // Restored: Infobox switcher main script
-        "web/app/horizontal_scroll_interceptor.js",
-        "web/app/responsive_videos.js",
-        "web/app/clipboard_bridge.js"
+        "web/horizontal_scroll_interceptor.js",
+        "web/responsive_videos.js",
+        "web/clipboard_bridge.js"
     )
     
     private val themeUtilityScript = """
@@ -113,6 +113,14 @@ class PageHtmlBuilder(private val context: Context) {
                 else -> "" // OSRS Light is the default theme in CSS, no class needed.
             }
 
+            // Detect presence of GE price charts in the content and include widget script when needed
+            val needsGECharts = cleanedBodyContent.contains("GEChartBox") ||
+                    cleanedBodyContent.contains("GEdatachart") ||
+                    cleanedBodyContent.contains("GEdataprices")
+            if (needsGECharts) {
+                Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
+            }
+
             val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
                 "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
             }
@@ -126,8 +134,15 @@ class PageHtmlBuilder(private val context: Context) {
                 "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
             }
             
-            // App-specific scripts (preserved from working version)
-            val appScripts = appSpecificModules.joinToString("\n") { assetPath ->
+            // Build the JS list, conditionally appending the GE charts widget
+            val dynamicJsAssets = if (needsGECharts) {
+                jsAssetPaths + listOf(
+                    "web/highcharts-stock.js",
+                    "web/ge_charts_init.js"
+                )
+            } else jsAssetPaths
+
+            val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
                 "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
             }
             
@@ -154,7 +169,7 @@ class PageHtmlBuilder(private val context: Context) {
                 <body class="$themeClass" style="visibility: hidden;">
                     ${finalBodyContent}
                     ${mediawikiScripts}
-                    ${appScripts}
+                    ${jsScripts}
                     ${foucFix}
                 </body>
                 </html>
