@@ -34,22 +34,69 @@ class PageLinkHandler(
         val targetPageTitleWithSpaces = articleTitleWithUnderscores.replace('_', ' ')
         Log.d(TAG, "Attempting to handle internal link. Target title: '$targetPageTitleWithSpaces', URI: $fullUri")
 
-        // Simplified approach: Direct loading only (no repository calls to avoid HTML building)
-        if (isNetworkAvailable()) {
-            Log.i(TAG, "Network available. Using direct loading for '$targetPageTitleWithSpaces'.")
-            context.startActivity(PageActivity.newIntent(
-                context,
-                targetPageTitleWithSpaces,
-                null,
-                HistoryEntry.SOURCE_INTERNAL_LINK
-            ))
-        } else {
-            Log.w(TAG, "No network connection. Direct loading requires network.")
-            coroutineScope.launch {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "No network connection available to load page '$targetPageTitleWithSpaces'.", Toast.LENGTH_LONG).show()
+        coroutineScope.launch {
+            var navigationAttempted = false
+            pageRepository.getArticleByTitle(targetPageTitleWithSpaces, theme, forceNetwork = false)
+                .collectLatest { result ->
+                    if (navigationAttempted && (result is Result.Success || result is Result.Error)) {
+                        Log.d(TAG, "Navigation already attempted for '$targetPageTitleWithSpaces', ignoring further emissions for this click.")
+                        return@collectLatest
+                    }
+
+                    when (result) {
+                        is Result.Success -> {
+                            val loadedTargetUiState = result.data
+                            if (loadedTargetUiState.isCurrentlyOffline && loadedTargetUiState.htmlContent != null) {
+                                Log.i(TAG, "Target '$targetPageTitleWithSpaces' (ID: ${loadedTargetUiState.pageId}) found OFFLINE with content. Navigating offline.")
+                                context.startActivity(PageActivity.newIntent(
+                                    context,
+                                    loadedTargetUiState.plainTextTitle,
+                                    loadedTargetUiState.pageId?.toString(),
+                                    HistoryEntry.SOURCE_INTERNAL_LINK
+                                ))
+                                navigationAttempted = true
+                            } else {
+                                Log.i(TAG, "Target '$targetPageTitleWithSpaces' not found as usable offline content. Checking network for online navigation.")
+                                if (isNetworkAvailable()) {
+                                    Log.i(TAG, "Network is available. Navigating ONLINE to '$targetPageTitleWithSpaces'.")
+                                    context.startActivity(PageActivity.newIntent(
+                                        context,
+                                        targetPageTitleWithSpaces,
+                                        null,
+                                        HistoryEntry.SOURCE_INTERNAL_LINK
+                                    ))
+                                } else {
+                                    Log.w(TAG, "Target '$targetPageTitleWithSpaces' not available offline and NO network connection.")
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Page '$targetPageTitleWithSpaces' is not available for offline viewing and there is no network connection.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                                navigationAttempted = true
+                            }
+                        }
+                        is Result.Error -> {
+                            Log.w(TAG, "Error initially fetching target '$targetPageTitleWithSpaces' from repository (forceNetwork=false): ${result.message}")
+                            if (isNetworkAvailable()) {
+                                Log.i(TAG, "Network is available. Attempting ONLINE navigation to '$targetPageTitleWithSpaces' due to previous error loading from cache.")
+                                context.startActivity(PageActivity.newIntent(
+                                    context,
+                                    targetPageTitleWithSpaces,
+                                    null,
+                                    HistoryEntry.SOURCE_INTERNAL_LINK
+                                ))
+                            } else {
+                                Log.w(TAG, "Error fetching '$targetPageTitleWithSpaces' and NO network connection.")
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Could not load page '$targetPageTitleWithSpaces'. No network connection.", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                            navigationAttempted = true
+                        }
+                        is Result.Loading -> {
+                            Log.d(TAG, "Loading link target '$targetPageTitleWithSpaces' from repository...")
+                        }
+                    }
                 }
-            }
         }
     }
 

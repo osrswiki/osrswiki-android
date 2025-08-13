@@ -16,6 +16,5 @@ data class PageUiState(
     val revisionId: Long? = null,
     val lastFetchedTimestamp: Long? = null,
     val localFilePath: String? = null,
-    val isCurrentlyOffline: Boolean = false,
-    val isDirectLoading: Boolean = false  // Flag to indicate direct wiki page loading vs HTML building
+    val isCurrentlyOffline: Boolean = false
 )

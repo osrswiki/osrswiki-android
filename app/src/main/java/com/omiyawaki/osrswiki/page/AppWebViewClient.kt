@@ -2,13 +2,14 @@ package com.omiyawaki.osrswiki.page
 
 import android.graphics.Bitmap
 import android.util.Log
+import android.webkit.MimeTypeMap
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.omiyawaki.osrswiki.page.cache.AssetCache
 import com.omiyawaki.osrswiki.network.NetworkModuleCache
-import com.omiyawaki.osrswiki.page.cache.WikiPageCache
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +19,8 @@ import java.net.URL
 
 open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClient() {
     private val logTag = "PageLoadTrace"
+    private lateinit var cdnRedirector: UniversalCdnRedirector
     private lateinit var moduleCache: NetworkModuleCache
-    private lateinit var pageCache: WikiPageCache
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
@@ -41,15 +42,30 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
         
-        // Initialize caches if needed
+        // Initialize CDN redirector and module cache if needed
+        if (!::cdnRedirector.isInitialized) {
+            cdnRedirector = UniversalCdnRedirector.getInstance(view.context)
+        }
         if (!::moduleCache.isInitialized) {
             moduleCache = NetworkModuleCache.getInstance(view.context)
         }
-        if (!::pageCache.isInitialized) {
-            pageCache = WikiPageCache.getInstance(view.context)
+        
+        // 1. First check AssetCache for existing cached resources
+        val cachedAsset = AssetCache.get(url)
+        if (cachedAsset != null) {
+            Log.i(logTag, "  -> INTERCEPT [HIT] in AssetCache for: $url")
+            val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+                MimeTypeMap.getFileExtensionFromUrl(url)
+            ) ?: "application/octet-stream" // Default MIME type if lookup fails
+
+            return WebResourceResponse(
+                mimeType,
+                "UTF-8",
+                ByteArrayInputStream(cachedAsset)
+            )
         }
         
-        // 1. Check NetworkModuleCache for MediaWiki load.php requests (performance caching only)
+        // 2. Check NetworkModuleCache for MediaWiki load.php requests
         if (moduleCache.shouldCache(url)) {
             try {
                 val cachedResponse = runBlocking {
@@ -65,7 +81,7 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
                 } else {
                     Log.d(logTag, "  -> INTERCEPT [MISS] in NetworkModuleCache, fetching from network: ${url}")
                     
-                    // Fetch from network and cache the response for future use
+                    // Fetch from network and cache the response
                     val networkResponse = runBlocking {
                         fetchAndCacheModuleResponse(url)
                     }
@@ -84,8 +100,21 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
                 Log.w(logTag, "NetworkModuleCache error for $url: ${e.message}")
             }
         }
+        
+        // 3. Check for CDN redirection using automated mapping
+        try {
+            val cdnResponse = runBlocking {
+                cdnRedirector.shouldRedirectRequest(request)
+            }
+            if (cdnResponse != null) {
+                return cdnResponse
+            }
+        } catch (e: Exception) {
+            Log.w(logTag, "CDN redirector error for $url: ${e.message}")
+        }
 
-        // 2. Fallback to default behavior (let wiki load naturally from its servers)
+        // 4. Fallback to default behavior (local assets via WebViewAssetLoader or network)
+        Log.w(logTag, "  -> INTERCEPT [MISS] in AssetCache, NetworkModuleCache, and CDN mapping for: $url")
         return super.shouldInterceptRequest(view, request)
     }
 

@@ -101,9 +101,7 @@ class PageRepository(
 
         val canonicalTitle = parseResult.title
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
-        
-        // DISABLED: Stop building HTML to prevent parallel loading issues
-        // val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme)
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme)
 
         val uiState = PageUiState(
             isLoading = false,
@@ -112,7 +110,7 @@ class PageRepository(
             pageId = parseResult.pageid,
             title = displayTitle,
             plainTextTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle,
-            htmlContent = null, // DISABLED: Use direct loading only
+            htmlContent = finalHtml,
             wikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}",
             revisionId = parseResult.revid,
             lastFetchedTimestamp = System.currentTimeMillis(),
@@ -128,16 +126,13 @@ class PageRepository(
                 val parseResult = networkResult.data
                 val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                
-                // DISABLED: Stop building HTML to prevent parallel loading issues
-                // val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme)
-                
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme)
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
                     pageId = parseResult.pageid,
                     title = displayTitle,
                     plainTextTitle = OfflineCacheUtil.stripHtml(displayTitle) ?: canonicalTitle,
-                    htmlContent = null, // DISABLED: Use direct loading only
+                    htmlContent = htmlContent,
                     wikiUrl = "https://oldschool.runescape.wiki/w/${canonicalTitle.replace(" ", "_")}",
                     revisionId = parseResult.revid,
                     lastFetchedTimestamp = System.currentTimeMillis(),

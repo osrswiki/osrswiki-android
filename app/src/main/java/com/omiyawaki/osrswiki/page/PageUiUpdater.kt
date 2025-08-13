@@ -46,19 +46,13 @@ class PageUiUpdater(
                 pageWebView.visibility = View.GONE
             } else {
                 errorTextView.visibility = View.GONE
-                
-                // Always use direct loading - eliminates parallel loading issues
-                if (state.isDirectLoading) {
-                    pageWebView.visibility = View.VISIBLE
-                    if (!isRenderInitiated && state.wikiUrl != null) {
-                        L.d("Direct loading URL ready. Calling loadUrlDirectly().")
+                pageWebView.visibility = if (state.htmlContent != null) View.VISIBLE else View.GONE
+                state.htmlContent?.let {
+                    if (!isRenderInitiated) {
+                        L.d("HTML is ready and render has not been initiated. Calling render().")
                         isRenderInitiated = true
-                        webViewManager.loadUrlDirectly(state.wikiUrl)
+                        webViewManager.render(it)
                     }
-                } else {
-                    // No HTML content loading - all pages use direct loading now
-                    pageWebView.visibility = View.GONE
-                    L.w("PageUiUpdater: No direct loading URL available for page")
                 }
             }
 
