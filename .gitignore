@@ -89,6 +89,9 @@ app/src/main/assets/web/core/
 /cloud-function/feedback-function/node_modules/
 /cloud-function/feedback-function/.gcloudignore
 
+# Session management temporary files
+.claude-session-device
+
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
 !gradle/wrapper/gradle-wrapper.jar
