@@ -142,6 +142,7 @@ class UnifiedPreviewGenerator {
                 Log.i(TAG, "WebView attached to window with optimizations enabled")
                 
                 // Set up components exactly like TablePreviewRenderer does
+                val app = context.applicationContext as OSRSWikiApp
                 val pageRepository = app.pageRepository
                 val previewScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
                 
