@@ -9,15 +9,18 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.omiyawaki.osrswiki.page.cache.AssetCache
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.omiyawaki.osrswiki.network.NetworkModuleCache
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.io.ByteArrayInputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClient() {
     private val logTag = "PageLoadTrace"
     private lateinit var cdnRedirector: UniversalCdnRedirector
+    private lateinit var moduleCache: NetworkModuleCache
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
@@ -39,9 +42,12 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
         
-        // Initialize CDN redirector if needed
+        // Initialize CDN redirector and module cache if needed
         if (!::cdnRedirector.isInitialized) {
             cdnRedirector = UniversalCdnRedirector.getInstance(view.context)
+        }
+        if (!::moduleCache.isInitialized) {
+            moduleCache = NetworkModuleCache.getInstance(view.context)
         }
         
         // 1. First check AssetCache for existing cached resources
@@ -59,7 +65,43 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             )
         }
         
-        // 2. Check for CDN redirection using automated mapping
+        // 2. Check NetworkModuleCache for MediaWiki load.php requests
+        if (moduleCache.shouldCache(url)) {
+            try {
+                val cachedResponse = runBlocking {
+                    moduleCache.getCachedResponse(url)
+                }
+                if (cachedResponse != null) {
+                    Log.i(logTag, "  -> INTERCEPT [HIT] in NetworkModuleCache for: ${url}")
+                    return WebResourceResponse(
+                        "application/javascript",
+                        "UTF-8",
+                        ByteArrayInputStream(cachedResponse.toByteArray())
+                    )
+                } else {
+                    Log.d(logTag, "  -> INTERCEPT [MISS] in NetworkModuleCache, fetching from network: ${url}")
+                    
+                    // Fetch from network and cache the response
+                    val networkResponse = runBlocking {
+                        fetchAndCacheModuleResponse(url)
+                    }
+                    if (networkResponse != null) {
+                        Log.i(logTag, "  -> INTERCEPT [FETCHED] successfully cached response for: ${url}")
+                        return WebResourceResponse(
+                            "application/javascript",
+                            "UTF-8",
+                            ByteArrayInputStream(networkResponse.toByteArray())
+                        )
+                    } else {
+                        Log.w(logTag, "  -> INTERCEPT [FAILED] could not fetch response for: ${url}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(logTag, "NetworkModuleCache error for $url: ${e.message}")
+            }
+        }
+        
+        // 3. Check for CDN redirection using automated mapping
         try {
             val cdnResponse = runBlocking {
                 cdnRedirector.shouldRedirectRequest(request)
@@ -71,8 +113,8 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             Log.w(logTag, "CDN redirector error for $url: ${e.message}")
         }
 
-        // 3. Fallback to default behavior (local assets via WebViewAssetLoader or network)
-        Log.w(logTag, "  -> INTERCEPT [MISS] in AssetCache and CDN mapping for: $url")
+        // 4. Fallback to default behavior (local assets via WebViewAssetLoader or network)
+        Log.w(logTag, "  -> INTERCEPT [MISS] in AssetCache, NetworkModuleCache, and CDN mapping for: $url")
         return super.shouldInterceptRequest(view, request)
     }
 
@@ -100,6 +142,37 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
         super.onReceivedHttpError(view, request, errorResponse)
         if (request?.isForMainFrame == true) {
             Log.e(logTag, "AppWebViewClient: HTTP error loading main frame: ${request.url}, Status: ${errorResponse?.statusCode}")
+        }
+    }
+    
+    /**
+     * Fetch a module response from the network and cache it.
+     * Returns the response content if successful, null otherwise.
+     */
+    private suspend fun fetchAndCacheModuleResponse(url: String): String? = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.setRequestProperty("User-Agent", "OSRSWiki-Android")
+            connection.setRequestProperty("Accept", "application/javascript, */*")
+            
+            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                
+                // Cache the response
+                moduleCache.cacheResponse(url, response)
+                
+                Log.d(logTag, "Successfully fetched and cached module response (${response.length} bytes)")
+                response
+            } else {
+                Log.w(logTag, "Failed to fetch module: HTTP ${connection.responseCode}")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e(logTag, "Error fetching module from network: ${e.message}")
+            null
         }
     }
 }
