@@ -63,6 +63,9 @@ object PreviewGenerationManager {
         Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - Starting background preview generation for theme: ${currentTheme.tag}")
         Log.d(TAG, "Starting background preview generation for theme: ${currentTheme.tag}")
         
+        // Get OSRSWikiApp from context
+        val app = context.applicationContext as OSRSWikiApp
+        
         // Launch background generation in Application scope (survives Activity lifecycle)
         app.applicationScope.launch {
             try {
