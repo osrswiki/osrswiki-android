@@ -46,9 +46,10 @@
     function setupCollapsible(header, container, titleWrapper, captionText) {
         var content = container.querySelector('.collapsible-content');
         if (!content) return;
-        if (container.classList.contains('collapsed')) {
-            content.style.height = '0px';
-        }
+        // CSS now handles initial collapsed state, no need for inline style
+        // if (container.classList.contains('collapsed')) {
+        //     content.style.height = '0px';
+        // }
         header.addEventListener('click', function() {
             var isCurrentlyCollapsed = container.classList.contains('collapsed');
             var mapPlaceholder = content.querySelector('.mw-kartographer-map');
@@ -222,6 +223,9 @@
         
         tryInitializeSwitcher();
 
+        // Add CSS class to signal transforms are complete
+        document.body.classList.add('js-transforms-complete');
+        
         // Signal to native that styling and transforms are complete,
         // so the page can be revealed without FOUC.
         if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {

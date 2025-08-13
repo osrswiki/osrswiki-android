@@ -152,8 +152,8 @@ class PageHtmlBuilder(private val context: Context) {
             // Preload the main web font to improve rendering performance
             val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
 
-            // FOUC fix (preserved from working version)
-            val foucFix = "<script>document.body.style.visibility = 'visible';</script>"
+            // Body visibility handled by RenderTimeline when JavaScript completes
+            // No inline FOUC fix needed - prevents flash of untransformed content
 
             finalHtml = """
                 <!DOCTYPE html>
@@ -170,7 +170,6 @@ class PageHtmlBuilder(private val context: Context) {
                     ${finalBodyContent}
                     ${mediawikiScripts}
                     ${jsScripts}
-                    ${foucFix}
                 </body>
                 </html>
             """.trimIndent()
