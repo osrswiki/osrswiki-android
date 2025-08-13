@@ -46,12 +46,24 @@ class PageUiUpdater(
                 pageWebView.visibility = View.GONE
             } else {
                 errorTextView.visibility = View.GONE
-                pageWebView.visibility = if (state.htmlContent != null) View.VISIBLE else View.GONE
-                state.htmlContent?.let {
-                    if (!isRenderInitiated) {
-                        L.d("HTML is ready and render has not been initiated. Calling render().")
+                
+                if (state.isDirectLoading) {
+                    // For direct loading, show WebView immediately and let it load the URL
+                    pageWebView.visibility = View.VISIBLE
+                    if (!isRenderInitiated && state.wikiUrl != null) {
+                        L.d("Direct loading URL ready. Calling loadUrlDirectly().")
                         isRenderInitiated = true
-                        webViewManager.render(it)
+                        webViewManager.loadUrlDirectly(state.wikiUrl)
+                    }
+                } else {
+                    // For HTML content loading (old approach)
+                    pageWebView.visibility = if (state.htmlContent != null) View.VISIBLE else View.GONE
+                    state.htmlContent?.let {
+                        if (!isRenderInitiated) {
+                            L.d("HTML is ready and render has not been initiated. Calling render().")
+                            isRenderInitiated = true
+                            webViewManager.render(it)
+                        }
                     }
                 }
             }
