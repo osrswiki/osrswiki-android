@@ -3,137 +3,66 @@
 MediaWiki Module Dependency Resolver
 
 This tool analyzes MediaWiki's module registry and performs complete dependency resolution.
-It parses the startup module to extract the module manifest and builds a complete dependency graph.
+It uses the execution-based startup_extractor to get accurate module data without parsing.
 """
 
+import asyncio
 import json
 import re
 import sys
-import requests
+import tempfile
 from pathlib import Path
-from typing import Dict, List, Set, Any, Optional, Tuple
+from typing import Dict, List, Set, Any, Optional
 from collections import defaultdict, deque
+from startup_extractor import StartupExtractor
 
 class MediaWikiModuleResolver:
     def __init__(self, base_url: str = "https://oldschool.runescape.wiki"):
         self.base_url = base_url
         self.module_registry = {}
-        self.dependency_graph = defaultdict(list)
-        self.reverse_dependency_graph = defaultdict(list)
+        self.dependency_graph = {}
+        self.reverse_dependency_graph = {}
         self.module_groups = {}
         
-    def load_startup_module(self) -> str:
-        """Download and return the startup module content."""
-        startup_url = f"{self.base_url}/load.php"
-        params = {
-            'modules': 'startup',
-            'only': 'scripts',
-            'skin': 'vector',
-            'debug': 'true',
-            'lang': 'en-gb'
-        }
+    async def load_module_registry(self) -> Dict[str, Any]:
+        """Load module registry using execution-based extraction."""
         
-        print(f"[INFO] Downloading startup module from {startup_url}")
-        response = requests.get(startup_url, params=params, timeout=30)
-        response.raise_for_status()
+        print(f"[INFO] Loading module registry using execution-based extraction")
         
-        content = response.text
-        print(f"[SUCCESS] Downloaded startup module ({len(content)} bytes)")
-        return content
+        extractor = StartupExtractor(self.base_url)
+        registry_data = await extractor.extract_from_url()
+        
+        if 'error' in registry_data:
+            raise ValueError(f"Failed to extract registry: {registry_data['error']}")
+        
+        # Store the extracted data
+        self.module_registry = registry_data['registry']
+        self.dependency_graph = registry_data['dependency_graph']
+        self.reverse_dependency_graph = registry_data['reverse_dependency_graph']
+        
+        print(f"[SUCCESS] Loaded {len(self.module_registry)} modules with {registry_data['total_dependencies']} dependencies")
+        
+        return registry_data
     
-    def parse_module_registry(self, startup_content: str) -> Dict[str, Any]:
-        """Parse the module registry from startup.js content."""
+    async def load_from_file(self, registry_file: Path) -> Dict[str, Any]:
+        """Load module registry from a previously saved extraction file."""
         
-        # Find mw.loader.register calls
-        register_pattern = r'mw\.loader\.register\(\s*(\[[\s\S]*?\])\s*\)'
-        matches = re.findall(register_pattern, startup_content)
+        print(f"[INFO] Loading module registry from file: {registry_file}")
         
-        if not matches:
-            raise ValueError("Could not find mw.loader.register call in startup module")
+        with open(registry_file, 'r') as f:
+            registry_data = json.load(f)
         
-        print(f"[INFO] Found {len(matches)} register calls")
+        if 'error' in registry_data:
+            raise ValueError(f"Registry file contains error: {registry_data['error']}")
         
-        # Parse the largest register call (main module registry)
-        registry_data = max(matches, key=len)
+        # Store the loaded data
+        self.module_registry = registry_data['registry']
+        self.dependency_graph = registry_data['dependency_graph']
+        self.reverse_dependency_graph = registry_data['reverse_dependency_graph']
         
-        try:
-            # Clean up the JavaScript array to make it valid JSON
-            cleaned_data = self._clean_js_array(registry_data)
-            module_definitions = json.loads(cleaned_data)
-            print(f"[SUCCESS] Parsed {len(module_definitions)} module definitions")
-            
-        except json.JSONDecodeError as e:
-            print(f"[ERROR] Failed to parse module registry as JSON: {e}")
-            # Fallback: manual parsing
-            module_definitions = self._manual_parse_registry(registry_data)
+        print(f"[SUCCESS] Loaded {len(self.module_registry)} modules with {registry_data['total_dependencies']} dependencies")
         
-        return self._process_module_definitions(module_definitions)
-    
-    def _clean_js_array(self, js_array: str) -> str:
-        """Clean JavaScript array syntax to make it valid JSON."""
-        # Remove comments
-        cleaned = re.sub(r'//.*?$', '', js_array, flags=re.MULTILINE)
-        
-        # Handle unquoted object keys and other JS-specific syntax
-        # This is a simplified approach - may need enhancement
-        return cleaned
-    
-    def _manual_parse_registry(self, registry_data: str) -> List[List]:
-        """Manually parse module registry when JSON parsing fails."""
-        print("[WARN] Falling back to manual parsing")
-        
-        # Extract individual module definitions using regex
-        module_pattern = r'\[\s*"([^"]+)"[^\]]*\]'
-        matches = re.findall(module_pattern, registry_data)
-        
-        # For now, create simplified module definitions
-        # In a real implementation, we'd need more sophisticated parsing
-        module_definitions = []
-        for match in matches:
-            module_definitions.append([match, "", [], None])
-            
-        print(f"[INFO] Manual parsing extracted {len(module_definitions)} modules")
-        return module_definitions
-    
-    def _process_module_definitions(self, module_definitions: List[List]) -> Dict[str, Any]:
-        """Process raw module definitions into structured registry."""
-        registry = {}
-        
-        for definition in module_definitions:
-            if not isinstance(definition, list) or len(definition) < 2:
-                continue
-                
-            module_name = definition[0]
-            version = definition[1] if len(definition) > 1 else ""
-            dependencies = definition[2] if len(definition) > 2 else []
-            group = definition[3] if len(definition) > 3 else None
-            
-            # Handle dependency indices (some modules reference dependencies by index)
-            if isinstance(dependencies, list):
-                resolved_deps = []
-                for dep in dependencies:
-                    if isinstance(dep, int):
-                        # Dependency by index - resolve later
-                        resolved_deps.append(f"__INDEX_{dep}__")
-                    elif isinstance(dep, str):
-                        resolved_deps.append(dep)
-                dependencies = resolved_deps
-            
-            registry[module_name] = {
-                "version": version,
-                "dependencies": dependencies,
-                "group": group
-            }
-            
-            # Build dependency graph
-            for dep in dependencies:
-                if isinstance(dep, str) and not dep.startswith("__INDEX_"):
-                    self.dependency_graph[module_name].append(dep)
-                    self.reverse_dependency_graph[dep].append(module_name)
-        
-        self.module_registry = registry
-        print(f"[SUCCESS] Built registry with {len(registry)} modules")
-        return registry
+        return registry_data
     
     def resolve_dependencies(self, module_names: List[str]) -> Dict[str, List[str]]:
         """Resolve all transitive dependencies for given modules."""
@@ -277,15 +206,45 @@ class MediaWikiModuleResolver:
         }
 
 
-def main():
+async def main():
     """Main function."""
     if len(sys.argv) < 2:
-        print("Usage: python module_resolver.py <analysis_file> [output_file]")
-        print("Example: python module_resolver.py logs_analysis.json loading_plan.json")
+        print("Usage: python module_resolver.py <method> [analysis_file] [output_file]")
+        print()
+        print("Methods:")
+        print("  live <analysis_file>     - Load registry from live site and resolve dependencies")
+        print("  file <registry_file> <analysis_file> - Use saved registry file")
+        print()
+        print("Examples:")
+        print("  python module_resolver.py live logs_analysis.json loading_plan.json")
+        print("  python module_resolver.py file startup_execution_final.json logs_analysis.json")
         sys.exit(1)
     
-    analysis_file = Path(sys.argv[1])
-    output_file = Path(sys.argv[2] if len(sys.argv) > 2 else "loading_plan.json")
+    method = sys.argv[1]
+    
+    if method == "live":
+        if len(sys.argv) < 3:
+            print("[ERROR] Live method requires analysis file")
+            sys.exit(1)
+        analysis_file = Path(sys.argv[2])
+        output_file = Path(sys.argv[3] if len(sys.argv) > 3 else "loading_plan.json")
+        registry_source = "live"
+        
+    elif method == "file":
+        if len(sys.argv) < 4:
+            print("[ERROR] File method requires registry file and analysis file")
+            sys.exit(1)
+        registry_file = Path(sys.argv[2])
+        analysis_file = Path(sys.argv[3])
+        output_file = Path(sys.argv[4] if len(sys.argv) > 4 else "loading_plan.json")
+        registry_source = "file"
+        
+        if not registry_file.exists():
+            print(f"[ERROR] Registry file not found: {registry_file}")
+            sys.exit(1)
+    else:
+        print(f"[ERROR] Unknown method: {method}")
+        sys.exit(1)
     
     if not analysis_file.exists():
         print(f"[ERROR] Analysis file not found: {analysis_file}")
@@ -302,12 +261,22 @@ def main():
     resolver = MediaWikiModuleResolver()
     
     try:
-        # Load and parse startup module
-        startup_content = resolver.load_startup_module()
-        resolver.parse_module_registry(startup_content)
+        # Load module registry
+        if registry_source == "live":
+            registry_data = await resolver.load_module_registry()
+        else:
+            registry_data = await resolver.load_from_file(registry_file)
         
         # Generate loading plan
         loading_plan = resolver.generate_loading_plan(page_modules)
+        
+        # Add registry metadata
+        loading_plan["registry_info"] = {
+            "source": registry_source,
+            "extraction_method": registry_data.get("extraction_method", "unknown"),
+            "total_modules_available": len(resolver.module_registry),
+            "total_dependencies_available": registry_data.get("total_dependencies", 0)
+        }
         
         # Save results
         with open(output_file, 'w') as f:
@@ -323,6 +292,11 @@ def main():
         for key, value in summary.items():
             print(f"{key.replace('_', ' ').title()}: {value}")
         
+        print(f"\nRegistry info:")
+        reg_info = loading_plan["registry_info"]
+        for key, value in reg_info.items():
+            print(f"  {key.replace('_', ' ').title()}: {value}")
+        
         print(f"\nLoading phases:")
         phases = loading_plan["loading_order"]
         for phase, modules in phases.items():
@@ -330,6 +304,8 @@ def main():
         
         if loading_plan["missing_modules"]:
             print(f"\n⚠️  Missing modules: {', '.join(loading_plan['missing_modules'])}")
+        else:
+            print(f"\n✅ All required modules available in registry")
             
     except Exception as e:
         print(f"[ERROR] Resolution failed: {e}")
@@ -339,4 +315,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

@@ -66,6 +66,13 @@ reference_wiki.css
 # JS module extraction outputs (contains extracted third-party code)
 tools/js/out/
 
+# Node.js dependencies
+node_modules/
+
+# JavaScript analysis temporary files
+tools/js/logs_*.json
+tools/js/startup_registry*.json
+
 # Extracted third-party JavaScript/CSS (not owned by this project)
 app/src/main/assets/web/external/
 app/src/main/assets/web/infrastructure/
