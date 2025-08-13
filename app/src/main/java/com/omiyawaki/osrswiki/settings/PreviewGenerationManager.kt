@@ -75,7 +75,7 @@ object PreviewGenerationManager {
                         
                         // UNIFIED APPROACH: Generate all previews in single operation (5-8x faster)
                         // This replaces the separate Phase 1 and Phase 2 with render-once, capture-many
-                        generateAllPreviewsUnified(app, currentTheme)
+                        generateAllPreviewsUnified(context, currentTheme)
                         
                         Log.i("StartupTiming", "PreviewGenerationManager - All generation work completed")
                     }
