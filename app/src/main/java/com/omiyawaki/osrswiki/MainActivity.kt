@@ -393,19 +393,26 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch {
             ActivityContextPool.registerActivity(this@MainActivity)
             Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
-            
-            // Initialize background preview generation as soon as Activity context is available
-            // This ensures previews are ready when users navigate to appearance settings
-            // Keep WorkManager as backup, but this direct call provides immediate context
-            val app = application as OSRSWikiApp
-            val currentTheme = app.getCurrentTheme()
-            Log.i("StartupTiming", "MainActivity starting direct preview generation for theme: ${currentTheme.tag}")
+        }
+        
+        // Reset state to allow generation even if WorkManager ran first
+        PreviewGenerationManager.resetState()
+        Log.i("StartupTiming", "MainActivity reset preview generation state")
+        
+        // Initialize background preview generation synchronously with Activity context
+        // This ensures previews are ready when users navigate to appearance settings
+        val app = application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        Log.i("StartupTiming", "MainActivity starting synchronous preview generation for theme: ${currentTheme.tag}")
+        
+        runBlocking {
             try {
                 PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
-                Log.i("StartupTiming", "MainActivity direct preview generation completed successfully")
+                Log.i("StartupTiming", "MainActivity synchronous preview generation completed successfully")
             } catch (e: Exception) {
-                Log.w("StartupTiming", "MainActivity direct preview generation failed: ${e.message}")
-                // WorkManager backup will still run if this fails
+                Log.w("StartupTiming", "MainActivity synchronous preview generation failed: ${e.message}")
+                // This is now our primary method, so log more details if it fails
+                Log.w("StartupTiming", "Preview generation failure details", e)
             }
         }
         

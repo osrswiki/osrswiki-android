@@ -80,3 +80,8 @@ WARNING      | adb command '/Users/miyawaki/Library/Android/sdk/platform-tools/a
 INFO         | Activated packet streamer for bluetooth emulation
 INFO         | Boot completed in 15360 ms
 INFO         | Increasing screen off timeout, logcat buffer size to 2M.
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=486.215,507.18 gbl=486.215,507.18 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-486.215,-507.18 last=-486.215,-507.18 Δ 486.215,507.18) : no target window (:0, )
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=458.665,408.66 gbl=458.665,408.66 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-458.665,-408.66 last=-458.665,-408.66 Δ 458.665,408.66) : no target window (:0, )
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=302.002,153.408 gbl=302.002,153.408 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-302.002,-153.408 last=-302.002,-153.408 Δ 302.002,153.408) : no target window (:0, )
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=359.337,148.592 gbl=359.337,148.592 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-359.337,-148.592 last=-359.337,-148.592 Δ 359.337,148.592) : no target window (:0, )
+INFO         | Warning: skipping QEventPoint(id=1 ts=0 pos=0,0 scn=370.618,455.24 gbl=370.618,455.24 Released ellipse=(1x1 ∡ 0) vel=0,0 press=-370.618,-455.24 last=-370.618,-455.24 Δ 370.618,455.24) : no target window (:0, )
