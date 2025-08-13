@@ -394,9 +394,19 @@ class MainActivity : BaseActivity() {
             ActivityContextPool.registerActivity(this@MainActivity)
             Log.i("StartupTiming", "MainActivity registered with ActivityContextPool - Now available for preview generation")
             
-            // Preview generation is now handled by WorkManager from Application.onCreate()
-            // This eliminates race conditions with activity lifecycle and theme changes
-            Log.i("StartupTiming", "Preview generation handled by WorkManager - no longer triggered from MainActivity")
+            // Initialize background preview generation as soon as Activity context is available
+            // This ensures previews are ready when users navigate to appearance settings
+            // Keep WorkManager as backup, but this direct call provides immediate context
+            val app = application as OSRSWikiApp
+            val currentTheme = app.getCurrentTheme()
+            Log.i("StartupTiming", "MainActivity starting direct preview generation for theme: ${currentTheme.tag}")
+            try {
+                PreviewGenerationManager.initializeBackgroundGeneration(app, currentTheme)
+                Log.i("StartupTiming", "MainActivity direct preview generation completed successfully")
+            } catch (e: Exception) {
+                Log.w("StartupTiming", "MainActivity direct preview generation failed: ${e.message}")
+                // WorkManager backup will still run if this fails
+            }
         }
         
         // Post the theme change notification to ensure fragments are fully restored
