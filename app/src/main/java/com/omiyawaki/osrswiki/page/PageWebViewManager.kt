@@ -22,6 +22,10 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
+import com.omiyawaki.osrswiki.page.cache.WikiPageCache
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 interface RenderCallback {
     fun onWebViewLoadFinished()
@@ -42,6 +46,7 @@ class PageWebViewManager(
     private val managerTag = "PageWebViewManager"
     private var renderStartTime: Long = 0
     private var pageLoaded = false
+    private val pageCache = WikiPageCache.getInstance(webView.context)
 
     private val localAssetDomain = "appassets.androidplatform.net"
 
@@ -159,6 +164,12 @@ class PageWebViewManager(
                     if (result == "0") {
                         Log.w(logTag, "--> WARNING: WebView finished loading but body content is empty!")
                     }
+                }
+                
+                // If this is a direct wiki page load, inject app-specific features and cache the page
+                if (url?.contains("oldschool.runescape.wiki") == true && view != null) {
+                    injectAppFeatures(view)
+                    cacheCurrentPage(view, url)
                 }
                 
                 pageLoaded = true
@@ -338,6 +349,8 @@ class PageWebViewManager(
         Log.d(logTag, "==> HTML contains <body>: ${fullHtml.contains("<body")}")
         Log.d(logTag, "==> HTML contains content: ${fullHtml.contains("content", ignoreCase = true)}")
         
+        // MediaWiki will now load modules naturally from the correct domain
+        
         val baseUrl = "https://$localAssetDomain/"
         Log.d(logTag, ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars, BaseURL: $baseUrl)")
         
@@ -352,11 +365,125 @@ class PageWebViewManager(
         Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL().")
     }
 
+    // New method for direct wiki page loading
+    fun loadUrlDirectly(url: String) {
+        pageLoaded = false
+        renderStartTime = System.currentTimeMillis()
+        Log.d(logTag, "==> Event: loadUrlDirectly() called for: $url")
+        
+        webView.loadUrl(url)
+        Log.d(logTag, "<<< Returned from webView.loadUrl().")
+    }
+
+
     private fun revealBody(onComplete: () -> Unit) {
         val revealBodyJs = "document.body.style.visibility = 'visible';"
         webView.evaluateJavascript(revealBodyJs) {
             // This completion handler for evaluateJavascript runs after the JS has executed.
             onComplete()
+        }
+    }
+    
+    /**
+     * Inject app-specific CSS and JavaScript features into a directly loaded wiki page
+     */
+    private fun injectAppFeatures(webView: WebView?) {
+        webView ?: return
+        
+        Log.d(logTag, "Injecting app-specific features into wiki page")
+        
+        // Inject app-specific CSS for theme integration and mobile optimization
+        val appCssInjection = """
+            (function() {
+                const style = document.createElement('style');
+                style.textContent = `
+                    /* App-specific theme integration */
+                    .theme-osrs-dark .mw-body,
+                    .theme-osrs-dark .vector-menu-content {
+                        background: var(--colorsurface, #1a1a1a) !important;
+                        color: var(--coloronsurface, #ffffff) !important;
+                    }
+                    
+                    /* Mobile optimization for app */
+                    @media (max-width: 720px) {
+                        .infobox {
+                            width: 100% !important;
+                            max-width: none !important;
+                        }
+                        
+                        .navbox {
+                            font-size: 0.9em;
+                        }
+                    }
+                    
+                    /* Enhanced clipboard functionality styling */
+                    .clipboard-success {
+                        background: rgba(0, 255, 0, 0.1);
+                        transition: background 0.3s ease;
+                    }
+                `;
+                document.head.appendChild(style);
+            })();
+        """.trimIndent()
+        
+        // Inject clipboard bridge integration for wiki content
+        val clipboardBridgeIntegration = """
+            (function() {
+                // Enhance existing copy functionality with our native bridge
+                if (window.ClipboardBridge && window.ClipboardBridge.writeText) {
+                    // Override any existing clipboard functionality to use our bridge
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        const originalWriteText = navigator.clipboard.writeText;
+                        navigator.clipboard.writeText = function(text) {
+                            try {
+                                if (window.ClipboardBridge.writeText(text)) {
+                                    return Promise.resolve();
+                                } else {
+                                    return originalWriteText.call(this, text);
+                                }
+                            } catch (e) {
+                                return originalWriteText.call(this, text);
+                            }
+                        };
+                    }
+                }
+            })();
+        """.trimIndent()
+        
+        // Execute the injections
+        webView.evaluateJavascript(appCssInjection) { 
+            Log.d(logTag, "App CSS injection completed")
+        }
+        
+        webView.evaluateJavascript(clipboardBridgeIntegration) { 
+            Log.d(logTag, "Clipboard bridge integration completed")
+        }
+    }
+    
+    /**
+     * Cache the current page HTML for offline access
+     */
+    private fun cacheCurrentPage(webView: WebView, url: String) {
+        webView.evaluateJavascript("document.documentElement.outerHTML") { html ->
+            // Remove JavaScript wrapper quotes and unescape the HTML
+            val cleanHtml = html?.let { 
+                if (it.startsWith("\"") && it.endsWith("\"")) {
+                    it.substring(1, it.length - 1)
+                        .replace("\\\"", "\"")
+                        .replace("\\n", "\n")
+                        .replace("\\r", "\r")
+                        .replace("\\t", "\t")
+                        .replace("\\\\", "\\")
+                } else {
+                    it
+                }
+            }
+            
+            if (!cleanHtml.isNullOrEmpty()) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    pageCache.cachePage(url, cleanHtml)
+                }
+            }
         }
     }
 }
