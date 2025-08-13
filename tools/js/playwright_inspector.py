@@ -45,7 +45,7 @@ class MediaWikiModuleInspector:
                 # Navigate to the page
                 url = f"{self.base_url}/w/{page_title}"
                 print(f"[INFO] Navigating to: {url}")
-                await page.goto(url, wait_until="networkidle")
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
                 
                 # Wait a bit more for any async module loading
                 await page.wait_for_timeout(3000)
