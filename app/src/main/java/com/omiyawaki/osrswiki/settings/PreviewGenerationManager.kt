@@ -54,7 +54,7 @@ object PreviewGenerationManager {
      * 
      * Launches background generation immediately and returns without waiting.
      */
-    fun initializeBackgroundGeneration(app: OSRSWikiApp, currentTheme: Theme) {
+    fun initializeBackgroundGeneration(context: Context, currentTheme: Theme) {
         if (!isInitialized.compareAndSet(false, true)) {
             Log.d(TAG, "Background generation already initialized")
             return
