@@ -51,10 +51,9 @@ object PreviewGenerationManager {
      * Uses scope that survives Activity lifecycle changes.
      * Safe to call multiple times - will only run once.
      * 
-     * CRITICAL FIX: This is now a suspend function that waits for completion
-     * instead of launching work and returning immediately (fire-and-forget).
+     * Launches background generation immediately and returns without waiting.
      */
-    suspend fun initializeBackgroundGeneration(app: OSRSWikiApp, currentTheme: Theme) {
+    fun initializeBackgroundGeneration(app: OSRSWikiApp, currentTheme: Theme) {
         if (!isInitialized.compareAndSet(false, true)) {
             Log.d(TAG, "Background generation already initialized")
             return
@@ -63,48 +62,49 @@ object PreviewGenerationManager {
         Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - Starting background preview generation for theme: ${currentTheme.tag}")
         Log.d(TAG, "Starting background preview generation for theme: ${currentTheme.tag}")
         
-        try {
-            withTimeout(GENERATION_TIMEOUT_MS) {
-                generationMutex.withLock {
-                    Log.i("StartupTiming", "PreviewGenerationManager - Starting actual generation work")
-                    
-                    // UNIFIED APPROACH: Generate all previews in single operation (5-8x faster)
-                    // This replaces the separate Phase 1 and Phase 2 with render-once, capture-many
-                    generateAllPreviewsUnified(app, currentTheme)
-                    
-                    Log.i("StartupTiming", "PreviewGenerationManager - All generation work completed")
-                }
-            }
-            
-            // CRITICAL: Add disk flush verification to ensure cache is durable
-            Log.i("StartupTiming", "PreviewGenerationManager - Starting disk flush verification")
-            val flushStartTime = System.currentTimeMillis()
-            
-            // Force disk flush by attempting cache verification
+        // Launch background generation in Application scope (survives Activity lifecycle)
+        app.applicationScope.launch {
             try {
-                // Verify cache files exist on disk by checking both themes and table previews
-                val cacheVerified = verifyPreviewCachesOnDisk(app, currentTheme)
-                val flushDuration = System.currentTimeMillis() - flushStartTime
-                Log.i("StartupTiming", "DISK_FLUSH_COMPLETE cache_verified=${cacheVerified} duration=${flushDuration}ms")
+                withTimeout(GENERATION_TIMEOUT_MS) {
+                    generationMutex.withLock {
+                        Log.i("StartupTiming", "PreviewGenerationManager - Starting actual generation work")
+                        
+                        // UNIFIED APPROACH: Generate all previews in single operation (5-8x faster)
+                        // This replaces the separate Phase 1 and Phase 2 with render-once, capture-many
+                        generateAllPreviewsUnified(app, currentTheme)
+                        
+                        Log.i("StartupTiming", "PreviewGenerationManager - All generation work completed")
+                    }
+                }
+                
+                // CRITICAL: Add disk flush verification to ensure cache is durable
+                Log.i("StartupTiming", "PreviewGenerationManager - Starting disk flush verification")
+                val flushStartTime = System.currentTimeMillis()
+                
+                // Force disk flush by attempting cache verification
+                try {
+                    // Verify cache files exist on disk by checking both themes and table previews
+                    val cacheVerified = verifyPreviewCachesOnDisk(app, currentTheme)
+                    val flushDuration = System.currentTimeMillis() - flushStartTime
+                    Log.i("StartupTiming", "DISK_FLUSH_COMPLETE cache_verified=${cacheVerified} duration=${flushDuration}ms")
+                } catch (e: Exception) {
+                    Log.w("StartupTiming", "DISK_FLUSH_VERIFICATION_FAILED: ${e.message}")
+                }
+                
+                Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - COMPLETED after real work")
+                Log.d(TAG, "Background preview generation completed successfully")
+                
+            } catch (e: TimeoutCancellationException) {
+                Log.e(TAG, "Background preview generation timed out after ${GENERATION_TIMEOUT_MS}ms", e)
+                Log.i("StartupTiming", "PreviewGenerationManager - TIMEOUT after ${GENERATION_TIMEOUT_MS}ms")
+                // Reset initialization flag to allow retry
+                isInitialized.set(false)
             } catch (e: Exception) {
-                Log.w("StartupTiming", "DISK_FLUSH_VERIFICATION_FAILED: ${e.message}")
+                Log.e(TAG, "Background preview generation failed", e)
+                Log.i("StartupTiming", "PreviewGenerationManager - FAILED: ${e.message}")
+                // Reset initialization flag to allow retry
+                isInitialized.set(false)
             }
-            
-            Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - COMPLETED after real work")
-            Log.d(TAG, "Background preview generation completed successfully")
-            
-        } catch (e: TimeoutCancellationException) {
-            Log.e(TAG, "Background preview generation timed out after ${GENERATION_TIMEOUT_MS}ms", e)
-            Log.i("StartupTiming", "PreviewGenerationManager - TIMEOUT after ${GENERATION_TIMEOUT_MS}ms")
-            // Reset initialization flag to allow retry
-            isInitialized.set(false)
-            throw e
-        } catch (e: Exception) {
-            Log.e(TAG, "Background preview generation failed", e)
-            Log.i("StartupTiming", "PreviewGenerationManager - FAILED: ${e.message}")
-            // Reset initialization flag to allow retry
-            isInitialized.set(false)
-            throw e
         }
     }
     
