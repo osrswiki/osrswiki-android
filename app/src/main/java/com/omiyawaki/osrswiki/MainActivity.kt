@@ -393,9 +393,6 @@ class MainActivity : BaseActivity() {
         // Capture live content bounds for theme previews (expert's solution)
         ContentBoundsProvider.publishFrom(this)
         
-        // Capture live content bounds for theme previews (expert's solution)
-        ContentBoundsProvider.publishFrom(this)
-        
         // Reset state to allow generation even if WorkManager ran first
         PreviewGenerationManager.resetState()
         Log.i("StartupTiming", "MainActivity reset preview generation state")
