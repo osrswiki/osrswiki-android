@@ -3,6 +3,18 @@
         These rules use the app's theme-aware variables.
 */
 
+/* FOUC Fix: Hide raw infoboxes until JavaScript transforms them */
+body:not(.js-transforms-complete) .infobox {
+    opacity: 0;
+}
+
+/* Show infoboxes after transformation or when wrapped in collapsible container */
+body.js-transforms-complete .infobox,
+.collapsible-container .infobox {
+    opacity: 1;
+}
+
+
 /* Base styling for all infobox containers. */
 .infobox {
         background: var(--wikitable-bg);
@@ -227,10 +239,12 @@
         overflow-x: auto;
 }
 
+/* FOUC Fix: Ensure collapsed state is immediately applied via CSS */
 .collapsible-container.collapsed .collapsible-content {
         height: 0 !important; /* Use !important to override inline style 'auto' */
         padding-top: 0;
         padding-bottom: 0;
+        overflow: hidden; /* Prevent content from showing during transitions */
 }
 
 /*
