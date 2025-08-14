@@ -9,8 +9,8 @@ plugins {
 
 android {
     namespace = "com.omiyawaki.osrswiki"
-    compileSdk = 35
-    buildToolsVersion = "35.0.1"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     defaultConfig {
         applicationId = "com.omiyawaki.osrswiki"

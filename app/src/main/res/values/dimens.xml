@@ -10,6 +10,10 @@
     <dimen name="bottom_bar_icon_padding_top">12dp</dimen>
     <dimen name="bottom_bar_icon_text_spacing">-4dp</dimen>
     
+    <!-- Custom Bottom Navigation Spacing -->
+    <dimen name="custom_bottom_nav_icon_padding_top">8dp</dimen>
+    <dimen name="custom_bottom_nav_icon_text_spacing">12dp</dimen>
+    
     <!-- Search Bar Standardized Dimensions -->
     <dimen name="search_bar_height">36dp</dimen>
     <dimen name="search_bar_padding">4dp</dimen>

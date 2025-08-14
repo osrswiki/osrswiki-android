@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/nav_bar_height"
+    android:orientation="horizontal"
+    android:background="?attr/colorSurface"
+    android:elevation="4dp">
+
+    <!-- News/Home Button -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nav_news"
+        style="@style/CustomBottomNavButton"
+        android:text="@string/nav_news"
+        app:drawableTopCompat="@drawable/ic_nav_news_24" />
+
+    <!-- Saved Button -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nav_saved"
+        style="@style/CustomBottomNavButton"
+        android:text="@string/nav_saved"
+        app:drawableTopCompat="@drawable/selector_nav_saved" />
+
+    <!-- Search Button -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nav_search"
+        style="@style/CustomBottomNavButton"
+        android:text="@string/nav_search"
+        app:drawableTopCompat="@drawable/ic_search_24" />
+
+    <!-- Map Button -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nav_map"
+        style="@style/CustomBottomNavButton"
+        android:text="@string/nav_map"
+        app:drawableTopCompat="@drawable/ic_nav_map_24" />
+
+    <!-- More Button -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nav_more"
+        style="@style/CustomBottomNavButton"
+        android:text="@string/nav_more"
+        app:drawableTopCompat="@drawable/ic_menu_white_24dp" />
+
+</LinearLayout>

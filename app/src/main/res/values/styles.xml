@@ -107,5 +107,27 @@
         <item name="cornerSize">16dp</item>
     </style>
 
+    <!-- Custom Bottom Navigation Button Style - avoids Material3 overlap issues -->
+    <style name="CustomBottomNavButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingLeft">2dp</item>
+        <item name="android:paddingRight">2dp</item>
+        <item name="android:paddingTop">@dimen/custom_bottom_nav_icon_padding_top</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:textColor">@color/bottom_nav_item_color</item>
+        <item name="android:textAlignment">center</item>
+        <item name="android:textAppearance">@style/AppTextAppearance.NavigationSmallCaps</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+        <item name="android:drawableTint">@color/bottom_nav_item_color</item>
+        <item name="android:drawablePadding">@dimen/custom_bottom_nav_icon_text_spacing</item>
+        <item name="android:duplicateParentState">true</item>
+    </style>
+
 
 </resources>

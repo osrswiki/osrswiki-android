@@ -1,5 +1,0 @@
-# Claude Code session environment - source this file instead of using exports with command substitution
-export ANDROID_SERIAL="emulator-5556"
-export EMULATOR_NAME="test-claude-20250813-161433-js-modules-cleanup"
-export APPID="com.omiyawaki.osrswiki"
-# Session created: Wed Aug 13 16:15:00 EDT 2025

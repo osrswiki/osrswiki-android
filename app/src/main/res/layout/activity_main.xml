@@ -24,15 +24,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <com.omiyawaki.osrswiki.views.CustomBottomNavBar
         android:id="@+id/bottom_nav"
-        style="@style/Widget.App.NavTabLayout"
         android:layout_width="0dp"
         android:layout_height="@dimen/nav_bar_height"
-        app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/main_bottom_nav_menu" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

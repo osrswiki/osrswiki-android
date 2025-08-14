@@ -31,15 +31,15 @@ import com.omiyawaki.osrswiki.util.FontUtil
 import kotlinx.coroutines.launch
 import androidx.lifecycle.lifecycleScope
 import android.widget.TextView
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.omiyawaki.osrswiki.views.CustomBottomNavBar
 import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
 import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
 
 // Debug extension to trace all programmatic tab changes
-fun BottomNavigationView.debugSelect(id: Int, src: String = "") {
-    Log.w("BNV-TRACE", "select($id) from $src", Exception())
-    selectedItemId = id
+fun CustomBottomNavBar.debugSelect(id: Int, src: String = "") {
+    Log.w("CBNV-TRACE", "select($id) from $src", Exception())
+    setSelectedItem(id)
 }
 
 class MainActivity : BaseActivity() {
@@ -213,18 +213,11 @@ class MainActivity : BaseActivity() {
         L.d("MainActivity: Navigation fonts setup complete")
     }
     
-    private fun applyFontsToBottomNavigation(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView, selectedItemId: Int = bottomNav.selectedItemId) {
-        // Access the BottomNavigationMenuView which contains the individual tabs
-        val menuView = bottomNav.getChildAt(0) as com.google.android.material.bottomnavigation.BottomNavigationMenuView
-        
-        for (i in 0 until menuView.childCount) {
-            val item = menuView.getChildAt(i)
-            val menuItem = bottomNav.menu.getItem(i)
-            val isActive = menuItem.itemId == selectedItemId
-            
-            // Find TextView children and apply font based on active state
-            applyFontsToViewGroup(item as android.view.ViewGroup, isActive)
-        }
+    private fun applyFontsToBottomNavigation(bottomNav: CustomBottomNavBar, selectedItemId: Int = bottomNav.selectedItemId) {
+        // CustomBottomNavBar uses MaterialTextViews directly, making font application much simpler
+        // The font styles are already applied via the CustomBottomNavButton style in styles.xml
+        // This method is kept for compatibility but doesn't need to do complex traversal
+        L.d("MainActivity: Font application for CustomBottomNavBar (managed by styles.xml)")
     }
     
     private fun applyFontsToViewGroup(viewGroup: android.view.ViewGroup, isActive: Boolean = false) {
@@ -242,15 +235,15 @@ class MainActivity : BaseActivity() {
     }
 
     private fun setupBottomNav() {
-        binding.bottomNav.setOnItemSelectedListener { item ->
+        binding.bottomNav.setOnItemSelectedListener { itemId ->
             // Skip navigation if we're currently refreshing colors to prevent unwanted tab switches
             if (isRefreshingColors) {
-                Log.d("MainActivity", "Skipping navigation during color refresh: ${item.itemId}")
+                Log.d("MainActivity", "Skipping navigation during color refresh: $itemId")
                 return@setOnItemSelectedListener true
             }
             
-            Log.d("MainActivity", "Bottom nav item selected: ${item.itemId}")
-            val selectedFragment = when (item.itemId) {
+            Log.d("MainActivity", "Bottom nav item selected: $itemId")
+            val selectedFragment = when (itemId) {
                 R.id.nav_news -> {
                     Log.d("MainActivity", "Navigating to Home (MainFragment)")
                     mainFragment
@@ -280,7 +273,7 @@ class MainActivity : BaseActivity() {
                     moreFragment
                 }
                 else -> {
-                    Log.w("MainActivity", "Unknown navigation item: ${item.itemId}")
+                    Log.w("MainActivity", "Unknown navigation item: $itemId")
                     null
                 }
             }
@@ -296,7 +289,7 @@ class MainActivity : BaseActivity() {
                 
                 // Refresh fonts to update active/inactive styling
                 try {
-                    applyFontsToBottomNavigation(binding.bottomNav, item.itemId)
+                    applyFontsToBottomNavigation(binding.bottomNav, itemId)
                 } catch (e: Exception) {
                     L.e("MainActivity: Error refreshing navigation fonts: ${e.message}")
                 }
@@ -539,103 +532,9 @@ class MainActivity : BaseActivity() {
     }
     
     private fun refreshBottomNavigationColors() {
-        L.d("MainActivity: Refreshing bottom navigation colors comprehensively")
-        
-        try {
-            val theme = this.theme
-            val typedValue = TypedValue()
-            
-            // CRITICAL: Force active indicator color refresh (for the pill background)
-            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSurfaceVariant, typedValue, true)) {
-                val indicatorColor = typedValue.data
-                binding.bottomNav.itemActiveIndicatorColor = ColorStateList.valueOf(indicatorColor)
-                L.d("MainActivity: Set new indicator color: ${Integer.toHexString(indicatorColor)}")
-            }
-            
-            // Update icon and text color state lists
-            if (theme.resolveAttribute(com.google.android.material.R.attr.colorSecondary, typedValue, true)) {
-                val selectedColor = typedValue.data
-                
-                // Try comprehensive list of unselected color attributes
-                val unselectedColorAttrs = arrayOf(
-                    com.google.android.material.R.attr.colorOnSurface,          // Used in bottom nav selectors
-                    com.google.android.material.R.attr.colorOnSurfaceVariant,   // Alternative for unselected state
-                    R.attr.primary_text_color,              // App fallback
-                    android.R.attr.textColorPrimary         // System fallback
-                )
-                
-                for (unselectedAttr in unselectedColorAttrs) {
-                    if (theme.resolveAttribute(unselectedAttr, typedValue, true)) {
-                        val unselectedColor = typedValue.data
-                        
-                        // Create color state list for the new theme
-                        val states = arrayOf(
-                            intArrayOf(android.R.attr.state_checked),
-                            intArrayOf(-android.R.attr.state_checked)
-                        )
-                        val colors = intArrayOf(selectedColor, unselectedColor)
-                        val colorStateList = ColorStateList(states, colors)
-                        
-                        // Apply new colors to bottom navigation
-                        binding.bottomNav.itemIconTintList = colorStateList
-                        binding.bottomNav.itemTextColor = colorStateList
-                        
-                        L.d("MainActivity: Applied new color state list (selected: ${Integer.toHexString(selectedColor)}, unselected: ${Integer.toHexString(unselectedColor)})")
-                        break // Use the first unselected color that resolves
-                    }
-                }
-            }
-            
-            // Refresh background color using comprehensive attribute list
-            val backgroundColorAttrs = arrayOf(
-                R.attr.bottom_nav_background_color,     // App-specific
-                com.google.android.material.R.attr.colorSurface,            // Material 3 default
-                R.attr.paper_color,                     // App fallback
-                android.R.attr.colorBackground          // System fallback
-            )
-            
-            for (backgroundAttr in backgroundColorAttrs) {
-                if (theme.resolveAttribute(backgroundAttr, typedValue, true)) {
-                    binding.bottomNav.setBackgroundColor(typedValue.data)
-                    L.d("MainActivity: Applied new background color: ${Integer.toHexString(typedValue.data)}")
-                    break
-                }
-            }
-            
-            // Force Material component refresh via selection cycling
-            // CRITICAL: Use flag to prevent navigation changes during cycling
-            try {
-                val currentSelection = binding.bottomNav.selectedItemId
-                val menu = binding.bottomNav.menu
-                
-                if (menu.size() > 1) {
-                    for (i in 0 until menu.size()) {
-                        val item = menu.getItem(i)
-                        if (item.itemId != currentSelection) {
-                            L.d("MainActivity: Cycling to refresh colors: ${item.itemId} → $currentSelection")
-                            isRefreshingColors = true // Set flag to block navigation
-                            binding.bottomNav.selectedItemId = item.itemId // This will be blocked by the flag
-                            binding.bottomNav.post {
-                                binding.bottomNav.selectedItemId = currentSelection // This will also be blocked
-                                isRefreshingColors = false // Clear flag after cycling
-                                L.d("MainActivity: Forced navigation refresh via selection cycling")
-                            }
-                            break
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                L.w("MainActivity: Selection cycling failed: ${e.message}")
-                isRefreshingColors = false // Ensure flag is cleared on error
-            }
-            
-            // Force redraw and layout
-            binding.bottomNav.invalidate()
-            binding.bottomNav.requestLayout()
-            
-        } catch (e: Exception) {
-            L.e("MainActivity: Failed to refresh bottom navigation colors: ${e.message}")
-        }
+        L.d("MainActivity: CustomBottomNavBar colors managed by @color/bottom_nav_item_color resource")
+        // CustomBottomNavBar uses color state lists defined in bottom_nav_item_color.xml
+        // Colors automatically update with theme changes - no manual refresh needed
     }
     
     private fun refreshBottomNavigationBorder() {
