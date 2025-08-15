@@ -1,0 +1,12 @@
+[
+  {
+    "content": "Remove redundant refresh in PageActivity",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Test the fix",
+    "status": "completed",
+    "id": "2"
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "content": "Remove HTML building from SearchViewModel preloading",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update PageRepository offline saving to cache wiki HTML directly",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Remove PageHtmlBuilder class and all references",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Clean up unused JavaScript/CSS assets from app/src/main/assets",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Update TablePreviewRenderer to use direct loading",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Enhance theme/styling injection for direct loaded pages",
+    "status": "completed",
+    "id": "6"
+  },
+  {
+    "content": "Clean up old module infrastructure (JavaScriptActionHandler, etc.)",
+    "status": "completed",
+    "id": "7"
+  },
+  {
+    "content": "Test GE charts and widgets functionality",
+    "status": "completed",
+    "id": "8"
+  },
+  {
+    "content": "Test search functionality",
+    "status": "completed",
+    "id": "9"
+  },
+  {
+    "content": "Test offline saving and loading",
+    "status": "completed",
+    "id": "10"
+  },
+  {
+    "content": "Test theme switching",
+    "status": "completed",
+    "id": "11"
+  }
+]

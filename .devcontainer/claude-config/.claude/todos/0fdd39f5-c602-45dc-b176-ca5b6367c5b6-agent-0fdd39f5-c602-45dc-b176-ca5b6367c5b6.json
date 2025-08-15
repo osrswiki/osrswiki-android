@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Delete obsolete extract_pois.py script",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Remove pois.json from assets if present",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Update README to remove POI step and simplify workflow",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Create map-asset-generator.py wrapper tool with freshness checking",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Test the new workflow end-to-end",
+    "status": "completed",
+    "id": "5"
+  }
+]

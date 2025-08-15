@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Remove applyRubikUILabel imports from 9 files",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Remove applyRubikUIButton imports from 4 files",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Remove applyRubikUIHint imports from 4 files",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Remove applyInterBody imports from 7 files",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Verify no function calls were removed, only imports",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Provide summary of all modifications",
+    "status": "completed",
+    "id": "6"
+  }
+]

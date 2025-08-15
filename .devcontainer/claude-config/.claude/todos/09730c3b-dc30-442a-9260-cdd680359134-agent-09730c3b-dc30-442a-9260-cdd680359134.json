@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Understand the codebase structure - identify key files related to wiki page loading",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Study git history to understand the evolution from HTML building to direct loading approach",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Identify remnants of the old HTML+CSS/JS injection system that need removal",
+    "status": "in_progress",
+    "id": "3"
+  },
+  {
+    "content": "Analyze current direct loading implementation and identify what's broken/incomplete",
+    "status": "pending",
+    "id": "4"
+  },
+  {
+    "content": "Document the specific issues with widgets like GE price chart",
+    "status": "pending",
+    "id": "5"
+  },
+  {
+    "content": "Create a refactoring plan to complete the transition to direct loading",
+    "status": "pending",
+    "id": "6"
+  }
+]

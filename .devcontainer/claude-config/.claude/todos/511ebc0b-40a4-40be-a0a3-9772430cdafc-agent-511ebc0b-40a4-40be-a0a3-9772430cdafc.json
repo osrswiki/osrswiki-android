@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Update create-worktree-session.sh to work from project root",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Fix all path references to use ./scripts/ instead of ../scripts/",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Update CLAUDE.md session creation instructions",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Update /start command documentation",
+    "status": "completed",
+    "id": "4"
+  }
+]

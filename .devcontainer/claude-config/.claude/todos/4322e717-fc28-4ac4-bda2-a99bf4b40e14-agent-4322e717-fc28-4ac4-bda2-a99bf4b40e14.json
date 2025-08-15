@@ -1,0 +1,42 @@
+[
+  {
+    "content": "Examine current modified files to understand previous fix attempts",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Fix theme definition inconsistencies in values-night/themes.xml",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Fix status bar theming with proper theme attributes",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Ensure layouts use theme attributes instead of hardcoded colors",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Enhance ThemeAware implementation in all relevant fragments",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Fix AppBar background updates in HistoryFragment and SavedPagesFragment",
+    "status": "completed",
+    "id": "6"
+  },
+  {
+    "content": "Ensure SettingsActivity properly applies themes",
+    "status": "completed",
+    "id": "7"
+  },
+  {
+    "content": "Test theme switching functionality",
+    "status": "completed",
+    "id": "8"
+  }
+]

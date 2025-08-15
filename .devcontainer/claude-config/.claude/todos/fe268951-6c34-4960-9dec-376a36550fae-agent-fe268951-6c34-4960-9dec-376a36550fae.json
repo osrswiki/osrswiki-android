@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Update MainActivity configChanges to include foldable-specific attributes",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update PageActivity configChanges to include foldable-specific attributes",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Add foldable support meta-data to application section",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Build and test the changes",
+    "status": "completed",
+    "id": "4"
+  }
+]

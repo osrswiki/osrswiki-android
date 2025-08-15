@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Create the unified asset-updater.py script in tools/ directory",
+    "status": "completed",
+    "id": "create-asset-updater"
+  },
+  {
+    "content": "Implement CLI argument parsing for --all, --maps, --css, and pass-through options",
+    "status": "completed",
+    "id": "implement-cli-interface"
+  },
+  {
+    "content": "Add logic to call existing map-asset-generator.py and css-perfect-sync.py tools",
+    "status": "completed",
+    "id": "add-tool-orchestration"
+  },
+  {
+    "content": "Implement proper error handling and progress reporting",
+    "status": "completed",
+    "id": "add-error-handling"
+  },
+  {
+    "content": "Add dependency checking and environment validation",
+    "status": "completed",
+    "id": "add-dependency-validation"
+  },
+  {
+    "content": "Test the meta wrapper with different CLI options",
+    "status": "completed",
+    "id": "test-wrapper"
+  }
+]

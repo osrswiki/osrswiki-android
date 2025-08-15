@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Fix screen dimension detection to respect actual device orientation",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update cache keys to include orientation",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Test rotation and verify previews update correctly",
+    "status": "completed",
+    "id": "3"
+  }
+]

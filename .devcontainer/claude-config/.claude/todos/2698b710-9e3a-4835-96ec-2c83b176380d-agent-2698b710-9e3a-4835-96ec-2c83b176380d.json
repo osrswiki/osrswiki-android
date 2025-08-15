@@ -1,0 +1,7 @@
+[
+  {
+    "content": "Fix missing horizontal stack by reverting 0dp width and implementing dynamic width calculation",
+    "status": "completed",
+    "id": "fix_missing_horizontal"
+  }
+]

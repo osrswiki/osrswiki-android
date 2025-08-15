@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Remove Alegreya font-family from .navbox-title rule",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Remove Alegreya font-family from .navbox-group-title rule",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Remove Alegreya font-family from .navbox-subgroup .navbox-group-title rule",
+    "status": "completed",
+    "id": "3"
+  }
+]

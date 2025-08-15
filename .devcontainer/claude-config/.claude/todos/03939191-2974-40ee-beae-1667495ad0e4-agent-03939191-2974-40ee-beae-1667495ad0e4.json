@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Move PreviewGenerationManager to Application-level scope (OSRSWikiApp.applicationScope)",
+    "status": "completed",
+    "id": "23"
+  },
+  {
+    "content": "Remove MainActivity.onResume() trigger to prevent repeated interference",
+    "status": "in_progress",
+    "id": "24"
+  },
+  {
+    "content": "Implement Activity context pooling for WebView creation",
+    "status": "pending",
+    "id": "25"
+  },
+  {
+    "content": "Add cancellation recovery with retry logic",
+    "status": "pending",
+    "id": "26"
+  },
+  {
+    "content": "Add reasonable timeouts (30s) instead of indefinite generation",
+    "status": "pending",
+    "id": "27"
+  },
+  {
+    "content": "Test that generation completes without cancellation",
+    "status": "pending",
+    "id": "28"
+  }
+]

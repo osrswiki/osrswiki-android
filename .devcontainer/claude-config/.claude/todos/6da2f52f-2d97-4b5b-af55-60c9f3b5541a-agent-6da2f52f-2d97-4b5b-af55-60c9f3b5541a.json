@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Install VS Code Dev Containers extension",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Test devcontainer build and startup",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Verify Java and basic functionality in container",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Test gradlew in container environment",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Install Claude Code and test /start command",
+    "status": "completed",
+    "id": "5"
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "content": "Add comprehensive lifecycle logging to MainActivity",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Create debugSelect extension for BottomNavigationView tracing",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Check onResume method for hardcoded tab selection",
+    "status": "completed",
+    "id": "6"
+  },
+  {
+    "content": "Test navigation flow and analyze lifecycle logs",
+    "status": "completed",
+    "id": "7"
+  },
+  {
+    "content": "Fix selection cycling in refreshBottomNavigationColors that's resetting navigation state",
+    "status": "completed",
+    "id": "8"
+  },
+  {
+    "content": "Disable BaseActivity selection cycling that was also causing navigation issues",
+    "status": "completed",
+    "id": "9"
+  },
+  {
+    "content": "Test final fix with More → Appearance → Back navigation flow",
+    "status": "completed",
+    "id": "10"
+  }
+]

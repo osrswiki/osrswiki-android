@@ -1,0 +1,12 @@
+[
+  {
+    "content": "Revert all messagebox CSS changes in components.css",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Commit only the collapsible header changes",
+    "status": "completed",
+    "id": "2"
+  }
+]

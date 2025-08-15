@@ -1,0 +1,12 @@
+[
+  {
+    "content": "Update ReportIssueActivity to extend BaseActivity",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update RequestFeatureActivity to extend BaseActivity",
+    "status": "completed",
+    "id": "2"
+  }
+]

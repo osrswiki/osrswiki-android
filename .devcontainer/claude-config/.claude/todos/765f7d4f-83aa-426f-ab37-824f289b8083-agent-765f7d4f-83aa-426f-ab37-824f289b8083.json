@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Add debug logging to SearchAdapter for HTML conversion diagnosis",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Fix thumbnail API limit by restricting to 50 pages maximum",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Remove unsupported srenhanced parameter from WikiApiService",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Test and validate highlighting and thumbnails work correctly",
+    "status": "completed",
+    "id": "4"
+  }
+]

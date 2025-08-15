@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Implement search term highlighting in UI (replace HTML stripping)",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update SearchAdapter to render HtmlCompat.fromHtml for highlighted snippets",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Handle dark mode compatibility for search term highlights",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Add thumbnail support back via separate API call or hybrid approach",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Test Phase 2 enhancements and validate highlighting works correctly",
+    "status": "completed",
+    "id": "5"
+  }
+]

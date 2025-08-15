@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Modify setup-session-device.sh to auto-detect container environment",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Add display detection logic for GUI vs headless emulator",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Update devcontainer.json with X11 forwarding configuration",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Update CLAUDE.md to use single auto-detecting setup script",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Test container emulator with GUI display",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Push existing commits to remote",
+    "status": "completed",
+    "id": "6"
+  }
+]

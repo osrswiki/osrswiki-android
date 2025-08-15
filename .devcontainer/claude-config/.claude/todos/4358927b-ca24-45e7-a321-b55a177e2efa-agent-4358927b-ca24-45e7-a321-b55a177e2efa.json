@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Update theme_preview_host.xml to use fragment_news (actual home) instead of fragment_recent_searches",
+    "status": "completed",
+    "id": "29"
+  },
+  {
+    "content": "Update stub data setup for News RecyclerView instead of Recent Searches components",
+    "status": "completed",
+    "id": "30"
+  },
+  {
+    "content": "Replace aspect ratio distorting scaling with proportional width-based scaling",
+    "status": "completed",
+    "id": "31"
+  },
+  {
+    "content": "Implement top-aligned cropping when scaled height exceeds target",
+    "status": "completed",
+    "id": "32"
+  },
+  {
+    "content": "Test the fixes to ensure proper home screen content and aspect ratio",
+    "status": "completed",
+    "id": "33"
+  }
+]

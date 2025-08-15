@@ -1,0 +1,37 @@
+[
+  {
+    "content": "Replace withDensityScale() with createConfigurationContext approach",
+    "status": "completed",
+    "id": "replace_context_creation_method"
+  },
+  {
+    "content": "Set bitmap density to match scaled context density",
+    "status": "completed",
+    "id": "fix_bitmap_density"
+  },
+  {
+    "content": "Use EXACTLY measurement for both width and height",
+    "status": "completed",
+    "id": "use_exactly_measurement"
+  },
+  {
+    "content": "Add verification logging to debug view density",
+    "status": "completed",
+    "id": "add_density_verification"
+  },
+  {
+    "content": "Use LayoutInflater.cloneInContext() for proper context binding",
+    "status": "completed",
+    "id": "use_clone_in_context"
+  },
+  {
+    "content": "Test expert's complete solution",
+    "status": "completed",
+    "id": "test_expert_solution"
+  },
+  {
+    "content": "Investigate why no theme preview logs appear - possible compilation error or wrong UI component",
+    "status": "in_progress",
+    "id": "investigate_missing_logs"
+  }
+]

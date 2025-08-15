@@ -1,0 +1,37 @@
+[
+  {
+    "content": "Create worktree session for appearance-previews-analysis",
+    "status": "in_progress",
+    "id": "1"
+  },
+  {
+    "content": "Set up session device and environment",
+    "status": "pending",
+    "id": "2"
+  },
+  {
+    "content": "Create topic branch for investigation",
+    "status": "pending",
+    "id": "3"
+  },
+  {
+    "content": "Analyze git history between commits 5cf8863 and 711f9a7",
+    "status": "pending",
+    "id": "4"
+  },
+  {
+    "content": "Identify changes related to appearance settings preview loading",
+    "status": "pending",
+    "id": "5"
+  },
+  {
+    "content": "Compare working vs current implementation",
+    "status": "pending",
+    "id": "6"
+  },
+  {
+    "content": "Document findings and root cause",
+    "status": "pending",
+    "id": "7"
+  }
+]

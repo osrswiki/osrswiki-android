@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Add finalizeAndRevealPage() call before capturing bitmap",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update callback chain to match real page loading timing",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Test with proper WebView finalization timing",
+    "status": "completed",
+    "id": "3"
+  }
+]

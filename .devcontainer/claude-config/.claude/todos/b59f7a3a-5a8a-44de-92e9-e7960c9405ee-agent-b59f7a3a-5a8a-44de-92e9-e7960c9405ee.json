@@ -1,0 +1,27 @@
+[
+  {
+    "content": "Set up isolated worktree session with topic: direct-web-loading",
+    "status": "in_progress",
+    "id": "1"
+  },
+  {
+    "content": "Study current codebase to understand web loading implementation",
+    "status": "pending",
+    "id": "2"
+  },
+  {
+    "content": "Analyze git history to understand HTML injection vs direct loading approaches",
+    "status": "pending",
+    "id": "3"
+  },
+  {
+    "content": "Identify why direct loading approach is currently not working",
+    "status": "pending",
+    "id": "4"
+  },
+  {
+    "content": "Create plan to fix direct web page loading",
+    "status": "pending",
+    "id": "5"
+  }
+]

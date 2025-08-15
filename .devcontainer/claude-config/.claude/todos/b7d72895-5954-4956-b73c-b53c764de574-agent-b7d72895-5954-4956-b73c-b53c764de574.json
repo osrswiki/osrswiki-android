@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Create worktree session with topic 'refactor-direct-loading'",
+    "status": "in_progress",
+    "id": "1"
+  },
+  {
+    "content": "Set up session device for isolation",
+    "status": "pending",
+    "id": "2"
+  },
+  {
+    "content": "Verify session isolation is working",
+    "status": "pending",
+    "id": "3"
+  },
+  {
+    "content": "Create topic branch from origin/main",
+    "status": "pending",
+    "id": "4"
+  },
+  {
+    "content": "Verify build environment and app identifiers",
+    "status": "pending",
+    "id": "5"
+  },
+  {
+    "content": "Document session goal with initial commit",
+    "status": "pending",
+    "id": "6"
+  }
+]

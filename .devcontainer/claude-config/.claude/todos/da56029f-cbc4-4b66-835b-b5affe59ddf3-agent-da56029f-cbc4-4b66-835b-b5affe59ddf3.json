@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Try Tailscale Serve to expose SSH service",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Debug TCP connectivity vs ICMP",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Test simple HTTP server on different port",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Try alternative SSH configuration",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Configure permanent SSH on port 2222",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Fix SSH server installation in container",
+    "status": "completed",
+    "id": "6"
+  }
+]

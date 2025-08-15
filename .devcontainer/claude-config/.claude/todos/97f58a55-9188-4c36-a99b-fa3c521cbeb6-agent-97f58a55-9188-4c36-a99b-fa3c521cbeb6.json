@@ -1,0 +1,82 @@
+[
+  {
+    "content": "Analyze current project structure to understand web content loading architecture",
+    "status": "completed",
+    "id": "study-project-structure"
+  },
+  {
+    "content": "Review git history to understand HTML injection vs direct loading attempts",
+    "status": "completed",
+    "id": "examine-git-history"
+  },
+  {
+    "content": "Find and analyze components responsible for loading/displaying wiki content",
+    "status": "completed",
+    "id": "identify-web-loading-components"
+  },
+  {
+    "content": "Investigate what specifically is broken in the current direct loading approach",
+    "status": "completed",
+    "id": "understand-current-failure"
+  },
+  {
+    "content": "Study GE price chart widget requirements and why HTML injection failed",
+    "status": "completed",
+    "id": "analyze-ge-widget-requirements"
+  },
+  {
+    "content": "Review WebView settings and configuration for direct page loading",
+    "status": "completed",
+    "id": "examine-webview-configuration"
+  },
+  {
+    "content": "Build and test current app to see direct loading failure firsthand",
+    "status": "completed",
+    "id": "test-current-app-behavior"
+  },
+  {
+    "content": "Understand OSRS wiki page structure and dynamic content requirements",
+    "status": "completed",
+    "id": "research-osrs-wiki-structure"
+  },
+  {
+    "content": "Develop comprehensive strategy to fix direct loading based on findings",
+    "status": "completed",
+    "id": "create-fix-strategy"
+  },
+  {
+    "content": "Find a working method to navigate to a page with GE charts in the app",
+    "status": "completed",
+    "id": "find-navigation-method"
+  },
+  {
+    "content": "Fix primitive styling by implementing proper mobile wiki skin and user agent",
+    "status": "completed",
+    "id": "fix-styling-issues"
+  },
+  {
+    "content": "Fix MediaWiki skin loading - app shows plain HTML while Chrome shows rich OSRS styling",
+    "status": "completed",
+    "id": "fix-mediawiki-skin"
+  },
+  {
+    "content": "Fix URL construction to use proper mobile endpoints instead of non-working ?useskin=vector",
+    "status": "in_progress",
+    "id": "fix-url-construction"
+  },
+  {
+    "content": "Improve WebView configuration with proper cache and database settings",
+    "status": "pending",
+    "id": "improve-webview-config"
+  },
+  {
+    "content": "Add post-load style enhancement if needed",
+    "status": "pending",
+    "id": "add-style-enhancement"
+  },
+  {
+    "content": "Test thoroughly with Dragon dagger page and compare to Chrome",
+    "status": "pending",
+    "id": "test-and-compare"
+  }
+]

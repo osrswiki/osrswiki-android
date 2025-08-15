@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Add missing invalidate() calls after hint property changes",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Replace raw int color with proper ColorStateList resolution",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Test theme switching with the fixes applied",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Commit the expert-recommended fixes",
+    "status": "completed",
+    "id": "4"
+  }
+]

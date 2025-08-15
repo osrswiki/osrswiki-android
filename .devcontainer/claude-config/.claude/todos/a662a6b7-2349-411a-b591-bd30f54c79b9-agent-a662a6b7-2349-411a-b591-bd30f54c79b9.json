@@ -1,0 +1,137 @@
+[
+  {
+    "content": "Document build errors and implementation challenges",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Create comprehensive report for experts about version compatibility",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Request expert guidance on working within current library constraints",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Implement Expert 2's solution using textAppearanceSmall/Large attributes",
+    "status": "completed",
+    "id": "4"
+  },
+  {
+    "content": "Create report asking experts about ground-up rewrite approach",
+    "status": "completed",
+    "id": "5"
+  },
+  {
+    "content": "Implement custom settings UI following expert guidance",
+    "status": "completed",
+    "id": "6"
+  },
+  {
+    "content": "Create SettingItem sealed class model",
+    "status": "completed",
+    "id": "7"
+  },
+  {
+    "content": "Create layout files for each setting type",
+    "status": "completed",
+    "id": "8"
+  },
+  {
+    "content": "Implement SettingsRepository with DataStore",
+    "status": "completed",
+    "id": "9"
+  },
+  {
+    "content": "Create SettingsViewModel with StateFlow",
+    "status": "completed",
+    "id": "10"
+  },
+  {
+    "content": "Implement RecyclerView adapter with multiple ViewHolders",
+    "status": "completed",
+    "id": "11"
+  },
+  {
+    "content": "Replace PreferenceFragmentCompat with custom Fragment",
+    "status": "completed",
+    "id": "12"
+  },
+  {
+    "content": "Test and verify custom implementation works",
+    "status": "completed",
+    "id": "13"
+  },
+  {
+    "content": "Fix theme options to show only 3 options (System, Light, Dark)",
+    "status": "completed",
+    "id": "14"
+  },
+  {
+    "content": "Add MaterialSwitch theming attributes for consistent colors",
+    "status": "completed",
+    "id": "15"
+  },
+  {
+    "content": "Create ColorStateList files for MaterialSwitch thumb and track",
+    "status": "completed",
+    "id": "16"
+  },
+  {
+    "content": "Create custom MaterialSwitch style with thumbTint/trackTint",
+    "status": "completed",
+    "id": "17"
+  },
+  {
+    "content": "Apply materialSwitchStyle globally to all themes",
+    "status": "completed",
+    "id": "18"
+  },
+  {
+    "content": "Test MaterialSwitch theming fix",
+    "status": "completed",
+    "id": "19"
+  },
+  {
+    "content": "Fix MaterialSwitch solid pill appearance with proper opacity",
+    "status": "completed",
+    "id": "20"
+  },
+  {
+    "content": "Update ColorStateLists with Material3 alpha patterns",
+    "status": "completed",
+    "id": "21"
+  },
+  {
+    "content": "Test switch thumb/track separation",
+    "status": "completed",
+    "id": "22"
+  },
+  {
+    "content": "Create trackDecorationTint ColorStateList for switch border",
+    "status": "completed",
+    "id": "23"
+  },
+  {
+    "content": "Update thumb ColorStateList with explicit state selectors",
+    "status": "completed",
+    "id": "24"
+  },
+  {
+    "content": "Add trackDecorationTint and useMaterialThemeColors to switch style",
+    "status": "completed",
+    "id": "25"
+  },
+  {
+    "content": "Verify colorOutline exists in themes",
+    "status": "completed",
+    "id": "26"
+  },
+  {
+    "content": "Test complete MaterialSwitch theming",
+    "status": "completed",
+    "id": "27"
+  }
+]

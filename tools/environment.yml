@@ -1,0 +1,10 @@
+name: osrs-tools
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - pillow
+  - python=3.9
+  - requests
+
+prefix: "/home/miyawaki/micromamba/envs/osrs-tools"

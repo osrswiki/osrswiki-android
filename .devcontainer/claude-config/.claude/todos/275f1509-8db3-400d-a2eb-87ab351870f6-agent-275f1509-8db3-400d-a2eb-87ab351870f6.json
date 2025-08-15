@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Fix appearance icon to use theme-adaptive color instead of hardcoded black",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Update MainActivity to properly handle status bar theming with edge-to-edge",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Build and test the fixes in both light and dark themes",
+    "status": "completed",
+    "id": "3"
+  }
+]

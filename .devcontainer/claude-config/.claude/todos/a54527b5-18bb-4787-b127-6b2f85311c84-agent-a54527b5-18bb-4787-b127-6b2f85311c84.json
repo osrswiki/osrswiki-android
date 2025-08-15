@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Study current WebView implementation and understand how pages are loaded",
+    "status": "in_progress",
+    "id": "study-current-webview"
+  },
+  {
+    "content": "Examine existing HTML/CSS/JS injection code to understand what was being attempted",
+    "status": "pending",
+    "id": "examine-html-injection"
+  },
+  {
+    "content": "Investigate current direct loading approach and identify specific failures",
+    "status": "pending",
+    "id": "investigate-direct-loading-issues"
+  },
+  {
+    "content": "Review git history to understand previous attempts and what was abandoned",
+    "status": "pending",
+    "id": "review-git-history"
+  },
+  {
+    "content": "Analyze GE price chart widget requirements and server-side behavior",
+    "status": "pending",
+    "id": "analyze-ge-price-chart-requirements"
+  },
+  {
+    "content": "Design plan for successful direct OSRS wiki page loading",
+    "status": "pending",
+    "id": "plan-direct-loading-solution"
+  }
+]

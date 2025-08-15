@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Fix ThemePreviewRenderer scaling - copy createAspectRatioPreservingBitmap logic for fit-to-width cropping",
+    "status": "completed",
+    "id": "1"
+  },
+  {
+    "content": "Remove arbitrary 300ms delay and restore proper event-driven waitForVisualChangesApplied function",
+    "status": "completed",
+    "id": "2"
+  },
+  {
+    "content": "Test theme previews show fit-to-width, top-aligned behavior",
+    "status": "completed",
+    "id": "3"
+  },
+  {
+    "content": "Test expanded table previews show actual expanded table content",
+    "status": "in_progress",
+    "id": "4"
+  }
+]

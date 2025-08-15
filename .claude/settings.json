@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/miyawaki/Develop/osrswiki/scripts/shared/auto-commit.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

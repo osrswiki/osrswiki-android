@@ -1,0 +1,17 @@
+[
+  {
+    "content": "Add missing last-child border-bottom: none rule for navbox subgroups to prevent double borders",
+    "status": "completed",
+    "id": "add-last-child-rule"
+  },
+  {
+    "content": "Update dark theme navbox background from body-main to body-light for proper visual hierarchy",
+    "status": "completed",
+    "id": "fix-dark-theme-bg"
+  },
+  {
+    "content": "Build and test both border and background fixes in light and dark themes",
+    "status": "completed",
+    "id": "test-both-fixes"
+  }
+]

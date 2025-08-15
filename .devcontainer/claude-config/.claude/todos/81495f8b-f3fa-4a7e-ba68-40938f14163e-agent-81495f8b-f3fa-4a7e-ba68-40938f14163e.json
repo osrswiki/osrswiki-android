@@ -1,0 +1,52 @@
+[
+  {
+    "content": "Create worktree session with topic 'web-loading-refactor'",
+    "status": "in_progress",
+    "id": "1"
+  },
+  {
+    "content": "Set up session device isolation",
+    "status": "pending",
+    "id": "2"
+  },
+  {
+    "content": "Verify session isolation is working",
+    "status": "pending",
+    "id": "3"
+  },
+  {
+    "content": "Create topic branch",
+    "status": "pending",
+    "id": "4"
+  },
+  {
+    "content": "Verify build environment",
+    "status": "pending",
+    "id": "5"
+  },
+  {
+    "content": "Document session goal with initial commit",
+    "status": "pending",
+    "id": "6"
+  },
+  {
+    "content": "Study current web loading implementation and its issues",
+    "status": "pending",
+    "id": "7"
+  },
+  {
+    "content": "Research git history of HTML injection to direct loading refactoring",
+    "status": "pending",
+    "id": "8"
+  },
+  {
+    "content": "Analyze why direct loading approach is not working",
+    "status": "pending",
+    "id": "9"
+  },
+  {
+    "content": "Plan fix for direct wiki page loading",
+    "status": "pending",
+    "id": "10"
+  }
+]
