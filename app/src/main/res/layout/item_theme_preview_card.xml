@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="140dp"
+    android:layout_marginHorizontal="0dp"
+    android:layout_marginVertical="4dp"
+    android:checkable="true"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="48dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:strokeWidth="2dp"
+    app:strokeColor="@color/selector_theme_card_border"
+    app:cardBackgroundColor="?attr/colorSurfaceVariant"
+    app:checkedIcon="@null">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <!-- Theme Name -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            
+            <TextView
+                android:id="@+id/textThemeName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="Light" />
+                
+            <TextView
+                android:id="@+id/textThemeDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="Clean and bright interface" />
+                
+        </LinearLayout>
+
+        <!-- Theme Preview Screenshot -->
+        <FrameLayout
+            android:id="@+id/previewContainer"
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:layout_marginHorizontal="16dp"
+            android:background="?attr/colorSurfaceVariant"
+            android:clipToOutline="true">
+            
+            <ImageView
+                android:id="@+id/themePreviewImage"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="false"
+                android:background="@android:color/transparent"
+                android:importantForAccessibility="no" />
+                
+            <!-- Optional split divider for Follow System theme -->
+            <View
+                android:id="@+id/splitDivider"
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:background="?attr/colorOutlineVariant"
+                android:visibility="gone" />
+                
+        </FrameLayout>
+
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

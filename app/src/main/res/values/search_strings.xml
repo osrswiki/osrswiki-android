@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="content_description_recent_search_icon">Recent search icon</string>
+    <string name="recent_searches_header">Recent</string>
+    <string name="button_clear_all">Clear all</string>
+    <string name="no_recent_searches">Search history will appear here.</string>
+    <string name="clear_recent_searches_dialog_title">Clear search history?</string>
+    <string name="clear_recent_searches_dialog_message">All of your past searches will be permanently deleted.</string>
+    <string name="dialog_option_cancel">Cancel</string>
+    <string name="dialog_option_clear">Clear</string>
+    <string name="content_description_article_icon">Article icon</string>
+    <string name="content_description_article_thumbnail">Article thumbnail</string>
+
+</resources>
+
+

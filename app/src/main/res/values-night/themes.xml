@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 
+    Override the base Theme.OSRSWiki for night mode to inherit from the proper OSRS Dark theme.
+    This ensures that when system dark mode is triggered, we use the full OSRS dark theme
+    with all proper attributes, instead of a basic dark theme that misses some styling.
+    -->
+    <style name="Theme.OSRSWiki" parent="@style/Theme.OSRSWiki.OSRSDark" />
+
+</resources>

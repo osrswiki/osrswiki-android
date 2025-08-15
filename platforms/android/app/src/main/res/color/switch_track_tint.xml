@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- checked state (on) - primary color for track background -->
-    <item android:color="?attr/colorPrimary" android:state_checked="true" />
-    <!-- default state (off) - subtle surface variant for track -->
-    <item android:color="?attr/colorSurfaceVariant" />
-</selector>

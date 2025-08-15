@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <item type="id" name="page_action_save" />
-    <item type="id" name="page_action_find_in_article" />
-    <item type="id" name="page_action_theme" />
-    <item type="id" name="page_action_contents" />
-
-    </resources>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="osrs_brown_deep">#4C3D2A</color>
+    <color name="osrs_parchment_light">#E2DBC8</color>
+    <color name="osrs_parchment_medium">#D2B48C</color>
+    <color name="osrs_parchment_dark">#28221d</color>
+    <color name="osrs_gold">#FFB800</color>
+    <color name="osrs_red">#ba0000</color>
+    <color name="osrs_text_light">#F0E6D2</color>
+    <color name="osrs_text_dark">#3A2E1C</color>
+    <color name="osrs_text_light_alt">#f4eaea</color>
+    
+    <!-- OSRS Interface Colors -->
+    <color name="osrs_interface_grey_light">#5d5447</color>
+    <color name="osrs_interface_grey_dark">#3e3529</color>
+    <color name="osrs_gold_muted">#d4af37</color>
+    <color name="osrs_parchment_surface_light">#d8ccb4</color>
+    <color name="osrs_text_secondary_light">#8B7355</color>
+    
+    <!-- OSRS Chat Colors -->
+    <color name="osrs_chat_green">#00ff00</color>
+    <color name="osrs_chat_cyan">#00ffff</color>
+    <color name="osrs_chat_purple">#ff00ff</color>
+    
+    <!-- OSRS Item Quality Colors -->
+    <color name="osrs_item_common">#ffffff</color>
+    <color name="osrs_item_uncommon">#ffff00</color>
+    <color name="osrs_item_rare">#ff8000</color>
+    
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="gray_very_light">#fbfbfb</color>
+    <color name="gray_very_light_alpha">#50fbfbfb</color>
+    <color name="gray_very_light_disabled">#61fbfbfb</color>
+    <color name="color_error">#B00020</color>
+    <color name="ic_launcher_background">#20252c</color>
+    <color name="text_input_primary">#DE000000</color>
+    <color name="search_box_bg_on_primary">#33F0E6D2</color>
+    <color name="link_color_osrs_light">#936039</color>
+    <color name="link_color_osrs_dark">#b79d7e</color>
+
+    <color name="osrs_loading_bar_red">#8c1111</color>
+    <color name="osrs_loading_bar_black">#000000</color>
+
+    <color name="ripple_light">#1A000000</color>
+    <color name="ripple_dark">#1AFFFFFF</color>
+    
+    <!-- Theme selection colors -->
+    <color name="theme_selection_card_stroke">@android:color/transparent</color>
+    <color name="theme_selection_card_stroke_selected">?attr/colorPrimary</color>
+    <color name="theme_preview_stroke">@android:color/transparent</color>
+    
+    <!-- Search term highlighting -->
+    <color name="search_highlight_light">#FF6B35</color>
+    <color name="search_highlight_dark">#FF8A65</color>
+</resources>

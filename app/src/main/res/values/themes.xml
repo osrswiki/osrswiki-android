@@ -1,0 +1,227 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.OSRSWiki" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowActivityTransitions">true</item>
+        <item name="colorPrimary">@color/osrs_brown_deep</item>
+        <item name="colorOnPrimary">@color/osrs_text_light</item>
+        <item name="colorPrimaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnPrimaryContainer">@color/osrs_text_dark</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
+        <item name="colorSecondary">@color/osrs_gold</item>
+        <item name="colorOnSecondary">@color/osrs_brown_deep</item>
+        <item name="colorSecondaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnSecondaryContainer">@color/black</item>
+        <item name="colorError">@color/color_error</item>
+        <item name="colorOnError">@color/white</item>
+        <item name="android:colorBackground">@color/osrs_parchment_light</item>
+        <item name="colorOnBackground">@color/osrs_text_dark</item>
+        <item name="colorSurface">@color/osrs_parchment_light</item>
+        <item name="colorOnSurface">@color/osrs_text_dark</item>
+        <item name="colorSurfaceVariant">@color/osrs_parchment_light</item>
+        <item name="colorOnSurfaceVariant">@color/osrs_text_dark</item>
+        <item name="android:windowBackground">?attr/paper_color</item>
+        <item name="android:statusBarColor">?attr/paper_color</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="paper_color">@color/osrs_parchment_light</item>
+        <item name="bottom_nav_background_color">?attr/paper_color</item>
+        <item name="placeholder_color">@color/osrs_brown_deep</item>
+        <item name="tabCountBackgroundColor">@android:color/transparent</item>
+        <item name="tabCountTextColor">?attr/colorOnSurface</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
+        <item name="search_box_background_color">#1A000000</item>
+        <item name="popupMenuStyle">@style/App.Style.PopupMenu</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_light</item>
+        <item name="secondary_text_color">@color/osrs_text_dark</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        <item name="map_control_background">@color/black</item>
+        <item name="map_control_text">@color/gray_very_light</item>
+        <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.Base.Light" parent="Theme.Material3.Light.NoActionBar">
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="android:windowBackground">?attr/paper_color</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="bottom_nav_background_color">?attr/paper_color</item>
+        <item name="tabCountBackgroundColor">@android:color/transparent</item>
+        <item name="tabCountTextColor">?attr/colorOnSurface</item>
+        <item name="tabCountBorderColor">?attr/colorControlNormal</item>
+        <item name="search_box_background_color">#1A000000</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="actionModeStyle">@style/Widget.App.ActionMode</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
+        <item name="paper_color">?attr/colorSurface</item>
+        <item name="base_color">?attr/colorSurface</item>
+        <item name="secondary_text_color">#757575</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        <item name="map_control_background">@color/black</item>
+        <item name="map_control_text">@color/gray_very_light</item>
+        <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="materialCardViewStyle">@style/Widget.OSRSWiki.CardView</item>
+        <item name="android:windowBackground">?attr/paper_color</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="bottom_nav_background_color">?attr/paper_color</item>
+        <item name="border_color">?attr/colorSurfaceVariant</item>
+        <item name="actionModeStyle">@style/Widget.App.ActionMode</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="p">@color/black</item>
+        <item name="colorControlHighlight">@color/ripple_dark</item>
+        <item name="paper_color">?attr/colorSurface</item>
+        <item name="base_color">?attr/colorSurface</item>
+        <item name="secondary_text_color">#BDBDBD</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
+        <item name="map_control_background">@color/black</item>
+        <item name="map_control_text">@color/gray_very_light</item>
+        <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
+        <item name="colorPrimary">@color/osrs_brown_deep</item>
+        <item name="colorOnPrimary">@color/osrs_text_light</item>
+        <item name="colorPrimaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnPrimaryContainer">@color/osrs_text_dark</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
+        <item name="colorSecondary">@color/osrs_brown_deep</item>
+        <item name="colorOnSecondary">@color/osrs_text_light</item>
+        <item name="colorSecondaryContainer">@color/osrs_parchment_medium</item>
+        <item name="colorOnSecondaryContainer">@color/black</item>
+        <item name="colorError">@color/color_error</item>
+        <item name="colorOnError">@color/white</item>
+        <item name="android:colorBackground">@color/osrs_parchment_light</item>
+        <item name="colorOnBackground">@color/osrs_text_dark</item>
+        <item name="colorSurface">@color/osrs_parchment_light</item>
+        <item name="colorOnSurface">@color/osrs_text_dark</item>
+        <item name="colorSurfaceVariant">@color/osrs_parchment_surface_light</item>
+        <item name="colorOnSurfaceVariant">@color/osrs_text_dark</item>
+        <item name="android:statusBarColor">?attr/paper_color</item>
+
+        <item name="paper_color">@color/osrs_parchment_light</item>
+        <item name="placeholder_color">@color/osrs_brown_deep</item>
+        <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSLight</item>
+        <item name="linkColor">@color/link_color_osrs_light</item>
+        <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_light</item>
+        <item name="secondary_text_color">@color/osrs_text_secondary_light</item>
+        <item name="map_control_background">@color/black</item>
+        <item name="map_control_text">@color/gray_very_light</item>
+        <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
+        
+        <!-- Typography overrides for OSRS theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplayMedium">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplaySmall">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineLarge">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineSmall">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleLarge">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/AppTextAppearance.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+    </style>
+
+
+    <style name="Theme.OSRSWiki.OSRSDark" parent="Theme.OSRSWiki.Base.Dark">
+        <item name="colorPrimary">@color/osrs_brown_deep</item>
+        <item name="colorOnPrimary">@color/osrs_text_light</item>
+        <item name="colorPrimaryContainer">@color/osrs_parchment_dark</item>
+        <item name="colorOnPrimaryContainer">@color/osrs_text_light_alt</item>
+        <item name="colorOutline">@color/osrs_brown_deep</item>
+        <item name="colorSecondary">@color/osrs_text_light_alt</item>
+        <item name="colorOnSecondary">@color/osrs_brown_deep</item>
+        <item name="colorSecondaryContainer">@color/osrs_parchment_dark</item>
+        <item name="colorOnSecondaryContainer">@color/osrs_gold_muted</item>
+        <item name="colorError">@color/color_error</item>
+        <item name="colorOnError">@color/white</item>
+        <item name="android:colorBackground">@color/osrs_parchment_dark</item>
+        <item name="colorOnBackground">@color/osrs_text_light_alt</item>
+        <item name="colorSurface">@color/osrs_parchment_dark</item>
+        <item name="colorOnSurface">@color/osrs_text_light_alt</item>
+        <item name="colorSurfaceVariant">@color/osrs_interface_grey_dark</item>
+        <item name="colorOnSurfaceVariant">@color/osrs_text_light_alt</item>
+        <item name="android:statusBarColor">?attr/paper_color</item>
+
+        <item name="paper_color">@color/osrs_parchment_dark</item>
+        <item name="placeholder_color">@color/osrs_text_light_alt</item>
+        <item name="popupMenuStyle">@style/App.Style.PopupMenu.OSRSDark</item>
+        <item name="linkColor">@color/link_color_osrs_dark</item>
+        <item name="primary_text_color">?attr/colorOnSurface</item>
+        <item name="base_color">@color/osrs_parchment_dark</item>
+        <item name="secondary_text_color">#B8B8B8</item>
+        <item name="map_control_background">@color/black</item>
+        <item name="map_control_text">@color/gray_very_light</item>
+        <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
+        
+        <!-- Typography overrides for OSRS Dark theme -->
+        <item name="textAppearanceDisplayLarge">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplayMedium">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceDisplaySmall">@style/AppTextAppearance.Display</item>
+        <item name="textAppearanceHeadlineLarge">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineMedium">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceHeadlineSmall">@style/AppTextAppearance.Headline</item>
+        <item name="textAppearanceTitleLarge">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleMedium">@style/AppTextAppearance.TitleBold</item>
+        <item name="textAppearanceTitleSmall">@style/AppTextAppearance.Title</item>
+        <item name="textAppearanceBodyLarge">@style/AppTextAppearance.Body</item>
+        <item name="textAppearanceBodyMedium">@style/AppTextAppearance.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/AppTextAppearance.BodySmall</item>
+        <item name="textAppearanceLabelLarge">@style/AppTextAppearance.LabelLarge</item>
+        <item name="textAppearanceLabelMedium">@style/AppTextAppearance.Label</item>
+        <item name="textAppearanceLabelSmall">@style/AppTextAppearance.Caption</item>
+        
+        <!-- MaterialSwitch theming using expert guidance -->
+        <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+    </style>
+
+
+
+    <style name="Widget.App.ActionMode" parent="Widget.Material3.ActionMode">
+        <item name="background">?attr/colorSurface</item>
+        <item name="backgroundSplit">@drawable/action_mode_border</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <!-- Preference Theme Overlay - Using Expert 2's solution with textAppearanceSmall/Large -->
+    <style name="PreferenceThemeOverlay.App" parent="PreferenceThemeOverlay.v14.Material">
+        <!-- Tell every <Preference> row which TextAppearances to use -->
+        <item name="android:textAppearanceLarge">@style/AppTextAppearance.PreferenceTitle</item>
+        <item name="android:textAppearanceSmall">@style/AppTextAppearance.PreferenceSummary</item>
+    </style>
+
+    <!-- Custom MaterialSwitch style for proper theming following expert guidance -->
+    <style name="Widget.OSRSWiki.MaterialSwitch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/switch_thumb_tint</item>
+        <item name="trackTint">@color/switch_track_tint</item>
+        <item name="trackDecorationTint">@color/switch_outline_tint</item>
+        <item name="useMaterialThemeColors">false</item>
+    </style>
+
+</resources>

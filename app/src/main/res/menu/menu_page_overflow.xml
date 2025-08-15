@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- All basic actions (Save, Find, Appearance, Contents) moved to bottom action bar -->
+    <!-- Add other items here as needed, e.g., Share, Languages, Edit History, etc. -->
+
+</menu>

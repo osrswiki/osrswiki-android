@@ -1,7 +1,0 @@
-[
-  {
-    "content": "Fix category header text colors in appearance settings by changing colorPrimary to colorOnSurface",
-    "status": "completed",
-    "id": "fix_category_header_colors"
-  }
-]

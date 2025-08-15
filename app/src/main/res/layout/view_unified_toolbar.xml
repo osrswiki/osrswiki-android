@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical|end"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="36dp"
+        android:layout_weight="1"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/shape_search_box"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp">
+
+        <ImageView
+            android:id="@+id/toolbar_search_icon"
+            android:layout_width="32dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center_vertical"
+            android:contentDescription="@string/search_hint"
+            android:scaleType="center"
+            app:srcCompat="@drawable/ic_search_white_24dp"
+            app:tint="?attr/placeholder_color" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/toolbar_search_container"
+            style="@style/SearchBarText"
+            android:clickable="true"
+            android:focusable="false"
+            android:background="@android:color/transparent"
+            android:hint="@string/page_toolbar_search_hint" />
+
+        <ImageView
+            android:id="@+id/toolbar_voice_search_button"
+            android:layout_width="32dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:contentDescription="@string/search_hint_voice_search"
+            android:focusable="true"
+            android:scaleType="center"
+            app:srcCompat="@drawable/ic_voice_search_24"
+            app:tint="?attr/colorOnSurface" />
+
+    </LinearLayout>
+
+
+    <View
+        android:id="@+id/toolbar_notification_button_placeholder"
+        android:layout_width="48dp"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/toolbar_overflow_menu_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/page_toolbar_overflow_content_description"
+        android:focusable="true"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        app:srcCompat="@drawable/ic_more_vert_white_24dp"
+        app:tint="?attr/colorOnSurface" />
+
+</LinearLayout>
