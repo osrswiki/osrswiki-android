@@ -79,7 +79,7 @@ tasks.register<Copy>("organizeAssets") {
     
     val sharedCssDir = File(project.projectDir, "../../../shared/css")
     val sharedJsDir = File(project.projectDir, "../../../shared/js")
-    val cacheBasePath = "${System.getProperty("user.home")}/Develop/osrswiki-cache"
+    val cacheBasePath = "${System.getProperty("user.home")}/Develop/osrswiki/cache"
     val cacheDirs = listOf(
         "$cacheBasePath/binary-assets/mbtiles",
         "$cacheBasePath/binary-assets/map-images/output",

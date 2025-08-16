@@ -698,7 +698,7 @@ object TablePreviewRenderer {
                 // Use PageHtmlBuilder like the main app does - no manual URL manipulation
                 // The htmlContent from PageAssetDownloader is already properly processed
                 val pageHtmlBuilder = PageHtmlBuilder(themedContext)
-                var fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, theme)
+                var fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, theme, collapseTablesEnabled)
                 
                 // JAVASCRIPT INJECTION INSPECTION
                 Log.d(TAG, "JAVASCRIPT INJECTION:")

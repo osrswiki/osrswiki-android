@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.page
 import android.util.Log
 import com.omiyawaki.osrswiki.network.model.ParseResult
 import com.omiyawaki.osrswiki.offline.util.OfflineCacheUtil
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.Result
 import com.omiyawaki.osrswiki.dataclient.WikiSite
@@ -101,7 +102,8 @@ class PageRepository(
 
         val canonicalTitle = parseResult.title
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
-        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme)
+        val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme, collapseTablesEnabled)
 
         val uiState = PageUiState(
             isLoading = false,
@@ -126,7 +128,8 @@ class PageRepository(
                 val parseResult = networkResult.data
                 val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
-                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme)
+                val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme, collapseTablesEnabled)
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
                     pageId = parseResult.pageid,
@@ -155,7 +158,9 @@ class PageRepository(
                 val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
                 // Saving offline uses the default light theme, as it has no user context.
-                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, Theme.DEFAULT_LIGHT)
+                // For offline saving, use the current table collapse preference
+                val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
+                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, Theme.DEFAULT_LIGHT, collapseTablesEnabled)
                 localDataSource.saveArticle(
                     pageId = parseResult.pageid,
                     canonicalTitle = canonicalTitle,

@@ -54,17 +54,24 @@ object PreviewGenerationManager {
      * 
      * Launches background generation immediately and returns without waiting.
      */
-    fun initializeBackgroundGeneration(context: Context, currentTheme: Theme) {
+    suspend fun initializeBackgroundGeneration(context: Context, currentTheme: Theme) {
         if (!isInitialized.compareAndSet(false, true)) {
             Log.d(TAG, "Background generation already initialized")
             return
         }
         
+        // Check if cache is already valid and complete
+        val app = context.applicationContext as OSRSWikiApp
+        val cacheValid = verifyPreviewCachesOnDisk(app, currentTheme)
+        if (cacheValid) {
+            Log.i("StartupTiming", "PreviewGenerationManager - Valid cache found, skipping generation")
+            Log.d(TAG, "Valid preview cache found for theme: ${currentTheme.tag}, skipping generation")
+            return
+        }
+        
+        val startTime = System.currentTimeMillis()
         Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - Starting background preview generation for theme: ${currentTheme.tag}")
         Log.d(TAG, "Starting background preview generation for theme: ${currentTheme.tag}")
-        
-        // Get OSRSWikiApp from context
-        val app = context.applicationContext as OSRSWikiApp
         
         // Launch background generation in Application scope (survives Activity lifecycle)
         app.applicationScope.launch {
@@ -95,8 +102,9 @@ object PreviewGenerationManager {
                     Log.w("StartupTiming", "DISK_FLUSH_VERIFICATION_FAILED: ${e.message}")
                 }
                 
-                Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - COMPLETED after real work")
-                Log.d(TAG, "Background preview generation completed successfully")
+                val totalTime = System.currentTimeMillis() - startTime
+                Log.i("StartupTiming", "PreviewGenerationManager.initializeBackgroundGeneration() - COMPLETED after real work. Total time: ${totalTime}ms")
+                Log.d(TAG, "Background preview generation completed successfully in ${totalTime}ms")
                 
             } catch (e: TimeoutCancellationException) {
                 Log.e(TAG, "Background preview generation timed out after ${GENERATION_TIMEOUT_MS}ms", e)
@@ -264,9 +272,9 @@ object PreviewGenerationManager {
     }
     
     /**
-     * Verify that preview caches are actually written to disk.
+     * Verify that preview caches are actually written to disk and are complete.
      * This ensures WorkManager completion represents real cache durability.
-     * Simplified version that checks cache directory existence and basic file I/O.
+     * Enhanced version that checks for specific expected cache files.
      */
     private suspend fun verifyPreviewCachesOnDisk(app: OSRSWikiApp, currentTheme: Theme): Boolean {
         return withContext(Dispatchers.IO) {
@@ -287,17 +295,27 @@ object PreviewGenerationManager {
                     themeCacheDir.listFiles()?.size ?: 0
                 } else 0
                 
+                // Check for expected files - we should have at least:
+                // - 4 table preview files (light/dark × collapsed/expanded)
+                // - 2 theme preview files (light/dark)
+                val expectedTableFiles = 4
+                val expectedThemeFiles = 2
+                val hasMinimumTableFiles = tableCacheFileCount >= expectedTableFiles
+                val hasMinimumThemeFiles = themeCacheFileCount >= expectedThemeFiles
+                
                 val totalCacheFiles = tableCacheFileCount + themeCacheFileCount
+                val cacheComplete = hasMinimumTableFiles && hasMinimumThemeFiles
                 
                 Log.i("StartupTiming", "CACHE_VERIFICATION " +
                         "table_cache_dir_exists=${tableCacheDirExists} " +
                         "theme_cache_dir_exists=${themeCacheDirExists} " +
-                        "table_cache_files=${tableCacheFileCount} " +
-                        "theme_cache_files=${themeCacheFileCount} " +
-                        "total_cache_files=${totalCacheFiles}")
+                        "table_cache_files=${tableCacheFileCount}/${expectedTableFiles} " +
+                        "theme_cache_files=${themeCacheFileCount}/${expectedThemeFiles} " +
+                        "total_cache_files=${totalCacheFiles} " +
+                        "cache_complete=${cacheComplete}")
                 
-                // Return true if we have any cache files (indicating generation occurred)
-                totalCacheFiles > 0
+                // Return true only if we have the expected minimum cache files
+                cacheComplete
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Cache verification failed", e)

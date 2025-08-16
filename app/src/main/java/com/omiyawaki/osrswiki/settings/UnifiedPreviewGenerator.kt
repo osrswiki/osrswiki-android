@@ -168,17 +168,21 @@ class UnifiedPreviewGenerator {
                     @android.webkit.JavascriptInterface
                     fun onThemeChangeComplete() {
                         Log.d(TAG, "JavaScript callback: Theme change completed")
-                        // Resume any pending theme change operations
-                        this@UnifiedPreviewGenerator.pendingThemeChangeCallback?.invoke(true)
-                        this@UnifiedPreviewGenerator.pendingThemeChangeCallback = null
+                        // Post to main thread since JavaBridge callbacks run on JavaBridge thread
+                        webView.post {
+                            this@UnifiedPreviewGenerator.pendingThemeChangeCallback?.invoke(true)
+                            this@UnifiedPreviewGenerator.pendingThemeChangeCallback = null
+                        }
                     }
                     
                     @android.webkit.JavascriptInterface
                     fun onTableStateChangeComplete() {
                         Log.d(TAG, "JavaScript callback: Table state change completed")
-                        // Resume any pending table state change operations
-                        this@UnifiedPreviewGenerator.pendingTableStateChangeCallback?.invoke(true)
-                        this@UnifiedPreviewGenerator.pendingTableStateChangeCallback = null
+                        // Post to main thread since JavaBridge callbacks run on JavaBridge thread
+                        webView.post {
+                            this@UnifiedPreviewGenerator.pendingTableStateChangeCallback?.invoke(true)
+                            this@UnifiedPreviewGenerator.pendingTableStateChangeCallback = null
+                        }
                     }
                 }
                 
@@ -244,7 +248,9 @@ class UnifiedPreviewGenerator {
                             Log.i(TAG, "HTML loaded successfully (${htmlContent.length} chars) - building full HTML document")
                             
                             val pageHtmlBuilder = PageHtmlBuilder(themedContext)
-                            val fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT)
+                            // For UnifiedPreviewGenerator, respect user's table collapse preference
+                            val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
+                            val fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT, collapseTablesEnabled)
                             
                             // Inject JavaScript for theme and table state control
                             val enhancedHtml = injectControlJavaScript(fullHtml)
@@ -590,7 +596,8 @@ class UnifiedPreviewGenerator {
                     }
                 }
                 
-                toggleTableStateInline(true) { success ->
+                val collapseTablesForPreview = Prefs.isCollapseTablesEnabled
+                toggleTableStateInline(collapseTablesForPreview) { success ->
                     if (success) {
                         captureState(webView, container, fullScreenW, fullScreenH, "table-light-collapsed", context) { bitmap2 ->
                             if (bitmap2 != null) {

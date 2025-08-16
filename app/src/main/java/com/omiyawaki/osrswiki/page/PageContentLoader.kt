@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.page
 
 import android.content.Context
 import com.omiyawaki.osrswiki.dataclient.WikiSite
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.CoroutineScope
@@ -75,7 +76,9 @@ class PageContentLoader(
                 // Perform CPU-intensive HTML string building on a background thread.
                 val finalHtml = withContext(Dispatchers.Default) {
                     L.d("handleDownloadProgress: Building final HTML on background thread.")
-                    pageHtmlBuilder.buildFullHtmlDocument(result.parseResult.displaytitle ?: "", result.processedHtml, theme)
+                    val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
+                    L.d("handleDownloadProgress: Using table collapse preference: $collapseTablesEnabled")
+                    pageHtmlBuilder.buildFullHtmlDocument(result.parseResult.displaytitle ?: "", result.processedHtml, theme, collapseTablesEnabled)
                 }
                 L.d("handleDownloadProgress: Final HTML length: ${finalHtml.length} characters")
                 

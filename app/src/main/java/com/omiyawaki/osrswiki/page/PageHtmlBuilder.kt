@@ -71,6 +71,16 @@ class PageHtmlBuilder(private val context: Context) {
         </script>
     """.trimIndent()
 
+    private fun createTableCollapseScript(collapseTablesEnabled: Boolean): String {
+        return """
+            <script>
+                // Global variable for table collapse preference that collapsible_content.js can read
+                window.OSRS_TABLE_COLLAPSED = $collapseTablesEnabled;
+                console.log('PageHtmlBuilder: Set global collapse preference to ' + window.OSRS_TABLE_COLLAPSED);
+            </script>
+        """.trimIndent()
+    }
+
     /**
      * Generate smart MediaWiki variables based on page content.
      * Uses WikiModuleRegistry for intelligent module detection.
@@ -97,7 +107,7 @@ class PageHtmlBuilder(private val context: Context) {
         """.trimIndent()
     }
 
-    fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme): String {
+    fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme, collapseTablesEnabled: Boolean = true): String {
         var finalHtml: String
         val time = measureTimeMillis {
             // Preserved title logic from working version
@@ -149,6 +159,9 @@ class PageHtmlBuilder(private val context: Context) {
             // Generate smart MediaWiki variables
             val smartMediawikiVariables = generateMediaWikiVariables(cleanedTitle, cleanedBodyContent)
 
+            // Create table collapse preference script
+            val tableCollapseScript = createTableCollapseScript(collapseTablesEnabled)
+
             // Preload the main web font to improve rendering performance
             val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
 
@@ -164,6 +177,7 @@ class PageHtmlBuilder(private val context: Context) {
                     ${fontPreloadLink}
                     ${cssLinks}
                     ${themeUtilityScript}
+                    ${tableCollapseScript}
                     ${smartMediawikiVariables}
                 </head>
                 <body class="$themeClass" style="visibility: hidden;">

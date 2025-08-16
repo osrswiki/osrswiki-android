@@ -165,6 +165,127 @@ class PageWebViewManager(
                     }
                 }
                 
+                // SPACING DEBUG: Inject spacing analysis script + SOLUTION 2
+                view?.evaluateJavascript("""
+                    (function() {
+                        console.log('=== EXTERNAL LINK SPACING ANALYSIS + SOLUTION 2 ===');
+                        
+                        // SOLUTION 2: Create ultra-high specificity CSS class override
+                        const overrideStyleElement = document.createElement('style');
+                        overrideStyleElement.id = 'spacing-override';
+                        overrideStyleElement.textContent = `
+                            /* Ultra-high specificity override for external link spacing */
+                            html body .mw-parser-output a.external.spacing-override,
+                            html body .mw-parser-output a.external.text.spacing-override,
+                            html body .mw-parser-output span.plainlinks a.external.spacing-override,
+                            html body .mw-parser-output span.plainlinks a.external.text.spacing-override,
+                            html body a.external.spacing-override,
+                            html body a.external.text.spacing-override {
+                                padding-right: 0px !important;
+                                margin-right: 0px !important;
+                                background-image: none !important;
+                                background-position: initial !important;
+                                background-repeat: initial !important;
+                            }
+                        `;
+                        document.head.appendChild(overrideStyleElement);
+                        console.log('SOLUTION 2: Injected ultra-high specificity CSS override');
+                        
+                        // Find all external links
+                        const externalLinks = document.querySelectorAll('a.external, a.plainlinks');
+                        console.log('Found ' + externalLinks.length + ' external links');
+                        
+                        externalLinks.forEach((link, index) => {
+                            const linkText = link.textContent.trim();
+                            const linkHref = link.href;
+                            
+                            console.log('\\n--- LINK ' + (index + 1) + ': "' + linkText + '" ---');
+                            console.log('URL: ' + linkHref);
+                            console.log('Classes: ' + link.className);
+                            
+                            // Get computed styles BEFORE fix
+                            const computedStyleBefore = window.getComputedStyle(link);
+                            console.log('BEFORE - Computed padding-right: ' + computedStyleBefore.paddingRight);
+                            console.log('BEFORE - Computed margin-right: ' + computedStyleBefore.marginRight);
+                            console.log('BEFORE - Computed background-image: ' + computedStyleBefore.backgroundImage);
+                            
+                            // SOLUTION 2: Add ultra-high specificity class
+                            link.classList.add('spacing-override');
+                            console.log('APPLIED: Added spacing-override class with ultra-high CSS specificity');
+                            
+                            // Force recompute styles
+                            link.offsetHeight; // Trigger reflow
+                            
+                            // Get computed styles AFTER fix
+                            const computedStyleAfter = window.getComputedStyle(link);
+                            console.log('AFTER - Computed padding-right: ' + computedStyleAfter.paddingRight);
+                            console.log('AFTER - Computed margin-right: ' + computedStyleAfter.marginRight);
+                            console.log('AFTER - Computed background-image: ' + computedStyleAfter.backgroundImage);
+                            
+                            // Check if the fix worked
+                            const paddingFixed = computedStyleAfter.paddingRight === '0px';
+                            const backgroundFixed = computedStyleAfter.backgroundImage === 'none';
+                            console.log('FIX STATUS - Padding fixed: ' + paddingFixed + ', Background fixed: ' + backgroundFixed);
+                            
+                            // Get bounding rect
+                            const rect = link.getBoundingClientRect();
+                            console.log('Link bounding rect: width=' + rect.width + ', height=' + rect.height);
+                            console.log('Link position: left=' + rect.left + ', top=' + rect.top + ', right=' + rect.right + ', bottom=' + rect.bottom);
+                            
+                            // Analyze the text node after the link
+                            const nextSibling = link.nextSibling;
+                            if (nextSibling && nextSibling.nodeType === Node.TEXT_NODE) {
+                                const nextText = nextSibling.textContent;
+                                console.log('Next text node: "' + nextText + '"');
+                                console.log('Next text starts with space: ' + nextText.startsWith(' '));
+                                console.log('Next text char codes: ' + Array.from(nextText.substring(0, 5)).map(c => c.charCodeAt(0)).join(', '));
+                            }
+                            
+                            // Measure actual spacing after fix
+                            try {
+                                // Create a test container
+                                const testContainer = document.createElement('div');
+                                testContainer.style.position = 'absolute';
+                                testContainer.style.left = '-9999px';
+                                testContainer.style.top = '0';
+                                testContainer.style.fontFamily = computedStyleAfter.fontFamily;
+                                testContainer.style.fontSize = computedStyleAfter.fontSize;
+                                testContainer.style.fontWeight = computedStyleAfter.fontWeight;
+                                testContainer.style.lineHeight = computedStyleAfter.lineHeight;
+                                document.body.appendChild(testContainer);
+                                
+                                // Test 1: Link without any spacing
+                                testContainer.innerHTML = '<span style="background: red;">' + linkText + '</span><span style="background: blue;">next</span>';
+                                const normalWidth = testContainer.offsetWidth;
+                                
+                                // Test 2: Link with same classes as actual link + fix
+                                testContainer.innerHTML = '<span class="' + link.className + ' spacing-override" style="background: red;">' + linkText + '</span><span style="background: blue;">next</span>';
+                                const styledWidth = testContainer.offsetWidth;
+                                
+                                console.log('AFTER SOLUTION 2 - Width comparison: normal=' + normalWidth + 'px, styled=' + styledWidth + 'px, difference=' + (styledWidth - normalWidth) + 'px');
+                                
+                                // Clean up
+                                document.body.removeChild(testContainer);
+                                
+                            } catch (error) {
+                                console.log('Error measuring spacing: ' + error.message);
+                            }
+                            
+                            // Check parent context
+                            const parent = link.parentElement;
+                            if (parent) {
+                                const parentStyle = window.getComputedStyle(parent);
+                                console.log('Parent element: ' + parent.tagName + '.' + parent.className);
+                                console.log('Parent font-family: ' + parentStyle.fontFamily);
+                            }
+                        });
+                        
+                        console.log('\\n=== EXTERNAL LINK SPACING SOLUTION 2 APPLIED ===');
+                    })();
+                """.trimIndent()) { 
+                    Log.d("SpacingDebug", "Spacing analysis + Solution 2 script executed")
+                }
+                
                 pageLoaded = true
                 renderCallback.onWebViewLoadFinished()
                 

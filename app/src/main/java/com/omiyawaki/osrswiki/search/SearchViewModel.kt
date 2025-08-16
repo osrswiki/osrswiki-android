@@ -17,6 +17,7 @@ import com.omiyawaki.osrswiki.page.PageAssetDownloader
 import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.preemptive.PreloadedPage
 import com.omiyawaki.osrswiki.page.preemptive.PreloadedPageCache
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.StringUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -99,10 +100,12 @@ class SearchViewModel(
                 .collect { progress ->
                     if (progress is DownloadProgress.Success) {
                         val result = progress.result
+                        val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
                         val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(
                             result.parseResult.displaytitle ?: "",
                             result.processedHtml,
-                            OSRSWikiApp.instance.getCurrentTheme()
+                            OSRSWikiApp.instance.getCurrentTheme(),
+                            collapseTablesEnabled
                         )
                         // Use canonical URL format for consistency
                         val canonicalUrl = "https://oldschool.runescape.wiki/w/${result.parseResult.title.replace(" ", "_")}"

@@ -12,11 +12,24 @@
 }
 
 .mw-parser-output a.external {
-    background-image: var(--external-icon);
-    background-position: right center;
-    background-repeat: no-repeat;
+    /* TEMPORARILY REMOVED for spacing investigation */
+    /* background-image: var(--external-icon); */
+    /* background-position: right center; */
+    /* background-repeat: no-repeat; */
     color: var(--link-color);
-    padding-right: 15px;
+    padding-right: 0 !important; /* Force remove padding - specificity fix */
+}
+
+/* Additional specificity override for external links */
+a.external,
+a.external.text,
+.mw-parser-output a.external,
+.mw-parser-output a.external.text,
+span.plainlinks a.external,
+span.plainlinks a.external.text {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    background-image: none !important;
 }
 
 .mw-kartographer-interactive .leaflet-popup-content a, .mw-kartographer-interactive .leaflet-popup-content a:active, .mw-parser-output a.external:active {

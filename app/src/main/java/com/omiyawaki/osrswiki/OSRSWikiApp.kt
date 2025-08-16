@@ -179,6 +179,22 @@ class OSRSWikiApp : Application() {
             Log.d("StartupTiming", "Preview generation WorkManager scheduled in ${System.currentTimeMillis() - workManagerStartTime}ms")
             Log.i("StartupTiming", "Dependencies initialized - preview generation scheduled in background")
             
+            // Also try immediate cache warming if we detect the app is being launched
+            // This provides faster response than waiting for WorkManager
+            applicationScope.launch {
+                try {
+                    Log.i("StartupTiming", "OSRSWikiApp - Attempting immediate cache warming")
+                    val currentTheme = getCurrentTheme()
+                    // Direct cache check without initialization flag
+                    PreviewGenerationManager.resetState() 
+                    PreviewGenerationManager.initializeBackgroundGeneration(this@OSRSWikiApp, currentTheme)
+                    Log.i("StartupTiming", "OSRSWikiApp - Immediate cache warming completed")
+                } catch (e: Exception) {
+                    Log.w("StartupTiming", "OSRSWikiApp - Immediate cache warming failed: ${e.message}")
+                    // Don't prevent app startup on cache warming failure
+                }
+            }
+            
         } catch (e: Exception) {
             logCrashManually(e, "Failed to initialize dependencies")
             throw e // Re-throw to prevent app from continuing in broken state

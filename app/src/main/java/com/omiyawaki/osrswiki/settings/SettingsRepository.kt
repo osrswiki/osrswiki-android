@@ -14,7 +14,7 @@ class SettingsRepository(private val sharedPreferences: SharedPreferences) {
     companion object {
         // Use existing preference keys to maintain compatibility
         const val KEY_APP_THEME_MODE = "app_theme_mode"
-        const val KEY_COLLAPSE_TABLES = "collapse_tables"
+        const val KEY_COLLAPSE_TABLES = "collapseTables"
         
         // App theme values - matching original arrays.xml
         const val THEME_AUTO = "auto"
@@ -42,7 +42,7 @@ class SettingsRepository(private val sharedPreferences: SharedPreferences) {
     }
 
     fun isCollapseTablesEnabled(): Boolean {
-        return sharedPreferences.getBoolean(KEY_COLLAPSE_TABLES, false)
+        return sharedPreferences.getBoolean(KEY_COLLAPSE_TABLES, true)
     }
 
     fun setCollapseTablesEnabled(enabled: Boolean) {
