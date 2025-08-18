@@ -51,7 +51,11 @@
     <string name="donate_custom_amount_hint">Enter amount</string>
     <string name="donate_button_text">Donate with Google Pay</string>
     <string name="donate_success_title">Thank You!</string>
-    <string name="donate_success_message">Your donation helps keep this app free and supports ongoing development. Thank you!</string>
+    <string name="donate_success_message">Your donation helps keep this app free and ad-free. This enables us to continue improving the app for the OSRS community.</string>
+    <string name="donate_success_additional_message"></string>
+    <string name="donate_success_icon_description">Donation successful</string>
+    <string name="donate_success_dialog_title">Donation Successful</string>
+    <string name="donate_success_amount_format">Donation: %s</string>
     <string name="donate_error_title">Payment Error</string>
     <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
     <string name="donate_google_pay_unavailable">Google Pay is not available on this device</string>

@@ -46,7 +46,7 @@ class DonateFragment : Fragment() {
         
         // Google Pay constants
         private const val LOAD_PAYMENT_DATA_REQUEST_CODE = 991
-        private const val GOOGLE_PAY_ENVIRONMENT = WalletConstants.ENVIRONMENT_TEST // Change to PRODUCTION for live
+        private const val GOOGLE_PAY_ENVIRONMENT = WalletConstants.ENVIRONMENT_TEST
         
         // Wiki donation URL
         private const val WIKI_PATREON_URL = "https://www.patreon.com/runescapewiki"
@@ -300,7 +300,11 @@ class DonateFragment : Fragment() {
             // Merchant info
             val merchantInfo = JSONObject().apply {
                 put("merchantName", "OSRS Wiki")
-                put("merchantId", "BCR2DN4T2TUUAOLG") // Test merchant ID - replace with real one
+                // Use test merchant ID for test environment, production ID for live
+                if (GOOGLE_PAY_ENVIRONMENT == WalletConstants.ENVIRONMENT_PRODUCTION) {
+                    put("merchantId", "BCR2DN4TTXIZDGJT") // Production merchant ID
+                }
+                // Note: Test environment doesn't require merchant ID
             }
             put("merchantInfo", merchantInfo)
         }
@@ -324,12 +328,17 @@ class DonateFragment : Fragment() {
             }
             put("parameters", parameters)
             
-            // Tokenization specification
+            // Tokenization specification - use DIRECT for both test and production
             val tokenizationSpec = JSONObject().apply {
-                put("type", "PAYMENT_GATEWAY")
+                put("type", "DIRECT")
                 val parameters = JSONObject().apply {
-                    put("gateway", "example") // Replace with actual payment processor
-                    put("gatewayMerchantId", "exampleGatewayMerchantId") // Replace with actual merchant ID
+                    put("protocolVersion", "ECv2")
+                    if (GOOGLE_PAY_ENVIRONMENT == WalletConstants.ENVIRONMENT_PRODUCTION) {
+                        put("publicKey", "BGRpchnqAlZSDKQn4mtM2jhOlDS0hYcwoDFalC80SDwWh8BZ21Uml26Zq9cvOD97oBTMw1IuBnVkB79vVhwbJXo=") // Production public key
+                    } else {
+                        // Test environment - use properly formatted test key (65 bytes)
+                        put("publicKey", "BGRpchnqAlZSDKQn4mtM2jhOlDS0hYcwoDFalC80SDwWh8BZ21Uml26Zq9cvOD97oBTMw1IuBnVkB79vVhwbJXo=")
+                    }
                 }
                 put("parameters", parameters)
             }
@@ -375,15 +384,14 @@ class DonateFragment : Fragment() {
     }
     
     private fun onPaymentSuccess() {
+        L.d("DonateFragment: Payment successful, showing success dialog")
         hideStatusText()
-        setStatusText(getString(R.string.donate_success_message))
-        binding.donateButton.text = getString(R.string.donate_success_title)
-        binding.donateButton.isEnabled = false
         
-        // Reset form after delay
-        binding.root.postDelayed({
-            resetForm()
-        }, 3000)
+        // Show success dialog with donation amount
+        selectedAmount?.let { amount ->
+            val successDialog = DonationSuccessDialogFragment.newInstance(amount)
+            successDialog.show(childFragmentManager, DonationSuccessDialogFragment.TAG)
+        }
     }
     
     private fun onPaymentError(message: String) {
@@ -405,6 +413,11 @@ class DonateFragment : Fragment() {
         binding.customAmountInput.text?.clear()
         hideStatusText()
         updateDonateButtonState()
+    }
+    
+    fun onSuccessDialogDismissed() {
+        L.d("DonateFragment: Success dialog dismissed, resetting form")
+        resetForm()
     }
     
     private fun setupWikiDonateButton() {
