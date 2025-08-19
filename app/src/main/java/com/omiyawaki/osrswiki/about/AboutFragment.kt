@@ -43,6 +43,7 @@ class AboutFragment : Fragment() {
         
         setupAppInfo()
         setupWikiButton()
+        setupPrivacyButton()
         setupFonts()
         
         // Debug font loading
@@ -70,6 +71,18 @@ class AboutFragment : Fragment() {
         }
     }
     
+    private fun setupPrivacyButton() {
+        binding.privacyButton.setOnClickListener {
+            L.d("AboutFragment: Privacy Policy button clicked")
+            try {
+                val intent = PrivacyPolicyActivity.newIntent(requireContext())
+                startActivity(intent)
+            } catch (e: Exception) {
+                L.e("AboutFragment: Error opening Privacy Policy", e)
+            }
+        }
+    }
+    
     private fun setupFonts() {
         L.d("AboutFragment: Setting up fonts...")
         
@@ -79,6 +92,7 @@ class AboutFragment : Fragment() {
         FontUtil.applyAlegreyaTitle(binding.jagexTitle)
         FontUtil.applyAlegreyaTitle(binding.wikiTitle)
         FontUtil.applyAlegreyaTitle(binding.wikipediaTitle)
+        FontUtil.applyAlegreyaTitle(binding.privacyTitle)
         
         L.d("AboutFragment: Fonts applied to all TextViews and buttons")
     }

@@ -111,6 +111,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                     viewModel.onlineSearchResultsFlow.collectLatest { pagingData ->
                         if (binding.recyclerViewSearchResults.adapter == onlineSearchAdapter) {
                             onlineSearchAdapter.submitData(pagingData)
+                            // Scroll to top when new search results are submitted to ensure
+                            // the top results are visible (fixes issue where results populate upward)
+                            binding.recyclerViewSearchResults.scrollToPosition(0)
                         }
                     }
                 }
@@ -119,6 +122,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                     viewModel.combinedOfflineResultsList.collectLatest { combinedOfflineList ->
                         if (binding.recyclerViewSearchResults.adapter == offlineSearchAdapter) {
                             offlineSearchAdapter.submitList(combinedOfflineList)
+                            // Scroll to top when new offline search results are submitted to ensure
+                            // the top results are visible (fixes issue where results populate upward)
+                            binding.recyclerViewSearchResults.scrollToPosition(0)
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             val hasResults = combinedOfflineList.isNotEmpty()
                             binding.recyclerViewSearchResults.isVisible = hasResults

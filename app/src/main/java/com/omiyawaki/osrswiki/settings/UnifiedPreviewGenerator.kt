@@ -2,14 +2,25 @@ package com.omiyawaki.osrswiki.settings
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.util.DisplayMetrics
 import android.util.Log
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.View
+import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceError
+import android.os.Build
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.PageAssetDownloader
@@ -29,6 +40,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.roundToInt
@@ -78,220 +90,261 @@ class UnifiedPreviewGenerator {
      */
     suspend fun generateAllPreviews(
         context: Context
-    ): PreviewResult = withContext(Dispatchers.Main) {
+    ): PreviewResult {
         
-        Log.i(TAG, "Starting unified preview generation (render-once, capture-many)")
+        Log.i(TAG, "Starting sequential HTML generation for all preview states")
         val startTime = System.currentTimeMillis()
         
-        // Use passed context directly if it's an Activity, otherwise try to get one
-        val activity = when (context) {
-            is Activity -> {
-                Log.i(TAG, "Using passed Activity context directly for WebView rendering")
-                context
-            }
-            else -> {
-                Log.i(TAG, "Context is not Activity, trying to get one from pool")
-                val app = context.applicationContext as OSRSWikiApp
-                val activityFromPool = app.waitForActivityContext()
-                if (activityFromPool == null) {
-                    throw Exception("Cannot find Activity context for WebView rendering")
-                }
-                activityFromPool
-            }
+        // Load Varrock article HTML content first
+        val htmlContent = loadVarrockArticleHtml(context)
+        if (htmlContent == null) {
+            Log.e(TAG, "Failed to load Varrock article HTML content")
+            throw Exception("Failed to load Varrock article HTML content")
         }
         
-        suspendCancellableCoroutine { continuation ->
-            var isCompleted = false
-            var webView: ObservableWebView? = null
-            var container: FrameLayout? = null
-            var rootView: FrameLayout? = null
+        return withContext(Dispatchers.Main) {
+            // Generate all 4 preview states sequentially using separate HTML documents
+            val results = mutableMapOf<String, Bitmap>()
+            val htmlBuilder = PageHtmlBuilder(context)
             
             try {
-                Log.i(TAG, "Creating single WebView instance for all previews")
-                
-                // Use light theme as the base theme (we'll toggle via JavaScript)
-                val themedContext = ContextThemeWrapper(activity, R.style.Theme_OSRSWiki_OSRSLight)
-                
-                // Create WebView
-                webView = ObservableWebView(themedContext)
-                
-                // Get dimensions for rendering
-                val dm = context.resources.displayMetrics
-                val fullScreenW = dm.widthPixels
-                val fullScreenH = dm.heightPixels
-                
-                Log.i(TAG, "WebView dimensions: ${fullScreenW}×${fullScreenH}")
-                
-                // Create container and attach to Activity (must be attached for proper rendering)
-                container = FrameLayout(themedContext).apply {
-                    layoutParams = FrameLayout.LayoutParams(fullScreenW, fullScreenH)
-                    visibility = View.INVISIBLE // Hidden but attached to window
-                    alpha = 0.01f // Nearly invisible to avoid flickering
-                    addView(webView, FrameLayout.LayoutParams(fullScreenW, fullScreenH))
-                }
-                
-                rootView = activity.findViewById<FrameLayout>(android.R.id.content)
-                rootView.addView(container)
-                
-                // Enable WebView optimizations for offscreen rendering
-                webView.settings.apply {
-                    setOffscreenPreRaster(true) // Expert recommendation
-                }
-                webView.resumeTimers() // Expert recommendation to avoid throttling
-                
-                Log.i(TAG, "WebView attached to window with optimizations enabled")
-                
-                // Set up components exactly like TablePreviewRenderer does
-                val app = context.applicationContext as OSRSWikiApp
-                val pageRepository = app.pageRepository
-                val previewScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-                
-                val pageLinkHandler = PageLinkHandler(
-                    constructionContext = themedContext,
-                    coroutineScope = previewScope, 
-                    pageRepository = pageRepository,
-                    theme = Theme.OSRS_LIGHT // Base theme
+                Log.i(TAG, "Generating table preview: Light theme, Collapsed tables")
+                results["table-light-collapsed"] = generateSinglePreview(
+                    context, htmlBuilder, htmlContent, Theme.OSRS_LIGHT, true
                 )
                 
-                // Enhanced JS interface with callback support for state changes
-                val jsInterface = object {
-                    @android.webkit.JavascriptInterface
-                    fun onMapPlaceholderMeasured(id: String, rectJson: String, mapDataJson: String) {
-                        // No-op for preview
-                    }
-                    
-                    @android.webkit.JavascriptInterface  
-                    fun setHorizontalScroll(inProgress: Boolean) {
-                        // No-op for preview
-                    }
-                    
-                    @android.webkit.JavascriptInterface
-                    fun onThemeChangeComplete() {
-                        Log.d(TAG, "JavaScript callback: Theme change completed")
-                        // Post to main thread since JavaBridge callbacks run on JavaBridge thread
-                        webView.post {
-                            this@UnifiedPreviewGenerator.pendingThemeChangeCallback?.invoke(true)
-                            this@UnifiedPreviewGenerator.pendingThemeChangeCallback = null
-                        }
-                    }
-                    
-                    @android.webkit.JavascriptInterface
-                    fun onTableStateChangeComplete() {
-                        Log.d(TAG, "JavaScript callback: Table state change completed")
-                        // Post to main thread since JavaBridge callbacks run on JavaBridge thread
-                        webView.post {
-                            this@UnifiedPreviewGenerator.pendingTableStateChangeCallback?.invoke(true)
-                            this@UnifiedPreviewGenerator.pendingTableStateChangeCallback = null
-                        }
-                    }
-                }
-                
-                // Variable to hold PageWebViewManager reference
-                var pageWebViewManagerRef: PageWebViewManager? = null
-                
-                val renderCallback = object : RenderCallback {
-                    override fun onWebViewLoadFinished() {
-                        Log.d(TAG, "WebView load finished - progress: ${webView.progress}%")
-                    }
-                    
-                    override fun onPageReadyForDisplay() {
-                        Log.i(TAG, "Page ready for display - starting multi-capture sequence")
-                        
-                        pageWebViewManagerRef?.finalizeAndRevealPage {
-                            Log.i(TAG, "Page finalized - beginning state toggle and capture sequence")
-                            
-                            // Wait for content to be fully ready, then start capture sequence
-                            waitForWebViewContentReady(webView) { contentReady ->
-                                if (!isCompleted) {
-                                    isCompleted = true
-                                    if (contentReady) {
-                                        Log.i(TAG, "Content ready - starting capture sequence")
-                                        startCaptureSequence(
-                                            webView, container, rootView, fullScreenW, fullScreenH,
-                                            themedContext, continuation, startTime, previewScope
-                                        )
-                                    } else {
-                                        Log.w(TAG, "Content not fully ready, but proceeding with capture")
-                                        startCaptureSequence(
-                                            webView, container, rootView, fullScreenW, fullScreenH,
-                                            themedContext, continuation, startTime, previewScope
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Create PageWebViewManager
-                val pageWebViewManager = PageWebViewManager(
-                    webView = webView,
-                    linkHandler = pageLinkHandler,
-                    onTitleReceived = { /* No-op for preview */ },
-                    jsInterface = jsInterface,
-                    jsInterfaceName = "OsrsWikiBridge",
-                    renderCallback = renderCallback,
-                    onRenderProgress = { /* No-op for preview */ }
+                Log.i(TAG, "Generating table preview: Light theme, Expanded tables")  
+                results["table-light-expanded"] = generateSinglePreview(
+                    context, htmlBuilder, htmlContent, Theme.OSRS_LIGHT, false
                 )
                 
-                pageWebViewManagerRef = pageWebViewManager
+                Log.i(TAG, "Generating table preview: Dark theme, Collapsed tables")
+                results["table-dark-collapsed"] = generateSinglePreview(
+                    context, htmlBuilder, htmlContent, Theme.OSRS_DARK, true
+                )
                 
-                // Load Varrock article HTML (same as TablePreviewRenderer)
-                Log.i(TAG, "Loading Varrock article HTML using PageAssetDownloader")
+                Log.i(TAG, "Generating table preview: Dark theme, Expanded tables")
+                results["table-dark-expanded"] = generateSinglePreview(
+                    context, htmlBuilder, htmlContent, Theme.OSRS_DARK, false
+                )
                 
-                // Launch coroutine for HTML loading
-                previewScope.launch {
+                // Generate theme previews using ThemePreviewRenderer  
+                Log.i(TAG, "Generating theme previews")
+                val themeLight = generateThemePreview(context, Theme.OSRS_LIGHT)
+                val themeDark = generateThemePreview(context, Theme.OSRS_DARK)
+                
+                val totalTime = System.currentTimeMillis() - startTime
+                Log.i("StartupTiming", "SEQUENTIAL_GENERATION_COMPLETE total_duration=${totalTime}ms")
+                
+                PreviewResult(
+                    tableCollapsedLight = results["table-light-collapsed"]!!,
+                    tableExpandedLight = results["table-light-expanded"]!!,
+                    tableCollapsedDark = results["table-dark-collapsed"]!!,
+                    tableExpandedDark = results["table-dark-expanded"]!!,
+                    themeLight = themeLight,
+                    themeDark = themeDark
+                )
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Sequential preview generation failed", e)
+                throw e
+            }
+        }
+    }
+    
+    /**
+     * Generates a single preview for a specific theme and collapse state
+     */
+    private suspend fun generateSinglePreview(
+        context: Context,
+        htmlBuilder: PageHtmlBuilder,
+        htmlContent: String,
+        theme: Theme,
+        collapsed: Boolean
+    ): Bitmap = suspendCancellableCoroutine { continuation ->
+        
+        Log.i(TAG, "Generating preview for theme: ${theme.tag}, collapsed: $collapsed")
+        var isCompleted = false // Prevent double resume
+        
+        // Generate HTML for this specific state
+        val stateSpecificHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, theme, collapsed)
+        
+        // Create WebView for this state
+        val webView = createConfiguredWebView(context, theme)
+        
+        val webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String?) {
+                if (isCompleted) return
+                
+                Log.i(TAG, "Page finished loading for ${theme.tag}-${if (collapsed) "collapsed" else "expanded"}")
+                
+                // Wait a bit for complete rendering before capture
+                view.postDelayed({
+                    if (isCompleted) return@postDelayed
+                    
                     try {
-                        val htmlContent = loadVarrockArticleHtml(context)
-                        
-                        if (htmlContent != null) {
-                            Log.i(TAG, "HTML loaded successfully (${htmlContent.length} chars) - building full HTML document")
-                            
-                            val pageHtmlBuilder = PageHtmlBuilder(themedContext)
-                            // For UnifiedPreviewGenerator, respect user's table collapse preference
-                            val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                            val fullHtml = pageHtmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT, collapseTablesEnabled)
-                            
-                            // Inject JavaScript for theme and table state control
-                            val enhancedHtml = injectControlJavaScript(fullHtml)
-                            
-                            Log.i(TAG, "Rendering HTML with PageWebViewManager")
-                            pageWebViewManager.render(enhancedHtml)
-                            
-                        } else {
-                            Log.e(TAG, "Failed to load Varrock HTML")
-                            if (!isCompleted) {
-                                isCompleted = true
-                                cleanup(webView, container, rootView)
-                                continuation.resumeWithException(Exception("Failed to load Varrock HTML"))
-                            }
-                        }
+                        val bitmap = captureWebViewBitmap(view)
+                        Log.i(TAG, "Successfully captured preview: ${theme.tag}-${if (collapsed) "collapsed" else "expanded"}")
+                        isCompleted = true
+                        continuation.resume(bitmap)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error loading Varrock HTML", e)
+                        Log.e(TAG, "Failed to capture preview: ${theme.tag}-${if (collapsed) "collapsed" else "expanded"}", e)
                         if (!isCompleted) {
                             isCompleted = true
-                            cleanup(webView, container, rootView)
                             continuation.resumeWithException(e)
                         }
                     }
-                }
+                }, 1000) // Wait 1 second for CSS/theme to fully apply
+            }
+            
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                if (isCompleted) return
                 
-                // Set up cancellation
-                continuation.invokeOnCancellation {
-                    Log.i(TAG, "Generation cancelled")
-                    isCompleted = true
-                    cleanup(webView, container, rootView)
-                }
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Error setting up unified preview generation", e)
-                if (!isCompleted) {
-                    isCompleted = true
-                    cleanup(webView, container, rootView)
-                    continuation.resumeWithException(e)
+                Log.e(TAG, "WebView error for ${theme.tag}: ${error?.description}")
+                isCompleted = true
+                continuation.resumeWithException(Exception("WebView error: ${error?.description}"))
+            }
+        }
+        
+        webView.webViewClient = webViewClient
+        webView.loadDataWithBaseURL(
+            "file:///android_asset/",
+            stateSpecificHtml,
+            "text/html",
+            "UTF-8",
+            null
+        )
+        
+        // Handle cancellation
+        continuation.invokeOnCancellation {
+            Log.i(TAG, "Preview generation cancelled for ${theme.tag}")
+            if (!isCompleted) {
+                isCompleted = true
+                try {
+                    webView.destroy()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error destroying WebView during cancellation", e)
                 }
             }
         }
+    }
+    
+    /**
+     * Creates a properly configured WebView for preview generation
+     */
+    private fun createConfiguredWebView(context: Context, theme: Theme): WebView {
+        // Use themed context for proper WebView styling
+        val themeRes = when (theme) {
+            Theme.OSRS_LIGHT -> R.style.Theme_OSRSWiki_OSRSLight
+            Theme.OSRS_DARK -> R.style.Theme_OSRSWiki_OSRSDark
+        }
+        val themedContext = ContextThemeWrapper(context, themeRes)
+        
+        return WebView(themedContext).apply {
+            settings.javaScriptEnabled = true
+            settings.allowFileAccess = true
+            settings.allowFileAccessFromFileURLs = true
+            settings.allowUniversalAccessFromFileURLs = true
+            settings.domStorageEnabled = true
+            settings.loadWithOverviewMode = true
+            settings.useWideViewPort = true
+            
+            // Enable proper rendering for screenshot capture
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                WebView.enableSlowWholeDocumentDraw()
+            }
+            
+            // Set dimensions for consistent preview size
+            val dm = context.resources.displayMetrics
+            val width = dm.widthPixels
+            val height = dm.heightPixels
+            
+            // Layout the WebView for proper measurement
+            measure(
+                View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+            )
+            layout(0, 0, width, height)
+        }
+    }
+    
+    /**
+     * Captures WebView content as bitmap
+     */
+    private fun captureWebViewBitmap(webView: WebView): Bitmap {
+        val width = webView.width
+        val height = webView.contentHeight
+        
+        if (width <= 0 || height <= 0) {
+            Log.w(TAG, "WebView has invalid dimensions: ${width}x${height}")
+            throw Exception("WebView has invalid dimensions for capture")
+        }
+        
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        webView.draw(canvas)
+        
+        Log.d(TAG, "Captured WebView bitmap: ${width}x${height}")
+        return bitmap
+    }
+    
+    /**
+     * Generates a theme preview using ThemePreviewRenderer
+     */
+    private suspend fun generateThemePreview(context: Context, theme: Theme): Bitmap {
+        Log.i(TAG, "Generating theme preview for: ${theme.tag}")
+        
+        return try {
+            // Use the existing ThemePreviewRenderer to generate theme previews
+            val themeRes = when (theme) {
+                Theme.OSRS_LIGHT -> R.style.Theme_OSRSWiki_OSRSLight
+                Theme.OSRS_DARK -> R.style.Theme_OSRSWiki_OSRSDark
+            }
+            val themeKey = theme.tag.replace("osrs_", "") // "light" or "dark"
+            
+            val themePreview = ThemePreviewRenderer.getPreview(context, themeRes, themeKey)
+            Log.i(TAG, "Successfully generated theme preview for: ${theme.tag}")
+            themePreview
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to generate theme preview for ${theme.tag}", e)
+            // Fallback: create a simple colored bitmap
+            createFallbackThemePreview(context, theme)
+        }
+    }
+    
+    /**
+     * Creates a simple fallback theme preview if the main generation fails
+     */
+    private fun createFallbackThemePreview(context: Context, theme: Theme): Bitmap {
+        val dm = context.resources.displayMetrics
+        val width = dm.widthPixels / 3 // Smaller size for preview
+        val height = dm.heightPixels / 4
+        
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        
+        // Fill with theme-appropriate color
+        val backgroundColor = when (theme) {
+            Theme.OSRS_LIGHT -> Color.WHITE
+            Theme.OSRS_DARK -> Color.BLACK
+        }
+        canvas.drawColor(backgroundColor)
+        
+        // Add some text to indicate the theme
+        val paint = Paint().apply {
+            color = when (theme) {
+                Theme.OSRS_LIGHT -> Color.BLACK
+                Theme.OSRS_DARK -> Color.WHITE
+            }
+            textSize = 48f
+            isAntiAlias = true
+        }
+        
+        val text = theme.tag.replace("osrs_", "").capitalize()
+        canvas.drawText(text, width / 2f - 50f, height / 2f, paint)
+        
+        Log.i(TAG, "Created fallback theme preview for: ${theme.tag}")
+        return bitmap
     }
     
     /**
@@ -354,9 +407,35 @@ class UnifiedPreviewGenerator {
         val controlScript = """
             <script>
                 // Theme control function with event-driven completion callback
+                // Enhanced for API 31 compatibility
                 window.setTheme = function(theme) {
                     console.log('UnifiedPreviewGen: Setting theme to ' + theme);
                     document.documentElement.dataset.theme = theme;
+                    
+                    // API 31 fix: Apply explicit CSS overrides for theme consistency
+                    var style = document.getElementById('api-compat-theme-override');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = 'api-compat-theme-override';
+                        document.head.appendChild(style);
+                    }
+                    
+                    // Apply theme-specific CSS overrides for API 31 compatibility
+                    if (theme === 'osrs_dark') {
+                        style.textContent = `
+                            body { background-color: #28221d !important; color: #f4eaea !important; }
+                            .wikitable, table { background-color: #3a2f29 !important; border-color: #5d4e42 !important; }
+                            .wikitable th, table th { background-color: #4a3f39 !important; color: #f4eaea !important; }
+                            .wikitable td, table td { background-color: #2a241f !important; color: #f4eaea !important; border-color: #5d4e42 !important; }
+                        `;
+                    } else {
+                        style.textContent = `
+                            body { background-color: #ffffff !important; color: #222222 !important; }
+                            .wikitable, table { background-color: #f8f9fa !important; border-color: #a2a9b1 !important; }
+                            .wikitable th, table th { background-color: #eaecf0 !important; color: #222222 !important; }
+                            .wikitable td, table td { background-color: #ffffff !important; color: #222222 !important; border-color: #a2a9b1 !important; }
+                        `;
+                    }
                     
                     // Force style recalculation and reflow
                     document.body.style.display = 'none';
@@ -384,6 +463,7 @@ class UnifiedPreviewGenerator {
                 };
                 
                 // Table collapse control function with DOM mutation completion detection
+                // Enhanced for API 31 compatibility with more explicit visual state changes
                 window.setTableCollapse = function(collapsed) {
                     console.log('UnifiedPreviewGen: Setting table collapse to ' + collapsed);
                     window.OSRS_TABLE_COLLAPSED = collapsed;
@@ -411,10 +491,18 @@ class UnifiedPreviewGenerator {
                         subtree: true
                     });
                     
+                    // API 31 fix: Apply more explicit table collapse styles
+                    var collapseStyle = document.getElementById('api-compat-collapse-override');
+                    if (!collapseStyle) {
+                        collapseStyle = document.createElement('style');
+                        collapseStyle.id = 'api-compat-collapse-override';
+                        document.head.appendChild(collapseStyle);
+                    }
+                    
                     // Apply table collapse changes - try multiple CSS class patterns
                     var collapsibleSelectors = [
                         '.collapsible', '.mw-collapsible', '.wikitable.collapsible', 
-                        '.mw-collapsible-content', '.navbox'
+                        '.mw-collapsible-content', '.navbox', 'table.collapsible'
                     ];
                     
                     var totalCollapsibles = 0;
@@ -432,6 +520,16 @@ class UnifiedPreviewGenerator {
                                     if (element.querySelector('.mw-collapsible-content')) {
                                         element.querySelector('.mw-collapsible-content').style.display = 'none';
                                     }
+                                    // For tables, hide tbody/rows directly
+                                    if (element.tagName === 'TABLE') {
+                                        var tbody = element.querySelector('tbody');
+                                        if (tbody && tbody.rows.length > 1) {
+                                            // Hide all but first row (header)
+                                            for (var i = 1; i < tbody.rows.length; i++) {
+                                                tbody.rows[i].style.display = 'none';
+                                            }
+                                        }
+                                    }
                                 } else {
                                     element.classList.remove('collapsed');
                                     element.classList.remove('mw-collapsed');
@@ -439,10 +537,34 @@ class UnifiedPreviewGenerator {
                                     if (element.querySelector('.mw-collapsible-content')) {
                                         element.querySelector('.mw-collapsible-content').style.display = '';
                                     }
+                                    // For tables, show all rows
+                                    if (element.tagName === 'TABLE') {
+                                        var tbody = element.querySelector('tbody');
+                                        if (tbody) {
+                                            for (var i = 0; i < tbody.rows.length; i++) {
+                                                tbody.rows[i].style.display = '';
+                                            }
+                                        }
+                                    }
                                 }
                             });
                         }
                     });
+                    
+                    // Apply CSS-based collapse for API 31 compatibility
+                    if (collapsed) {
+                        collapseStyle.textContent = `
+                            .mw-collapsible.collapsed > *:not(.mw-collapsible-toggle) { display: none !important; }
+                            .collapsible.collapsed tbody tr:not(:first-child) { display: none !important; }
+                            .wikitable.collapsed tbody tr:not(:first-child) { display: none !important; }
+                        `;
+                    } else {
+                        collapseStyle.textContent = `
+                            .mw-collapsible > * { display: block !important; }
+                            .collapsible tbody tr { display: table-row !important; }
+                            .wikitable tbody tr { display: table-row !important; }
+                        `;
+                    }
                     
                     console.log('UnifiedPreviewGen: Total collapsible elements processed: ' + totalCollapsibles);
                     
@@ -530,9 +652,12 @@ class UnifiedPreviewGenerator {
     }
     
     /**
-     * Starts the capture sequence after initial page load
+     * Starts the proper capture sequence that generates HTML documents for each theme
+     * instead of trying to change themes with JavaScript
      */
-    private fun startCaptureSequence(
+    /* DISABLED - has compilation errors
+    private fun startProperCaptureSequence(
+        htmlContent: String,
         webView: ObservableWebView,
         container: FrameLayout,
         rootView: FrameLayout,
@@ -544,363 +669,167 @@ class UnifiedPreviewGenerator {
         previewScope: CoroutineScope
     ) {
         val initialLoadTime = System.currentTimeMillis() - startTime
-        Log.i(TAG, "Initial page load completed in ${initialLoadTime}ms - starting capture sequence")
+        Log.i(TAG, "Initial light theme page load completed in ${initialLoadTime}ms - starting proper theme-based capture sequence")
         
-        // We'll capture in this order:
-        // 1. Light theme, tables expanded (current state)
-        // 2. Light theme, tables collapsed 
-        // 3. Dark theme, tables collapsed
-        // 4. Dark theme, tables expanded
-        // Plus theme previews for both themes
+        // PROPER APPROACH: Generate separate HTML documents for each theme
+        Log.i(TAG, "Capturing light theme, expanded tables (current WebView)")
         
-        val captures = mutableMapOf<String, Bitmap>()
+        val htmlBuilder = PageHtmlBuilder(context)
+        val results = mutableMapOf<String, Bitmap?>()
         
-        // Verify content is ready before starting captures
-        verifyContentBeforeCapture(webView) { hasContent ->
-            if (!hasContent) {
-                Log.w(TAG, "Content verification failed - proceeding with capture anyway")
-            }
+        // Capture current light theme, expanded state first (already loaded)
+        captureState(webView, container, fullScreenW, fullScreenH, "table-light-expanded", context, "osrs_light") { bitmap ->
+            results["table-light-expanded"] = bitmap
+            Log.i("StartupTiming", "UNIFIED_CAPTURE_1 table-light-expanded duration=immediate")
             
-            // Start with first capture (light theme, expanded tables - current state)
-            captureState(webView, container, fullScreenW, fullScreenH, "table-light-expanded", context) { bitmap1 ->
-            if (bitmap1 != null) {
-                captures["table-light-expanded"] = bitmap1
-                Log.i("StartupTiming", "UNIFIED_CAPTURE_1 table-light-expanded duration=immediate (current state)")
+            // Generate light theme, collapsed tables HTML
+            Log.i(TAG, "Generating light theme, collapsed tables HTML")
+            val lightCollapsedHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT, true)
+            
+            renderAndCapture(webView, lightCollapsedHtml, container, fullScreenW, fullScreenH, "table-light-collapsed", context) { bitmap ->
+                results["table-light-collapsed"] = bitmap
                 
-                // Set tables to collapsed - inline function with access to callback variables
-                fun toggleTableStateInline(collapsed: Boolean, callback: (Boolean) -> Unit) {
-                    Log.d(TAG, "Toggling table state to collapsed: $collapsed")
-                    this@UnifiedPreviewGenerator.pendingTableStateChangeCallback = callback
+                // Generate dark theme, collapsed tables HTML
+                Log.i(TAG, "Generating dark theme, collapsed tables HTML")
+                val darkCollapsedHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_DARK, true)
+                
+                renderAndCapture(webView, darkCollapsedHtml, container, fullScreenW, fullScreenH, "table-dark-collapsed", context) { bitmap ->
+                    results["table-dark-collapsed"] = bitmap
                     
-                    webView.evaluateJavascript("window.setTableCollapse($collapsed)") { result ->
-                        val success = result == "true"
-                        Log.d(TAG, "Table toggle JavaScript result: $result")
-                        if (!success) {
-                            this@UnifiedPreviewGenerator.pendingTableStateChangeCallback = null
-                            callback(false)
-                        }
-                    }
-                }
-                
-                fun toggleThemeInline(theme: String, callback: (Boolean) -> Unit) {
-                    Log.d(TAG, "Toggling theme to: $theme")
-                    this@UnifiedPreviewGenerator.pendingThemeChangeCallback = callback
+                    // Generate dark theme, expanded tables HTML
+                    Log.i(TAG, "Generating dark theme, expanded tables HTML")
+                    val darkExpandedHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_DARK, false)
                     
-                    webView.evaluateJavascript("window.setTheme('$theme')") { result ->
-                        val success = result == "true"
-                        Log.d(TAG, "Theme toggle JavaScript result: $result")
-                        if (!success) {
-                            this@UnifiedPreviewGenerator.pendingThemeChangeCallback = null
-                            callback(false)
-                        }
-                    }
-                }
-                
-                val collapseTablesForPreview = Prefs.isCollapseTablesEnabled
-                toggleTableStateInline(collapseTablesForPreview) { success ->
-                    if (success) {
-                        captureState(webView, container, fullScreenW, fullScreenH, "table-light-collapsed", context) { bitmap2 ->
-                            if (bitmap2 != null) {
-                                captures["table-light-collapsed"] = bitmap2
-                                Log.i("StartupTiming", "UNIFIED_CAPTURE_2 table-light-collapsed duration=~300ms")
+                    renderAndCapture(webView, darkExpandedHtml, container, fullScreenW, fullScreenH, "table-dark-expanded", context) { bitmap ->
+                        results["table-dark-expanded"] = bitmap
+                        
+                        // Generate theme previews using appropriate HTML
+                        Log.i(TAG, "Generating theme previews")
+                        val lightThemeHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_LIGHT, false)
+                        val darkThemeHtml = htmlBuilder.buildFullHtmlDocument("Varrock", htmlContent, Theme.OSRS_DARK, false)
+                        
+                        renderAndCapture(webView, lightThemeHtml, container, fullScreenW, fullScreenH, "theme-light", context) { bitmap ->
+                            results["theme-light"] = bitmap
+                            
+                            renderAndCapture(webView, darkThemeHtml, container, fullScreenW, fullScreenH, "theme-dark", context) { bitmap ->
+                                results["theme-dark"] = bitmap
                                 
-                                // Switch to dark theme (keep tables collapsed)
-                                toggleThemeInline("osrs_dark") { success ->
-                                    if (success) {
-                                        captureState(webView, container, fullScreenW, fullScreenH, "table-dark-collapsed", context) { bitmap3 ->
-                                            if (bitmap3 != null) {
-                                                captures["table-dark-collapsed"] = bitmap3
-                                                Log.i("StartupTiming", "UNIFIED_CAPTURE_3 table-dark-collapsed duration=~300ms")
-                                                
-                                                // Set tables to expanded (keep dark theme)
-                                                toggleTableStateInline(false) { success ->
-                                                    if (success) {
-                                                        captureState(webView, container, fullScreenW, fullScreenH, "table-dark-expanded", context) { bitmap4 ->
-                                                            if (bitmap4 != null) {
-                                                                captures["table-dark-expanded"] = bitmap4
-                                                                Log.i("StartupTiming", "UNIFIED_CAPTURE_4 table-dark-expanded duration=~300ms")
-                                                                
-                                                                // Generate theme previews (using native layout approach)
-                                                                previewScope.launch {
-                                                                    try {
-                                                                        val (themeLight, themeDark) = generateThemePreviews(context)
-                                                                        val totalTime = System.currentTimeMillis() - startTime
-                                                                        Log.i("StartupTiming", "UNIFIED_GENERATION_COMPLETE total_duration=${totalTime}ms (target: <3000ms)")
-                                                                        
-                                                                        val result = PreviewResult(
-                                                                            tableCollapsedLight = captures["table-light-collapsed"]!!,
-                                                                            tableExpandedLight = captures["table-light-expanded"]!!,
-                                                                            tableCollapsedDark = captures["table-dark-collapsed"]!!,
-                                                                            tableExpandedDark = captures["table-dark-expanded"]!!,
-                                                                            themeLight = themeLight,
-                                                                            themeDark = themeDark
-                                                                        )
-                                                                        
-                                                                        cleanup(webView, container, rootView)
-                                                                        continuation.resume(result)
-                                                                    } catch (e: Exception) {
-                                                                        handleCaptureFailure(webView, container, rootView, continuation, "generate theme previews")
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                handleCaptureFailure(webView, container, rootView, continuation, "table-dark-expanded")
-                                                            }
-                                                        }
-                                                    } else {
-                                                        handleCaptureFailure(webView, container, rootView, continuation, "toggle tables to expanded")
-                                                    }
-                                                }
-                                            } else {
-                                                handleCaptureFailure(webView, container, rootView, continuation, "table-dark-collapsed")
-                                            }
-                                        }
-                                    } else {
-                                        handleCaptureFailure(webView, container, rootView, continuation, "toggle to dark theme")
-                                    }
-                                }
-                            } else {
-                                handleCaptureFailure(webView, container, rootView, continuation, "table-light-collapsed")
+                                // All captures complete - finish
+                                val unifiedDuration = System.currentTimeMillis() - startTime
+                                Log.i("StartupTiming", "UNIFIED_GENERATION_COMPLETE total_duration=${unifiedDuration}ms")
+                                
+                                cleanup(webView, container, rootView)
+                                
+                                val previewResult = PreviewResult(
+                                    tableExpandedLight = results["table-light-expanded"] ?: throw Exception("Failed to capture light expanded preview"),
+                                    tableCollapsedLight = results["table-light-collapsed"] ?: throw Exception("Failed to capture light collapsed preview"), 
+                                    tableCollapsedDark = results["table-dark-collapsed"] ?: throw Exception("Failed to capture dark collapsed preview"),
+                                    tableExpandedDark = results["table-dark-expanded"] ?: throw Exception("Failed to capture dark expanded preview"),
+                                    themeLight = results["theme-light"] ?: throw Exception("Failed to capture light theme preview"),
+                                    themeDark = results["theme-dark"] ?: throw Exception("Failed to capture dark theme preview")
+                                )
+                                
+                                continuation.resume(previewResult)
                             }
                         }
-                    } else {
-                        handleCaptureFailure(webView, container, rootView, continuation, "toggle tables to collapsed")
                     }
                 }
-            } else {
-                handleCaptureFailure(webView, container, rootView, continuation, "table-light-expanded")
             }
         }
     }
-    }
-    
+    */
+
     /**
-     * Verifies WebView content before capture
+     * Waits for WebView content to be ready before capturing
      */
-    private fun verifyContentBeforeCapture(webView: ObservableWebView, callback: (Boolean) -> Unit) {
-        Log.d(TAG, "Verifying WebView content before capture")
-        
-        webView.evaluateJavascript("window.verifyPageContent()") { result ->
-            Log.d(TAG, "Content verification result: $result")
-            
-            try {
-                // Parse the JSON result to check content quality
-                val hasValidContent = result.contains("\"hasVarrockContent\":true") && 
-                                     result.contains("\"tables\":") &&
-                                     !result.contains("\"tables\":0")
-                
-                Log.d(TAG, "Content verification: hasValidContent=$hasValidContent")
-                callback(hasValidContent)
-                
-            } catch (e: Exception) {
-                Log.w(TAG, "Error parsing content verification result: ${e.message}")
-                callback(false)
-            }
-        }
+    private suspend fun waitForWebViewContentReady(webView: WebView, callback: () -> Unit) {
+        // Simple implementation - wait for a short delay for content to render
+        delay(1000)
+        callback()
     }
-    
+
     /**
-     * Captures bitmap for current WebView state
+     * Renders HTML in WebView and captures screenshot
      */
-    private fun captureState(
-        webView: ObservableWebView,
-        container: FrameLayout,
-        fullScreenW: Int,
-        fullScreenH: Int,
-        stateName: String,
+    private suspend fun renderAndCapture(
+        webView: WebView,
+        html: String,
+        container: ViewGroup,
+        width: Int,
+        height: Int,
+        captureId: String,
         context: Context,
         callback: (Bitmap?) -> Unit
     ) {
-        Log.d(TAG, "Capturing state: $stateName")
-        
-        try {
-            // Force layout update
-            container.measure(
-                View.MeasureSpec.makeMeasureSpec(fullScreenW, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(fullScreenH, View.MeasureSpec.EXACTLY)
+        withContext(Dispatchers.Main) {
+            webView.loadDataWithBaseURL(
+                "file:///android_asset/",
+                html,
+                "text/html",
+                "UTF-8",
+                null
             )
-            container.layout(0, 0, fullScreenW, fullScreenH)
             
-            // Create bitmap and capture
-            val fullBitmap = Bitmap.createBitmap(fullScreenW, fullScreenH, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(fullBitmap)
-            canvas.drawColor(android.graphics.Color.WHITE)
-            container.draw(canvas)
+            // Wait for content to load then capture
+            delay(1500)
             
-            // Scale for table preview dimensions
-            val dm = context.resources.displayMetrics
-            val targetW = (TARGET_TABLE_W_DP * dm.density).roundToInt()
-            val targetH = (TARGET_TABLE_H_DP * dm.density).roundToInt()
-            
-            val scaledBitmap = createAspectRatioPreservingBitmap(fullBitmap, targetW, targetH)
-            scaledBitmap.density = DisplayMetrics.DENSITY_DEFAULT
-            
-            fullBitmap.recycle()
-            
-            Log.d(TAG, "Captured state '$stateName': ${scaledBitmap.width}×${scaledBitmap.height}")
-            callback(scaledBitmap)
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to capture state '$stateName'", e)
-            callback(null)
-        }
-    }
-    
-    /**
-     * Generates theme previews using native layout approach (fast)
-     */
-    private suspend fun generateThemePreviews(
-        context: Context
-    ): Pair<Bitmap, Bitmap> = withContext(Dispatchers.Main) {
-        try {
-            Log.d(TAG, "Generating theme previews using native layout approach")
-            
-            // Use ThemePreviewRenderer for theme previews (it's already optimized)
-            val lightTheme = ThemePreviewRenderer.getPreview(context, R.style.Theme_OSRSWiki_OSRSLight, "light")
-            val darkTheme = ThemePreviewRenderer.getPreview(context, R.style.Theme_OSRSWiki_OSRSDark, "dark")
-            
-            return@withContext Pair(lightTheme, darkTheme)
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to generate theme previews", e)
-            // Generate fallback bitmaps
-            val fallback1 = generateFallbackBitmap(context, TARGET_THEME_SIZE_DP)
-            val fallback2 = generateFallbackBitmap(context, TARGET_THEME_SIZE_DP)
-            return@withContext Pair(fallback1, fallback2)
-        }
-    }
-    
-    /**
-     * Creates aspect ratio preserving bitmap (same as TablePreviewRenderer)
-     */
-    private fun createAspectRatioPreservingBitmap(
-        sourceBitmap: Bitmap,
-        targetWidth: Int,
-        targetHeight: Int
-    ): Bitmap {
-        val sourceWidth = sourceBitmap.width.toFloat()
-        val sourceHeight = sourceBitmap.height.toFloat()
-        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat()
-        val sourceRatio = sourceWidth / sourceHeight
-        
-        val scale = if (sourceRatio > targetRatio) {
-            targetHeight.toFloat() / sourceHeight
-        } else {
-            targetWidth.toFloat() / sourceWidth
-        }
-        
-        val scaledWidth = (sourceWidth * scale).toInt()
-        val scaledHeight = (sourceHeight * scale).toInt()
-        
-        val scaledBitmap = Bitmap.createScaledBitmap(
-            sourceBitmap, 
-            scaledWidth, 
-            scaledHeight, 
-            true
-        )
-        
-        val cropX = maxOf(0, (scaledWidth - targetWidth) / 2)
-        val cropY = 0 // Top-aligned
-        
-        val croppedBitmap = Bitmap.createBitmap(
-            scaledBitmap,
-            cropX,
-            cropY,
-            minOf(targetWidth, scaledWidth),
-            minOf(targetHeight, scaledHeight),
-            null,
-            false
-        )
-        
-        if (scaledBitmap != croppedBitmap) {
-            scaledBitmap.recycle()
-        }
-        
-        return croppedBitmap
-    }
-    
-    /**
-     * Waits for WebView content to be ready (same as TablePreviewRenderer)
-     */
-    private fun waitForWebViewContentReady(
-        webView: ObservableWebView,
-        callback: (Boolean) -> Unit
-    ) {
-        var attempts = 0
-        val maxAttempts = 20
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        
-        fun checkContentReady() {
-            attempts++
-            
-            val progress = webView.progress
-            val contentHeight = webView.contentHeight
-            val hasContent = progress >= 100 && contentHeight > 0
-            
-            Log.d(TAG, "Content readiness check $attempts/$maxAttempts: progress=$progress%, contentHeight=$contentHeight, ready=$hasContent")
-            
-            when {
-                hasContent -> {
-                    Log.d(TAG, "WebView content ready after $attempts attempts")
-                    callback(true)
+            val bitmap = try {
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)?.apply {
+                    val canvas = Canvas(this)
+                    webView.draw(canvas)
                 }
-                attempts >= maxAttempts -> {
-                    Log.w(TAG, "Max attempts reached ($maxAttempts), proceeding anyway")
-                    callback(false)
-                }
-                else -> {
-                    handler.postDelayed({ checkContentReady() }, 50)
-                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to capture $captureId", e)
+                null
             }
+            
+            callback(bitmap)
         }
-        
-        checkContentReady()
     }
-    
+
     /**
-     * Handles capture failure
+     * Captures current WebView state
      */
-    private fun handleCaptureFailure(
-        webView: ObservableWebView?,
-        container: FrameLayout?,
-        rootView: FrameLayout?,
-        continuation: kotlinx.coroutines.CancellableContinuation<PreviewResult>,
-        operation: String
+    private suspend fun captureState(
+        webView: WebView,
+        container: ViewGroup,
+        width: Int,
+        height: Int,
+        captureId: String,
+        context: Context,
+        callback: (Bitmap?) -> Unit
     ) {
-        Log.e(TAG, "Capture failed at operation: $operation")
-        cleanup(webView, container, rootView)
-        continuation.resumeWithException(Exception("Preview capture failed at: $operation"))
+        withContext(Dispatchers.Main) {
+            delay(500) // Brief wait for any animations to settle
+            
+            val bitmap = try {
+                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)?.apply {
+                    val canvas = Canvas(this)
+                    webView.draw(canvas)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to capture state $captureId", e)
+                null
+            }
+            
+            callback(bitmap)
+        }
     }
-    
+
     /**
-     * Cleans up WebView and UI resources
+     * Clean up WebView and container
      */
-    private fun cleanup(
-        webView: ObservableWebView?,
-        container: FrameLayout?,
-        rootView: FrameLayout?
-    ) {
+    private fun cleanup(webView: WebView, container: ViewGroup, rootView: ViewGroup) {
         try {
-            webView?.pauseTimers()
-            container?.let { rootView?.removeView(it) }
-            webView?.destroy()
-            Log.d(TAG, "Cleaned up WebView and container")
+            webView.stopLoading()
+            webView.clearHistory()
+            webView.removeAllViews()
+            webView.destroy()
+            
+            container.removeAllViews()
+            rootView.removeView(container)
         } catch (e: Exception) {
-            Log.w(TAG, "Error during cleanup: ${e.message}")
+            Log.w(TAG, "Cleanup warning", e)
         }
-    }
-    
-    /**
-     * Generates fallback bitmap
-     */
-    private fun generateFallbackBitmap(context: Context, sizeDp: Int): Bitmap {
-        val dm = context.resources.displayMetrics
-        val size = (sizeDp * dm.density).roundToInt()
-        
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        canvas.drawColor(android.graphics.Color.LTGRAY)
-        
-        bitmap.density = DisplayMetrics.DENSITY_DEFAULT
-        return bitmap
     }
 }

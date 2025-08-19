@@ -24,10 +24,6 @@
         android:supportsRtl="true"
         tools:targetApi="31">
         
-        <!-- Enable Google Pay API -->
-        <meta-data
-            android:name="com.google.android.gms.wallet.api.enabled"
-            android:value="true" />
         
         <!-- Enable foldable device support -->
         <meta-data
@@ -96,6 +92,12 @@
             android:configChanges="uiMode"
             android:exported="false"
             android:label="@string/menu_title_about"
+            android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".about.PrivacyPolicyActivity"
+            android:configChanges="uiMode"
+            android:exported="false"
+            android:label="@string/menu_title_privacy"
             android:theme="@style/Theme.OSRSWiki" />
         <activity
             android:name=".feedback.FeedbackActivity"

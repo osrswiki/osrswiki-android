@@ -93,45 +93,9 @@
 
             </LinearLayout>
 
-            <!-- Row 3: Custom -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/chip_amount_custom"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/donate_amount_custom" />
-
-            </LinearLayout>
 
         </LinearLayout>
 
-        <!-- Custom Amount Input -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/custom_amount_layout"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
-            android:visibility="gone"
-            app:startIconDrawable="@drawable/ic_donate_24"
-            app:layout_constraintTop_toBottomOf="@id/amount_chip_group"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:visibility="visible">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/custom_amount_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/donate_custom_amount_hint"
-                android:inputType="numberDecimal"
-                android:maxLines="1" />
-
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Donate Button -->
         <com.google.android.material.button.MaterialButton
@@ -145,7 +109,7 @@
             app:iconGravity="textStart"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/custom_amount_layout" />
+            app:layout_constraintTop_toBottomOf="@id/amount_chip_group" />
 
         <!-- Status Text -->
         <TextView

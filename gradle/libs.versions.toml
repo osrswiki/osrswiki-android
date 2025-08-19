@@ -47,8 +47,8 @@ androidxPreferenceKtx = "1.2.1"
 
 moshi = "1.15.1"
 
-# Google Pay
-googlePayWallet = "19.2.1"
+# Google Play Billing
+playBilling = "7.1.1"
 
 # Additional AndroidX versions
 activity = "1.9.3"
@@ -144,8 +144,9 @@ androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 moshi-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
 
-# Google Pay
-google-pay-wallet = { group = "com.google.android.gms", name = "play-services-wallet", version.ref = "googlePayWallet" }
+# Google Play Billing
+play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
+play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "playBilling" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

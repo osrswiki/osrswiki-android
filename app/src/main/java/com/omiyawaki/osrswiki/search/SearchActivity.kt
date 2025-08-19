@@ -8,6 +8,8 @@ import android.os.Bundle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.widget.doOnTextChanged
+import android.view.View
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivitySearchBinding
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
@@ -39,6 +41,7 @@ class SearchActivity : BaseActivity() {
 
         setupFonts()
         setupVoiceSearch()
+        setupClearButton()
         setupThemeChangeReceiver()
         
         // Handle voice search query if provided
@@ -58,6 +61,26 @@ class SearchActivity : BaseActivity() {
         // Search input field will use system font
         
         L.d("SearchActivity: Fonts applied to UI elements")
+    }
+
+    private fun setupClearButton() {
+        L.d("SearchActivity: Setting up clear button...")
+        
+        // Initially hide the clear button
+        binding.clearSearchButton.visibility = View.GONE
+        
+        // Set up text change listener to show/hide clear button
+        binding.searchEditText.doOnTextChanged { text, _, _, _ ->
+            binding.clearSearchButton.visibility = if (text.isNullOrEmpty()) View.GONE else View.VISIBLE
+        }
+        
+        // Set up clear button click listener
+        binding.clearSearchButton.setOnClickListener {
+            binding.searchEditText.setText("")
+            binding.clearSearchButton.visibility = View.GONE
+        }
+        
+        L.d("SearchActivity: Clear button setup complete")
     }
 
     private fun setupVoiceSearch() {

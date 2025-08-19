@@ -14,8 +14,8 @@ android {
         applicationId = "com.omiyawaki.osrswiki"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 6
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -186,6 +186,10 @@ tasks.whenTaskAdded {
     if (name.startsWith("merge") && name.contains("Assets")) {
         dependsOn("organizeAssets")
     }
+    // Fix lint task dependencies
+    if (name == "lintAnalyzeDebug" || name == "generateDebugLintReportModel") {
+        dependsOn("organizeAssets")
+    }
 }
 
 dependencies {
@@ -228,7 +232,8 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
     implementation(libs.apacheCommonsLang3)
-    implementation(libs.google.pay.wallet)
+    implementation(libs.play.billing)
+    implementation(libs.play.billing.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.core.testing)
