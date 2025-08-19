@@ -40,6 +40,13 @@
                     android:inputType="text" />
 
                 <ImageView
+                    android:id="@+id/clear_search_button"
+                    style="@style/SearchBarVoiceIcon"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_close"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                <ImageView
                     android:id="@+id/voice_search_button"
                     style="@style/SearchBarVoiceIcon"
                     app:srcCompat="@drawable/ic_voice_search_24"
