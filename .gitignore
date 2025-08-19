@@ -33,3 +33,10 @@ node_modules/
 # Temporary files
 *.tmp
 *.log
+
+# Test artifacts in root directory (screenshots, UI dumps, etc.)
+/android-*.png
+/api*.png
+/ios-*.png
+/ui-dump*.xml
+/*screenshot*.png
