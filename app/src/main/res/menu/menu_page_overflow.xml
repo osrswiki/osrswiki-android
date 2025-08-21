@@ -2,7 +2,46 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- All basic actions (Save, Find, Appearance, Contents) moved to bottom action bar -->
-    <!-- Add other items here as needed, e.g., Share, Languages, Edit History, etc. -->
+    <item
+        android:id="@+id/menu_page_share"
+        android:title="Share"
+        android:icon="@drawable/ic_send_24dp"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_go_to_top"
+        android:title="Go to top"
+        android:icon="@drawable/ic_keyboard_arrow_up"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_copy_link"
+        android:title="Copy link"
+        android:icon="@drawable/ic_open_in_new_24"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_refresh"
+        android:title="Refresh page"
+        android:icon="@drawable/ic_refresh_24dp"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_open_browser"
+        android:title="Open in browser"
+        android:icon="@drawable/ic_open_in_new_24"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_view_history"
+        android:title="View page history"
+        android:icon="@drawable/ic_baseline_history_24"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_page_report_issue"
+        android:title="Report issue"
+        android:icon="@drawable/ic_feedback_24"
+        app:showAsAction="never" />
 
 </menu>

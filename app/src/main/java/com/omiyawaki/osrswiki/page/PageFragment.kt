@@ -2,9 +2,13 @@ package com.omiyawaki.osrswiki.page
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.content.Intent
+import android.widget.Toast
 import android.view.ActionMode
 import android.view.GestureDetector
 import android.view.Gravity
@@ -34,6 +38,7 @@ import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 import com.omiyawaki.osrswiki.views.ObservableWebView
+import com.omiyawaki.osrswiki.feedback.ReportIssueActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -182,10 +187,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, pageUiUpdater) { this }
         pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = false)
         binding.errorTextView.setOnClickListener {
-            pageLoadCoordinator.initiatePageLoad(
-                currentTheme,
-                forceNetwork = true
-            )
+            reloadCurrentPage()
         }
 
         // Setup the bottom action bar
@@ -361,12 +363,36 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             val popup = PopupMenu(requireContext(), anchorView)
             popup.menuInflater.inflate(R.menu.menu_page_overflow, popup.menu)
             
-            // All basic actions are now in the bottom action bar
-            // This menu is now empty but kept for future additions
-            
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
-                    // Add future menu items here
+                    R.id.menu_page_share -> {
+                        handleSharePage()
+                        true
+                    }
+                    R.id.menu_page_go_to_top -> {
+                        handleGoToTop()
+                        true
+                    }
+                    R.id.menu_page_copy_link -> {
+                        handleCopyLink()
+                        true
+                    }
+                    R.id.menu_page_refresh -> {
+                        handleRefreshPage()
+                        true
+                    }
+                    R.id.menu_page_open_browser -> {
+                        handleOpenInBrowser()
+                        true
+                    }
+                    R.id.menu_page_view_history -> {
+                        handleViewPageHistory()
+                        true
+                    }
+                    R.id.menu_page_report_issue -> {
+                        handleReportIssue()
+                        true
+                    }
                     else -> false
                 }
             }
@@ -374,7 +400,87 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
     }
 
+    private fun handleSharePage() {
+        val pageTitle = pageTitleArg ?: return
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "https://oldschool.runescape.wiki/w/${pageTitle.replace(" ", "_")}")
+            putExtra(Intent.EXTRA_SUBJECT, pageTitle)
+        }
+        startActivity(Intent.createChooser(shareIntent, "Share page"))
+    }
 
+    private fun handleGoToTop() {
+        binding.pageWebView.scrollTo(0, 0)
+        Toast.makeText(requireContext(), "Scrolled to top", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun handleCopyLink() {
+        val pageTitle = pageTitleArg ?: return
+        val url = "https://oldschool.runescape.wiki/w/${pageTitle.replace(" ", "_")}"
+        val clipboardManager = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Page URL", url)
+        clipboardManager.setPrimaryClip(clip)
+        Toast.makeText(requireContext(), "Link copied to clipboard", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun reloadCurrentPage() {
+        val app = requireActivity().application as OSRSWikiApp
+        val currentTheme = app.getCurrentTheme()
+        pageLoadCoordinator.initiatePageLoad(currentTheme, forceNetwork = true)
+    }
+
+    private fun handleRefreshPage() {
+        // Reset UI state to exactly match normal loading initial conditions
+        pageViewModel.uiState = pageViewModel.uiState.copy(
+            htmlContent = null,
+            isLoading = false,
+            progress = null,
+            progressText = null,
+            error = null
+        )
+        pageUiUpdater.updateUi()
+        
+        // Serial approach: Clear WebView FIRST, THEN start normal loading
+        val originalWebViewClient = binding.pageWebView.webViewClient
+        binding.pageWebView.webViewClient = object : android.webkit.WebViewClient() {
+            override fun onPageFinished(view: android.webkit.WebView?, url: String?) {
+                if (url == "about:blank") {
+                    // Blank page loaded, now restore original client and start normal loading
+                    binding.pageWebView.webViewClient = originalWebViewClient
+                    reloadCurrentPage()
+                }
+            }
+        }
+        binding.pageWebView.loadUrl("about:blank")
+    }
+
+    private fun handleOpenInBrowser() {
+        val pageTitle = pageTitleArg ?: return
+        val url = "https://oldschool.runescape.wiki/w/${pageTitle.replace(" ", "_")}"
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        try {
+            startActivity(browserIntent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "No browser app found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun handleViewPageHistory() {
+        val pageTitle = pageTitleArg ?: return
+        val historyUrl = "https://oldschool.runescape.wiki/w/Special:History/${pageTitle.replace(" ", "_")}"
+        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(historyUrl))
+        try {
+            startActivity(browserIntent)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Cannot open page history", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun handleReportIssue() {
+        val intent = ReportIssueActivity.newIntent(requireContext())
+        startActivity(intent)
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

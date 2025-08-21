@@ -90,6 +90,40 @@ class MainActivity : BaseActivity() {
             insets
         }
 
+        // Handle system navigation bar insets for the bottom navigation using translation
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNav) { view, insets ->
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            
+            // Use translationY to move the view up without affecting layout space
+            view.translationY = -navigationBars.bottom.toFloat()
+            
+            // Still apply horizontal margins for side insets
+            val layoutParams = view.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams.leftMargin = systemBars.left
+            layoutParams.rightMargin = systemBars.right
+            view.layoutParams = layoutParams
+            
+            insets
+        }
+
+        // Handle system navigation bar insets for the bottom navigation border using translation
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavBorder) { view, insets ->
+            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            
+            // Use translationY to move the border up without affecting layout space
+            view.translationY = -navigationBars.bottom.toFloat()
+            
+            // Still apply horizontal margins for side insets
+            val layoutParams = view.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+            layoutParams.leftMargin = systemBars.left
+            layoutParams.rightMargin = systemBars.right
+            view.layoutParams = layoutParams
+            
+            insets
+        }
+
         appRouter = AppRouterImpl(supportFragmentManager, R.id.nav_host_container)
         L.d("MainActivity: onCreate: AppRouter initialized.")
 

@@ -76,7 +76,7 @@
     <string name="about_wiki_button">Visit OSRS Wiki</string>
     
     <string name="about_wikipedia_title">Wikipedia</string>
-    <string name="about_wikipedia_description">This app\'s design and architecture were influenced by the Wikipedia Android app. In the spirit of both Oldschool Runescape Wiki and Wikipedia\'s free and open source principles, the OSRS Wiki app is and will always be free.</string>
+    <string name="about_wikipedia_description">This app\'s design and architecture were influenced by the Wikipedia app. In the spirit of both Oldschool Runescape Wiki and Wikipedia\'s free and open source principles, the OSRS Wiki app is and will always be free.</string>
     
     <string name="about_privacy_title">Privacy Policy</string>
     <string name="about_privacy_button">View Privacy Policy</string>

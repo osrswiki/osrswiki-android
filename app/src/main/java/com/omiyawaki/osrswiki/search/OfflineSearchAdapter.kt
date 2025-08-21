@@ -16,6 +16,13 @@ class OfflineSearchAdapter(
     SearchAdapter.SEARCH_RESULT_COMPARATOR // Reusing the DiffUtil.ItemCallback from SearchAdapter's companion object
 ) {
 
+    private var currentSearchQuery: String? = null
+
+    fun updateSearchQuery(query: String?) {
+        currentSearchQuery = query
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SearchAdapter.SearchResultViewHolder {
         val binding = ItemSearchResultBinding.inflate(
             LayoutInflater.from(parent.context),
@@ -32,7 +39,7 @@ class OfflineSearchAdapter(
         // ListAdapter's getItem can return null if placeholders are enabled (not typical without Paging)
         // or during certain list update scenarios, so a null check is safe.
         if (item != null) {
-            holder.bind(item)
+            holder.bind(item, currentSearchQuery)
         }
     }
 }

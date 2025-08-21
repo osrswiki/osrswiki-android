@@ -75,10 +75,10 @@ class AboutFragment : Fragment() {
         binding.privacyButton.setOnClickListener {
             L.d("AboutFragment: Privacy Policy button clicked")
             try {
-                val intent = PrivacyPolicyActivity.newIntent(requireContext())
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://osrswiki.github.io/osrswiki-privacy-policy/"))
                 startActivity(intent)
             } catch (e: Exception) {
-                L.e("AboutFragment: Error opening Privacy Policy", e)
+                L.e("AboutFragment: Error opening Privacy Policy URL", e)
             }
         }
     }

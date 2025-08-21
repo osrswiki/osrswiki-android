@@ -110,6 +110,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                 launch {
                     viewModel.onlineSearchResultsFlow.collectLatest { pagingData ->
                         if (binding.recyclerViewSearchResults.adapter == onlineSearchAdapter) {
+                            // Update search query in adapter for title highlighting
+                            onlineSearchAdapter.updateSearchQuery(viewModel.currentQuery.value)
                             onlineSearchAdapter.submitData(pagingData)
                             // Scroll to top when new search results are submitted to ensure
                             // the top results are visible (fixes issue where results populate upward)
@@ -121,6 +123,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                 launch {
                     viewModel.combinedOfflineResultsList.collectLatest { combinedOfflineList ->
                         if (binding.recyclerViewSearchResults.adapter == offlineSearchAdapter) {
+                            // Update search query in offline adapter for title highlighting
+                            offlineSearchAdapter.updateSearchQuery(viewModel.currentQuery.value)
                             offlineSearchAdapter.submitList(combinedOfflineList)
                             // Scroll to top when new offline search results are submitted to ensure
                             // the top results are visible (fixes issue where results populate upward)

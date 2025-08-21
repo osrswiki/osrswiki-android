@@ -1,9 +1,16 @@
 package com.omiyawaki.osrswiki.search
 
+import android.content.Context
+import android.graphics.Typeface
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
@@ -12,12 +19,20 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import java.util.Locale
 
 class SearchAdapter(
     private val onItemClickListener: OnItemClickListener
 ) : PagingDataAdapter<CleanedSearchResultItem, SearchAdapter.SearchResultViewHolder>(
     SEARCH_RESULT_COMPARATOR
 ) {
+
+    private var currentSearchQuery: String? = null
+
+    fun updateSearchQuery(query: String?) {
+        currentSearchQuery = query
+        notifyDataSetChanged()
+    }
 
     interface OnItemClickListener {
         fun onItemClick(item: CleanedSearchResultItem)
@@ -31,7 +46,7 @@ class SearchAdapter(
     override fun onBindViewHolder(holder: SearchResultViewHolder, position: Int) {
         val item = getItem(position)
         if (item != null) {
-            holder.bind(item)
+            holder.bind(item, currentSearchQuery)
         }
     }
 
@@ -40,43 +55,46 @@ class SearchAdapter(
         private val listener: OnItemClickListener
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: CleanedSearchResultItem) {
-            binding.searchItemTitle.text = item.title
+        fun bind(item: CleanedSearchResultItem, searchQuery: String?) {
+            val context = binding.root.context
+            
+            // Get theme-appropriate highlight colors
+            val highlightColors = getSearchHighlightColors(context)
+            val titleHighlightColorHex = String.format("#%06X", (0xFFFFFF and highlightColors.first))
+            val snippetHighlightColorHex = String.format("#%06X", (0xFFFFFF and highlightColors.second))
+            
+            // Title highlighting - implement title search term highlighting like iOS
+            if (!searchQuery.isNullOrBlank()) {
+                val highlightedTitle = highlightMatches(
+                    text = item.title,
+                    query = searchQuery,
+                    highlightColorHex = titleHighlightColorHex
+                )
+                binding.searchItemTitle.text = highlightedTitle
+            } else {
+                binding.searchItemTitle.text = item.title
+            }
             binding.searchItemTitle.applyAlegreyaHeadline()
 
             if (item.snippet.isNotBlank()) {
-                // Phase 2: Render search term highlights using HtmlCompat with theme-aware colors
-                val context = binding.root.context
-                val highlightColor = androidx.core.content.ContextCompat.getColor(
-                    context, 
-                    com.omiyawaki.osrswiki.R.color.search_highlight_light
-                )
-                val highlightColorHex = String.format("#%06X", (0xFFFFFF and highlightColor))
+                // Clean snippet text by removing HTML tags first
+                val cleanSnippet = item.snippet
+                    .replace("<span class=\"searchmatch\">", "")
+                    .replace("</span>", "")
+                    .replace(Regex("<[^>]*>"), "") // Remove any other HTML tags
                 
-                // DEBUG: Log HTML conversion process
-                val hasSearchMatch = item.snippet.contains("searchmatch")
-                Log.d("SearchAdapter", "=== HTML CONVERSION DEBUG ===")
-                Log.d("SearchAdapter", "Title: ${item.title}")
-                Log.d("SearchAdapter", "Original snippet (${item.snippet.length} chars): ${item.snippet}")
-                Log.d("SearchAdapter", "Contains searchmatch tags: $hasSearchMatch")
-                Log.d("SearchAdapter", "Highlight color resolved: $highlightColorHex")
+                // Apply unified highlighting like titles if search query exists
+                if (!searchQuery.isNullOrBlank()) {
+                    val highlightedSnippet = highlightMatches(
+                        text = cleanSnippet,
+                        query = searchQuery,
+                        highlightColorHex = snippetHighlightColorHex
+                    )
+                    binding.searchItemSnippet.text = highlightedSnippet
+                } else {
+                    binding.searchItemSnippet.text = cleanSnippet
+                }
                 
-                val styledSnippet = item.snippet
-                    .replace("<span class=\"searchmatch\">", "<b><font color='$highlightColorHex'>")
-                    .replace("</span>", "</font></b>")
-                
-                Log.d("SearchAdapter", "Styled snippet: $styledSnippet")
-                
-                val htmlSpanned = HtmlCompat.fromHtml(
-                    styledSnippet, 
-                    HtmlCompat.FROM_HTML_MODE_COMPACT
-                )
-                
-                Log.d("SearchAdapter", "HtmlCompat result type: ${htmlSpanned.javaClass.simpleName}")
-                Log.d("SearchAdapter", "Final text: '$htmlSpanned'")
-                Log.d("SearchAdapter", "=== END DEBUG ===")
-                
-                binding.searchItemSnippet.text = htmlSpanned
                 binding.searchItemSnippet.visibility = View.VISIBLE
             } else {
                 binding.searchItemSnippet.text = null
@@ -100,6 +118,64 @@ class SearchAdapter(
             binding.root.setOnClickListener {
                 listener.onItemClick(item)
             }
+        }
+
+        /**
+         * Highlights search term matches in text using spans, similar to iOS implementation.
+         * Performs case-insensitive matching and applies both color and bold formatting.
+         */
+        private fun highlightMatches(text: String, query: String, highlightColorHex: String): SpannableString {
+            val spannableString = SpannableString(text)
+            val textLowerCase = text.lowercase(Locale.getDefault())
+            val queryLowerCase = query.lowercase(Locale.getDefault())
+            
+            var startIndex = 0
+            while (startIndex < textLowerCase.length) {
+                val index = textLowerCase.indexOf(queryLowerCase, startIndex)
+                if (index != -1) {
+                    val endIndex = index + queryLowerCase.length
+                    
+                    // Apply color highlight
+                    val highlightColor = android.graphics.Color.parseColor(highlightColorHex)
+                    spannableString.setSpan(
+                        ForegroundColorSpan(highlightColor),
+                        index,
+                        endIndex,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    // Apply bold formatting
+                    spannableString.setSpan(
+                        StyleSpan(Typeface.BOLD),
+                        index,
+                        endIndex,
+                        Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                    
+                    Log.d("SearchAdapter", "Title highlight: found '$queryLowerCase' at $index-$endIndex in '$text'")
+                    
+                    startIndex = endIndex
+                } else {
+                    break
+                }
+            }
+            
+            return spannableString
+        }
+
+        /**
+         * Gets unified highlight color for both title and snippet across all themes.
+         * Uses osrs_text_secondary_light for consistent, cohesive highlighting.
+         */
+        private fun getSearchHighlightColors(context: Context): Pair<Int, Int> {
+            // Use the same brown color for all highlighting in both themes
+            val unifiedHighlightColor = ContextCompat.getColor(
+                context, 
+                com.omiyawaki.osrswiki.R.color.osrs_text_secondary_light  // #8B7355
+            )
+            
+            // Return same color for both title and snippet highlighting
+            return Pair(unifiedHighlightColor, unifiedHighlightColor)
         }
     }
 

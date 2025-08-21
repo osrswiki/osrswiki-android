@@ -34,8 +34,8 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                     key = SettingsRepository.KEY_COLLAPSE_TABLES,
                     title = "Collapse tables",
                     options = listOf(
-                        false to "Collapsed",
-                        true to "Expanded"
+                        false to "Expanded",
+                        true to "Collapsed"
                     ),
                     currentSelection = collapseTablesEnabled
                 )
