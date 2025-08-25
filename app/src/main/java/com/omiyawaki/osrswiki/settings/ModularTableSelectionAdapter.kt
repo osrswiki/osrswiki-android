@@ -54,8 +54,9 @@ class ModularTableSelectionAdapter(
             // Load table preview
             loadTablePreview(collapseTablesValue, binding.selectionPreviewImage)
             
-            // Set selection state
+            // Set selection state using iOS-style checkmark overlay
             binding.root.isChecked = isSelected
+            binding.selectionCheckmark.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
             
             // Handle click
             binding.root.setOnClickListener {
@@ -84,8 +85,9 @@ class ModularTableSelectionAdapter(
             // Load table preview (smaller size for horizontal layout)
             loadTablePreview(collapseTablesValue, binding.selectionPreviewImage)
             
-            // Set selection state
+            // Set selection state using iOS-style checkmark overlay
             binding.root.isChecked = isSelected
+            binding.selectionCheckmark.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
             
             // Handle click
             binding.root.setOnClickListener {

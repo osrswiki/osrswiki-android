@@ -42,14 +42,13 @@ data class InlineSelectionConfig(
 ) {
     companion object {
         /**
-         * Configuration for theme switcher (maintains current behavior).
-         * Responsive layout with up to 3 columns.
+         * Configuration for theme switcher - iOS-style always horizontal.
+         * Always horizontal with exactly 3 columns for Light/Dark/Auto.
          */
         val THEME_CONFIG = InlineSelectionConfig(
-            enableResponsiveLayout = true,
-            horizontalThreshold = 600,
-            minCardWidth = 140,
-            maxColumns = 3
+            enableResponsiveLayout = false,
+            forceHorizontalLayout = true,
+            fixedSpanCount = 3
         )
         
         /**

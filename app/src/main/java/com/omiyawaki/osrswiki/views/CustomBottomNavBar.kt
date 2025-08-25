@@ -1,13 +1,16 @@
 package com.omiyawaki.osrswiki.views
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ViewCustomBottomNavBarBinding
+import com.omiyawaki.osrswiki.util.log.L
 
 /**
  * Custom bottom navigation bar that avoids the Material3 BottomNavigationView overlap bug
@@ -59,6 +62,9 @@ class CustomBottomNavBar @JvmOverloads constructor(
             view.setOnClickListener {
                 selectItem(itemId)
             }
+            // Initialize all tabs to inactive color
+            view.setTextColor(ContextCompat.getColor(context, R.color.bottom_nav_inactive))
+            view.compoundDrawableTintList = ContextCompat.getColorStateList(context, R.color.bottom_nav_inactive)
         }
     }
     
@@ -79,12 +85,37 @@ class CustomBottomNavBar @JvmOverloads constructor(
      * Sets the selected item without triggering the listener (for programmatic selection)
      */
     fun setSelectedItem(itemId: Int) {
+        L.d("CBNV-DEBUG: setSelectedItem called with itemId=$itemId, previous=$_selectedItemId")
+        
         // Clear previous selection
-        navItems[_selectedItemId]?.isSelected = false
+        navItems[_selectedItemId]?.let { view: MaterialTextView ->
+            view.isSelected = false
+            // Manually set inactive color (40% opacity of colorOnSurface)
+            view.setTextColor(ContextCompat.getColor(context, R.color.bottom_nav_inactive))
+            view.compoundDrawableTintList = ContextCompat.getColorStateList(context, R.color.bottom_nav_inactive)
+            L.d("CBNV-DEBUG: Cleared selection for ${getItemName(_selectedItemId)}: isSelected=${view.isSelected}")
+        }
         
         // Set new selection
         _selectedItemId = itemId
-        navItems[_selectedItemId]?.isSelected = true
+        navItems[_selectedItemId]?.let { view: MaterialTextView ->
+            view.isSelected = true
+            // Manually set active color (full colorOnSurface)
+            view.setTextColor(ContextCompat.getColor(context, R.color.osrs_text_dark))
+            view.compoundDrawableTintList = ContextCompat.getColorStateList(context, R.color.osrs_text_dark)
+            L.d("CBNV-DEBUG: Set selection for ${getItemName(_selectedItemId)}: isSelected=${view.isSelected}")
+        }
+    }
+    
+    private fun getItemName(itemId: Int): String {
+        return when (itemId) {
+            R.id.nav_news -> "Home"
+            R.id.nav_saved -> "Saved"
+            R.id.nav_search -> "Search"
+            R.id.nav_map -> "Map"
+            R.id.nav_more -> "More"
+            else -> "Unknown($itemId)"
+        }
     }
     
     /**
@@ -115,7 +146,7 @@ class CustomBottomNavBar @JvmOverloads constructor(
     fun setItemEnabled(itemId: Int, enabled: Boolean) {
         navItems[itemId]?.let { view ->
             view.isEnabled = enabled
-            view.alpha = if (enabled) 1.0f else 0.5f
+            view.alpha = if (enabled) 1.0f else 0.4f
         }
     }
     

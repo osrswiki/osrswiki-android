@@ -493,8 +493,8 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
         // Title characteristics: larger text, often bold, shorter text
         // Common title texts we know about
         val knownTitles = setOf(
-            "App theme", 
-            "Collapse tables"
+            "Theme", 
+            "Tables"
         )
         
         // Summary characteristics: smaller text, longer descriptive text

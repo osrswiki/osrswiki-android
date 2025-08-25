@@ -16,18 +16,31 @@ class MoreAdapter(
     }
 
     override fun onBindViewHolder(holder: MoreViewHolder, position: Int) {
-        holder.bind(items[position])
+        val isLastItem = position == items.size - 1
+        holder.bind(items[position], isLastItem)
     }
 
     override fun getItemCount(): Int = items.size
 
     inner class MoreViewHolder(private val binding: ItemMoreBinding) : RecyclerView.ViewHolder(binding.root) {
         
-        fun bind(item: MoreItem) {
+        fun bind(item: MoreItem, isLastItem: Boolean = false) {
             binding.iconMoreItem.setImageResource(item.iconRes)
             binding.textMoreItem.setText(item.titleRes)
             
+            // Hide divider for last item to match iOS design
+            binding.dividerMoreItem.visibility = if (isLastItem) android.view.View.GONE else android.view.View.VISIBLE
+            
+            // Set click listener on the main content LinearLayout instead of root since root is now a vertical container
+            val mainContentLayout = binding.root.getChildAt(0) as? android.view.ViewGroup
+            mainContentLayout?.setOnClickListener {
+                android.util.Log.d("MoreAdapter", "MainContent clicked for item: ${item.titleRes}")
+                onItemClick(item.action)
+            }
+            
+            // Also set on root as fallback
             binding.root.setOnClickListener {
+                android.util.Log.d("MoreAdapter", "Root clicked for item: ${item.titleRes}")
                 onItemClick(item.action)
             }
         }

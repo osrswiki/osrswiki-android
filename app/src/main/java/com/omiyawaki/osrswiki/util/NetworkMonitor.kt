@@ -50,8 +50,9 @@ class NetworkMonitor(context: Context) {
         val currentNetwork = connectivityManager.activeNetwork
         if (currentNetwork != null) {
             val capabilities = connectivityManager.getNetworkCapabilities(currentNetwork)
-            trySend(capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true)
+            // Only require NET_CAPABILITY_INTERNET, not VALIDATED
+            // VALIDATED can fail in emulator environments even when internet works
+            trySend(capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true)
         } else {
             trySend(false)
         }
@@ -85,7 +86,8 @@ class NetworkMonitor(context: Context) {
     private fun isCurrentlyConnected(connectivityManager: ConnectivityManager): Boolean {
         val activeNetwork = connectivityManager.activeNetwork ?: return false
         val networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork) ?: return false
-        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        // Only require NET_CAPABILITY_INTERNET, not VALIDATED
+        // VALIDATED can fail in emulator environments even when internet works
+        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 }

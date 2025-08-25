@@ -128,11 +128,13 @@ class SearchViewModel(
         val cleanSnippet = networkResult.snippet?.let { snippet ->
             // Preserve HTML highlighting tags for search term highlighting
             if (snippet.contains("searchmatch")) {
-                // Keep HTML tags for search highlighting, just clean up whitespace
-                snippet.trim()
+                // Keep HTML tags for search highlighting, but decode HTML entities
+                val cleanedSnippet = snippet.trim()
                     .replace('\u00A0', ' ') // Replace non-breaking spaces with regular spaces  
                     .replace("\\s+".toRegex(), " ") // Replace multiple whitespace with single space
                     .trim() // Final trim after cleanup
+                // Decode HTML entities while preserving search match HTML tags
+                StringUtil.fromHtml(cleanedSnippet).toString()
             } else {
                 // Strip HTML for non-highlighted snippets (legacy behavior)
                 StringUtil.fromHtml(snippet).toString()

@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
+import com.omiyawaki.osrswiki.util.StringUtil
 
 // CleanedSearchResultItem is assumed to be in the same package or imported correctly.
 // import com.omiyawaki.osrswiki.search.CleanedSearchResultItem // Ensure this is accessible
@@ -48,7 +49,9 @@ class OfflineResultAdapter(
             if (item.snippet.isEmpty()) {
                 binding.searchItemSnippet.visibility = View.GONE // Corrected ID
             } else {
-                binding.searchItemSnippet.text = item.snippet // Corrected ID
+                // Decode HTML entities in snippet text
+                val cleanSnippet = StringUtil.fromHtml(item.snippet).toString()
+                binding.searchItemSnippet.text = cleanSnippet // Corrected ID
                 binding.searchItemSnippet.visibility = View.VISIBLE // Corrected ID
             }
         }

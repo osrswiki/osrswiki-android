@@ -57,7 +57,7 @@ fun Context.withScaledDensity(scale: Float): Context {
  */
 object ThemePreviewRenderer {
     
-    private const val TARGET_W_DP = 96 // Base width for preview (≥48dp accessibility requirement)
+    private const val TARGET_W_DP = 82 // Base width to match iOS specifications exactly
     private const val TAG = "ThemePreviewRenderer"
     
     // EXPERT GUIDANCE: Memory-based LruCache targeting ≤1/8 process heap (~5MB for 3 themes)
@@ -179,15 +179,14 @@ object ThemePreviewRenderer {
     }
     
     /**
-     * Calculates dynamic preview dimensions based on device aspect ratio.
+     * Returns fixed preview dimensions to match iOS specifications exactly.
      * Returns Pair(widthDp, heightDp)
      */
     private fun getPreviewDimensions(context: Context): Pair<Int, Int> {
-        val aspectRatio = getDeviceAspectRatio(context)
-        val width = TARGET_W_DP
-        val height = (width * aspectRatio).toInt()
+        val width = TARGET_W_DP  // 82dp
+        val height = 120  // Fixed height to match iOS exactly
         
-        Log.d(TAG, "Preview dimensions: ${width}dp x ${height}dp (aspect ratio: $aspectRatio)")
+        Log.d(TAG, "Preview dimensions: ${width}dp x ${height}dp (fixed iOS dimensions)")
         return Pair(width, height)
     }
     
@@ -324,10 +323,11 @@ object ThemePreviewRenderer {
             
             Log.d(TAG, "🔧 SIMPLIFIED: Stub data setup completed")
             
-            // Get target dimensions (96dp × 96dp square container)
+            // Get target dimensions using the fixed iOS dimensions
             val dm = context.resources.displayMetrics
-            val targetPxW = (96 * dm.density).roundToInt()
-            val targetPxH = (96 * dm.density).roundToInt()
+            val (targetDpW, targetDpH) = getPreviewDimensions(context)
+            val targetPxW = (targetDpW * dm.density).roundToInt()
+            val targetPxH = (targetDpH * dm.density).roundToInt()
             
             // Use device screen size for initial render (simple approach)
             val (deviceWidth, deviceHeight) = getAppContentBounds(context)
@@ -357,8 +357,8 @@ object ThemePreviewRenderer {
             
             Log.d(TAG, "🔧 SIMPLIFIED: Initial render completed - ${rendered.width}×${rendered.height}")
             
-            // Use proper proportional scaling - no cropping, just fit to square container
-            val final = scaleProportionallyToSquare(rendered, targetPxW, themedContext)
+            // Use proper proportional scaling to iOS rectangle dimensions  
+            val final = scaleProportionallyToRectangle(rendered, targetPxW, targetPxH, themedContext)
             rendered.recycle()
             
             // Set proper density to prevent ImageView auto-scaling
@@ -425,20 +425,18 @@ object ThemePreviewRenderer {
     }
     
     /**
-     * Scales screen content to fill square container with top-aligned cropping.
-     * Similar to table previews - scales to fit width and crops from top for "fit-to-width" behavior.
+     * Scales screen content to fill rectangular container with top-aligned cropping.
+     * Uses iOS-specified dimensions (82×120dp) for exact cross-platform consistency.
      */
-    private fun scaleProportionallyToSquare(src: Bitmap, squareSize: Int, themedContext: Context): Bitmap {
+    private fun scaleProportionallyToRectangle(src: Bitmap, targetWidth: Int, targetHeight: Int, themedContext: Context): Bitmap {
         val sourceWidth = src.width.toFloat()
         val sourceHeight = src.height.toFloat()
-        val targetWidth = squareSize
-        val targetHeight = squareSize
-        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat() // 1.0 for square
+        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat()
         val sourceRatio = sourceWidth / sourceHeight
         
-        Log.d(TAG, "🔧 FIT_TO_WIDTH: Source ${src.width}×${src.height} (ratio=$sourceRatio) → Square ${squareSize}×${squareSize}")
+        Log.d(TAG, "🔧 iOS_DIMENSIONS: Source ${src.width}×${src.height} (ratio=$sourceRatio) → Rectangle ${targetWidth}×${targetHeight} (ratio=$targetRatio)")
         
-        // Calculate scaling factor to fill the target container (same logic as table previews)
+        // Calculate scaling factor to fill the target container
         val scale = if (sourceRatio > targetRatio) {
             // Source is wider - scale to fit height, crop width
             targetHeight / sourceHeight
@@ -451,14 +449,14 @@ object ThemePreviewRenderer {
         val scaledWidth = (sourceWidth * scale).roundToInt()
         val scaledHeight = (sourceHeight * scale).roundToInt()
         
-        Log.d(TAG, "🔧 FIT_TO_WIDTH: Scale factor=$scale, scaled=${scaledWidth}×${scaledHeight}")
+        Log.d(TAG, "🔧 iOS_DIMENSIONS: Scale factor=$scale, scaled=${scaledWidth}×${scaledHeight}")
         
         // Create scaled bitmap
         val scaledBitmap = Bitmap.createScaledBitmap(src, scaledWidth, scaledHeight, true)
         
         // Calculate crop offsets - center horizontally, top-aligned vertically
         val cropX = maxOf(0, (scaledWidth - targetWidth) / 2)
-        val cropY = 0 // Start from top to show header content (like table previews)
+        val cropY = 0 // Start from top to show header content
         
         // Crop to final target size
         val croppedBitmap = Bitmap.createBitmap(
@@ -577,7 +575,7 @@ object ThemePreviewRenderer {
             
             // Ensure search text placeholder is visible 
             root.findViewById<TextView>(R.id.search_text)?.let { searchText ->
-                searchText.text = "Search OSRSWiki"
+                searchText.text = "Search OSRS Wiki"
             }
             
             // Attempt to populate news RecyclerView with realistic sample data

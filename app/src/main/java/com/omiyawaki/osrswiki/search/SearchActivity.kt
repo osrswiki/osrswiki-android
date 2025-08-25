@@ -18,6 +18,8 @@ import com.omiyawaki.osrswiki.util.VoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.createVoiceSearchAnimationHelper
 import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.util.log.L
+import android.util.Log
+import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 
 class SearchActivity : BaseActivity() {
 
@@ -43,6 +45,9 @@ class SearchActivity : BaseActivity() {
         setupVoiceSearch()
         setupClearButton()
         setupThemeChangeReceiver()
+        
+        // DEBUG: Test colors immediately
+        testColorConsistency()
         
         // Handle voice search query if provided
         val voiceQuery = intent.getStringExtra("query")
@@ -125,6 +130,29 @@ class SearchActivity : BaseActivity() {
         }
     }
 
+    private fun testColorConsistency() {
+        Log.e("ColorTest", "=== SEARCH ACTIVITY COLOR TEST ===")
+        
+        // Create test item binding
+        val testBinding = ItemSearchResultBinding.inflate(layoutInflater)
+        
+        // Set sample text
+        testBinding.searchItemTitle.text = "Test Title"
+        testBinding.searchItemSnippet.text = "Test Snippet"
+        
+        // Get colors before any styling
+        val titleColorBefore = testBinding.searchItemTitle.currentTextColor
+        val snippetColorBefore = testBinding.searchItemSnippet.currentTextColor
+        Log.e("ColorTest", "BEFORE - Title: #${Integer.toHexString(titleColorBefore)}")
+        Log.e("ColorTest", "BEFORE - Snippet: #${Integer.toHexString(snippetColorBefore)}")
+        
+        if (titleColorBefore != snippetColorBefore) {
+            Log.e("ColorTest", "🔴 COLORS MISMATCH BEFORE STYLING!")
+        } else {
+            Log.e("ColorTest", "✅ Colors match before styling")
+        }
+    }
+    
     @Deprecated("Deprecated in Java")
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)

@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.search
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,12 +16,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchResultsBinding
+import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.io.IOException
+import com.omiyawaki.osrswiki.test.PixelColorTest
+import android.os.Handler
+import android.os.Looper
 
 class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
 
@@ -56,6 +61,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
         onlineSearchAdapter = SearchAdapter(this)
         offlineSearchAdapter = OfflineSearchAdapter(this)
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
+        
+        // DEBUG: Test colors with sample data
+        testSearchAdapterColors()
 
         onlineSearchAdapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
@@ -112,10 +120,14 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                         if (binding.recyclerViewSearchResults.adapter == onlineSearchAdapter) {
                             // Update search query in adapter for title highlighting
                             onlineSearchAdapter.updateSearchQuery(viewModel.currentQuery.value)
+                            // Force refresh PagingData adapter and reset position
+                            onlineSearchAdapter.refresh()
                             onlineSearchAdapter.submitData(pagingData)
-                            // Scroll to top when new search results are submitted to ensure
-                            // the top results are visible (fixes issue where results populate upward)
-                            binding.recyclerViewSearchResults.scrollToPosition(0)
+                            // Force RecyclerView to scroll to top after data submission
+                            binding.recyclerViewSearchResults.post {
+                                (binding.recyclerViewSearchResults.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+                            }
+                            Log.d("ScrollFix", "Online search: Force refresh and reset to position 0")
                         }
                     }
                 }
@@ -125,10 +137,11 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                         if (binding.recyclerViewSearchResults.adapter == offlineSearchAdapter) {
                             // Update search query in offline adapter for title highlighting
                             offlineSearchAdapter.updateSearchQuery(viewModel.currentQuery.value)
+                            // Reset RecyclerView position before submitting new data
+                            // This ensures new search results are displayed from the top
+                            (binding.recyclerViewSearchResults.layoutManager as? LinearLayoutManager)?.scrollToPosition(0)
                             offlineSearchAdapter.submitList(combinedOfflineList)
-                            // Scroll to top when new offline search results are submitted to ensure
-                            // the top results are visible (fixes issue where results populate upward)
-                            binding.recyclerViewSearchResults.scrollToPosition(0)
+                            Log.d("ScrollFix", "Offline search: Reset position to 0 before submitting new data")
                             val currentQuery = viewModel.currentQuery.value?.trim()
                             val hasResults = combinedOfflineList.isNotEmpty()
                             binding.recyclerViewSearchResults.isVisible = hasResults
@@ -138,6 +151,14 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                             }
                             binding.progressBarSearch.isVisible = false
                             binding.textViewSearchError.isVisible = false
+                            
+                            // Run pixel test after results are loaded
+                            if (hasResults) {
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    Log.e("PixelTest", "Running pixel test for query: $currentQuery")
+                                    PixelColorTest.runPixelTest(requireContext(), binding.recyclerViewSearchResults)
+                                }, 1000)
+                            }
                         }
                     }
                 }
@@ -163,6 +184,42 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
         _binding = null
     }
 
+    private fun testSearchAdapterColors() {
+        // Create test data
+        val testItem = CleanedSearchResultItem(
+            id = "1",
+            title = "Test Dragon Item Title",
+            snippet = "This is a test snippet about dragons and items",
+            thumbnailUrl = null
+        )
+        
+        // Create a test binding
+        val testBinding = ItemSearchResultBinding.inflate(layoutInflater)
+        val viewHolder = SearchAdapter.SearchResultViewHolder(testBinding, this)
+        
+        // Test without search query
+        Log.e("ColorTest", "=== TESTING WITHOUT QUERY ===")
+        viewHolder.bind(testItem, null)
+        val titleNoQuery = testBinding.searchItemTitle.currentTextColor
+        val snippetNoQuery = testBinding.searchItemSnippet.currentTextColor
+        Log.e("ColorTest", "No query - Title: #${Integer.toHexString(titleNoQuery)}")
+        Log.e("ColorTest", "No query - Snippet: #${Integer.toHexString(snippetNoQuery)}")
+        if (titleNoQuery != snippetNoQuery) {
+            Log.e("ColorTest", "🔴 MISMATCH without query!")
+        }
+        
+        // Test with search query
+        Log.e("ColorTest", "\n=== TESTING WITH QUERY ===")
+        viewHolder.bind(testItem, "dragon")
+        val titleWithQuery = testBinding.searchItemTitle.currentTextColor
+        val snippetWithQuery = testBinding.searchItemSnippet.currentTextColor
+        Log.e("ColorTest", "With query - Title: #${Integer.toHexString(titleWithQuery)}")
+        Log.e("ColorTest", "With query - Snippet: #${Integer.toHexString(snippetWithQuery)}")
+        if (titleWithQuery != snippetWithQuery) {
+            Log.e("ColorTest", "🔴 MISMATCH with query!")
+        }
+    }
+    
     companion object {
         fun newInstance() = SearchResultsFragment()
     }

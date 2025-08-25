@@ -19,8 +19,8 @@ class ResponsiveThemeLayoutManager(
 ) : GridLayoutManager(context, 1) {
     
     companion object {
-        private const val MIN_CARD_WIDTH_DP = 140 // Minimum width for horizontal cards (reduced for better fit)
-        private const val HORIZONTAL_THRESHOLD_DP = 600 // Minimum screen width to enable horizontal layout
+        private const val MIN_CARD_WIDTH_DP = 90 // iOS card width (90dp)
+        private const val HORIZONTAL_THRESHOLD_DP = 300 // Very low threshold - almost always horizontal like iOS
         private const val MAX_COLUMNS = 3 // Maximum number of columns in horizontal layout
     }
     
@@ -73,18 +73,20 @@ class ResponsiveThemeLayoutManager(
      * @return Optimal number of columns (1 for vertical, 2-3 for horizontal)
      */
     private fun calculateOptimalSpanCount(screenWidthDp: Int): Int {
-        // Always use single column if screen is too narrow
+        // iOS always uses horizontal layout, so we should too unless screen is extremely narrow
         if (screenWidthDp < HORIZONTAL_THRESHOLD_DP) {
             return 1
         }
         
         // Calculate how many cards can fit horizontally with padding
-        val availableWidth = screenWidthDp - 32 // Account for RecyclerView padding
-        val cardWidthWithMargin = MIN_CARD_WIDTH_DP + 4 // Card width + horizontal margins (2dp each side)
+        val availableWidth = screenWidthDp - 32 // Account for RecyclerView padding  
+        val cardWidthWithMargin = MIN_CARD_WIDTH_DP + 8 // Card width (90dp) + horizontal margins (4dp each side)
         val possibleColumns = availableWidth / cardWidthWithMargin
         
-        // Return optimal column count (min 2 for horizontal, max MAX_COLUMNS)
-        return max(2, possibleColumns.coerceAtMost(MAX_COLUMNS))
+        // For theme cards, iOS uses exactly 3 columns (Light, Dark, Auto)
+        // For table cards, iOS uses exactly 2 columns (Expanded, Collapsed)
+        // Return 3 for themes, but this will be adjusted by the adapter based on item count
+        return possibleColumns.coerceAtMost(MAX_COLUMNS)
     }
     
     /**

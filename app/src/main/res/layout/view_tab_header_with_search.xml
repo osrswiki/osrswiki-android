@@ -73,7 +73,7 @@
             android:id="@+id/search_text"
             style="@style/SearchBarText"
             android:text="@string/search_hint_wiki"
-            tools:text="Search OSRSWiki" />
+            tools:text="Search OSRS Wiki" />
 
         <ImageView
             android:id="@+id/voice_search_button"

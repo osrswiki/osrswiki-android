@@ -8,15 +8,14 @@
     android:background="?attr/paper_color"
     tools:context=".ui.map.MapFragment">
 
-    <org.maplibre.android.maps.MapView
+    <FrameLayout
         android:id="@+id/map_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        maplibre:maplibre_cameraZoom="3.0"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <LinearLayout
         android:id="@+id/floor_controls"

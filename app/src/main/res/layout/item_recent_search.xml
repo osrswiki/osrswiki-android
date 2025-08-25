@@ -16,7 +16,7 @@
         android:layout_height="24dp"
         android:src="@drawable/ic_history_24"
         android:contentDescription="@string/content_description_recent_search_icon"
-        android:alpha="0.6"/>
+        android:alpha="0.4"/>
 
     <TextView
         android:id="@+id/textViewRecentSearchQuery"

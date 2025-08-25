@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- iOS-style vertical layout: Title in its own row, cards in separate row -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -9,7 +10,7 @@
     android:paddingVertical="12dp"
     android:background="?attr/selectableItemBackground">
 
-    <!-- Title -->
+    <!-- Title in its own row - matches iOS -->
     <TextView
         android:id="@+id/textTitle"
         android:layout_width="wrap_content"
@@ -19,21 +20,29 @@
         android:textColor="?attr/colorOnSurface"
         android:accessibilityHeading="true"
         android:importantForAccessibility="yes"
-        tools:text="App Theme" />
+        tools:text="Theme" />
 
-    <!-- Theme Preview RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/themePreviewRecyclerView"
+    <!-- Cards in separate row, right-aligned like iOS -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:clipToPadding="false"
-        android:nestedScrollingEnabled="false"
-        android:paddingHorizontal="4dp"
-        android:contentDescription="Theme selection options"
-        android:accessibilityTraversalBefore="@+id/textTitle"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        tools:listitem="@layout/item_theme_preview_card"
-        tools:itemCount="3"
-        tools:spanCount="1" />
+        android:orientation="horizontal"
+        android:gravity="end">
+        
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/themePreviewRecyclerView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="false"
+            android:paddingHorizontal="4dp"
+            android:contentDescription="Theme selection options"
+            android:accessibilityTraversalBefore="@+id/textTitle"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_theme_preview_card"
+            tools:itemCount="3"
+            tools:spanCount="1" />
+            
+    </LinearLayout>
 
 </LinearLayout>

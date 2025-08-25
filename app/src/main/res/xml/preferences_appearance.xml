@@ -3,7 +3,7 @@
 
     <ListPreference
         app:key="app_theme_mode"
-        app:title="App theme"
+        app:title="Theme"
         app:summary="%s"
         app:defaultValue="auto"
         app:entries="@array/app_theme_mode_entries"
@@ -11,12 +11,13 @@
         app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
 
-
     <SwitchPreferenceCompat
         app:key="collapseTables"
-        app:title="Collapse tables"
-        app:summary="Collapses infoboxes by default in articles"
+        app:title="Tables"
+        app:summary="%s"
         app:defaultValue="true"
-        app:iconSpaceReserved="false" />
+        app:iconSpaceReserved="false"
+        app:summaryOn="Collapsed"
+        app:summaryOff="Expanded" />
 
 </PreferenceScreen>

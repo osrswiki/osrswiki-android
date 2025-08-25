@@ -7,7 +7,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
-import com.omiyawaki.osrswiki.ui.map.MapFragment
+import com.omiyawaki.osrswiki.ui.map.StandardNavigationMapFragment
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -102,12 +102,11 @@ class NativeMapHandler(
         params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID
         container.layoutParams = params
 
-        val mapFragment = MapFragment.newInstance(
+        val mapFragment = StandardNavigationMapFragment.newInstance(
             lat = data.lat,
             lon = data.lon,
             zoom = data.zoom,
-            plane = data.plane,
-            isPreloading = true
+            plane = data.plane
         )
         fragment.childFragmentManager.beginTransaction()
             .replace(container.id, mapFragment)

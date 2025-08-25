@@ -260,7 +260,13 @@ class OSRSWikiApp : Application() {
 
     private fun initializeNetworkCallback() {
         connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        _currentNetworkStatus.value = isCurrentlyConnected()
+        
+        // TEMPORARY DEV FIX: Force connectivity to true for testing
+        if (BuildConfig.DEBUG) {
+            _currentNetworkStatus.value = true
+        } else {
+            _currentNetworkStatus.value = isCurrentlyConnected()
+        }
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
@@ -274,8 +280,16 @@ class OSRSWikiApp : Application() {
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
                 super.onCapabilitiesChanged(network, networkCapabilities)
-                val isConnected = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                
+                // TEMPORARY DEV FIX: Force connectivity to true for testing
+                if (BuildConfig.DEBUG) {
+                    _currentNetworkStatus.value = true
+                    return
+                }
+                
+                // Only require NET_CAPABILITY_INTERNET, not VALIDATED
+                // VALIDATED can fail in emulator environments even when internet works
+                val isConnected = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 _currentNetworkStatus.value = isConnected
             }
         }
@@ -301,11 +315,18 @@ class OSRSWikiApp : Application() {
 
     @Suppress("DEPRECATION")
     private fun isCurrentlyConnected(): Boolean {
+        // TEMPORARY DEV FIX: Force connectivity to true for testing
+        // TODO: Remove this after debugging message box width issue
+        if (BuildConfig.DEBUG) {
+            return true
+        }
+        
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             cm.getNetworkCapabilities(cm.activeNetwork)?.let {
-                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        it.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                // Only require NET_CAPABILITY_INTERNET, not VALIDATED
+                // VALIDATED can fail in emulator environments even when internet works
+                it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             } ?: false
         } else {
             cm.activeNetworkInfo?.isConnected ?: false

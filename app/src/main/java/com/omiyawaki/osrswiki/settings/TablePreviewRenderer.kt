@@ -61,8 +61,8 @@ import android.os.Build
  */
 object TablePreviewRenderer {
     
-    private const val TARGET_W_DP = 160 // Width for individual preview
-    private const val TARGET_H_DP = 120 // Height for individual preview
+    private const val TARGET_W_DP = 82 // Width to match iOS theme card dimensions exactly
+    private const val TARGET_H_DP = 120 // Height matches iOS specifications
     private const val TAG = "TablePreviewRenderer"
     
     // Mutex to prevent concurrent preview generation (prevents DOM interference)

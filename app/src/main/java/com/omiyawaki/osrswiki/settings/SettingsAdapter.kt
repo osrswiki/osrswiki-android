@@ -151,8 +151,8 @@ class SettingsAdapter(
                 )
                 adapter = themeAdapter
                 
-                // Use responsive layout manager that switches between vertical and horizontal layouts
-                layoutManager = ResponsiveThemeLayoutManager(context) { isHorizontal ->
+                // Use ResponsiveInlineLayoutManager with THEME_CONFIG (always 3 columns horizontal)
+                layoutManager = ResponsiveInlineLayoutManager(context, InlineSelectionConfig.THEME_CONFIG) { isHorizontal ->
                     // Update adapter's layout mode when layout manager changes
                     themeAdapter?.updateLayoutMode(isHorizontal, this)
                 }

@@ -17,6 +17,9 @@
     <color name="osrs_parchment_surface_light">#d8ccb4</color>
     <color name="osrs_text_secondary_light">#8B7355</color>
     
+    <!-- Bottom Navigation Inactive (40% opacity of colorOnSurface) -->
+    <color name="bottom_nav_inactive">#663A2E1C</color> <!-- 40% opacity of osrs_text_dark for light theme -->
+    
     <!-- OSRS Chat Colors -->
     <color name="osrs_chat_green">#00ff00</color>
     <color name="osrs_chat_cyan">#00ffff</color>
@@ -31,7 +34,7 @@
     <color name="white">#FFFFFF</color>
     <color name="gray_very_light">#fbfbfb</color>
     <color name="gray_very_light_alpha">#50fbfbfb</color>
-    <color name="gray_very_light_disabled">#61fbfbfb</color>
+    <color name="gray_very_light_disabled">#66fbfbfb</color> <!-- 40% opacity of #fbfbfb -->
     <color name="color_error">#B00020</color>
     <color name="ic_launcher_background">#20252c</color>
     <color name="text_input_primary">#DE000000</color>

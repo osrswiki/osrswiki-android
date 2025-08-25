@@ -61,13 +61,14 @@ class InlineThemeSelectionAdapter(
             val themeName = theme.second
             
             binding.textThemeName.text = themeName
-            binding.textThemeDescription.text = getThemeDescription(themeKey)
+            // Remove description to match iOS compact design
             
             // Load theme-specific screenshot
             loadThemePreview(themeKey)
             
-            // Set selection state
+            // Set selection state using iOS-style checkmark overlay
             binding.root.isChecked = isSelected
+            binding.selectionCheckmark.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
             
             // Handle click
             binding.root.setOnClickListener {
@@ -236,13 +237,14 @@ class InlineThemeSelectionAdapter(
             val themeName = theme.second
             
             binding.textThemeName.text = themeName
-            binding.textThemeDescription.text = getThemeDescription(themeKey)
+            // Remove description to match iOS compact design
             
             // Load theme-specific screenshot (smaller size for horizontal layout)
             loadThemePreview(themeKey)
             
-            // Set selection state
+            // Set selection state using iOS-style checkmark overlay
             binding.root.isChecked = isSelected
+            binding.selectionCheckmark.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
             
             // Handle click
             binding.root.setOnClickListener {

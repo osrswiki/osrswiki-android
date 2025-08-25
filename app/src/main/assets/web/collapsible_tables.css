@@ -176,6 +176,27 @@ body.js-transforms-complete .infobox,
         width: 100%; /* Match full-width content */
         margin: 1em auto 0; /* Match navbox margins */
         float: none;
+        background-color: transparent; /* Remove container background for tables */
+        border-radius: 0; /* Remove rounded corners for tables */
+}
+
+/* Ensure tables inside collapsible containers fill the width */
+.collapsible-container .wikitable {
+        width: 100%;
+        table-layout: auto;
+        margin: 0; /* Remove duplicate margins */
+}
+
+/* For table containers, remove duplicate styling */
+.collapsible-container:has(.wikitable) .collapsible-header {
+        background-color: var(--wikitable-header-bg);
+        border: 1px solid var(--wikitable-border);
+        border-bottom: none;
+        border-radius: 4px 4px 0 0;
+}
+
+.collapsible-container:has(.wikitable) .collapsible-content {
+        padding: 0; /* Remove padding around tables */
 }
 
 /* ========================================================================

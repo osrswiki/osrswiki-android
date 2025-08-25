@@ -42,13 +42,14 @@ class InlineTableSelectionAdapter(
             L.d("$TAG: TablePreviewViewHolder.bind() called with $displayName (value=$collapseTablesValue), isSelected=$isSelected")
             
             binding.textTableSettingName.text = displayName
-            binding.textTableSettingDescription.text = getTableSettingDescription(collapseTablesValue)
+            // Remove description to match iOS compact design
             
             // Load table preview
             loadTablePreview(collapseTablesValue)
             
-            // Set selection state
+            // Set selection state using iOS-style checkmark overlay
             binding.root.isChecked = isSelected
+            binding.selectionCheckmark.visibility = if (isSelected) android.view.View.VISIBLE else android.view.View.GONE
             
             // Handle click
             binding.root.setOnClickListener {

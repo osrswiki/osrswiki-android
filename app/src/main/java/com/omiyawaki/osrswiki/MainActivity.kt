@@ -16,6 +16,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
 import com.omiyawaki.osrswiki.history.HistoryFragment
@@ -24,17 +25,26 @@ import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.search.SearchFragment
 import com.omiyawaki.osrswiki.ui.main.MainFragment
-import com.omiyawaki.osrswiki.ui.map.MapFragment
+import com.omiyawaki.osrswiki.ui.map.AndroidMapPreloader
+import com.omiyawaki.osrswiki.ui.map.StandardNavigationMapFragment
 import com.omiyawaki.osrswiki.ui.more.MoreFragment
+import com.omiyawaki.osrswiki.debug.ColorExtractor
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
 import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
 import android.widget.TextView
 import com.omiyawaki.osrswiki.views.CustomBottomNavBar
 import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
 import com.omiyawaki.osrswiki.settings.PreviewGenerationManager
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
+import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
+import android.text.SpannableString
+import android.text.Spannable
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.graphics.Typeface
+import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
+import com.omiyawaki.osrswiki.search.CleanedSearchResultItem
 
 // Debug extension to trace all programmatic tab changes
 fun CustomBottomNavBar.debugSelect(id: Int, src: String = "") {
@@ -47,7 +57,7 @@ class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var appRouter: AppRouterImpl
     private lateinit var mainFragment: MainFragment
-    private lateinit var mapFragment: MapFragment
+    private lateinit var mapFragment: StandardNavigationMapFragment
     private lateinit var historyFragment: HistoryFragment
     private lateinit var savedPagesFragment: SavedPagesFragment
     private lateinit var moreFragment: MoreFragment
@@ -80,6 +90,12 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         L.d("MainActivity: onCreate: ContentView set.")
+        
+        // Start background map preloading immediately to enable instant map rendering
+        lifecycleScope.launch {
+            L.d("MainActivity: Starting background map preloading...")
+            AndroidMapPreloader.getInstance().preloadMapInBackground(this@MainActivity)
+        }
 
         // Handle system window insets to avoid content overlapping with status bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.navHostContainer) { view, insets ->
@@ -136,7 +152,7 @@ class MainActivity : BaseActivity() {
             
             // Create new fragment instances
             mainFragment = MainFragment.newInstance()
-            mapFragment = MapFragment()
+            mapFragment = StandardNavigationMapFragment.newInstance(null, null, null, null)
             historyFragment = HistoryFragment.newInstance()
             savedPagesFragment = SavedPagesFragment()
             moreFragment = MoreFragment.newInstance()
@@ -158,17 +174,16 @@ class MainActivity : BaseActivity() {
                 .add(R.id.nav_host_container, savedPagesFragment, SAVED_PAGES_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, moreFragment, MORE_FRAGMENT_TAG)
                 .runOnCommit {
-                    // Set alpha values based on initial selection (async after views are created)
-                    mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
-                    mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
-                    historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
-                    savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
-                    moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+                    // Hide all fragments except the active one using standard navigation
+                    val transaction = supportFragmentManager.beginTransaction()
+                    if (activeFragment !== mainFragment) transaction.hide(mainFragment)
+                    if (activeFragment !== mapFragment) transaction.hide(mapFragment)
+                    if (activeFragment !== historyFragment) transaction.hide(historyFragment)
+                    if (activeFragment !== savedPagesFragment) transaction.hide(savedPagesFragment)
+                    if (activeFragment !== moreFragment) transaction.hide(moreFragment)
+                    transaction.commit()
                     
-                    // Bring active fragment to front so it can receive touches
-                    activeFragment.view?.bringToFront()
-                    
-                    L.d("MainActivity: Views alpha set and active fragment brought to front")
+                    L.d("MainActivity: Standard navigation setup complete - only ${activeFragment.javaClass.simpleName} visible")
                 }
                 .commit()
 
@@ -179,7 +194,7 @@ class MainActivity : BaseActivity() {
             
             // Restore fragments from FragmentManager and assign to properties
             mainFragment = supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG) as MainFragment
-            mapFragment = supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG) as MapFragment
+            mapFragment = supportFragmentManager.findFragmentByTag(MAP_FRAGMENT_TAG) as StandardNavigationMapFragment
             historyFragment = supportFragmentManager.findFragmentByTag(HISTORY_FRAGMENT_TAG) as HistoryFragment
             savedPagesFragment = supportFragmentManager.findFragmentByTag(SAVED_PAGES_FRAGMENT_TAG) as SavedPagesFragment
             moreFragment = supportFragmentManager.findFragmentByTag(MORE_FRAGMENT_TAG) as MoreFragment
@@ -195,23 +210,23 @@ class MainActivity : BaseActivity() {
             // Execute pending transactions to ensure fragments are attached
             supportFragmentManager.executePendingTransactions()
             
-            // Use ViewTreeObserver to set alpha after views are created and laid out
+            // Use ViewTreeObserver to set fragment visibility after views are created using standard navigation
             binding.navHostContainer.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     // Remove listener to avoid multiple calls
                     binding.navHostContainer.viewTreeObserver.removeOnGlobalLayoutListener(this)
                     
-                    // Now views should exist, set alpha values
-                    mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
-                    mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
-                    historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
-                    savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
-                    moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+                    // Use standard navigation to set proper fragment visibility
+                    val transaction = supportFragmentManager.beginTransaction()
+                    if (activeFragment !== mainFragment) transaction.hide(mainFragment)
+                    if (activeFragment !== mapFragment) transaction.hide(mapFragment)
+                    if (activeFragment !== historyFragment) transaction.hide(historyFragment)
+                    if (activeFragment !== savedPagesFragment) transaction.hide(savedPagesFragment)
+                    if (activeFragment !== moreFragment) transaction.hide(moreFragment)
+                    transaction.show(activeFragment)
+                    transaction.commit()
                     
-                    // Bring active fragment to front to ensure it receives touches
-                    activeFragment.view?.bringToFront()
-                    
-                    L.d("MainActivity: Alpha values restored after layout")
+                    L.d("MainActivity: Standard navigation restored after layout")
                 }
             })
             
@@ -231,6 +246,13 @@ class MainActivity : BaseActivity() {
         handleIntentExtras(intent)
         
         Log.i("StartupTiming", "MainActivity.onCreate() completed - Activity ready for display")
+        
+        // DEBUG: Extract actual colors for testing
+        binding.root.post {
+            ColorExtractor.exportColorsToJSON(this)
+            testSearchItemColors()
+            testSearchAdapterDirectly()
+        }
     }
     
     private fun setupFonts() {
@@ -314,12 +336,7 @@ class MainActivity : BaseActivity() {
 
             if (selectedFragment != null && selectedFragment !== activeFragment) {
                 L.d("MainActivity: Switching from ${activeFragment.javaClass.simpleName} to ${selectedFragment.javaClass.simpleName}")
-
-                activeFragment.view?.alpha = 0.0f
-                selectedFragment.view?.alpha = 1.0f
-                selectedFragment.view?.bringToFront()
-
-                activeFragment = selectedFragment
+                switchToFragment(selectedFragment)
                 
                 // Refresh fonts to update active/inactive styling
                 try {
@@ -462,19 +479,40 @@ class MainActivity : BaseActivity() {
         Log.d(LIFECYCLE_TAG, "onStop() called.")
     }
     
+    /**
+     * Standard Fragment navigation using show/hide transactions
+     * This replaces the alpha-based navigation approach with proper fragment lifecycle management
+     */
+    private fun switchToFragment(fragment: Fragment) {
+        if (fragment === activeFragment) return
+        
+        L.d("MainActivity: Switching to ${fragment.javaClass.simpleName} using STANDARD navigation")
+        
+        val transaction = supportFragmentManager.beginTransaction()
+        
+        // Hide current fragment (triggers onPause/onStop)
+        activeFragment.let { transaction.hide(it) }
+        
+        // Show new fragment (triggers onStart/onResume)
+        transaction.show(fragment)
+        transaction.commit()
+        
+        activeFragment = fragment
+    }
+    
     private fun refreshFragmentVisibility() {
-        // Ensure only the active fragment is visible after theme changes
+        // Ensure only the active fragment is visible after theme changes using standard navigation
         try {
-            mainFragment.view?.alpha = if (activeFragment === mainFragment) 1.0f else 0.0f
-            mapFragment.view?.alpha = if (activeFragment === mapFragment) 1.0f else 0.0f
-            historyFragment.view?.alpha = if (activeFragment === historyFragment) 1.0f else 0.0f
-            savedPagesFragment.view?.alpha = if (activeFragment === savedPagesFragment) 1.0f else 0.0f
-            moreFragment.view?.alpha = if (activeFragment === moreFragment) 1.0f else 0.0f
+            val transaction = supportFragmentManager.beginTransaction()
+            if (activeFragment !== mainFragment) transaction.hide(mainFragment)
+            if (activeFragment !== mapFragment) transaction.hide(mapFragment)
+            if (activeFragment !== historyFragment) transaction.hide(historyFragment)
+            if (activeFragment !== savedPagesFragment) transaction.hide(savedPagesFragment)
+            if (activeFragment !== moreFragment) transaction.hide(moreFragment)
+            transaction.show(activeFragment)
+            transaction.commit()
             
-            // Ensure active fragment is in front
-            activeFragment.view?.bringToFront()
-            
-            L.d("MainActivity: Fragment visibility refreshed after theme change")
+            L.d("MainActivity: Fragment visibility refreshed after theme change using standard navigation")
         } catch (e: Exception) {
             L.e("MainActivity: Error refreshing fragment visibility: ${e.message}")
         }
@@ -592,6 +630,178 @@ class MainActivity : BaseActivity() {
             }
         } catch (e: Exception) {
             L.e("MainActivity: Failed to refresh bottom navigation border: ${e.message}")
+        }
+    }
+    
+    private fun testSearchAdapterDirectly() {
+        Log.e("ColorTest", "\n=== DIRECT ADAPTER TEST ===")
+        
+        // Create test data
+        val testItem = CleanedSearchResultItem(
+            id = "1",
+            title = "Test Dragon Item",
+            snippet = "This is a test snippet about dragons",
+            thumbnailUrl = null
+        )
+        
+        // Create binding
+        val testBinding = ItemSearchResultBinding.inflate(layoutInflater)
+        
+        // Create fake listener
+        val listener = object : com.omiyawaki.osrswiki.search.SearchAdapter.OnItemClickListener {
+            override fun onItemClick(item: CleanedSearchResultItem) {}
+        }
+        
+        // Create view holder
+        val viewHolder = com.omiyawaki.osrswiki.search.SearchAdapter.SearchResultViewHolder(testBinding, listener)
+        
+        // Test with query
+        viewHolder.bind(testItem, "dragon")
+        
+        // Check final colors
+        val titleColor = testBinding.searchItemTitle.currentTextColor
+        val snippetColor = testBinding.searchItemSnippet.currentTextColor
+        
+        Log.e("ColorTest", "After real adapter bind:")
+        Log.e("ColorTest", "Title: #${Integer.toHexString(titleColor)}")
+        Log.e("ColorTest", "Snippet: #${Integer.toHexString(snippetColor)}")
+        
+        // Check the actual SpannableString spans
+        val titleText = testBinding.searchItemTitle.text
+        val snippetText = testBinding.searchItemSnippet.text
+        
+        if (titleText is SpannableString) {
+            val titleSpans = titleText.getSpans(0, titleText.length, ForegroundColorSpan::class.java)
+            Log.e("ColorTest", "Title has ${titleSpans.size} color spans")
+            titleSpans.forEachIndexed { index, span ->
+                val start = titleText.getSpanStart(span)
+                val end = titleText.getSpanEnd(span)
+                Log.e("ColorTest", "  Title span $index: [${start}-${end}] color=#${Integer.toHexString(span.foregroundColor)}")
+            }
+        }
+        
+        if (snippetText is SpannableString) {
+            val snippetSpans = snippetText.getSpans(0, snippetText.length, ForegroundColorSpan::class.java)
+            Log.e("ColorTest", "Snippet has ${snippetSpans.size} color spans")
+            snippetSpans.forEachIndexed { index, span ->
+                val start = snippetText.getSpanStart(span)
+                val end = snippetText.getSpanEnd(span)
+                Log.e("ColorTest", "  Snippet span $index: [${start}-${end}] color=#${Integer.toHexString(span.foregroundColor)}")
+            }
+        }
+        
+        // The real question: what color is the NON-HIGHLIGHTED text?
+        Log.e("ColorTest", "\nNON-HIGHLIGHTED text uses TextView's currentTextColor:")
+        Log.e("ColorTest", "  Title non-highlighted: #${Integer.toHexString(titleColor)}")
+        Log.e("ColorTest", "  Snippet non-highlighted: #${Integer.toHexString(snippetColor)}")
+        
+        if (titleColor != snippetColor) {
+            Log.e("ColorTest", "🔴 NON-HIGHLIGHTED TEXT COLORS DON'T MATCH!")
+        } else {
+            Log.e("ColorTest", "✅ Non-highlighted text colors match!")
+        }
+    }
+    
+    private fun testSearchItemColors() {
+        Log.e("ColorTest", "=== MAIN ACTIVITY SEARCH ITEM COLOR TEST ===")
+        
+        // Create test item binding
+        val testBinding = ItemSearchResultBinding.inflate(layoutInflater)
+        
+        // Set sample text
+        testBinding.searchItemTitle.text = "Test Title"
+        testBinding.searchItemSnippet.text = "Test Snippet"
+        
+        // Get colors
+        val titleColor = testBinding.searchItemTitle.currentTextColor
+        val snippetColor = testBinding.searchItemSnippet.currentTextColor
+        
+        Log.e("ColorTest", "Title color: #${Integer.toHexString(titleColor)} (${titleColor})")
+        Log.e("ColorTest", "Snippet color: #${Integer.toHexString(snippetColor)} (${snippetColor})")
+        
+        if (titleColor != snippetColor) {
+            Log.e("ColorTest", "🔴 COLORS DON'T MATCH!")
+            Log.e("ColorTest", "Difference: ${titleColor - snippetColor}")
+        } else {
+            Log.e("ColorTest", "✅ Colors match!")
+        }
+        
+        // Check theme attributes
+        val typedValue = TypedValue()
+        theme.resolveAttribute(com.google.android.material.R.attr.colorOnSurface, typedValue, true)
+        Log.e("ColorTest", "colorOnSurface: #${Integer.toHexString(typedValue.data)} (${typedValue.data})")
+        
+        // Check if colors match colorOnSurface
+        if (titleColor == typedValue.data) {
+            Log.e("ColorTest", "Title matches colorOnSurface")
+        } else {
+            Log.e("ColorTest", "Title DOES NOT match colorOnSurface")
+        }
+        
+        if (snippetColor == typedValue.data) {
+            Log.e("ColorTest", "Snippet matches colorOnSurface")
+        } else {
+            Log.e("ColorTest", "Snippet DOES NOT match colorOnSurface")
+        }
+        
+        // Now test with SpannableString (simulating what the adapter does)
+        Log.e("ColorTest", "\n=== TESTING WITH SPANNABLE STRING ===")
+        
+        // Apply highlighting to title
+        val titleSpannable = SpannableString("Test Dragon Title")
+        // Highlight "Dragon"
+        val dragonStart = 5
+        val dragonEnd = 11
+        titleSpannable.setSpan(
+            ForegroundColorSpan(android.graphics.Color.parseColor("#8B7355")),
+            dragonStart,
+            dragonEnd,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        titleSpannable.setSpan(
+            StyleSpan(Typeface.BOLD),
+            dragonStart,
+            dragonEnd,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        
+        // Apply highlighting to snippet
+        val snippetSpannable = SpannableString("Test dragon snippet")
+        // Highlight "dragon"
+        val snippetDragonStart = 5
+        val snippetDragonEnd = 11
+        snippetSpannable.setSpan(
+            ForegroundColorSpan(android.graphics.Color.parseColor("#8B7355")),
+            snippetDragonStart,
+            snippetDragonEnd,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        snippetSpannable.setSpan(
+            StyleSpan(Typeface.BOLD),
+            snippetDragonStart,
+            snippetDragonEnd,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        
+        // Set the spannables
+        testBinding.searchItemTitle.text = titleSpannable
+        testBinding.searchItemSnippet.text = snippetSpannable
+        
+        // Apply font to title (like adapter does)
+        testBinding.searchItemTitle.applyAlegreyaHeadline()
+        
+        // Check colors after spannable and font application
+        val titleColorAfter = testBinding.searchItemTitle.currentTextColor
+        val snippetColorAfter = testBinding.searchItemSnippet.currentTextColor
+        
+        Log.e("ColorTest", "After Spannable - Title color: #${Integer.toHexString(titleColorAfter)} (${titleColorAfter})")
+        Log.e("ColorTest", "After Spannable - Snippet color: #${Integer.toHexString(snippetColorAfter)} (${snippetColorAfter})")
+        
+        if (titleColorAfter != snippetColorAfter) {
+            Log.e("ColorTest", "🔴 COLORS DON'T MATCH AFTER SPANNABLE!")
+            Log.e("ColorTest", "Difference: ${titleColorAfter - snippetColorAfter}")
+        } else {
+            Log.e("ColorTest", "✅ Colors still match after spannable!")
         }
     }
     

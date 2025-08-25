@@ -37,6 +37,7 @@ class MapFragment : Fragment() {
     private val binding get() = _binding!!
 
     private var mapView: MapView? = null
+    private var mapContainer: android.widget.FrameLayout? = null
     private var map: MapLibreMap? = null
     private val logTag = "MapFragment"
 
@@ -105,7 +106,14 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("MapFragment: LIFECYCLE: onViewCreated")
         
-        mapView = binding.mapView
+        mapContainer = binding.mapView
+        
+        // Create the actual MapView programmatically and add it to the container
+        mapView = MapView(requireContext())
+        mapContainer?.addView(mapView, android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        ))
 
         lifecycleScope.launch {
             copyAssetsToInternalStorage()
@@ -128,8 +136,11 @@ class MapFragment : Fragment() {
     }
 
     private fun initializeMap(savedInstanceState: Bundle?) {
+        L.d("MapFragment: INIT: initializeMap() called")
         mapView?.onCreate(savedInstanceState)
+        L.d("MapFragment: INIT: mapView.onCreate() called")
         mapView?.getMapAsync { maplibreMap ->
+            L.d("MapFragment: INIT: MapLibre map async callback received")
             this.map = maplibreMap
             configureUiSettings(maplibreMap)
             val styleJson = """
@@ -169,18 +180,36 @@ class MapFragment : Fragment() {
         val marginInPx = (marginInDp * resources.displayMetrics.density).toInt()
         uiSettings.setCompassGravity(Gravity.TOP or Gravity.END)
         uiSettings.setCompassMargins(0, marginInPx, marginInPx, 0)
+        
+        // Set zoom limits: min zoom 0, max zoom 12
+        map.setMinZoomPreference(0.0)
+        map.setMaxZoomPreference(12.0)
     }
 
     private fun setMapBounds(map: MapLibreMap) {
-        val north = 85.0511
-        val west = -180.0
-        val south = -85.0511
-        val east = 180.0
+        // Calculate OSRS map bounds based on actual game coordinate range
+        // Source image: 12800x45568 pixels, scale: 4 pixels per game unit
+        val gameMinX = 1024.0
+        val gameMaxX = gameMinX + (12800.0 / 4.0) // gameMinX + image_width / scale = 1024 + 3200 = 4224
+        val gameMaxY = 12608.0
+        val gameMinY = gameMaxY - (45568.0 / 4.0) // gameMaxY - image_height / scale = 12608 - 11392 = 1216
+        
+        // Convert game coordinates to lat/lng bounds
+        val northWest = gameToLatLng(gameMinX, gameMinY)
+        val southEast = gameToLatLng(gameMaxX, gameMaxY)
+        
         val bounds = LatLngBounds.Builder()
-            .include(LatLng(north, west))
-            .include(LatLng(south, east))
+            .include(northWest)
+            .include(southEast)
             .build()
+        
+        // Use proper bounds that restrict the entire visible area, not just camera center
         map.setLatLngBoundsForCameraTarget(bounds)
+        
+        Log.d(logTag, "OSRS bounds set:")
+        Log.d(logTag, "- Game coords: X($gameMinX-$gameMaxX), Y($gameMinY-$gameMaxY)")
+        Log.d(logTag, "- LatLng bounds: NW(${northWest.latitude}, ${northWest.longitude}), SE(${southEast.latitude}, ${southEast.longitude})")
+        Log.d(logTag, "- Bounds applied to camera target restrictions")
     }
 
     private fun setupMapLayers(style: Style) {
@@ -192,9 +221,16 @@ class MapFragment : Fragment() {
             val mbtilesUri = "mbtiles://${mbtilesFile.absolutePath}"
             val rasterSource = RasterSource(sourceId, mbtilesUri)
             style.addSource(rasterSource)
+            
+            // Initially make all layers visible with appropriate opacity to trigger rendering
             val rasterLayer = RasterLayer(layerId, sourceId).withProperties(
                 PropertyFactory.rasterResampling(Property.RASTER_RESAMPLING_NEAREST),
-                PropertyFactory.visibility(if (floor == currentFloor) Property.VISIBLE else Property.NONE)
+                PropertyFactory.visibility(Property.VISIBLE),
+                PropertyFactory.rasterOpacity(when {
+                    floor == currentFloor -> 1.0f
+                    floor == 0 && currentFloor > 0 -> GROUND_FLOOR_UNDERLAY_OPACITY
+                    else -> 0.0f // Invisible but still rendered to eliminate pixelation
+                })
             )
             style.addLayer(rasterLayer)
         }
@@ -226,17 +262,13 @@ class MapFragment : Fragment() {
         for (floor in 0..maxFloor) {
             val layer = style.getLayer("osrs-layer-$floor") as? RasterLayer
             layer?.let {
-                when {
-                    floor == newFloor -> it.setProperties(
-                        PropertyFactory.visibility(Property.VISIBLE),
-                        PropertyFactory.rasterOpacity(1.0f)
-                    )
-                    floor == 0 && newFloor > 0 -> it.setProperties(
-                        PropertyFactory.visibility(Property.VISIBLE),
-                        PropertyFactory.rasterOpacity(GROUND_FLOOR_UNDERLAY_OPACITY)
-                    )
-                    else -> it.setProperties(PropertyFactory.visibility(Property.NONE))
+                // All layers remain visible but use opacity for floor switching
+                val opacity = when {
+                    floor == newFloor -> 1.0f
+                    floor == 0 && newFloor > 0 -> GROUND_FLOOR_UNDERLAY_OPACITY
+                    else -> 0.0f
                 }
+                it.setProperties(PropertyFactory.rasterOpacity(opacity))
             }
         }
         currentFloor = newFloor
@@ -259,18 +291,33 @@ class MapFragment : Fragment() {
     // NUCLEAR OPTION: Removed ThemeAware interface and onThemeChanged
     // Theme switching now forces complete activity recreation to avoid window surface corruption
 
-    override fun onStart() { super.onStart(); mapView?.onStart() }
-    override fun onResume() { super.onResume(); mapView?.onResume() }
-    override fun onPause() { super.onPause(); mapView?.onPause() }
-    override fun onStop() { super.onStop(); mapView?.onStop() }
+    override fun onStart() { 
+        L.d("MapFragment: LIFECYCLE: onStart")
+        super.onStart(); mapView?.onStart() 
+    }
+    override fun onResume() { 
+        L.d("MapFragment: LIFECYCLE: onResume")
+        super.onResume(); mapView?.onResume() 
+    }
+    override fun onPause() { 
+        L.d("MapFragment: LIFECYCLE: onPause - MapView paused")
+        super.onPause(); mapView?.onPause() 
+    }
+    override fun onStop() { 
+        L.d("MapFragment: LIFECYCLE: onStop - MapView stopped")
+        super.onStop(); mapView?.onStop() 
+    }
     override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); mapView?.onSaveInstanceState(outState) }
     override fun onLowMemory() { super.onLowMemory(); mapView?.onLowMemory() }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
+        L.d("MapFragment: LIFECYCLE: onHiddenChanged(hidden=$hidden)")
         if (hidden) {
+            L.d("MapFragment: Fragment hidden - calling mapView?.onStop()")
             mapView?.onStop()
         } else {
+            L.d("MapFragment: Fragment shown - calling mapView?.onStart()")
             mapView?.onStart()
         }
     }

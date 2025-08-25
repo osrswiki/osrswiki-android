@@ -10,6 +10,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.image.ImageLoader
 import com.omiyawaki.osrswiki.news.model.UpdateItem
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
+import com.omiyawaki.osrswiki.util.StringUtil
 
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
@@ -40,7 +41,7 @@ class UpdatesAdapter(
         }
 
         fun bind(item: UpdateItem, onItemClicked: (UpdateItem) -> Unit) {
-            titleView.text = item.title
+            titleView.text = StringUtil.extractMainTitle(item.title)
             snippetView.text = item.snippet.replace("'", "'")
 
             // Use injected ImageLoader instead of direct Glide calls

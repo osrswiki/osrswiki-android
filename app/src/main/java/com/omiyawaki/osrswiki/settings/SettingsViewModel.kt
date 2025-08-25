@@ -32,7 +32,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
                 val tablePreviewItem = SettingItem.InlineTablePreviewSelection(
                     key = SettingsRepository.KEY_COLLAPSE_TABLES,
-                    title = "Collapse tables",
+                    title = "Tables",
                     options = listOf(
                         false to "Expanded",
                         true to "Collapsed"
@@ -45,7 +45,7 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
                 val items = listOf(
                     SettingItem.InlineThemeSelection(
                         key = SettingsRepository.KEY_APP_THEME_MODE,
-                        title = "App theme",
+                        title = "Theme",
                         themes = repository.getThemeOptions(),
                         currentSelection = appThemeMode
                     ),
