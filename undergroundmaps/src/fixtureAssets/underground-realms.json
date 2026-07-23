@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "candidate": "fixture",
+  "product": {
+    "label": "OSRS Underground Maps",
+    "application_id": "com.omiyawaki.osrswiki.undergroundmaps"
+  },
+  "inputs": {},
+  "accounting": {
+    "fixture": true
+  },
+  "realms": [
+    {
+      "id": "cache-world-map:main",
+      "canonical_name": "Gielinor Surface",
+      "aliases": ["Surface"],
+      "group": "surface",
+      "is_surface": true,
+      "native_file_id": 0,
+      "map_id": 0,
+      "article": "Map:Gielinor",
+      "center": [3222.0, 3218.0],
+      "default_plane": 0,
+      "planes": [0],
+      "cache_declared_planes": [0],
+      "components": [],
+      "links": [],
+      "source_revisions": {},
+      "confidence": "fixture",
+      "ambiguity": null,
+      "accounting_owner_realm_id": "cache-world-map:main",
+      "accounting_pixel_count": 1,
+      "assets": [
+        {
+          "plane": 0,
+          "mbtiles_path": "fixture/surface.mbtiles",
+          "mbtiles_sha256": "8ec44604387f48f745a5494da062fb8187b1f32b8543a9036eb96c38bc796e37",
+          "mbtiles_bytes": 16384,
+          "mask_path": "fixture/surface-mask.png",
+          "mask_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "width": 1,
+          "height": 1,
+          "nonblank": true,
+          "tile_size": 512,
+          "min_zoom": 0,
+          "max_zoom": 0,
+          "tile_count": 1,
+          "canvas_size": 512,
+          "content_pixel_bounds": [0, 0, 1, 1],
+          "content_latlon_bounds": [-180.0, 84.9901001802348, -179.296875, 85.0511287798066],
+          "source_bounds": [0, 0, 1, 1],
+          "display_bounds": [0, 0, 1, 1]
+        }
+      ]
+    }
+  ],
+  "selector": {
+    "fixture": true
+  }
+}

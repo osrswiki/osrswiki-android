@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_floor_up">Increase map floor level</string>
+    <string name="map_floor_down">Decrease map floor level</string>
+    <string name="map_floor_current">Current map floor: %1$s</string>
+    <string name="map_marker_info_action">Map marker information</string>
+    <string name="map_marker_noninteractive_message">Map icons are part of the raster map image and are not individually selectable.</string>
+    <string name="map_accessibility_description">OSRS world map. Drag to move and pinch to zoom. Map icons and markers are part of the map image and are not individually selectable.</string>
+    <string name="map_unavailable_title">Map unavailable</string>
+    <string name="map_unavailable_message">The map could not load its offline tile assets.</string>
+    <string name="map_retry">Retry</string>
+    <string name="map_semantic_stop_default" formatted="false">Stop 100%</string>
+    <string name="map_semantic_stop">Stop %1$d%%</string>
+    <string name="map_semantic_labels_on">Labels on</string>
+    <string name="map_semantic_labels_off">Labels off</string>
+    <string name="map_semantic_pois_on">POIs on</string>
+    <string name="map_semantic_pois_off">POIs off</string>
+    <string name="map_semantic_links_on">Links on</string>
+    <string name="map_semantic_links_off">Links off</string>
+    <string name="map_semantic_key_on">Key highlight on</string>
+    <string name="map_semantic_key_off">Key highlight off</string>
+    <string name="map_semantic_feature_action">%1$s: %2$s</string>
+</resources>

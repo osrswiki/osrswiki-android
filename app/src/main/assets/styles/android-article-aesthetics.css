@@ -1,0 +1,324 @@
+/*
+ * Android-only article rendering overrides.
+ *
+ * Shared CSS is copied into this asset tree during Android builds. Keep these
+ * scoped overrides in a platform asset loaded after shared fixes so article
+ * WebView polish can be adjusted without changing iOS or shared sources.
+ */
+
+.mw-parser-output {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.messagebox:not(.discord) {
+    background-color: var(--messagebox-info-background);
+    border-color: var(--messagebox-info-border);
+    border-left-width: 6px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+    box-sizing: border-box;
+    margin: 0.85em 0;
+    max-width: 100%;
+}
+
+.messagebox.warn:not(.discord) {
+    background-color: var(--messagebox-warn-background);
+    border-color: var(--messagebox-warn-border);
+}
+
+.messagebox.safe:not(.discord) {
+    background-color: var(--messagebox-safe-background);
+    border-color: var(--messagebox-safe-border);
+}
+
+.messagebox.action:not(.discord) {
+    background-color: var(--messagebox-action-background);
+    border-color: var(--messagebox-action-border);
+}
+
+.messagebox.obsolete:not(.discord) {
+    background-color: var(--messagebox-obsolete-background);
+    border-color: var(--messagebox-obsolete-border);
+}
+
+.messagebox.disambig:not(.discord) {
+    background-color: var(--messagebox-disambig-background);
+    border-color: var(--messagebox-disambig-border);
+}
+
+.messagebox .messagebox-image {
+    padding: 0.45em 0.35em 0.45em 0.7em !important;
+    text-align: center;
+    vertical-align: middle;
+    width: 38px !important;
+}
+
+.messagebox .messagebox-image figure,
+.messagebox .messagebox-image .mw-default-size {
+    display: inline-block !important;
+    height: auto !important;
+    margin: 0 !important;
+    width: auto !important;
+}
+
+.messagebox .messagebox-image img.mw-file-element {
+    display: inline-block !important;
+    height: auto !important;
+    margin: 0 !important;
+    max-height: 32px !important;
+    max-width: 32px !important;
+    vertical-align: middle !important;
+    width: auto !important;
+}
+
+/* Message boxes should read as prose, not as a run of bordered chips. */
+.messagebox:not(.discord) a,
+.messagebox:not(.discord) a:active,
+.messagebox:not(.discord) a:visited {
+    background-color: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: var(--link-color);
+    padding: 0 !important;
+    text-decoration: underline;
+}
+
+.messagebox:not(.discord) a:visited {
+    color: var(--link-visited-color);
+}
+
+.messagebox:not(.discord) a.external {
+    background-image: none !important;
+    padding-right: 0 !important;
+}
+
+.scp .mw-default-size,
+.coins .mw-default-size,
+.plinkp-template .mw-default-size,
+.league-badge .mw-default-size,
+.league-region .mw-default-size,
+.mmg-itemline .mw-default-size {
+    display: inline-block !important;
+    height: auto !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+    width: auto !important;
+}
+
+.scp img.mw-file-element,
+.coins img.mw-file-element,
+.plinkp-template img.mw-file-element,
+.league-badge img.mw-file-element,
+.league-region img.mw-file-element,
+.mmg-itemline img.mw-file-element {
+    display: inline-block !important;
+    height: auto !important;
+    margin: 0 !important;
+    max-height: 1.7em !important;
+    max-width: 1.7em !important;
+    vertical-align: -0.2em !important;
+    width: auto !important;
+}
+
+.plinkp-template img.mw-file-element,
+.league-badge img.mw-file-element,
+.league-region img.mw-file-element {
+    max-height: 30px !important;
+    max-width: 30px !important;
+    vertical-align: middle !important;
+}
+
+/* Keep wide article structures inside local scroll surfaces, never the root. */
+.collapsible-container {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.collapsible-container.collapsible-wikitable,
+.collapsible-container.collapsible-navbox,
+.collapsible-container.collapsible-no-float,
+.collapsible-container.collapsible-bonuses-infobox,
+.collapsible-container:has(.infobox-bonuses) {
+    float: none !important;
+    margin-left: 0;
+    margin-right: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+.collapsible-container.collapsible-primary-infobox {
+    max-width: 100%;
+}
+
+.collapsible-container.collapsible-float-right:not(.collapsible-primary-infobox) {
+    max-width: 100%;
+}
+
+.collapsible-content {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.collapsible-container.collapsed .collapsible-content {
+    overflow: hidden;
+}
+
+.collapsible-container .wikitable {
+    max-width: none;
+    min-width: 100%;
+    table-layout: auto;
+    width: max-content;
+}
+
+.collapsible-container .infobox:not(.infobox-bonuses) {
+    max-width: 100%;
+}
+
+.collapsible-container .infobox-bonuses {
+    max-width: none;
+    min-width: 556px;
+    width: 556px;
+}
+
+.osrs-scroll-affordance {
+    overscroll-behavior-x: contain;
+    position: relative;
+    transition: box-shadow 120ms ease-out;
+}
+
+.osrs-scroll-affordance.osrs-scroll-can-left {
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
+    background-position: left top;
+    background-repeat: no-repeat;
+    background-size: 42px 100%;
+    box-shadow: inset 18px 0 16px -16px rgba(0, 0, 0, 0.42);
+}
+
+.osrs-scroll-affordance.osrs-scroll-can-right {
+    background-image: linear-gradient(to left, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
+    background-position: right top;
+    background-repeat: no-repeat;
+    background-size: 42px 100%;
+    box-shadow: inset -18px 0 16px -16px rgba(0, 0, 0, 0.42);
+}
+
+.osrs-scroll-affordance.osrs-scroll-can-left.osrs-scroll-can-right {
+    background-image:
+        linear-gradient(to right, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0)),
+        linear-gradient(to left, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
+    background-position: left top, right top;
+    background-repeat: no-repeat;
+    background-size: 42px 100%, 42px 100%;
+    box-shadow:
+        inset 18px 0 16px -16px rgba(0, 0, 0, 0.42),
+        inset -18px 0 16px -16px rgba(0, 0, 0, 0.42);
+}
+
+.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-left {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
+    box-shadow: inset 18px 0 16px -16px rgba(255, 255, 255, 0.34);
+}
+
+.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-right {
+    background-image: linear-gradient(to left, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
+    box-shadow: inset -18px 0 16px -16px rgba(255, 255, 255, 0.34);
+}
+
+.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-left.osrs-scroll-can-right {
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0)),
+        linear-gradient(to left, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
+    box-shadow:
+        inset 18px 0 16px -16px rgba(255, 255, 255, 0.34),
+        inset -18px 0 16px -16px rgba(255, 255, 255, 0.34);
+}
+
+.mw-parser-output > table.wikitable,
+.mw-parser-output > .wikitable {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Quest detail tables become stacked cards at phone widths and large fonts. */
+.questdetails {
+    max-width: 100%;
+    table-layout: auto;
+    width: 100%;
+}
+
+@media screen and (max-width: 600px) {
+    .questdetails,
+    .questdetails tbody,
+    .questdetails tr,
+    .questdetails th,
+    .questdetails td {
+        display: block;
+        width: 100% !important;
+    }
+
+    .questdetails-header,
+    .questdetails-info {
+        box-sizing: border-box;
+        padding: 0.5em 0.75em;
+    }
+}
+
+/* MathML formulae can be wider than the article column. */
+.mwe-math-element,
+math.mwe-math-element {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+p > math.mwe-math-element,
+p > .mwe-math-element {
+    display: block;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Inline MediaWiki audio controls should not dominate dense article tables. */
+.mw-parser-output table.musicplayer {
+    box-sizing: border-box;
+    clear: none !important;
+    display: table;
+    float: none !important;
+    margin: 0.75em 0 1em;
+    max-width: 100%;
+    width: fit-content !important;
+}
+
+.mw-parser-output table.musicplayer td {
+    box-sizing: border-box;
+    padding: 0.4em 0.6em;
+}
+
+.mw-parser-output table.musicplayer audio.mw-file-element {
+    min-width: min(180px, 100%);
+}
+
+audio.mw-file-element,
+.mw-parser-output audio {
+    display: block;
+    height: 32px;
+    margin: 0.25em 0;
+    max-width: 100% !important;
+    width: min(100%, 260px) !important;
+}
+
+.wikitable audio.mw-file-element {
+    min-width: min(160px, 72vw);
+    width: min(100%, 220px) !important;
+}

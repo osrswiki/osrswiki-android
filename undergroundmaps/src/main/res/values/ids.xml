@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="osrs_underground_map" type="id" />
+    <item name="osrs_realm_selector" type="id" />
+    <item name="osrs_realm_links" type="id" />
+    <item name="osrs_floor_controls" type="id" />
+    <item name="osrs_map_status" type="id" />
+    <item name="osrs_map_progress" type="id" />
+    <item name="osrs_selector_search" type="id" />
+    <item name="osrs_selector_list" type="id" />
+    <item name="osrs_links_summary" type="id" />
+    <item name="osrs_links_search" type="id" />
+    <item name="osrs_links_list" type="id" />
+</resources>

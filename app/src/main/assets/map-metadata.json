@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "generator": "tools/map/slice_tiles.py",
+  "gameCoordScale": 4.0,
+  "gameBounds": {
+    "minX": 960.0,
+    "maxX": 4224.0,
+    "minY": 1216.0,
+    "maxY": 12608.0
+  },
+  "sourceImage": {
+    "width": 13056.0,
+    "height": 45568.0
+  },
+  "tilePyramid": {
+    "tileSize": 1024.0,
+    "minZoom": 0,
+    "maxZoom": 6,
+    "canvasSize": 65536.0
+  },
+  "sourceGenerator": "tools/map/map-dumper"
+}

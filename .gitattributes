@@ -1,0 +1,61 @@
+# Set the default behavior to automatically handle line endings.
+* text=auto
+
+#
+# Explicitly handle text files to ensure proper normalization.
+#
+# Source Code
+*.java       text
+*.kt         text
+*.kts        text
+*.js         text
+*.ts         text
+*.css        text
+*.html       text
+*.xml        text
+*.sh         text
+*.py         text
+
+# Config and Data Files
+*.json       text
+*.yml        text
+*.toml       text
+*.md         text
+*.txt        text
+*.properties text
+*.pro        text
+.gitignore   text
+.gcloudignore text
+.eslintrc    text
+.npmignore   text
+.nycrc       text
+
+# Project Files
+*.iml        text
+
+#
+# Explicitly handle binary files to prevent Git from touching them.
+#
+# Archives and Packages
+*.jar        binary
+*.apk        binary
+*.ap_        binary
+
+# Compiled Code & Libraries
+*.class      binary
+*.dex        binary
+*.so         binary
+
+# Images and Fonts
+*.png        binary
+*.webp       binary
+*.ttf        binary
+
+# Cache and Data Files
+*.dat        binary
+*.dat2       binary
+*.idx* binary
+*.mbtiles    binary
+*.flat       binary
+*.map        binary
+*.keystream  binary

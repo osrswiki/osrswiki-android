@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_semantic_overview_accessibility_description">Map overview. Activate to recenter on Lumbridge, or use directional scroll actions to move the map.</string>
+    <string name="map_floor_up">Increase map floor level</string>
+    <string name="map_floor_down">Decrease map floor level</string>
+    <string name="map_floor_current">Current map floor: %1$s</string>
+    <string name="map_marker_info_action">Map marker information</string>
+    <string name="map_marker_noninteractive_message">Rendered semantic labels, points of interest, and map links are selectable. Raster tile icons remain part of the base map image.</string>
+    <string name="map_accessibility_description">OSRS world map. Drag to move and pinch to zoom. Base raster markers are not individually selectable. Visible semantic labels, points of interest, and map links are individually selectable with accessibility. Use Search places for hidden or off-screen locations.</string>
+    <string name="map_unavailable_title">Map unavailable</string>
+    <string name="map_unavailable_message">The map could not load its offline tile assets.</string>
+    <string name="map_retry">Retry</string>
+    <string name="map_semantic_stop_default" formatted="false">Stop 100%</string>
+    <string name="map_semantic_stop">Stop %1$d%%</string>
+    <string name="map_semantic_stop_custom">Custom %1$d%%</string>
+    <string name="map_semantic_labels_on">Labels on</string>
+    <string name="map_semantic_labels_off">Labels off</string>
+    <string name="map_semantic_pois_on">POIs on</string>
+    <string name="map_semantic_pois_off">POIs off</string>
+    <string name="map_semantic_links_on">Links on</string>
+    <string name="map_semantic_links_off">Links off</string>
+    <string name="map_semantic_key_on">Key highlight on</string>
+    <string name="map_semantic_key_off">Key highlight off</string>
+    <string name="map_semantic_feature_action">%1$s: %2$s</string>
+    <string name="map_semantic_feature_unavailable">%1$s: surface switch unavailable in this prototype</string>
+    <string name="map_semantic_search_hint">Search places</string>
+    <string name="map_semantic_search_action">Search map</string>
+    <string name="map_semantic_search_result">Centered on %1$s</string>
+    <string name="map_semantic_search_no_result">No surface result for "%1$s"</string>
+    <string name="map_semantic_history_back">Previous map view</string>
+    <string name="map_semantic_surface_selector">Gielinor Surface</string>
+    <string name="map_semantic_surface_selector_action">Choose map surface</string>
+    <string name="map_semantic_key_title">Key</string>
+    <string name="map_semantic_key_toggle">Key</string>
+    <string name="map_semantic_key_toggle_action">Show or hide map key</string>
+    <string name="map_semantic_key_banks">Banks</string>
+    <string name="map_semantic_key_transport">Transport</string>
+    <string name="map_semantic_key_dungeons">Dungeons</string>
+    <string name="map_semantic_key_places">Places</string>
+    <string name="map_semantic_overview_on">Overview on</string>
+    <string name="map_semantic_overview_off">Overview off</string>
+    <string name="map_semantic_overview_action">Show or hide overview map</string>
+    <string name="map_semantic_overview_description">Gielinor overview. Drag the red viewport to move the main map.</string>
+    <string name="map_semantic_overview_recentered">Recentered from overview map</string>
+    <string name="map_semantic_surface_unavailable">%1$s is %2$s</string>
+    <string name="map_semantic_link_unknown">Unknown link</string>
+    <string name="map_semantic_accessibility_host">Semantic map. Visible selectable features: %1$s. Labels layer %2$s. Known searchable places: %3$s. Activate this map summary to focus Search places.</string>
+    <string name="map_semantic_accessibility_none">none in the current viewport</string>
+    <string name="map_semantic_accessibility_labels_visible">visible</string>
+    <string name="map_semantic_accessibility_labels_hidden">hidden</string>
+    <string name="map_semantic_accessibility_feature">%1$s. Visible %2$s. %3$s.</string>
+    <string name="map_semantic_accessibility_recenter">Activate to recenter the map</string>
+    <string name="map_semantic_accessibility_switch_surface">Activate to switch map surfaces</string>
+    <string name="map_semantic_accessibility_unavailable">Activate for the unavailable-surface reason</string>
+    <string name="map_semantic_accessibility_details">Activate for feature details</string>
+</resources>

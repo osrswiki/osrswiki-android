@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="osrs_ink">#21170E</color>
+    <color name="osrs_parchment">#E7D5A8</color>
+    <color name="osrs_parchment_dark">#C4A66D</color>
+    <color name="osrs_map_background">#000000</color>
+</resources>

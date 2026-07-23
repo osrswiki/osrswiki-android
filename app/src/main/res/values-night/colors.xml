@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bottom Navigation Inactive (40% alpha of active color for dark theme) -->
+    <color name="bottom_nav_inactive">#66f4eaea</color> <!-- 40% alpha of osrs_text_light_alt (true transparency) -->
+    
+    <!-- Search box background for dark theme (matches iOS adaptive approach) -->
+    <color name="search_box_bg_on_primary">#1AFFFFFF</color> <!-- 10% white for dark theme -->
+</resources>

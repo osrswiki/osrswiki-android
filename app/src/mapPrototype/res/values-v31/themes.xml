@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Animation.OSRSWiki.MapPrototype.NoTransition" parent="@android:style/Animation">
+        <item name="android:activityCloseEnterAnimation">@anim/map_prototype_no_transition</item>
+        <item name="android:activityCloseExitAnimation">@anim/map_prototype_no_transition</item>
+        <item name="android:activityOpenEnterAnimation">@anim/map_prototype_no_transition</item>
+        <item name="android:activityOpenExitAnimation">@anim/map_prototype_no_transition</item>
+        <item name="android:windowEnterAnimation">@anim/map_prototype_no_transition</item>
+        <item name="android:windowExitAnimation">@anim/map_prototype_no_transition</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.MapPrototype" parent="@style/Theme.OSRSWiki">
+        <item name="android:colorBackground">#171B17</item>
+        <item name="android:windowActivityTransitions">false</item>
+        <item name="android:windowAnimationStyle">@style/Animation.OSRSWiki.MapPrototype.NoTransition</item>
+        <item name="android:windowBackground">@drawable/map_prototype_launch_background</item>
+        <item name="android:windowContentTransitions">false</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.MapPrototype.Launch" parent="@style/Theme.OSRSWiki.MapPrototype">
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+    </style>
+
+    <style name="Theme.OSRSWiki.MapPrototype.Trampoline" parent="@android:style/Theme.NoDisplay">
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+</resources>

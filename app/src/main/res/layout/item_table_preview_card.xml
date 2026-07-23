@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- iOS-style compact table preview card: 90px width, vertical layout, preview above text -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
+    android:checkable="true"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="2dp"
+    app:strokeColor="@color/selector_theme_card_border"
+    app:cardBackgroundColor="?attr/colorSurfaceVariant"
+    app:checkedIcon="@null">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingVertical="8dp"
+        android:paddingHorizontal="4dp">
+
+        <!-- Preview Image Area - matches iOS 82x120dp exactly -->
+        <FrameLayout
+            android:id="@+id/previewContainer"
+            android:layout_width="82dp"
+            android:layout_height="120dp"
+            android:background="?attr/colorSurfaceVariant"
+            app:cornerRadius="6dp"
+            android:clipToOutline="true">
+            
+            <ImageView
+                android:id="@+id/tablePreviewImage"
+                android:layout_width="82dp"
+                android:layout_height="120dp"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="false"
+                android:background="@android:color/transparent"
+                android:importantForAccessibility="no" />
+                
+            <!-- Loading indicator overlay -->
+            <ProgressBar
+                android:id="@+id/loadingIndicator"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="?attr/colorPrimary"
+                android:visibility="gone" />
+                
+        </FrameLayout>
+
+        <!-- Text Area - matches theme cards exactly -->
+        <TextView
+            android:id="@+id/textTableSettingName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceCaption"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:gravity="center"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="Expanded" />
+
+        <!-- Remove description text to match iOS compact design -->
+
+    </LinearLayout>
+
+    <!-- Selection checkmark overlay - matches iOS position -->
+    <ImageView
+        android:id="@+id/selectionCheckmark"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="6dp"
+        android:src="@drawable/ic_check_circle"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
+</com.google.android.material.card.MaterialCardView>
