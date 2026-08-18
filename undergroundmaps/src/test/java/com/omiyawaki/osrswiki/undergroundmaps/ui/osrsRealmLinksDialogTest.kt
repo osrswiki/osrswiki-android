@@ -2,6 +2,8 @@ package com.omiyawaki.osrswiki.undergroundmaps.ui
 
 import android.content.Context
 import android.view.ContextThemeWrapper
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
 import com.omiyawaki.osrswiki.undergroundmaps.R
@@ -51,6 +53,16 @@ class osrsRealmLinksDialogTest {
         assertTrue(firstShow.viewConstructionNanos >= 0L)
         assertTrue(firstShow.initialRowConversionNanos >= 0L)
         assertTrue(firstShow.initialAdapterSubmissionNanos >= 0L)
+        val palette = controller.debugState()
+        assertTrue(palette.explicitOsrsPalette)
+        assertEquals(context.getColor(R.color.osrs_parchment), palette.titleTextColor)
+        assertEquals(context.getColor(R.color.osrs_underground_parchment_dark), palette.summaryTextColor)
+        assertEquals(context.getColor(R.color.osrs_parchment), palette.searchTextColor)
+        assertEquals(context.getColor(R.color.osrs_underground_parchment_dark), palette.searchHintColor)
+        assertTrue(palette.searchMinimumHeightPx >= (48 * context.resources.displayMetrics.density).toInt())
+        assertFalse(palette.compactLandscapeImeChrome)
+        val search = requireNotNull(dialog.findViewById<EditText>(R.id.osrs_links_search))
+        assertTrue(search.imeOptions and EditorInfo.IME_FLAG_NO_EXTRACT_UI != 0)
 
         val summary = requireNotNull(dialog.findViewById<android.widget.TextView>(R.id.osrs_links_summary))
         assertEquals(

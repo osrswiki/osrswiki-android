@@ -22,7 +22,7 @@ class osrsCandidate005CorrectnessInstrumentedTest {
     fun allFourSameRealmLinksExposeAndNavigateBothDirectionalSides() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         ActivityScenario.launch(osrsUndergroundMapsActivity::class.java).use { scenario ->
-            awaitDiagnostics(scenario) { it.candidate == "006" && it.sourceId != null }
+            awaitDiagnostics(scenario) { it.candidate == "010" && it.sourceId != null }
             OSRS_SAME_REALM_LINK_CASES.forEach { case ->
                 scenario.onActivity { activity ->
                     assertTrue(activity.selectRealmForTesting(case.realmId))
@@ -33,13 +33,12 @@ class osrsCandidate005CorrectnessInstrumentedTest {
                         it.switchCompletedAtNanos != null
                 }
 
-                val linksButton = requireNotNull(
-                    device.wait(
-                        Until.findObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")),
-                        OSRS_UI_TIMEOUT_MILLIS
-                    )
-                )
-                linksButton.click()
+                assertTrue(!device.hasObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")))
+                var openedThroughTestHook = false
+                scenario.onActivity { activity ->
+                    openedThroughTestHook = activity.openRealmLinksForTesting()
+                }
+                assertTrue(openedThroughTestHook)
                 val search = requireNotNull(
                     device.wait(
                         Until.findObject(By.res(OSRS_PACKAGE_ID, "osrs_links_search")),
@@ -108,7 +107,7 @@ class osrsCandidate005CorrectnessInstrumentedTest {
     @Test
     fun delayedSelectionRacesAndLargeDisplayEndpointRemainOwnedAcrossRecreation() {
         ActivityScenario.launch(osrsUndergroundMapsActivity::class.java).use { scenario ->
-            awaitDiagnostics(scenario) { it.candidate == "006" && it.sourceId != null }
+            awaitDiagnostics(scenario) { it.candidate == "010" && it.sourceId != null }
             scenario.onActivity { activity ->
                 assertTrue(activity.selectRealmForTesting(OSRS_SURFACE_REALM_ID))
             }
@@ -129,7 +128,7 @@ class osrsCandidate005CorrectnessInstrumentedTest {
                     it.selectedLinkSideKey == "$OSRS_LARGE_DISPLAY_LINK_ID:forward" &&
                     it.installedCameraRealmId == OSRS_OURANIA_REALM_ID &&
                     it.installedCameraPlane == 0 &&
-                    cameraMatches(it, 84.40594104126977, -150.46875, 7.0)
+                    cameraMatches(it, 84.73838712095339, -165.234375, OSRS_SURFACE_TO_OURANIA_RELATIVE_ZOOM)
             }
             val expectedCamera = Triple(
                 requireNotNull(largeDisplay.cameraLatitude),
@@ -145,7 +144,7 @@ class osrsCandidate005CorrectnessInstrumentedTest {
                     it.installedCameraRequestId == it.activeSwitchRequestId &&
                     cameraMatches(it, expectedCamera.first, expectedCamera.second, expectedCamera.third)
             }
-            assertEquals(7.0, recreatedLargeDisplay.cameraZoom!!, OSRS_CAMERA_EPSILON)
+            assertEquals(OSRS_SURFACE_TO_OURANIA_RELATIVE_ZOOM, recreatedLargeDisplay.cameraZoom!!, OSRS_CAMERA_EPSILON)
 
             var delayedWindow: osrsMapDiagnostics? = null
             scenario.onActivity { activity ->
@@ -217,7 +216,7 @@ class osrsCandidate005CorrectnessInstrumentedTest {
             latest?.let { if (predicate(it)) return it }
             Thread.sleep(25)
         }
-        throw AssertionError("Timed out awaiting Candidate 006 diagnostics; latest=$latest")
+        throw AssertionError("Timed out awaiting Candidate 010 diagnostics; latest=$latest")
     }
 
     private fun cameraMatches(
@@ -253,10 +252,11 @@ class osrsCandidate005CorrectnessInstrumentedTest {
         const val OSRS_LARGE_DISPLAY_LINK_ID = "intermap-0125"
         const val OSRS_DELAYED_B_REALM_ID = "cache-world-map:ancient-cavern"
         const val OSRS_RAPID_B_REALM_ID = "cache-world-map:morytania-underground"
-        const val OSRS_RAPID_C_REALM_ID = "other-map-10042"
+        const val OSRS_RAPID_C_REALM_ID = "cache-world-map:desert-underground"
         const val OSRS_UI_TIMEOUT_MILLIS = 15_000L
         const val OSRS_STATE_TIMEOUT_MILLIS = 30_000L
         const val OSRS_CAMERA_EPSILON = 1e-6
+        const val OSRS_SURFACE_TO_OURANIA_RELATIVE_ZOOM = 3.3414426741929004
 
         val OSRS_SAME_REALM_LINK_CASES = listOf(
             osrsSameRealmLinkCase(

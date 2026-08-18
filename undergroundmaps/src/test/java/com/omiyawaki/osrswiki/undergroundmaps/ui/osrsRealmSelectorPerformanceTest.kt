@@ -23,7 +23,7 @@ import kotlin.system.measureNanoTime
 @Config(sdk = [34])
 class osrsRealmSelectorPerformanceTest {
     @Test
-    fun `profile full selector filtering and row replacement`() = runBlocking {
+    fun `profile full selector filtering and kiss row projection`() = runBlocking {
         val context: Context = ApplicationProvider.getApplicationContext()
         val catalog = osrsRealmRepository(context).loadCatalog()
         assumeTrue(
@@ -46,13 +46,8 @@ class osrsRealmSelectorPerformanceTest {
                 val result = selectorIndex.filter(query)
                 buildList {
                     OSRS_REALM_GROUPS.forEach { group ->
-                        val realms = result.sections.getValue(group)
-                        if (realms.isNotEmpty()) {
-                            add("header:$group")
-                            realms.forEach { add("realm:${it.id}") }
-                        }
+                        result.sections.getValue(group).forEach { add(it.id) }
                     }
-                    if (isEmpty()) add("empty")
                 }
             }
         }
@@ -66,7 +61,7 @@ class osrsRealmSelectorPerformanceTest {
     }
 
     private companion object {
-        const val OSRS_EXPECTED_REALM_COUNT = 1097
+        const val OSRS_EXPECTED_REALM_COUNT = 50
         const val OSRS_HOST_P95_BUDGET_NANOS = 50_000_000L
     }
 }

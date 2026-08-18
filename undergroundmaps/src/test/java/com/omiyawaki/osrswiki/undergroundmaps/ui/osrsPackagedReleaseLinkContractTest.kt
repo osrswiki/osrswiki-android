@@ -3,10 +3,10 @@ package com.omiyawaki.osrswiki.undergroundmaps.ui
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.omiyawaki.osrswiki.undergroundmaps.data.osrsRealmRepository
-import com.omiyawaki.osrswiki.undergroundmaps.model.osrsEndpointZoomForViewport
-import com.omiyawaki.osrswiki.undergroundmaps.model.osrsMaximumDisplayExtentDp
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmCameraEnvelope
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmLinkTraversalDirection
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRelativeLinkZoomForAssets
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRasterCompositionFor
 import com.omiyawaki.osrswiki.undergroundmaps.state.osrsCameraState
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -26,15 +26,58 @@ class osrsPackagedReleaseLinkContractTest {
     fun `full packaged release preserves mixed links and endpoint navigation contract`() = runBlocking {
         val context: Context = ApplicationProvider.getApplicationContext()
         val catalog = osrsRealmRepository(context).loadCatalog()
+        val authoritativeAvailableLinkCount = catalog.manifest.realms
+            .flatMap { it.links }
+            .filter { it.authoritative && it.availability == "available" }
+            .distinctBy { it.id }
+            .size
         assumeTrue(
             "Full generated realm assets are required for the packaged release contract",
-            catalog.realmCount == OSRS_EXPECTED_REALM_COUNT
+            catalog.realmCount == OSRS_EXPECTED_REALM_COUNT &&
+                authoritativeAvailableLinkCount == OSRS_EXPECTED_AVAILABLE_LINK_COUNT
         )
         val presentations = osrsRealmPresentationCatalog(catalog.manifest.realms)
         val surfaceLinks = osrsRealmLinkCatalog(catalog.surface, catalog, presentations)
         val cache = osrsRealmLinkCatalogCache(catalog, presentations)
         val cachedSurfaceLinks = cache.get(catalog.surface)
         val repeatedSurfaceLinks = cache.get(catalog.surface)
+
+        val allFloorCompositions = catalog.manifest.realms.flatMap { realm ->
+            realm.planes.map { plane -> realm to osrsRasterCompositionFor(realm, plane) }
+        }
+        assertEquals(122, allFloorCompositions.size)
+        assertEquals(
+            1,
+            catalog.manifest.realms.count { realm -> realm.assetForPlane(0) == null }
+        )
+        assertEquals(
+            72,
+            allFloorCompositions.count { (realm, composition) ->
+                composition.selectedPlane != 0 && realm.assetForPlane(0) != null
+            }
+        )
+        assertEquals(
+            1,
+            allFloorCompositions.count { (realm, composition) ->
+                composition.selectedPlane != 0 && realm.assetForPlane(0) == null
+            }
+        )
+        allFloorCompositions.forEach { (realm, composition) ->
+            assertEquals(composition.selectedPlane, composition.layersBottomToTop.last().plane)
+            assertEquals(1.0f, composition.layersBottomToTop.last().opacity)
+            if (composition.selectedPlane != 0 && realm.assetForPlane(0) != null) {
+                assertEquals(
+                    listOf(0, composition.selectedPlane),
+                    composition.layersBottomToTop.map { it.plane }
+                )
+                assertEquals(0.5f, composition.layersBottomToTop.first().opacity)
+            } else {
+                assertEquals(
+                    listOf(composition.selectedPlane),
+                    composition.layersBottomToTop.map { it.plane }
+                )
+            }
+        }
 
         assertFalse(cachedSurfaceLinks.cacheHit)
         assertTrue(repeatedSurfaceLinks.cacheHit)
@@ -74,15 +117,6 @@ class osrsPackagedReleaseLinkContractTest {
             setOf("intermap-0076", "intermap-0137"),
             ancientLinks.availableRows.map { it.link.id }.toSet()
         )
-
-        val fishingTrawlerIds = listOf(
-            "other-map-10064",
-            "other-map-10065",
-            "other-map-10066"
-        )
-        val fishingLabels = fishingTrawlerIds.map { presentations[it] }
-        assertEquals(3, fishingLabels.map { it.visibleName }.distinct().size)
-        assertEquals(3, fishingLabels.map { it.accessibilityName }.distinct().size)
 
         val allAvailableRows = catalog.manifest.realms.flatMap { realm ->
             osrsRealmLinkCatalog(realm, catalog, presentations).availableRows
@@ -128,40 +162,28 @@ class osrsPackagedReleaseLinkContractTest {
             }
         }
 
-        val displayCases = listOf(
-            Triple(540, 960, 0.75),
-            Triple(1200, 1200, 0.75),
-            Triple(1080, 1920, 1.0),
-            Triple(2400, 3200, 2.0),
-            Triple(4320, 4800, 3.0)
-        )
         allAvailableRows.forEach { row ->
+            val sourceRealm = catalog.byId.getValue(requireNotNull(row.side.sourceRealmId))
+            val sourceAsset = requireNotNull(sourceRealm.assetForPlane(row.sourcePosition.plane))
             val asset = row.targetRealm.assetForPlane(row.targetPosition.plane)!!
-            displayCases.forEach { (widthPixels, heightPixels, density) ->
-                val extentDp = osrsMaximumDisplayExtentDp(
-                    widthPixels,
-                    heightPixels,
-                    density,
-                    (density * 160.0).toInt()
-                )
-                val zoom = osrsEndpointZoomForViewport(
-                    row.targetRealm,
-                    row.destination,
-                    extentDp
-                )
-                assertTrue(osrsRealmCameraEnvelope.contains(asset, zoom))
-                assertTrue(
-                    osrsCameraState(
-                        latitude = row.destination.latitude,
-                        longitude = row.destination.longitude,
-                        zoom = zoom
-                    ).isWithin(asset)
-                )
-            }
+            val zoom = osrsRelativeLinkZoomForAssets(
+                currentZoom = sourceAsset.maxZoom + 1.25,
+                sourceAsset = sourceAsset,
+                targetAsset = asset
+            ).finalTargetZoom
+            assertTrue(osrsRealmCameraEnvelope.contains(asset, zoom))
+            assertTrue(
+                osrsCameraState(
+                    latitude = row.destination.latitude,
+                    longitude = row.destination.longitude,
+                    zoom = zoom
+                ).isWithin(asset)
+            )
         }
     }
 
     private companion object {
-        const val OSRS_EXPECTED_REALM_COUNT = 1097
+        const val OSRS_EXPECTED_REALM_COUNT = 50
+        const val OSRS_EXPECTED_AVAILABLE_LINK_COUNT = 350
     }
 }

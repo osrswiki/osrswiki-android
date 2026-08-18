@@ -8,6 +8,7 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.news.model.*
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -21,14 +22,20 @@ import java.util.concurrent.TimeUnit
  */
 object NewsRepository : NewsFeedRepository {
     private const val BASE_URL = "https://oldschool.runescape.wiki"
-    private const val WIKI_URL = "$BASE_URL/"
+    // MobileFrontend strips the desktop-only On this day and Popular pages
+    // modules. Request the complete homepage because the Home feed presents
+    // those modules as native app sections.
+    private const val WIKI_URL = "$BASE_URL/?mobileaction=toggle_view_desktop"
     
     // Cache configuration
     private const val CACHE_PREFS_NAME = "osrs_wiki_feed_cache"
-    private const val CACHE_KEY = "wiki_feed_data"
-    private const val CACHE_TIMESTAMP_KEY = "wiki_feed_timestamp"
+    private const val CACHE_KEY = "wiki_feed_data_desktop_complete_v2"
+    private const val CACHE_TIMESTAMP_KEY = "wiki_feed_timestamp_desktop_complete_v2"
     private const val CACHE_REFRESH_ATTEMPT_KEY = "wiki_feed_last_refresh_attempt"
     private const val CACHE_TTL_HOURS = 24L // 24 hours cache TTL like iOS
+    private const val REQUEST_TIMEOUT_MILLIS = 10_000
+    private const val REQUEST_ATTEMPTS = 2
+    private const val REQUEST_RETRY_DELAY_MILLIS = 250L
     
     private val gson = Gson()
     private lateinit var cachePrefs: SharedPreferences
@@ -56,13 +63,12 @@ object NewsRepository : NewsFeedRepository {
             
             if (cachedJson != null && timestamp != -1L) {
                 val feed = gson.fromJson(cachedJson, WikiFeed::class.java)
+                cachedFeed = feed
+                cacheTimestamp = timestamp
                 if (isCacheValid(timestamp)) {
-                    cachedFeed = feed
-                    cacheTimestamp = timestamp
                     L.d("📦 NewsRepository: Loaded valid cached data from SharedPreferences")
                 } else {
-                    clearCache()
-                    L.d("📦 NewsRepository: Cached data expired, cleared cache")
+                    L.d("📦 NewsRepository: Loaded stale cached data for offline fallback")
                 }
             }
             
@@ -172,7 +178,16 @@ object NewsRepository : NewsFeedRepository {
         
         L.d("🌐 NewsRepository: Fetching fresh feed data...")
         try {
-            val doc = Jsoup.connect(WIKI_URL).get()
+            val doc = osrsFetchWithRetry(
+                maxAttempts = REQUEST_ATTEMPTS,
+                retryDelayMillis = REQUEST_RETRY_DELAY_MILLIS
+            ) { attempt ->
+                L.d("🌐 NewsRepository: Wiki request attempt $attempt/$REQUEST_ATTEMPTS")
+                Jsoup.connect(WIKI_URL)
+                    .timeout(REQUEST_TIMEOUT_MILLIS)
+                    .userAgent("OSRS Wiki Android/${com.omiyawaki.osrswiki.BuildConfig.VERSION_NAME}")
+                    .get()
+            }
             val feed = WikiFeed(
                 recentUpdates = parseRecentUpdates(doc),
                 announcements = parseAnnouncements(doc),
@@ -186,6 +201,12 @@ object NewsRepository : NewsFeedRepository {
             Result.success(feed)
         } catch (e: IOException) {
             L.e("❌ NewsRepository: Network error fetching wiki feed", e)
+            if (!forceRefresh) {
+                cachedFeed?.let { staleFeed ->
+                    L.d("📦 NewsRepository: Serving stale Home feed after network failure")
+                    return@withContext Result.success(staleFeed)
+                }
+            }
             Result.failure(e)
         } catch (e: Exception) {
             L.e("❌ NewsRepository: Unexpected error fetching wiki feed", e)
@@ -277,4 +298,25 @@ object NewsRepository : NewsFeedRepository {
             )
         }
     }
+}
+
+internal suspend fun <T> osrsFetchWithRetry(
+    maxAttempts: Int,
+    retryDelayMillis: Long,
+    fetch: suspend (attempt: Int) -> T
+): T {
+    require(maxAttempts > 0) { "maxAttempts must be positive" }
+    var lastFailure: IOException? = null
+    repeat(maxAttempts) { index ->
+        val attempt = index + 1
+        try {
+            return fetch(attempt)
+        } catch (failure: IOException) {
+            lastFailure = failure
+            if (attempt < maxAttempts && retryDelayMillis > 0) {
+                delay(retryDelayMillis)
+            }
+        }
+    }
+    throw requireNotNull(lastFailure)
 }

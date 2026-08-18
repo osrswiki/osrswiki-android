@@ -10,7 +10,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.ceil
 
-/** Candidate 004 regressions for the complete packaged 1,097-realm selector. */
+/** Candidate 004 regressions for the complete packaged 50-realm canonical selector. */
 @RunWith(AndroidJUnit4::class)
 class osrsCandidate004SelectorInstrumentedTest {
     @Test
@@ -19,7 +19,7 @@ class osrsCandidate004SelectorInstrumentedTest {
             val initial = awaitDiagnostics(scenario) {
                 it.sourceId != null && it.manifestRealmCount == OSRS_EXPECTED_REALM_COUNT
             }
-            assumeTrue("Exact Candidate 006 assets are required", initial.candidate == "006")
+            assumeTrue("Exact Candidate 010 assets are required", initial.candidate == "010")
             scenario.onActivity { activity ->
                 assertTrue(activity.openRealmSelectorForTesting())
             }
@@ -51,12 +51,12 @@ class osrsCandidate004SelectorInstrumentedTest {
     }
 
     @Test
-    fun longestAndStructuredDuplicateIdentitiesStayVisiblyHonestAndAccessible() {
+    fun longestCanonicalIdentityStaysHonestAndRemovedRecordsStayUnavailable() {
         ActivityScenario.launch(osrsUndergroundMapsActivity::class.java).use { scenario ->
             val initial = awaitDiagnostics(scenario) {
                 it.sourceId != null && it.manifestRealmCount == OSRS_EXPECTED_REALM_COUNT
             }
-            assumeTrue("Exact Candidate 006 assets are required", initial.candidate == "006")
+            assumeTrue("Exact Candidate 010 assets are required", initial.candidate == "010")
             scenario.onActivity { activity ->
                 assertTrue(activity.selectRealmForTesting(OSRS_LONGEST_IDENTITY_REALM_ID))
             }
@@ -78,27 +78,11 @@ class osrsCandidate004SelectorInstrumentedTest {
             assertTrue(longest.selectorAndStatusSeparated != false)
             assertTrue(longest.topAndFloorControlsSeparated != false)
 
-            val visibleIdentities = mutableListOf<String>()
-            val accessibleIdentities = mutableListOf<String>()
-            OSRS_STRUCTURED_DUPLICATE_IDS.forEach { realmId ->
-                scenario.onActivity { activity -> assertTrue(activity.selectRealmForTesting(realmId)) }
-                val diagnostics = awaitDiagnostics(scenario) {
-                    it.activeRealmId == realmId &&
-                        it.switchCompletedAtNanos != null &&
-                        it.selectorIdentityAccessibilityText.orEmpty().contains(
-                            "Map ID ${realmId.removePrefix("other-map-")}"
-                        ) &&
-                        it.selectorIdentityHonest == true
+            OSRS_REMOVED_NONCANONICAL_IDS.forEach { realmId ->
+                scenario.onActivity { activity ->
+                    assertTrue(!activity.selectRealmForTesting(realmId))
                 }
-                visibleIdentities += requireNotNull(diagnostics.activeRealmDisplayName)
-                accessibleIdentities += requireNotNull(diagnostics.selectorIdentityAccessibilityText)
-                assertTrue(diagnostics.selectorIdentityHonest == true)
             }
-            assertEquals(3, visibleIdentities.distinct().size)
-            assertEquals(3, accessibleIdentities.distinct().size)
-            assertTrue(visibleIdentities[0].contains("Map ID 10064"))
-            assertTrue(visibleIdentities[1].contains("Map ID 10065"))
-            assertTrue(visibleIdentities[2].contains("Map ID 10066"))
         }
     }
 
@@ -122,17 +106,15 @@ class osrsCandidate004SelectorInstrumentedTest {
     }
 
     private companion object {
-        const val OSRS_EXPECTED_REALM_COUNT = 1097
-        const val OSRS_LONGEST_IDENTITY_REALM_ID = "other-map-10162"
-        const val OSRS_LONGEST_IDENTITY =
-            "Underground Pass - bottom level (Song of the Elves instance)"
+        const val OSRS_EXPECTED_REALM_COUNT = 50
+        const val OSRS_LONGEST_IDENTITY_REALM_ID = "cache-world-map:desert-underground"
+        const val OSRS_LONGEST_IDENTITY = "Kharidian Desert Underground"
         const val OSRS_SIMPLE_CONTROL_BUDGET_NANOS = 50_000_000L
         const val OSRS_TEST_TIMEOUT_NANOS = 30_000_000_000L
         const val OSRS_TEST_POLL_MILLIS = 100L
-        val OSRS_STRUCTURED_DUPLICATE_IDS = listOf(
+        val OSRS_REMOVED_NONCANONICAL_IDS = listOf(
             "other-map-10064",
-            "other-map-10065",
-            "other-map-10066"
+            "cache-special-region:18-148"
         )
         val OSRS_FILTER_QUERIES = buildList {
             repeat(10) {

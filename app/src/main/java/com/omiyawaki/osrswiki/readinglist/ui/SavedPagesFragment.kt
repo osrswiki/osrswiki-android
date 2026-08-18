@@ -18,6 +18,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -30,12 +31,15 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase // For accessing DAO
 import com.omiyawaki.osrswiki.databinding.FragmentSavedPagesBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry // Added import
 import com.omiyawaki.osrswiki.page.PageActivity
 import com.omiyawaki.osrswiki.page.PageFragment
 import com.omiyawaki.osrswiki.page.PageTitle
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import com.omiyawaki.osrswiki.readinglist.adapter.SavedPagesAdapter
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.repository.SavedPagesRepository // For manual Repository instantiation
@@ -44,10 +48,12 @@ import com.omiyawaki.osrswiki.readinglist.viewmodel.SavedPagesViewModelFactory /
 import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
+import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.log.L
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.color.MaterialColors
 // import dagger.hilt.android.AndroidEntryPoint // Removed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,6 +73,11 @@ class SavedPagesFragment : Fragment(), ThemeAware {
     }
 
     private lateinit var savedPagesAdapter: SavedPagesAdapter
+    private var articlePrewarmBinder: VisibleArticlePrewarmBinder? = null
+    private var latestSavedPages: List<ReadingListPage> = emptyList()
+    private val hiddenSavedPageIds = mutableSetOf<Long>()
+    private var pendingDeletePage: ReadingListPage? = null
+    private var pendingDeleteSnackbar: Snackbar? = null
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
     private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -91,6 +102,7 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         setupSearch()
         setupFonts()
         setupRecyclerView()
+        setupArticlePrewarm()
         observeSavedPages()
         setupMenu()
     }
@@ -144,8 +156,8 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         }
         
         // Setup swipe-to-delete
-        val swipeCallback = SwipeToDeleteCallback { savedPage, position ->
-            showSwipeDeleteUndo(savedPage, position)
+        val swipeCallback = SwipeToDeleteCallback { savedPage ->
+            showSwipeDeleteUndo(savedPage)
         }
         val itemTouchHelper = ItemTouchHelper(swipeCallback)
         
@@ -157,13 +169,29 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         }
     }
 
+    private fun setupArticlePrewarm() {
+        val app = requireActivity().application as OSRSWikiApp
+        articlePrewarmBinder = VisibleArticlePrewarmBinder(
+            recyclerView = binding.savedPagesRecyclerView,
+            lifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            candidatesAt = { position, _ ->
+                setOfNotNull(savedPagesAdapter.currentList.getOrNull(position)?.let { page ->
+                    ArticlePrewarmRequest(pageId = page.mediaWikiPageId, title = page.apiTitle)
+                })
+            },
+            onDwell = app.pageAssetDownloader::prewarmArticle,
+            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener
+        )
+    }
+
     private fun observeSavedPages() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.savedPages.collect { pages ->
-                    savedPagesAdapter.submitList(pages)
-                    binding.emptyStateTextView.isVisible = pages.isEmpty()
-                    binding.savedPagesRecyclerView.isVisible = pages.isNotEmpty()
+                    latestSavedPages = pages
+                    hiddenSavedPageIds.removeAll { hiddenId -> pages.none { it.id == hiddenId } }
+                    renderVisibleSavedPages()
                 }
             }
         }
@@ -187,31 +215,62 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         startActivity(intent)
     }
 
-    private fun showSwipeDeleteUndo(savedPage: ReadingListPage, position: Int) {
-        if (position != RecyclerView.NO_POSITION) {
-            savedPagesAdapter.notifyItemChanged(position)
-        }
+    private fun showSwipeDeleteUndo(savedPage: ReadingListPage) {
+        commitPendingDelete()
+        pendingDeletePage = savedPage
+        hiddenSavedPageIds += savedPage.id
+        renderVisibleSavedPages()
 
-        var undoSelected = false
-        Snackbar.make(
+        val displayTitle = StringUtil.extractMainTitle(savedPage.displayTitle)
+        val snackbar = Snackbar.make(
             binding.root,
-            getString(R.string.saved_page_delete_pending, savedPage.displayTitle),
+            getString(R.string.saved_page_delete_pending, displayTitle),
             Snackbar.LENGTH_LONG
         )
             .setAction(R.string.action_undo) {
-                undoSelected = true
-                if (position != RecyclerView.NO_POSITION) {
-                    savedPagesAdapter.notifyItemChanged(position)
-                }
+                hiddenSavedPageIds -= savedPage.id
+                pendingDeletePage = null
+                pendingDeleteSnackbar = null
+                renderVisibleSavedPages()
             }
             .addCallback(object : Snackbar.Callback() {
                 override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
-                    if (!undoSelected && event != DISMISS_EVENT_ACTION) {
+                    if (pendingDeletePage?.id == savedPage.id && event != DISMISS_EVENT_ACTION) {
+                        pendingDeletePage = null
+                        pendingDeleteSnackbar = null
                         viewModel.deleteSavedPage(savedPage)
                     }
                 }
             })
-            .show()
+
+        snackbar.setBackgroundTint(
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorSurfaceVariant)
+        )
+        snackbar.setTextColor(
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnSurfaceVariant)
+        )
+        snackbar.setActionTextColor(
+            MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorPrimary)
+        )
+        requireActivity().findViewById<View>(R.id.bottom_nav)?.let(snackbar::setAnchorView)
+        pendingDeleteSnackbar = snackbar
+        snackbar.show()
+    }
+
+    private fun renderVisibleSavedPages() {
+        val currentBinding = _binding ?: return
+        val visiblePages = latestSavedPages.filterNot { it.id in hiddenSavedPageIds }
+        savedPagesAdapter.submitList(visiblePages)
+        currentBinding.emptyStateTextView.isVisible = visiblePages.isEmpty()
+        currentBinding.savedPagesRecyclerView.isVisible = visiblePages.isNotEmpty()
+    }
+
+    private fun commitPendingDelete() {
+        val page = pendingDeletePage ?: return
+        pendingDeletePage = null
+        pendingDeleteSnackbar?.dismiss()
+        pendingDeleteSnackbar = null
+        viewModel.deleteSavedPage(page)
     }
 
     private fun setupMenu() {
@@ -256,9 +315,7 @@ class SavedPagesFragment : Fragment(), ThemeAware {
                     val repository = SavedPagesRepository(readingListPageDao)
                     
                     // Get all saved pages
-                    val allSavedPages = readingListPageDao.getPagesByStatusAndOffline(
-                        ReadingListPage.STATUS_SAVED, true
-                    )
+                    val allSavedPages = repository.getReadableOfflinePagesSnapshot()
                     
                     repository.deleteSavedPages(allSavedPages, appContext)
                 }
@@ -285,7 +342,7 @@ class SavedPagesFragment : Fragment(), ThemeAware {
                         for (page in failedPages) {
                             readingListPageDao.updatePageStatusToSavedAndMtime(
                                 page.id, 
-                                ReadingListPage.STATUS_QUEUE_FOR_SAVE, 
+                                page.retryQueueStatus,
                                 System.currentTimeMillis()
                             )
                         }
@@ -312,6 +369,11 @@ class SavedPagesFragment : Fragment(), ThemeAware {
     }
 
     override fun onDestroyView() {
+        commitPendingDelete()
+        pendingDeleteSnackbar?.dismiss()
+        pendingDeleteSnackbar = null
+        articlePrewarmBinder?.dispose()
+        articlePrewarmBinder = null
         super.onDestroyView()
         binding.savedPagesRecyclerView.adapter = null // Important to prevent memory leaks with RecyclerView adapter
         _binding = null
@@ -342,12 +404,22 @@ class SavedPagesFragment : Fragment(), ThemeAware {
     }
     
     private inner class SwipeToDeleteCallback(
-        private val onItemDelete: (ReadingListPage, Int) -> Unit
+        private val onItemDelete: (ReadingListPage) -> Unit
     ) : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
 
-        private val deleteIcon: Drawable = ContextCompat.getDrawable(requireContext(), R.drawable.ic_baseline_delete_24)!!
+        private val deleteIcon: Drawable = ContextCompat.getDrawable(requireContext(), R.drawable.ic_baseline_delete_24)!!.mutate()
         private val background = ColorDrawable()
-        private val backgroundColor = ContextCompat.getColor(requireContext(), android.R.color.holo_red_light)
+        private val backgroundColor = MaterialColors.getColor(
+            binding.root,
+            com.google.android.material.R.attr.colorErrorContainer
+        )
+
+        init {
+            DrawableCompat.setTint(
+                deleteIcon,
+                MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOnErrorContainer)
+            )
+        }
 
         override fun onMove(
             recyclerView: RecyclerView,
@@ -359,7 +431,7 @@ class SavedPagesFragment : Fragment(), ThemeAware {
             val position = viewHolder.bindingAdapterPosition
             if (position != RecyclerView.NO_POSITION) {
                 val savedPage = savedPagesAdapter.currentList[position]
-                onItemDelete(savedPage, position)
+                onItemDelete(savedPage)
             }
         }
 

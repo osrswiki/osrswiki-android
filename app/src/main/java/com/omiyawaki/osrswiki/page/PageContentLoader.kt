@@ -34,7 +34,11 @@ class PageContentLoader(
         cancelActivePageWork()
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
-            pageAssetDownloader.downloadPriorityAssetsByTitle(articleQueryTitle, mobileUrl).collect { progress ->
+            pageAssetDownloader.downloadPriorityAssetsByTitle(
+                articleQueryTitle,
+                mobileUrl,
+                forceNetwork
+            ).collect { progress ->
                 handleDownloadProgress(progress, theme)
             }
         }
@@ -48,7 +52,12 @@ class PageContentLoader(
         cancelActivePageWork()
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
-            pageAssetDownloader.downloadPriorityAssets(pageId, pageUrl).collect { progress ->
+            pageAssetDownloader.downloadPriorityAssets(
+                pageId = pageId,
+                pageUrl = pageUrl,
+                forceNetwork = forceNetwork,
+                initialTitle = initialDisplayTitle
+            ).collect { progress ->
                 handleDownloadProgress(progress, theme)
             }
         }
@@ -92,7 +101,11 @@ class PageContentLoader(
                     val displayTitle = result.parseResult.displaytitle ?: result.parseResult.title
                     lateinit var tableOfContentsSections: List<Section>
                     val tocTime = measureTimeMillis {
-                        tableOfContentsSections = PageTableOfContentsExtractor.extract(displayTitle, result.processedHtml)
+                        tableOfContentsSections = PageTableOfContentsExtractor.extract(
+                            displayTitle,
+                            result.processedHtml,
+                            osrsArticleFloorConvention.resolved()
+                        )
                     }
                     currentCoroutineContext().ensureActive()
                     lateinit var finalHtml: String
@@ -116,23 +129,25 @@ class PageContentLoader(
                         plainTextTitle = result.parseResult.title, htmlContent = finalHtml,
                         wikiUrl = wikiUrl,
                         revisionId = result.parseResult.revid, lastFetchedTimestamp = System.currentTimeMillis(),
-                        isCurrentlyOffline = false, progress = 50, progressText = "Rendering page...",
+                        isCurrentlyOffline = result.source == ArticleContentSource.SAVED,
+                        progress = 50, progressText = "Rendering page...",
                         tableOfContentsSections = tableOfContentsSections
                     )
+                    // WebView owns visible media after the document commit. An eager image pass at
+                    // text-success races first paint and duplicates WebKit's requests. Explicit
+                    // reading-list saves use a separate durable, exhaustive asset path.
                     backgroundAssetsJob?.cancel()
-                    backgroundAssetsJob = pageAssetDownloader.downloadBackgroundAssets(coroutineScope, result.backgroundUrls)
+                    backgroundAssetsJob = null
                     onStateUpdated()
                 }
             }
             is DownloadProgress.Failure -> {
                 withContext(Dispatchers.Main) {
                     L.e("handleDownloadProgress: Received Failure - Error type: ${progress.error::class.simpleName}, Message: ${progress.error.message}", progress.error)
-                    val errorMessage = when (progress.error) {
-                        is java.net.UnknownHostException -> "No internet connection available"
-                        is java.net.SocketTimeoutException -> "Request timed out"
-                        is java.net.ConnectException -> "Unable to connect to server"
-                        else -> "Failed to load page: ${progress.error.message}"
-                    }
+                    val errorMessage = com.omiyawaki.osrswiki.util.UserFacingError.message(
+                        progress.error,
+                        fallback = "This page could not be loaded. Please try again."
+                    )
                     L.w("handleDownloadProgress: Setting error message: $errorMessage")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         isLoading = false, error = errorMessage, tableOfContentsSections = emptyList()

@@ -230,7 +230,7 @@ class StandardNavigationMapFragment : Fragment() {
                 }
                 is AndroidMapPreloader.PreloadState.Failed -> {
                     L.e("$logTag: Preloader failed: ${state.message}", state.cause)
-                    showMapUnavailable(state.message)
+                    showMapUnavailable(getString(R.string.map_unavailable_message))
                 }
             }
         }

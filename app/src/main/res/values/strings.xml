@@ -138,11 +138,33 @@
     
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_appearance_description">Themes, colors, and display options</string>
+    <string name="settings_display_section">Display</string>
+    <string name="settings_navigation_gestures_section">Navigation gestures</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_follow_system">Follow system</string>
+    <string name="settings_reader_text_size_title">Text size</string>
+    <string name="settings_reader_text_size_default_summary">Article text: 100%</string>
+    <string name="settings_reader_text_size_summary">Article text: %1$d%%</string>
+    <string name="settings_tables_title">Collapse tables</string>
+    <string name="settings_tables_collapsed_summary">Tables start collapsed</string>
+    <string name="settings_tables_expanded_summary">Tables start expanded</string>
+    <string name="settings_floor_numbering_title">Floor numbering</string>
+    <string name="settings_floor_numbering_auto">Match this device’s locale</string>
+    <string name="settings_floor_numbering_uk">UK (ground floor is the entrance)</string>
+    <string name="settings_floor_numbering_us">US (1st floor is the entrance)</string>
+    <string name="settings_swipe_right_back_title">Swipe right to go back</string>
+    <string name="settings_swipe_right_back_summary">Navigate back after article content releases the gesture</string>
+    <string name="settings_swipe_left_contents_title">Swipe left for contents</string>
+    <string name="settings_swipe_left_contents_summary">Open the article contents after article content releases the gesture</string>
     <string name="settings_category_offline_storage">Offline &amp; Storage</string>
     <string name="settings_category_offline_storage_description">Cache settings and offline content</string>
     <string name="menu_search_title">Search</string>
     <string name="page_action_save">Save</string>
-    <string name="page_action_find_in_article">Find in page</string>
+    <string name="page_action_cancel_save_progress">Cancel %1$d%%</string>
+    <string name="page_action_cancelling_save">Cancelling…</string>
+    <string name="page_action_find_in_article">Find</string>
     <string name="page_action_theme">Appearance</string>
     <string name="page_action_contents">Contents</string>
 
@@ -155,6 +177,11 @@
     <string name="label_content_unavailable">Content unavailable for this page.</string>
 
     <string name="saved_pages_empty_message">No pages saved for offline reading yet.</string>
+    <string name="saved_page_sync_notification_channel">Offline reading</string>
+    <string name="saved_page_sync_notification_channel_summary">Progress while explicitly saving or removing offline pages</string>
+    <string name="saved_page_sync_notification_title">Updating offline pages</string>
+    <string name="saved_page_sync_notification_progress">%1$d of %2$d pages complete</string>
+    <string name="saved_page_sync_notification_cancel">Cancel</string>
     <string name="saved_page_last_accessed_format">Last accessed: %s</string>
     <string name="saved_pages_search_no_results_for_query">No saved pages found for \"%1$s\".</string>
     <string name="saved_page_delete_pending">Removing %1$s from Saved</string>

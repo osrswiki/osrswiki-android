@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.readinglist.database
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.PrimaryKey
 import org.apache.commons.lang3.StringUtils
 import com.omiyawaki.osrswiki.dataclient.WikiSite
@@ -29,7 +30,9 @@ data class ReadingListPage(
     var revId: Long = 0,
     var remoteId: Long = 0,
     var mediaWikiPageId: Int? = null, // <<< NEW FIELD to store MediaWiki int page ID
-    var downloadProgress: Int = 0 // Progress percentage (0-100) for offline save downloads
+    var downloadProgress: Int = 0, // Progress percentage (0-100) for offline save downloads
+    @ColumnInfo(defaultValue = "0")
+    var durableSettlementVersion: Int = DURABLE_SETTLEMENT_VERSION_NONE
 ) : Serializable {
 
     constructor(title: PageTitle) :
@@ -50,6 +53,22 @@ data class ReadingListPage(
 
     val saving get() = offline && (status == STATUS_QUEUE_FOR_SAVE || status == STATUS_QUEUE_FOR_FORCED_SAVE)
 
+    /**
+     * A forced refresh must not make a previously downloaded page unreadable while its replacement
+     * is settling. A non-zero size is the legacy database's only durable signal that a prior
+     * snapshot exists; brand-new/partial saves remain excluded until their terminal SAVED CAS.
+     */
+    val hasReadableOfflineSnapshot get() = offline && (
+        status == STATUS_SAVED ||
+            (sizeBytes > 0 && (status == STATUS_QUEUE_FOR_FORCED_SAVE || status == STATUS_ERROR))
+        )
+
+    val retryQueueStatus get() = if (hasReadableOfflineSnapshot) {
+        STATUS_QUEUE_FOR_FORCED_SAVE
+    } else {
+        STATUS_QUEUE_FOR_SAVE
+    }
+
     fun touch() {
         atime = System.currentTimeMillis()
     }
@@ -60,6 +79,9 @@ data class ReadingListPage(
         const val STATUS_QUEUE_FOR_DELETE = 2L
         const val STATUS_QUEUE_FOR_FORCED_SAVE = 3L
         const val STATUS_ERROR = 4L // Failed to download
+
+        const val DURABLE_SETTLEMENT_VERSION_NONE = 0
+        const val CURRENT_DURABLE_SETTLEMENT_VERSION = 1
 
         fun toPageTitle(page: ReadingListPage): PageTitle {
             val wiki = page.wiki.apply { if (this.languageCode != page.lang) this.languageCode = page.lang }

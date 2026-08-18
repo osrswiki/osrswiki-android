@@ -3,13 +3,15 @@ package com.omiyawaki.osrswiki.undergroundmaps.ui
 import com.omiyawaki.osrswiki.undergroundmaps.model.OSRS_REALM_GROUPS
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmCatalog
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmEndpointMapper
-import com.omiyawaki.osrswiki.undergroundmaps.model.osrsEndpointZoomForViewport
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRelativeLinkZoomForAssets
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmLink
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmLinkPosition
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmLinkTraversalDirection
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsMaximumDisplayExtentDp
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsPositiveDisplayDensity
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmCameraEnvelope
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsDefaultZoomForAsset
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsSurfaceDefaultZoomForAsset
 import com.omiyawaki.osrswiki.undergroundmaps.model.rasterProjectionOrNull
 import com.omiyawaki.osrswiki.undergroundmaps.osrsTestCatalog
 import org.junit.Assert.assertEquals
@@ -166,14 +168,70 @@ class osrsRealmLinkCatalogTest {
     }
 
     @Test
-    fun `near-edge endpoint zoom keeps authoritative coordinate centered in tall viewport`() {
-        val realm = osrsTestCatalog().byId.getValue("cache-world-map:lms-desert-island")
-        val destination = osrsRealmEndpointMapper(
-            requireNotNull(osrsTestCatalog().manifest.rasterProjectionOrNull())
-        ).map(realm, osrsRealmLinkPosition(plane = 0, x = 3400, y = 5800))!!
-            .copy(assetPixelY = 10.0, zoom = 4.0)
+    fun `surface default zoom preserves the pre-selector source-pixel scale`() {
+        val surfaceAsset = osrsTestCatalog().surface.assetForPlane(0)!!.copy(
+            canvasSize = 16_384
+        )
 
-        assertEquals(6.0, osrsEndpointZoomForViewport(realm, destination, 850.0), 0.0)
+        assertEquals(5.3414426741929, osrsSurfaceDefaultZoomForAsset(surfaceAsset), 1e-12)
+    }
+
+    @Test
+    fun `realm default zoom preserves one source-pixel scale across canvas sizes`() {
+        val template = osrsTestCatalog().surface.assetForPlane(0)!!
+        val relativeZooms = listOf(1_024, 2_048, 4_096, 32_768).map { canvasSize ->
+            val nativeMaximumZoom = kotlin.math.log2(canvasSize / 512.0)
+            osrsDefaultZoomForAsset(template.copy(canvasSize = canvasSize)) - nativeMaximumZoom
+        }
+
+        relativeZooms.forEach { relativeZoom ->
+            assertEquals(0.3414426741929, relativeZoom, 1e-12)
+        }
+    }
+
+    @Test
+    fun `authoritative link zoom preserves visual scale relative to native max zoom`() {
+        val realm = osrsTestCatalog().byId.getValue("cache-world-map:lms-desert-island")
+        val sourceAsset = realm.assetForPlane(0)!!
+        val targetAsset = realm.assetForPlane(1)!!.copy(maxZoom = 4)
+
+        val result = osrsRelativeLinkZoomForAssets(
+            currentZoom = 9.25,
+            sourceAsset = sourceAsset,
+            targetAsset = targetAsset
+        )
+
+        assertEquals(6, result.sourceNativeMaxZoom)
+        assertEquals(4, result.targetNativeMaxZoom)
+        assertEquals(3.25, result.relativeZoom, 0.0)
+        assertEquals(7.25, result.requestedTargetZoom, 0.0)
+        assertEquals(7.25, result.finalTargetZoom, 0.0)
+        assertEquals("none", result.clampState)
+    }
+
+    @Test
+    fun `authoritative link zoom policy clamps only after applying relative offset`() {
+        val asset = osrsTestCatalog()
+            .byId.getValue("cache-world-map:lms-desert-island")
+            .assetForPlane(0)!!
+
+        val maxClamped = osrsRelativeLinkZoomForAssets(
+            currentZoom = 30.0,
+            sourceAsset = asset,
+            targetAsset = asset
+        )
+        val minClamped = osrsRelativeLinkZoomForAssets(
+            currentZoom = -2.0,
+            sourceAsset = asset,
+            targetAsset = asset
+        )
+
+        assertEquals(30.0, maxClamped.requestedTargetZoom, 0.0)
+        assertEquals(osrsRealmCameraEnvelope.maxZoom(asset), maxClamped.finalTargetZoom, 0.0)
+        assertEquals("max", maxClamped.clampState)
+        assertEquals(-2.0, minClamped.requestedTargetZoom, 0.0)
+        assertEquals(osrsRealmCameraEnvelope.minZoom(asset), minClamped.finalTargetZoom, 0.0)
+        assertEquals("min", minClamped.clampState)
     }
 
     @Test

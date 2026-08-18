@@ -52,6 +52,7 @@ class SavedPagesSearchActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivitySavedPagesSearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyEdgeToEdgeInsets(binding.root)
 
         setupToolbar()
         setupRecyclerView()

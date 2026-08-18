@@ -35,7 +35,10 @@ class osrsRealmRepositoryTest {
         assertEquals("Gielinor Surface", catalog.surface.canonicalName)
         assertTrue(catalog.surface.isSurface)
         assertNotNull(catalog.surface.assetForPlane(0))
-        assertEquals(catalog.realmCount, catalog.selectorCount)
+        assertEquals(50, catalog.realmCount)
+        assertEquals(50, catalog.selectorCount)
+        assertFalse(catalog.byId.containsKey("cache-special-region:18-148"))
+        assertFalse(catalog.byId.containsKey("other-map-10000"))
     }
 
     @Test

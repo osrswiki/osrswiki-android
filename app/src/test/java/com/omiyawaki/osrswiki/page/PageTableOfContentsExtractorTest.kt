@@ -42,4 +42,55 @@ class PageTableOfContentsExtractorTest {
 
         assertEquals(listOf("Dragon"), sections.map { it.title })
     }
+
+    @Test
+    fun extractUsesASingleFloorDialectAndKeepsTheAuthoredHeadingId() {
+        val html = """
+            <div class="mw-heading mw-heading2">
+                <h2 id="1st_floor2nd_floor">
+                    <span class="floornumber">
+                        <span class="floornumber-gb">1<sup>st</sup> floor<sup class="floornumber-help">[UK]</sup></span>
+                        <span class="floornumber-us noexcerpt">2<sup>nd</sup> floor<sup class="floornumber-help">[US]</sup></span>
+                    </span>
+                </h2>
+            </div>
+            <div class="mw-heading mw-heading2">
+                <h2 id="Basement">Basement</h2>
+            </div>
+        """.trimIndent()
+
+        val sections = PageTableOfContentsExtractor.extract(
+            "Heroes' Guild",
+            html,
+            osrsArticleFloorConvention.GB
+        )
+
+        assertEquals(listOf("Heroes' Guild", "1st floor", "Basement"), sections.map { it.title })
+        assertEquals(listOf("", "1st_floor2nd_floor", "Basement"), sections.map { it.anchor })
+        assertTrue(sections.none { it.title.contains("2nd") })
+        assertTrue(sections.none { it.title.contains("[UK]") || it.title.contains("[US]") })
+    }
+
+    @Test
+    fun extractUsesUsFloorDialectWhenTheDeviceLocaleUsesUsFloors() {
+        val html = """
+            <div class="mw-heading mw-heading2">
+                <h2 id="1st_floor2nd_floor">
+                    <span class="floornumber">
+                        <span class="floornumber-gb">1<sup>st</sup> floor<sup class="floornumber-help">[UK]</sup></span>
+                        <span class="floornumber-us noexcerpt">2<sup>nd</sup> floor<sup class="floornumber-help">[US]</sup></span>
+                    </span>
+                </h2>
+            </div>
+        """.trimIndent()
+
+        val sections = PageTableOfContentsExtractor.extract(
+            "Heroes' Guild",
+            html,
+            osrsArticleFloorConvention.US
+        )
+
+        assertEquals(listOf("Heroes' Guild", "2nd floor"), sections.map { it.title })
+        assertTrue(sections.none { it.title.contains("1st") })
+    }
 }

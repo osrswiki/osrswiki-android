@@ -122,15 +122,15 @@ class osrsRealmPresentationTest {
         val presentations = osrsRealmPresentationCatalog(catalog.manifest.realms)
         val index = osrsRealmSelectorIndex(catalog.sections, presentations)
 
-        val first = index.filter("player")
-        val narrower = index.filter("player house")
-        val duplicateQuery = index.filter("player   house")
+        val first = index.filter("last")
+        val narrower = index.filter("last man")
+        val duplicateQuery = index.filter("last   man")
 
-        assertEquals(listOf("other-map-10042"), first.sections.values.flatten().map { it.id })
-        assertEquals(listOf("other-map-10042"), narrower.sections.values.flatten().map { it.id })
+        assertEquals(listOf("cache-world-map:lms-desert-island"), first.sections.values.flatten().map { it.id })
+        assertEquals(listOf("cache-world-map:lms-desert-island"), narrower.sections.values.flatten().map { it.id })
         assertEquals(first.resultCount, narrower.evaluatedRealmCount)
         assertTrue(duplicateQuery === narrower)
-        assertEquals("player house", duplicateQuery.normalizedQuery)
+        assertEquals("last man", duplicateQuery.normalizedQuery)
     }
 
     @Test

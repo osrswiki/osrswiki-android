@@ -1,7 +1,6 @@
 package com.omiyawaki.osrswiki.page
 
 import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.page.preemptive.PreloadedPageCache
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -42,36 +41,6 @@ class PageLoadCoordinator(
         pageViewModel.uiState = PageUiState(isLoading = true, title = titleDuringLoad, progress = 5, progressText = "Downloading...")
         L.d("PageLoadCoordinator.initiatePageLoad: Set initial UI state to 5% 'Downloading...'.")
         uiUpdater.updateUi()
-
-        // Check for preloaded content first (if not forcing network)
-        if (idToLoad != null && !forceNetwork) {
-            val preloadedPage = PreloadedPageCache.consume(idToLoad)
-            if (preloadedPage != null) {
-                L.d("PageLoadCoordinator: Using preloaded content for page ID $idToLoad.")
-                // Update UI state with preloaded data and transition to rendering phase
-                pageViewModel.uiState = pageViewModel.uiState.copy(
-                    isLoading = true, // Still "loading" as it needs to be rendered
-                    error = null,
-                    pageId = preloadedPage.pageId,
-                    title = preloadedPage.displayTitle ?: preloadedPage.plainTextTitle,
-                    plainTextTitle = preloadedPage.plainTextTitle,
-                    htmlContent = preloadedPage.finalHtml,
-                    wikiUrl = preloadedPage.wikiUrl,
-                    revisionId = preloadedPage.revisionId,
-                    lastFetchedTimestamp = preloadedPage.lastFetchedTimestamp,
-                    isCurrentlyOffline = false,
-                    progress = 50, // Jump to rendering progress
-                    progressText = "Rendering page...",
-                    tableOfContentsSections = PageTableOfContentsExtractor.extract(
-                        displayTitle = preloadedPage.displayTitle ?: preloadedPage.plainTextTitle,
-                        html = preloadedPage.finalHtml
-                    )
-                )
-                uiUpdater.updateUi()
-                // The rest of the rendering pipeline will now take over automatically
-                return
-            }
-        }
 
         if (idToLoad != null) {
             pageContentLoader.loadPageById(idToLoad, pageTitleArg, theme, forceNetwork)

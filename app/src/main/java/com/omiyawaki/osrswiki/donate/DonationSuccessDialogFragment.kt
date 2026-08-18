@@ -5,8 +5,8 @@ import android.os.Bundle
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.omiyawaki.osrswiki.util.log.L
 import java.math.BigDecimal
 
@@ -46,7 +46,7 @@ class DonationSuccessDialogFragment : DialogFragment() {
         // Configure the views
         donationAmountView.text = getString(R.string.donate_success_amount_format, "$$donationAmount")
         
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = ThemedAlertDialogs.builder(requireContext())
             .setView(dialogView)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 L.d("DonationSuccessDialogFragment: Dialog dismissed")

@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -51,14 +53,21 @@ val hasReleaseSigning = listOf(
 android {
     namespace = "com.omiyawaki.osrswiki"
     compileSdk = 36
-    testBuildType = "mapPrototype"
+    // The default remains the isolated map-prototype test host. Article WebView regression
+    // tests can opt into the complete application manifest with
+    // `-PosrswikiHostInstrumentation=true` without weakening the map lane.
+    testBuildType = if (providers.gradleProperty("osrswikiHostInstrumentation").orNull == "true") {
+        "debug"
+    } else {
+        "mapPrototype"
+    }
 
     defaultConfig {
         applicationId = "com.omiyawaki.osrswiki"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 8
-        versionName = "1.5"
+        targetSdk = 36
+        versionCode = 12
+        versionName = "1.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -103,10 +112,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-
     buildFeatures {
         viewBinding = true
         dataBinding = true
@@ -145,6 +150,12 @@ android {
             // this debuggable prototype variant; its manifest remains map-only.
             java.srcDirs("src/debug/java")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
@@ -209,16 +220,27 @@ tasks.register<Copy>("organizeAssets") {
             targetAssetsDir.mkdirs()
         }
         
+        // Root-relative wiki artwork in dumped CSS (`url(/images/...)`) would
+        // otherwise resolve against appassets.androidplatform.net and vanish.
+        val wikiImageUrlFilter: (String) -> String = { line ->
+            line.replace(
+                Regex("""url\(\s*(['"]?)(/images/)"""),
+                "url($1https://oldschool.runescape.wiki$2"
+            )
+        }
+
         // Organize CSS files: shared/css/*.css -> assets/styles/
         from(sharedCssDir) {
             include("*.css")
             into("styles")
+            filter(wikiImageUrlFilter)
         }
         
         // Organize CSS modules: shared/css/modules/*.css -> assets/styles/modules/
         from(File(sharedCssDir, "modules")) {
             include("*.css")
             into("styles/modules")
+            filter(wikiImageUrlFilter)
         }
         
         // Organize JS files: shared/js/*.js -> assets/js/ (excluding WebView files)
@@ -226,7 +248,7 @@ tasks.register<Copy>("organizeAssets") {
             include("*.js")
             exclude("collapsible_content.js", "horizontal_scroll_interceptor.js", "responsive_videos.js",
                     "clipboard_bridge.js", "infobox_switcher_bootstrap.js", "switch_infobox.js",
-                    "ge_charts_init.js", "highcharts-stock.js")
+                    "mobile_article_polish.js", "ge_charts_init.js", "highcharts-stock.js")
             exclude("mediawiki/*.js")
             into("js")
         }
@@ -235,7 +257,8 @@ tasks.register<Copy>("organizeAssets") {
         from(sharedJsDir) {
             include("collapsible_content.js", "horizontal_scroll_interceptor.js", "responsive_videos.js",
                     "clipboard_bridge.js", "infobox_switcher_bootstrap.js", "switch_infobox.js",
-                    "ge_charts_init.js", "highcharts-stock.js")
+                    "mobile_article_polish.js", "ge_charts_init.js", "highcharts-stock.js",
+                    "tabber_init.js", "table_column_normalize.js")
             into("web")
         }
         
@@ -362,7 +385,7 @@ tasks.configureEach {
 
 dependencies {
     // MapLibre for map functionality
-    implementation(libs.maplibre.native)
+    implementation(project(":undergroundmaps"))
     
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -411,6 +434,9 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
+    // The prototype unit test parses its generated payload directly. The map
+    // library intentionally keeps this implementation dependency private.
+    add("testMapPrototypeImplementation", "org.maplibre.gl:android-sdk-geojson:6.0.1")
     
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.core)

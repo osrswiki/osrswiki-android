@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- checked state (on) - primary color for track background -->
-    <item android:color="?attr/colorPrimary" android:state_checked="true" />
-    <!-- default state (off) - subtle surface variant for track -->
-    <item android:color="?attr/colorSurfaceVariant" />
+    <!-- Gold is the semantic OSRS accent and remains distinct from the dark parchment surface. -->
+    <item android:color="@color/osrs_gold_muted" android:state_checked="true" />
+    <!-- Preserve a restrained off state without letting its track disappear in dark mode. -->
+    <item android:alpha="0.36" android:color="?attr/colorOnSurfaceVariant" />
 </selector>

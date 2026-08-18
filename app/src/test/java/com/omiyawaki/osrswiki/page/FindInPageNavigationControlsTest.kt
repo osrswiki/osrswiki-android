@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -52,6 +53,17 @@ class FindInPageNavigationControlsTest {
             assertTrue(control.isFocusable)
             assertEquals(1f, control.alpha, 0.001f)
         }
+    }
+
+    @Test
+    fun keyboardRequestTargetsAttachedEditableAndUsesInsetsController() {
+        val source = File("src/main/java/com/omiyawaki/osrswiki/page/FindInPageManager.kt").readText()
+
+        assertTrue(source.contains("findViewById<EditText>"))
+        assertTrue(source.contains("customView.doOnAttach"))
+        assertTrue(source.contains("searchInput.post"))
+        assertTrue(source.contains("WindowInsetsCompat.Type.ime()"))
+        assertTrue(source.contains("searchInput.requestFocus()"))
     }
 
     private fun inflatedControls(): Controls {

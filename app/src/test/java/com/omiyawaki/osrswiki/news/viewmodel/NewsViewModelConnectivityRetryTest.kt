@@ -12,12 +12,15 @@ import com.omiyawaki.osrswiki.news.model.WikiFeed
 import com.omiyawaki.osrswiki.news.repository.NewsFeedRepository
 import com.omiyawaki.osrswiki.news.ui.FeedItem
 import java.io.IOException
+import java.net.UnknownHostException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -62,7 +65,7 @@ class NewsViewModelConnectivityRetryTest {
 
         assertEquals(listOf(true), repository.forceRefreshCalls)
         assertEquals(
-            "Failed to refresh Home. Please check your connection and try again.",
+            "Home couldn’t refresh from the wiki. Please try again.",
             viewModel.error.value
         )
 
@@ -73,6 +76,38 @@ class NewsViewModelConnectivityRetryTest {
         assertNull(viewModel.error.value)
         val updates = viewModel.feedItems.value?.filterIsInstance<FeedItem.Updates>()?.single()
         assertEquals("Recovered update", updates?.items?.single()?.title)
+    }
+
+    @Test
+    fun failedLoadRetriesWhileAlreadyOnline() = runTest {
+        val isOnline = MutableStateFlow(true)
+        val recoveredFeed = wikiFeedWithUpdate("Recovered after DNS race")
+        val repository = FakeNewsFeedRepository(
+            listOf(
+                Result.failure(UnknownHostException("Unable to resolve host \"oldschool.runescape.wiki\"")),
+                Result.success(recoveredFeed)
+            )
+        )
+        val viewModel = NewsViewModel(
+            application = ApplicationProvider.getApplicationContext(),
+            newsRepository = repository,
+            networkStatus = isOnline
+        )
+
+        viewModel.fetchNews()
+        runCurrent()
+        assertEquals(
+            "Home can’t reach the wiki right now. Your device may be offline.",
+            viewModel.error.value
+        )
+
+        advanceTimeBy(1_000)
+        runCurrent()
+
+        assertEquals(listOf(false, false), repository.forceRefreshCalls)
+        assertNull(viewModel.error.value)
+        val updates = viewModel.feedItems.value?.filterIsInstance<FeedItem.Updates>()?.single()
+        assertEquals("Recovered after DNS race", updates?.items?.single()?.title)
     }
 
     @Test

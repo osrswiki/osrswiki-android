@@ -12,11 +12,13 @@ import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
 import com.omiyawaki.osrswiki.search.db.RecentSearch
 import com.omiyawaki.osrswiki.search.db.RecentSearchDao
+import com.omiyawaki.osrswiki.util.StringUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 
 private const val DEFAULT_SEARCH_RESULTS_PAGE_SIZE = 20
 private const val TAG = "SearchRepository"
@@ -34,19 +36,40 @@ class SearchRepository(
     // --- Recent Searches ---
 
     fun getRecentSearches(): Flow<List<RecentSearch>> {
-        return recentSearchDao.getAll()
+        return recentSearchDao.getAll().map { searches ->
+            searches.map { it.copy(query = normalizeRecentSearchQuery(it.query)) }
+        }
     }
 
     suspend fun insertRecentSearch(query: String) {
-        val recentSearch = RecentSearch(query = query, timestamp = System.currentTimeMillis())
+        val recentSearch = RecentSearch(
+            query = normalizeRecentSearchQuery(query),
+            timestamp = System.currentTimeMillis()
+        )
         recentSearchDao.insert(recentSearch)
     }
+
+    internal fun normalizeRecentSearchQuery(query: String): String =
+        StringUtil.fromHtml(query).toString()
+            .replace('\u00A0', ' ')
+            .replace("\\s+".toRegex(), " ")
+            .trim()
 
     suspend fun clearAllRecentSearches() {
         recentSearchDao.clearAll()
     }
 
     // --- Online and Offline Article Search ---
+
+    suspend fun openSearchSuggestions(query: String): List<SearchResult> {
+        val canonical = SearchQueryPolicy.apiQuery(query)
+        if (canonical.isBlank()) return emptyList()
+        return runCatching {
+            osrsOpenSearchParser.parse(
+                apiService.openSearch(canonical, 10).bytes()
+            )
+        }.getOrDefault(emptyList())
+    }
 
     fun getOnlineSearchResultStream(query: String): Flow<PagingData<SearchResult>> {
         Log.d(TAG, "getOnlineSearchResultStream called with query: $query")

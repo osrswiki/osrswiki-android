@@ -4,14 +4,14 @@
     <dimen name="leadImageWidth">300dp</dimen>
     <item name="articleHeaderViewScreenHeightRatio" type="dimen">0.33</item>
 
-    <dimen name="nav_bar_height">72dp</dimen>
+    <dimen name="nav_bar_height">56dp</dimen>
     
     <!-- Bottom Bar Standardized Spacing -->
-    <dimen name="bottom_bar_icon_padding_top">12dp</dimen>
+    <dimen name="bottom_bar_icon_padding_top">4dp</dimen>
     <dimen name="bottom_bar_icon_text_spacing">-4dp</dimen>
     
     <!-- Custom Bottom Navigation Spacing -->
-    <dimen name="custom_bottom_nav_icon_padding_top">12dp</dimen>
+    <dimen name="custom_bottom_nav_icon_padding_top">4dp</dimen>
     <dimen name="custom_bottom_nav_icon_text_spacing">-4dp</dimen>
     
     <!-- Search Bar Standardized Dimensions -->

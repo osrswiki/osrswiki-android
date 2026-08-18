@@ -13,11 +13,14 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.paging.LoadState
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchResultsBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -34,6 +37,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
 
     private lateinit var onlineSearchAdapter: SearchAdapter
     private lateinit var offlineSearchAdapter: OfflineSearchAdapter
+    private var articlePrewarmBinder: VisibleArticlePrewarmBinder? = null
+    private var pendingScrollToTopQuery: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,23 +51,28 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerViewAdapters()
+        setupArticlePrewarm()
         observeViewModel()
     }
 
     fun search(query: String) {
+        articlePrewarmBinder?.clear()
+        pendingScrollToTopQuery = query.trim()
         viewModel.performSearch(query)
     }
 
     private fun setupRecyclerViewAdapters() {
         onlineSearchAdapter = SearchAdapter(this)
         offlineSearchAdapter = OfflineSearchAdapter(this)
+        onlineSearchAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT
+        offlineSearchAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
+        binding.recyclerViewSearchResults.itemAnimator = null
 
         onlineSearchAdapter.addLoadStateListener { loadStates ->
             val refreshState = loadStates.refresh
             val currentQuery = viewModel.currentQuery.value?.trim()
 
-            binding.progressBarSearch.isVisible = refreshState is LoadState.Loading
             binding.textViewSearchError.isVisible = refreshState is LoadState.Error
 
             if (refreshState is LoadState.NotLoading) {
@@ -70,22 +80,41 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                 binding.recyclerViewSearchResults.isVisible = hasResults
                 binding.textViewNoResults.isVisible = !hasResults && !currentQuery.isNullOrBlank()
 
-                if (hasResults) {
-                    onlineSearchAdapter.peek(0)?.let { topResult ->
-                        viewModel.preemptivelyLoadTopResult(topResult)
-                    }
-                } else if (!currentQuery.isNullOrBlank()) {
+                if (!hasResults && !currentQuery.isNullOrBlank()) {
                     binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                 }
+                maybeAnchorSearchResultsToTop(currentQuery)
             } else if (refreshState is LoadState.Error) {
                 val error = refreshState.error
+                Log.e("SearchResults", "Search failed", error)
                 val errorMessage = when (error) {
                     is IOException -> getString(R.string.search_error_network)
-                    else -> error.localizedMessage ?: getString(R.string.search_error_generic)
+                    else -> getString(R.string.search_error_generic)
                 }
                 binding.textViewSearchError.text = errorMessage
             }
         }
+    }
+
+    private fun setupArticlePrewarm() {
+        val app = requireActivity().application as OSRSWikiApp
+        articlePrewarmBinder = VisibleArticlePrewarmBinder(
+            recyclerView = binding.recyclerViewSearchResults,
+            lifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            candidatesAt = { position, _ ->
+                val item = when (binding.recyclerViewSearchResults.adapter) {
+                    onlineSearchAdapter -> onlineSearchAdapter.peek(position)
+                    offlineSearchAdapter -> offlineSearchAdapter.currentList.getOrNull(position)
+                    else -> null
+                }
+                setOfNotNull(item?.let {
+                    ArticlePrewarmRequest(pageId = it.id.toIntOrNull(), title = it.title)
+                })
+            },
+            onDwell = app.pageAssetDownloader::prewarmArticle,
+            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener
+        )
     }
 
     private fun observeViewModel() {
@@ -98,10 +127,12 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                         if (isOnline) {
                             if (binding.recyclerViewSearchResults.adapter != onlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = onlineSearchAdapter
+                                articlePrewarmBinder?.refresh()
                             }
                         } else {
                             if (binding.recyclerViewSearchResults.adapter != offlineSearchAdapter) {
                                 binding.recyclerViewSearchResults.adapter = offlineSearchAdapter
+                                articlePrewarmBinder?.refresh()
                             }
                         }
                         binding.textViewOfflineIndicator.isVisible = !isOnline
@@ -114,11 +145,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                             // Update search query in adapter for title highlighting
                             onlineSearchAdapter.updateSearchQuery(viewModel.currentQuery.value)
                             onlineSearchAdapter.submitData(pagingData)
-                            // Force RecyclerView to scroll to top after data submission
                             binding.recyclerViewSearchResults.post {
-                                (binding.recyclerViewSearchResults.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+                                maybeAnchorSearchResultsToTop(viewModel.currentQuery.value?.trim())
                             }
-                            Log.d("ScrollFix", "Online search: Force refresh and reset to position 0")
                         }
                     }
                 }
@@ -140,7 +169,6 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                             if (!hasResults && !currentQuery.isNullOrBlank()) {
                                 binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
                             }
-                            binding.progressBarSearch.isVisible = false
                             binding.textViewSearchError.isVisible = false
                         }
                     }
@@ -149,12 +177,22 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
         }
     }
 
+    private fun maybeAnchorSearchResultsToTop(currentQuery: String?) {
+        val expected = pendingScrollToTopQuery ?: return
+        if (currentQuery != expected) return
+        val layoutManager = binding.recyclerViewSearchResults.layoutManager as? LinearLayoutManager
+            ?: return
+        layoutManager.scrollToPositionWithOffset(0, 0)
+        binding.recyclerViewSearchResults.scrollToPosition(0)
+        pendingScrollToTopQuery = null
+    }
+
     override fun onItemClick(item: CleanedSearchResultItem) {
         viewModel.saveCurrentQuery() // Save the query when an item is clicked.
         val intent = PageActivity.newIntent(
             context = requireContext(),
             pageTitle = item.title,
-            pageId = item.id,
+            pageId = item.id.toIntOrNull()?.toString(),
             source = HistoryEntry.SOURCE_SEARCH,
             snippet = item.snippet,
             thumbnailUrl = item.thumbnailUrl
@@ -163,6 +201,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
     }
 
     override fun onDestroyView() {
+        articlePrewarmBinder?.dispose()
+        articlePrewarmBinder = null
         super.onDestroyView()
         _binding = null
     }

@@ -25,11 +25,9 @@ object OkHttpClientFactory {
 
         // Dependencies for OfflineCacheInterceptor
         val offlineObjectDao = appDatabase.offlineObjectDao()
-        val readingListPageDao = appDatabase.readingListPageDao()
         val offlineCacheInterceptor = OfflineCacheInterceptor(
             context = context,
             offlineObjectDao = offlineObjectDao,
-            readingListPageDao = readingListPageDao,
             appDatabase = appDatabase
         )
 
@@ -41,10 +39,12 @@ object OkHttpClientFactory {
 
         // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging
         // Assuming your BuildConfig is accessible, e.g., com.omiyawaki.osrswiki.BuildConfig
-        if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) { 
-        val loggingInterceptor = HttpLoggingInterceptor()
-        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BODY)
-        builder.addInterceptor(loggingInterceptor)
+        if (com.omiyawaki.osrswiki.BuildConfig.DEBUG) {
+            val loggingInterceptor = HttpLoggingInterceptor()
+            // BASIC logs method/URL/status only. BODY would buffer every search and parse
+            // payload (including full article HTML) on debug installs and dominate latency.
+            loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.BASIC)
+            builder.addInterceptor(loggingInterceptor)
         }
     
         return builder.build()

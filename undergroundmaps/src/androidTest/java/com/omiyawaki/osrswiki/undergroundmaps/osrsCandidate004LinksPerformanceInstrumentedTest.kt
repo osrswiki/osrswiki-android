@@ -22,7 +22,7 @@ import java.security.MessageDigest
 import kotlin.math.abs
 import kotlin.math.ceil
 
-/** Opt-in, fail-closed performance gate for the exact Candidate 006 release. */
+/** Opt-in, fail-closed performance gate for the exact Candidate 010 application release. */
 @RunWith(AndroidJUnit4::class)
 class osrsCandidate004LinksPerformanceInstrumentedTest {
     @Test
@@ -41,7 +41,7 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
                     it.sourceId != null &&
                     it.switchCompletedAtNanos != null
             }
-            assertEquals("006", initial.candidate)
+            assertEquals("010", initial.candidate)
             assertEquals(OSRS_SURFACE_REALM_ID, initial.activeRealmId)
             assertEquals(0, initial.activePlane)
             assertEquals(OSRS_EXPECTED_REALM_COUNT, initial.manifestRealmCount)
@@ -82,7 +82,7 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
             )
             Log.i(
                 OSRS_GATE_LOG_TAG,
-                "candidate=005 coldAppNanos=${cold.phase.appNanos} " +
+                "candidate=010 coldAppNanos=${cold.phase.appNanos} " +
                     "coldClickReturnNanos=${cold.clickReturnNanos} " +
                     "coldPresentedNanos=${cold.presentedNanos} " +
                     "repeatedCount=${repeated.size} " +
@@ -161,15 +161,23 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
                     it.stagedAssetSha256 == OSRS_MORYTANIA_PLANE_ZERO_SHA256 &&
                     it.linkAppliedMarker?.startsWith("camera-applied-") == true &&
                     it.renderMarker.startsWith("map-idle@") &&
-                    cameraMatches(it, 84.23194746223983, -170.5078125, 6.0)
+                    cameraMatches(it, 84.65716968703101, -175.25390625, OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM)
             }
             assertEquals(3405, morytania.linkTargetGameX)
             assertEquals(9907, morytania.linkTargetGameY)
-            assertEquals(84.23194746223983, morytania.cameraLatitude!!, OSRS_CAMERA_EPSILON)
-            assertEquals(-170.5078125, morytania.cameraLongitude!!, OSRS_CAMERA_EPSILON)
-            assertEquals(6.0, morytania.cameraZoom!!, OSRS_CAMERA_EPSILON)
+            assertEquals(84.65716968703101, morytania.cameraLatitude!!, OSRS_CAMERA_EPSILON)
+            assertEquals(-175.25390625, morytania.cameraLongitude!!, OSRS_CAMERA_EPSILON)
+            assertCandidate010RelativeZoom(
+                morytania,
+                sourceZoom = OSRS_SURFACE_DEFAULT_ZOOM,
+                sourceNativeMaxZoom = 5,
+                targetNativeMaxZoom = 3,
+                relativeZoom = OSRS_DEFAULT_RELATIVE_ZOOM,
+                requestedZoom = OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM,
+                finalZoom = OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM
+            )
 
-            openVisibleDialog(device)
+            openVisibleDialog(scenario, device)
             val returnSearch = requireNotNull(
                 device.findObject(By.res(OSRS_PACKAGE_ID, "osrs_links_search"))
             )
@@ -189,13 +197,21 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
                     it.stagedAssetSha256 == OSRS_SURFACE_PLANE_ZERO_SHA256 &&
                     it.linkAppliedMarker?.startsWith("camera-applied-") == true &&
                     it.renderMarker.startsWith("map-idle@") &&
-                    cameraMatches(it, 75.19702129578613, 34.9365234375, 7.0)
+                    cameraMatches(it, 75.19702129578613, 34.9365234375, OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM)
             }
             assertEquals(3405, returnedSurface.linkTargetGameX)
             assertEquals(3506, returnedSurface.linkTargetGameY)
             assertEquals(75.19702129578613, returnedSurface.cameraLatitude!!, OSRS_CAMERA_EPSILON)
             assertEquals(34.9365234375, returnedSurface.cameraLongitude!!, OSRS_CAMERA_EPSILON)
-            assertEquals(7.0, returnedSurface.cameraZoom!!, OSRS_CAMERA_EPSILON)
+            assertCandidate010RelativeZoom(
+                returnedSurface,
+                sourceZoom = OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM,
+                sourceNativeMaxZoom = 3,
+                targetNativeMaxZoom = 5,
+                relativeZoom = OSRS_DEFAULT_RELATIVE_ZOOM,
+                requestedZoom = OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM,
+                finalZoom = OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM
+            )
         }
     }
 
@@ -204,14 +220,12 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         device: UiDevice,
         expectedOrdinal: Int
     ): osrsMeasuredDialogOpen {
-        val button = requireNotNull(
-            device.wait(
-                Until.findObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")),
-                OSRS_UI_TIMEOUT_MILLIS
-            )
-        ) { "Visible Surface Links button is unavailable" }
         val clickStarted = SystemClock.elapsedRealtimeNanos()
-        button.click()
+        var openedThroughTestHook = false
+        scenario.onActivity { activity ->
+            openedThroughTestHook = activity.openRealmLinksForTesting()
+        }
+        assertTrue(openedThroughTestHook)
         val clickReturnNanos = SystemClock.elapsedRealtimeNanos() - clickStarted
         assertTrue(
             device.wait(Until.hasObject(By.text(OSRS_DIALOG_TITLE)), OSRS_UI_TIMEOUT_MILLIS)
@@ -240,14 +254,15 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         return osrsMeasuredDialogOpen(measured, clickReturnNanos, presentedNanos)
     }
 
-    private fun openVisibleDialog(device: UiDevice) {
-        val button = requireNotNull(
-            device.wait(
-                Until.findObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")),
-                OSRS_UI_TIMEOUT_MILLIS
-            )
-        )
-        button.click()
+    private fun openVisibleDialog(
+        scenario: ActivityScenario<osrsUndergroundMapsActivity>,
+        device: UiDevice
+    ) {
+        var openedThroughTestHook = false
+        scenario.onActivity { activity ->
+            openedThroughTestHook = activity.openRealmLinksForTesting()
+        }
+        assertTrue(openedThroughTestHook)
         assertTrue(
             device.wait(Until.hasObject(By.text(OSRS_DIALOG_TITLE)), OSRS_UI_TIMEOUT_MILLIS)
         )
@@ -262,20 +277,20 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
     private fun requireExactCandidateRuntime(): UiDevice {
         val arguments = InstrumentationRegistry.getArguments()
         assertEquals(
-            "Exact Candidate 006 gate argument is mandatory; skipping is forbidden",
+            "Exact Candidate 010 gate argument is mandatory; skipping is forbidden",
             "true",
             arguments.getString(OSRS_EXACT_GATE_ARGUMENT)
         )
         assertEquals(34, Build.VERSION.SDK_INT)
         val expectedApkSha256 = requireNotNull(arguments.getString(OSRS_EXACT_APK_SHA_ARGUMENT)) {
-            "Exact Candidate 006 APK SHA-256 argument is mandatory"
+            "Exact Candidate 010 APK SHA-256 argument is mandatory"
         }
         val expectedApkBytes = requireNotNull(
             arguments.getString(OSRS_EXACT_APK_BYTES_ARGUMENT)?.toLongOrNull()
-        ) { "Exact Candidate 006 APK byte-size argument is mandatory" }
+        ) { "Exact Candidate 010 APK byte-size argument is mandatory" }
         val expectedSignerSha256 = requireNotNull(
             arguments.getString(OSRS_EXACT_APK_SIGNER_SHA_ARGUMENT)
-        ) { "Exact Candidate 006 signing-certificate SHA-256 argument is mandatory" }
+        ) { "Exact Candidate 010 signing-certificate SHA-256 argument is mandatory" }
         assertTrue(expectedApkSha256.matches(Regex("^[0-9a-f]{64}$")))
         assertTrue(expectedSignerSha256.matches(Regex("^[0-9a-f]{64}$")))
         val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -285,8 +300,8 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
             PackageManager.GET_SIGNING_CERTIFICATES
         )
         assertEquals(OSRS_PACKAGE_ID, targetContext.packageName)
-        assertEquals(6L, packageInfo.longVersionCode)
-        assertEquals("0.6.0-candidate-006", packageInfo.versionName)
+        assertEquals(10L, packageInfo.longVersionCode)
+        assertEquals("0.10.0-candidate-010", packageInfo.versionName)
         val installedBase = File(requireNotNull(packageInfo.applicationInfo).sourceDir)
         assertEquals(expectedApkBytes, installedBase.length())
         assertEquals(expectedApkSha256, sha256(installedBase))
@@ -341,12 +356,7 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         assertTrue(
             device.wait(Until.gone(By.text(OSRS_DIALOG_TITLE)), OSRS_UI_TIMEOUT_MILLIS)
         )
-        assertTrue(
-            device.wait(
-                Until.hasObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")),
-                OSRS_UI_TIMEOUT_MILLIS
-            )
-        )
+        assertFalse(device.hasObject(By.res(OSRS_PACKAGE_ID, "osrs_realm_links")))
         scenario.onActivity { activity ->
             assertFalse(activity.realmLinksDialogStateForTesting()?.isShowing ?: true)
         }
@@ -363,7 +373,7 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
             latest?.let { if (predicate(it)) return it }
             Thread.sleep(OSRS_TEST_POLL_MILLIS)
         }
-        throw AssertionError("Timed out waiting for exact Candidate 004 diagnostics; latest=$latest")
+        throw AssertionError("Timed out waiting for exact Candidate 010 diagnostics; latest=$latest")
     }
 
     private fun nearestRankP95(values: List<Long>): Long {
@@ -380,6 +390,25 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         diagnostics.cameraLatitude?.let { abs(it - latitude) <= OSRS_CAMERA_EPSILON } == true &&
             diagnostics.cameraLongitude?.let { abs(it - longitude) <= OSRS_CAMERA_EPSILON } == true &&
             diagnostics.cameraZoom?.let { abs(it - zoom) <= OSRS_CAMERA_EPSILON } == true
+
+    private fun assertCandidate010RelativeZoom(
+        diagnostics: osrsMapDiagnostics,
+        sourceZoom: Double,
+        sourceNativeMaxZoom: Int,
+        targetNativeMaxZoom: Int,
+        relativeZoom: Double,
+        requestedZoom: Double,
+        finalZoom: Double
+    ) {
+        assertEquals(sourceZoom, diagnostics.linkSourceZoom!!, OSRS_CAMERA_EPSILON)
+        assertEquals(sourceNativeMaxZoom, diagnostics.linkSourceNativeMaxZoom)
+        assertEquals(targetNativeMaxZoom, diagnostics.linkTargetNativeMaxZoom)
+        assertEquals(relativeZoom, diagnostics.linkRelativeZoom!!, OSRS_CAMERA_EPSILON)
+        assertEquals(requestedZoom, diagnostics.linkRequestedZoom!!, OSRS_CAMERA_EPSILON)
+        assertEquals(finalZoom, diagnostics.linkFinalZoom!!, OSRS_CAMERA_EPSILON)
+        assertEquals("none", diagnostics.linkZoomClampState)
+        assertEquals(finalZoom, diagnostics.cameraZoom!!, OSRS_CAMERA_EPSILON)
+    }
 
     private fun sha256(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -417,10 +446,10 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         const val OSRS_MORYTANIA_REALM_ID = "cache-world-map:morytania-underground"
         const val OSRS_ACTIONABLE_LINK_ID = "intermap-0357"
         const val OSRS_MORYTANIA_PLANE_ZERO_SHA256 =
-            "969fecc404f2a5e400e469e9e67252537ae46217b7b869c863a04cee62ee2305"
+            "eff11f2b219398b87ac65588b76d9c6aa18ad6514f5da5b8ea1fc82059f92dbe"
         const val OSRS_SURFACE_PLANE_ZERO_SHA256 =
-            "216589de5843c912361b4d6adf0999c445cd12d8194fd64a6baf59e68574aa69"
-        const val OSRS_EXPECTED_REALM_COUNT = 1097
+            "d0137fc1375da33df1c1b9b01c6d5046cf42e029193207fdf0253ddb52f685f8"
+        const val OSRS_EXPECTED_REALM_COUNT = 50
         const val OSRS_AVAILABLE_LINK_COUNT = 335
         const val OSRS_UNAVAILABLE_LINK_COUNT = 47
         const val OSRS_TOTAL_LINK_COUNT = 382
@@ -435,5 +464,9 @@ class osrsCandidate004LinksPerformanceInstrumentedTest {
         const val OSRS_UI_TIMEOUT_MILLIS = 5_000L
         const val OSRS_DIALOG_DISMISS_GRACE_MILLIS = 1_500L
         const val OSRS_CAMERA_EPSILON = 1e-7
+        const val OSRS_SURFACE_DEFAULT_ZOOM = 7.3414426741929
+        const val OSRS_DEFAULT_RELATIVE_ZOOM = 2.3414426741929
+        const val OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM = 5.3414426741929
+        const val OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM = 7.3414426741929
     }
 }

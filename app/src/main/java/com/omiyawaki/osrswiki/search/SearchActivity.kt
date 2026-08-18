@@ -8,8 +8,6 @@ import android.os.Bundle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.widget.ImageView
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doOnTextChanged
 import android.view.View
 import com.omiyawaki.osrswiki.activity.BaseActivity
@@ -41,15 +39,7 @@ class SearchActivity : BaseActivity() {
 
         binding.searchToolbar.setNavigationOnClickListener { finishAfterTransition() }
         
-        // Handle system window insets for safe areas
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            
-            // Apply top and side padding to the root, bottom for navigation gestures
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, navigationBars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(binding.root)
 
         setupFonts()
         setupVoiceSearch()

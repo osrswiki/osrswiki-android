@@ -5,4 +5,5 @@
     
     <!-- Search box background for dark theme (matches iOS adaptive approach) -->
     <color name="search_box_bg_on_primary">#1AFFFFFF</color> <!-- 10% white for dark theme -->
+    <color name="search_highlight_light">#FF8A65</color>
 </resources>

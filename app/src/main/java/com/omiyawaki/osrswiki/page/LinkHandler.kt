@@ -30,6 +30,14 @@ abstract class LinkHandler(protected val context: Context) {
             "user talk",
             "wikipedia",
         )
+
+        fun isFloorNumberingPreferencesLink(uri: Uri): Boolean {
+            val path = uri.path.orEmpty().lowercase()
+            val decodedPath = Uri.decode(path).lowercase()
+            val title = uri.getQueryParameter("title").orEmpty().lowercase()
+            return decodedPath.contains("special:preferences") ||
+                title.contains("special:preferences")
+        }
     }
 
     fun processUri(uri: Uri) {
@@ -134,10 +142,20 @@ abstract class LinkHandler(protected val context: Context) {
     abstract fun onExternalLinkClicked(uri: Uri)
 
     open fun onNonArticleInternalLinkClicked(uri: Uri) {
+        if (isFloorNumberingPreferencesLink(uri)) {
+            onFloorNumberingSettingsRequested()
+            return
+        }
         // Though the link is on the wiki's domain, it doesn't appear to be a standard
         // article. For now, we will attempt to open it externally as a fallback.
         // A more advanced implementation might have special handling for these cases
         // (e.g., viewing files, special pages).
         onExternalLinkClicked(uri)
+    }
+
+    protected open fun onFloorNumberingSettingsRequested() {
+        onExternalLinkClicked(
+            Uri.parse("https://oldschool.runescape.wiki/w/Special:Preferences")
+        )
     }
 }

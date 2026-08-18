@@ -8,15 +8,15 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
  * Manages direct I/O for shared preferences. This utility works with String keys.
  */
 internal object PrefsIoUtil {
-    private val PREFS: SharedPreferences by lazy {
+    internal val sharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(OSRSWikiApp.instance)
     }
 
     fun getString(key: String, defaultValue: String?): String? {
-        return PREFS.getString(key, defaultValue)
+        return sharedPreferences.getString(key, defaultValue)
     }
 
     fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-        return PREFS.getBoolean(key, defaultValue)
+        return sharedPreferences.getBoolean(key, defaultValue)
     }
 }

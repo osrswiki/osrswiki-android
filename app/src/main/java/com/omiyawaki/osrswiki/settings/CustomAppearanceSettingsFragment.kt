@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -16,6 +15,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.omiyawaki.osrswiki.databinding.FragmentCustomSettingsBinding
 import com.omiyawaki.osrswiki.theme.ThemeAware
+import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 
@@ -125,7 +125,7 @@ class CustomAppearanceSettingsFragment : Fragment(), ThemeAware {
         
         val optionTitles = options.map { it.second }.toTypedArray()
         
-        MaterialAlertDialogBuilder(requireContext())
+        ThemedAlertDialogs.builder(requireContext())
             .setTitle("App theme")
             .setSingleChoiceItems(optionTitles, currentIndex) { dialog, which ->
                 val selectedTheme = options[which].first

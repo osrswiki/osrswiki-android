@@ -3,8 +3,11 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.util.Log
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
+import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.ReaderTextScale
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.StringUtil
+import java.util.Locale
 import kotlin.system.measureTimeMillis
 
 class PageHtmlBuilder(private val context: Context) {
@@ -40,8 +43,11 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(), // Restored: Infobox switcher bootstrap
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),          // Restored: Infobox switcher main script
         "web/horizontal_scroll_interceptor.js",
+        "web/tabber_init.js",
         "web/responsive_videos.js",
-        "web/clipboard_bridge.js"
+        "web/mobile_article_polish.js",
+        "web/clipboard_bridge.js",
+        "web/table_column_normalize.js"
     )
     
     private val themeUtilityScript = """
@@ -108,8 +114,15 @@ class PageHtmlBuilder(private val context: Context) {
         """.trimIndent()
     }
 
-    fun buildFullHtmlDocument(title: String, bodyContent: String, theme: Theme, collapseTablesEnabled: Boolean = true): String {
+    fun buildFullHtmlDocument(
+        title: String,
+        bodyContent: String,
+        theme: Theme,
+        collapseTablesEnabled: Boolean = true,
+        readerTextScale: Float = Prefs.readerTextScale
+    ): String {
         var finalHtml: String
+        val floorClass = osrsArticleFloorConvention.resolved(deviceLocale()).bodyClass
         val time = measureTimeMillis {
             // Preserved title logic from working version
             val cleanedTitle = StringUtil.extractMainTitle(title)
@@ -153,7 +166,14 @@ class PageHtmlBuilder(private val context: Context) {
             } else jsAssetPaths
 
             val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
-                "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+                val tag = "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+                if (assetPath.endsWith("highcharts-stock.js")) {
+                    // Highcharts' UMD build prefers AMD. MediaWiki defines `define`, so
+                    // window.Highcharts never appears and the chart stays on "Loading...".
+                    "<script>window.__osrsAmdDefine=window.define;try{window.define=undefined;}catch(e){}</script>\n$tag\n<script>if(typeof window.__osrsAmdDefine!=='undefined'){window.define=window.__osrsAmdDefine;}</script>"
+                } else {
+                    tag
+                }
             }
             
             // Generate smart MediaWiki variables
@@ -161,6 +181,7 @@ class PageHtmlBuilder(private val context: Context) {
 
             // Create table collapse preference script
             val tableCollapseScript = createTableCollapseScript(collapseTablesEnabled)
+            val readerTextScaleBootstrap = readerTextScaleBootstrap(readerTextScale)
 
             // Preload the main web font to improve rendering performance
             val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
@@ -176,20 +197,22 @@ class PageHtmlBuilder(private val context: Context) {
                 smartMediawikiVariables.length +
                 themeUtilityScript.length +
                 tableCollapseScript.length +
+                readerTextScaleBootstrap.length +
                 2_048
             finalHtml = StringBuilder(estimatedSize)
                 .append("<!DOCTYPE html>\n")
                 .append("<html>\n")
                 .append("<head>\n")
-                .append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n")
+                .append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">\n")
                 .append("    <title>").append(documentTitle).append("</title>\n")
                 .append("    ").append(fontPreloadLink).append('\n')
                 .append("    ").append(cssLinks).append('\n')
+                .append("    ").append(readerTextScaleBootstrap).append('\n')
                 .append("    ").append(themeUtilityScript).append('\n')
                 .append("    ").append(tableCollapseScript).append('\n')
                 .append("    ").append(smartMediawikiVariables).append('\n')
                 .append("</head>\n")
-                .append("<body class=\"").append(themeClass).append("\" style=\"visibility: hidden;\">\n")
+                .append("<body class=\"").append(themeClass).append(" ").append(floorClass).append("\">\n")
                 .append(titleHeaderHtml)
                 .append(cleanedBodyContent)
                 .append('\n')
@@ -201,6 +224,11 @@ class PageHtmlBuilder(private val context: Context) {
         }
         Log.d(logTag, "buildFullHtmlDocument() took ${time}ms")
         return finalHtml
+    }
+
+    private fun deviceLocale(): Locale {
+        val locales = context.resources.configuration.locales
+        return if (locales.size() > 0) locales[0] else Locale.getDefault()
     }
     
     /**
@@ -219,5 +247,82 @@ class PageHtmlBuilder(private val context: Context) {
             Log.e(logTag, "Error removing duplicate page headers", e)
             htmlContent // Return original content if cleaning fails
         }
+    }
+
+    companion object {
+        private const val READER_STYLE_ID = "osrs-reader-text-scale-style"
+        private const val READER_SCALE_VARIABLE = "--osrs-article-user-text-scale"
+
+        internal fun readerTextScaleBootstrap(scale: Float): String {
+            val cssValue = readerTextScaleCssValue(scale)
+            return """
+                <style id="$READER_STYLE_ID">
+                    :root {
+                        $READER_SCALE_VARIABLE: $cssValue;
+                    }
+                </style>
+                <script>
+                    document.documentElement.style.setProperty('$READER_SCALE_VARIABLE', '$cssValue');
+                </script>
+            """.trimIndent()
+        }
+
+        internal fun readerTextScaleRuntimeScript(scale: Float): String {
+            val cssValue = readerTextScaleCssValue(scale)
+            return """
+                (function() {
+                    var style = document.getElementById('$READER_STYLE_ID');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = '$READER_STYLE_ID';
+                        style.textContent = ':root { $READER_SCALE_VARIABLE: $cssValue; }';
+                        document.head.appendChild(style);
+                    }
+                    document.documentElement.style.setProperty('$READER_SCALE_VARIABLE', '$cssValue');
+                })();
+            """.trimIndent()
+        }
+
+        internal fun floorNumberingRuntimeScript(bodyClass: String): String {
+            val sanitized = when (bodyClass) {
+                osrsArticleFloorConvention.US.bodyClass -> osrsArticleFloorConvention.US.bodyClass
+                else -> osrsArticleFloorConvention.GB.bodyClass
+            }
+            return """
+                (function() {
+                    var body = document.body;
+                    if (!body) return;
+                    body.classList.remove(
+                        '${osrsArticleFloorConvention.GB.bodyClass}',
+                        '${osrsArticleFloorConvention.US.bodyClass}'
+                    );
+                    body.classList.add('$sanitized');
+                })();
+            """.trimIndent()
+        }
+
+        internal fun tableCollapseRuntimeScript(collapseTablesEnabled: Boolean): String = """
+            (function() {
+                var shouldCollapse = $collapseTablesEnabled;
+                window.OSRS_TABLE_COLLAPSED = shouldCollapse;
+                document.querySelectorAll('.collapsible-container').forEach(function(container) {
+                    var isPrimary = container.classList.contains('primary-collapsible') ||
+                        container.classList.contains('collapsible-primary-infobox');
+                    var desiredCollapsed = shouldCollapse && !isPrimary;
+                    var isCollapsed = container.classList.contains('collapsed');
+                    if (desiredCollapsed !== isCollapsed) {
+                        var header = container.querySelector(':scope > .collapsible-header');
+                        if (header) {
+                            header.click();
+                        } else {
+                            container.classList.toggle('collapsed', desiredCollapsed);
+                        }
+                    }
+                });
+            })();
+        """.trimIndent()
+
+        internal fun readerTextScaleCssValue(scale: Float): String =
+            String.format(Locale.US, "%.2f", ReaderTextScale.clamp(scale))
     }
 }

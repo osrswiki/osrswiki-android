@@ -4,8 +4,13 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -36,8 +41,11 @@ class AppDatabaseMigrationRobolectricTest {
 
         database.openHelper.writableDatabase
 
-        assertEquals(16, database.openHelper.readableDatabase.version)
-        assertEquals("Abyssal whip", database.readingListPageDao().getAllPages().single().displayTitle)
+        assertEquals(18, database.openHelper.readableDatabase.version)
+        val legacyPage = database.readingListPageDao().getAllPages().single()
+        assertEquals("Abyssal whip", legacyPage.displayTitle)
+        assertEquals(ReadingListPage.STATUS_ERROR, legacyPage.status)
+        assertEquals(ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE, legacyPage.durableSettlementVersion)
         assertEquals(
             "offline/abyssal_whip.html",
             database.offlineObjectDao()
@@ -62,9 +70,15 @@ class AppDatabaseMigrationRobolectricTest {
 
             database.openHelper.writableDatabase
 
-            assertEquals(16, database.openHelper.readableDatabase.version)
+            assertEquals(18, database.openHelper.readableDatabase.version)
             if (version >= 8) {
-                assertEquals("Abyssal whip", database.readingListPageDao().getAllPages().single().displayTitle)
+                val legacyPage = database.readingListPageDao().getAllPages().single()
+                assertEquals("Abyssal whip", legacyPage.displayTitle)
+                assertEquals(ReadingListPage.STATUS_ERROR, legacyPage.status)
+                assertEquals(
+                    ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE,
+                    legacyPage.durableSettlementVersion
+                )
                 assertEquals(
                     "offline/abyssal_whip.html",
                     database.offlineObjectDao()
@@ -79,6 +93,112 @@ class AppDatabaseMigrationRobolectricTest {
         }
     }
 
+    @Test
+    fun durableSettlementMigrationMarksOnlyOfflineSavedRowsRetryableAndIsIdempotent() {
+        val dbName = "migration-settlement-${UUID.randomUUID()}.db"
+        databaseNames += dbName
+        val dbFile = context.getDatabasePath(dbName)
+        seedHistoricalDatabase(dbFile, version = 10)
+        addLegacySettlementStateVariants(dbFile)
+
+        var database = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        database.openHelper.writableDatabase
+
+        val migrated = database.readingListPageDao().getAllPages().associateBy { it.id }
+        val requeued = requireNotNull(migrated[42L])
+        assertEquals(ReadingListPage.STATUS_ERROR, requeued.status)
+        assertEquals(0, requeued.downloadProgress)
+        assertEquals(2_048L, requeued.sizeBytes)
+        assertTrue(requeued.offline)
+        assertEquals(ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE, requeued.durableSettlementVersion)
+
+        assertEquals(ReadingListPage.STATUS_ERROR, migrated.getValue(43L).status)
+        assertEquals(ReadingListPage.STATUS_QUEUE_FOR_DELETE, migrated.getValue(44L).status)
+        assertEquals(ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE, migrated.getValue(45L).status)
+        assertEquals(ReadingListPage.STATUS_QUEUE_FOR_SAVE, migrated.getValue(46L).status)
+        assertEquals(ReadingListPage.STATUS_SAVED, migrated.getValue(47L).status)
+        assertFalse(migrated.getValue(47L).offline)
+        migrated.values.forEach {
+            assertEquals(
+                ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE,
+                it.durableSettlementVersion
+            )
+        }
+
+        val visibleDuringRefresh = runBlocking {
+            database.readingListPageDao().getFullySavedPagesObservable().first()
+        }
+        assertTrue(visibleDuringRefresh.any { it.id == 42L && it.hasReadableOfflineSnapshot })
+        assertTrue(visibleDuringRefresh.any { it.id == 43L && it.hasReadableOfflineSnapshot })
+        assertFalse(visibleDuringRefresh.any { it.id == 46L })
+        assertEquals(
+            "offline/abyssal_whip.html",
+            database.offlineObjectDao()
+                .getOfflineObject("https://oldschool.runescape.wiki/w/Abyssal_whip", "en")
+                ?.path
+        )
+
+        database.close()
+        database = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        database.openHelper.writableDatabase
+        val retryableAfterRelaunch = requireNotNull(database.readingListPageDao().getPageById(42L))
+        assertEquals(ReadingListPage.STATUS_ERROR, retryableAfterRelaunch.status)
+        assertEquals(
+            ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE,
+            retryableAfterRelaunch.durableSettlementVersion
+        )
+        assertTrue(retryableAfterRelaunch.hasReadableOfflineSnapshot)
+
+        runBlocking {
+            database.readingListPageDao().updatePageStatusToSavedAndMtime(
+                pageId = 42L,
+                newStatus = retryableAfterRelaunch.retryQueueStatus,
+                currentTimeMs = 1_500L
+            )
+        }
+        assertEquals(
+            ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE,
+            retryableAfterRelaunch.retryQueueStatus
+        )
+        assertEquals(
+            1,
+            runBlocking {
+                database.readingListPageDao().transitionQueuedSaveToSaved(
+                    pageId = 42L,
+                    newSizeBytes = 4_096L,
+                    currentTimeMs = 2_000L
+                )
+            }
+        )
+        val settled = requireNotNull(database.readingListPageDao().getPageById(42L))
+        assertEquals(ReadingListPage.STATUS_SAVED, settled.status)
+        assertEquals(
+            ReadingListPage.CURRENT_DURABLE_SETTLEMENT_VERSION,
+            settled.durableSettlementVersion
+        )
+        database.close()
+
+        database = Room.databaseBuilder(context, AppDatabase::class.java, dbName)
+            .addMigrations(*AppDatabase.ALL_MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        database.openHelper.writableDatabase
+        val afterRelaunch = requireNotNull(database.readingListPageDao().getPageById(42L))
+        assertEquals(ReadingListPage.STATUS_SAVED, afterRelaunch.status)
+        assertEquals(
+            ReadingListPage.CURRENT_DURABLE_SETTLEMENT_VERSION,
+            afterRelaunch.durableSettlementVersion
+        )
+        assertEquals(4_096L, afterRelaunch.sizeBytes)
+        database.close()
+    }
+
     private fun seedHistoricalDatabase(dbFile: File, version: Int) {
         require(version in 6..10)
         dbFile.parentFile?.mkdirs()
@@ -91,6 +211,32 @@ class AppDatabaseMigrationRobolectricTest {
             if (version >= 9) addVersion9OfflineSaveType(db)
             if (version >= 10) createVersion10FtsTable(db)
             db.version = version
+        }
+    }
+
+    private fun addLegacySettlementStateVariants(dbFile: File) {
+        SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            fun insert(id: Long, offline: Int, status: Long, sizeBytes: Long) {
+                db.execSQL(
+                    """
+                    INSERT INTO `ReadingListPage` (
+                        `wiki`, `namespace`, `displayTitle`, `apiTitle`, `description`, `thumbUrl`,
+                        `listId`, `id`, `mtime`, `atime`, `offline`, `status`, `sizeBytes`, `lang`,
+                        `revId`, `remoteId`
+                    )
+                    VALUES (
+                        'OSRS Wiki', 'MAIN', 'Legacy $id', 'Legacy_$id', NULL, NULL,
+                        1, $id, 1000, 1000, $offline, $status, $sizeBytes, 'en', 1, 0
+                    )
+                    """.trimIndent()
+                )
+            }
+
+            insert(43L, offline = 1, status = ReadingListPage.STATUS_ERROR, sizeBytes = 1_024L)
+            insert(44L, offline = 1, status = ReadingListPage.STATUS_QUEUE_FOR_DELETE, sizeBytes = 2_048L)
+            insert(45L, offline = 1, status = ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE, sizeBytes = 2_048L)
+            insert(46L, offline = 1, status = ReadingListPage.STATUS_QUEUE_FOR_SAVE, sizeBytes = 0L)
+            insert(47L, offline = 0, status = ReadingListPage.STATUS_SAVED, sizeBytes = 0L)
         }
     }
 

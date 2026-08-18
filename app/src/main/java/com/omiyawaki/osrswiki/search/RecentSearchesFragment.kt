@@ -13,8 +13,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.color.MaterialColors
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.omiyawaki.osrswiki.databinding.FragmentRecentSearchesBinding
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.log.L
@@ -90,23 +90,17 @@ class RecentSearchesFragment : Fragment() {
     }
 
     private fun showClearHistoryConfirmationDialog() {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.clear_recent_searches_dialog_title)
-            .setMessage(R.string.clear_recent_searches_dialog_message)
-            .setNegativeButton(R.string.dialog_option_cancel) { dialog, _ ->
-                dialog.dismiss()
-            }
-            .setPositiveButton(R.string.dialog_option_clear) { _, _ ->
-                viewModel.onClearAllClicked()
-            }
-            .show()
-
-        val actionTextColor = MaterialColors.getColor(
-            binding.root,
-            com.google.android.material.R.attr.colorOnSurface
+        ThemedAlertDialogs.show(
+            ThemedAlertDialogs.builder(requireActivity())
+                .setTitle(R.string.clear_recent_searches_dialog_title)
+                .setMessage(R.string.clear_recent_searches_dialog_message)
+                .setNegativeButton(R.string.dialog_option_cancel) { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .setPositiveButton(R.string.dialog_option_clear) { _, _ ->
+                    viewModel.onClearAllClicked()
+                }
         )
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(actionTextColor)
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(actionTextColor)
     }
 
     override fun onDestroyView() {

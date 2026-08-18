@@ -10,15 +10,17 @@ import org.junit.Test
 
 class osrsRealmManifestParserTest {
     @Test
-    fun `manifest creates a selector entry for every published record`() {
+    fun `manifest exposes only canonical records while retaining every published record`() {
         val catalog = osrsTestCatalog()
 
         assertEquals(3, catalog.realmCount)
-        assertEquals(catalog.realmCount, catalog.selectorCount)
+        assertEquals(2, catalog.selectorCount)
         assertEquals("cache-world-map:main", catalog.surface.id)
         assertEquals(1, catalog.sections.getValue(OSRS_REALM_GROUP_SURFACE).size)
         assertEquals(1, catalog.sections.getValue(OSRS_REALM_GROUP_REALMS).size)
-        assertEquals(1, catalog.sections.getValue(OSRS_REALM_GROUP_OTHER_MAPS).size)
+        assertTrue(catalog.sections.getValue(OSRS_REALM_GROUP_OTHER_MAPS).isEmpty())
+        assertTrue(catalog.byId.containsKey("other-map-10042"))
+        assertFalse(catalog.byId.getValue("other-map-10042").isCanonicalSelectorRealm)
     }
 
     @Test

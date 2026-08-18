@@ -3,11 +3,9 @@ package com.omiyawaki.osrswiki.feedback
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import com.google.android.material.appbar.MaterialToolbar
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
-import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 /**
  * Activity to host the FeedbackFragmentSecure for secure Help & Feedback functionality.
@@ -29,6 +27,7 @@ class FeedbackActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_feedback)
+        applyEdgeToEdgeInsets(findViewById(android.R.id.content))
 
         if (savedInstanceState == null) {
             supportFragmentManager
@@ -42,7 +41,6 @@ class FeedbackActivity : BaseActivity() {
         }
 
         setupToolbar()
-        setupFonts()
     }
 
     private fun setupToolbar() {
@@ -55,17 +53,6 @@ class FeedbackActivity : BaseActivity() {
         }
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
-        }
-    }
-
-    private fun setupFonts() {
-        // Apply fonts to action bar title
-        supportActionBar?.let { actionBar ->
-            // Find the action bar title TextView and apply font
-            val titleId = resources.getIdentifier("action_bar_title", "id", "android")
-            if (titleId > 0) {
-                findViewById<TextView>(titleId)?.applyAlegreyaHeadline()
-            }
         }
     }
 

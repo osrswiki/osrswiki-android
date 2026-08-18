@@ -51,8 +51,31 @@ class PageHtmlBuilderTest {
         val document = Jsoup.parse(html)
 
         assertTrue(document.body().hasClass("theme-osrs-dark"))
-        assertEquals("hidden", document.body().attr("style").substringAfter("visibility: ").substringBefore(";"))
+        assertTrue(document.body().hasClass(osrsArticleFloorConvention.current().bodyClass))
+        assertFalse(document.body().hasAttr("style"))
         assertTrue(html.contains("window.OSRS_TABLE_COLLAPSED = false;"))
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun usDeviceLocaleAppliesUsFloorBodyClass() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Heroes' Guild",
+            bodyContent = "<p>Burthorpe.</p>",
+            theme = Theme.OSRS_LIGHT
+        )
+        assertTrue(Jsoup.parse(html).body().hasClass("floornumber-setting-us"))
+    }
+
+    @Test
+    @Config(qualifiers = "en-rGB")
+    fun gbDeviceLocaleAppliesGbFloorBodyClass() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Heroes' Guild",
+            bodyContent = "<p>Burthorpe.</p>",
+            theme = Theme.OSRS_LIGHT
+        )
+        assertTrue(Jsoup.parse(html).body().hasClass("floornumber-setting-gb"))
     }
 
     @Test
@@ -109,6 +132,7 @@ class PageHtmlBuilderTest {
         assertFalse(plainHtml.contains("web/ge_charts_init.js"))
         assertTrue(chartHtml.contains("web/highcharts-stock.js"))
         assertTrue(chartHtml.contains("web/ge_charts_init.js"))
+        assertTrue(chartHtml.contains("__osrsAmdDefine"))
     }
 
     @Test

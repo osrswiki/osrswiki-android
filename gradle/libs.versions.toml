@@ -3,7 +3,7 @@
 [versions]
 # Core Android & Kotlin
 agp = "8.12.1"
-kotlin = "2.0.21" # Your project's Kotlin version
+kotlin = "2.3.20"
 coreKtx = "1.16.0"
 appcompat = "1.7.0"
 material = "1.12.0"
@@ -32,13 +32,13 @@ apacheCommonsLang3 = "3.14.0"
 gson = "2.10.1"
 
 # Kotlinx Serialization
-kotlinxSerializationJson = "1.7.3"
+kotlinxSerializationJson = "1.9.0"
 
-kotlinxCoroutines = "1.8.0"
+kotlinxCoroutines = "1.10.2"
 
-# Glide & KSP
+# Glide & KSP (KSP 2.3+ uses independent versioning, not Kotlin-prefixed)
 glide = "4.16.0"
-ksp = "2.0.21-1.0.28"
+ksp = "2.3.10"
 
 # Testing
 junit = "4.13.2"
@@ -51,8 +51,8 @@ androidxPreferenceKtx = "1.2.1"
 
 moshi = "1.15.1"
 
-# Google Play Billing
-playBilling = "7.1.1"
+# Google Play Billing (Play requires 8.0.0+ by 2026-08-31; 9.x recommended)
+playBilling = "9.1.0"
 
 # Additional AndroidX versions
 activity = "1.9.3"
@@ -160,6 +160,7 @@ play-billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }

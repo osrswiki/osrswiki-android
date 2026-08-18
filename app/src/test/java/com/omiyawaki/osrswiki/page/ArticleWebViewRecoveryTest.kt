@@ -78,6 +78,20 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
+    fun pageRestoresNavigationScrollAfterContentHeightCanHoldIt() {
+        val fragmentSource = sourceFile("PageFragment.kt").readText()
+        val managerSource = sourceFile("PageWebViewManager.kt").readText()
+        val activitySource = sourceFile("PageActivity.kt").readText()
+
+        assertTrue(fragmentSource.contains("lastObservedScrollY"))
+        assertTrue(fragmentSource.contains("trackWebViewScrollPosition()"))
+        assertTrue(activitySource.contains("commitPushedArticle"))
+        assertTrue(managerSource.contains("contentCanHoldScroll"))
+        assertTrue(managerSource.contains("waitUntilScrollable"))
+        assertTrue(managerSource.contains("webView.alpha = 0f"))
+    }
+
+    @Test
     fun pageFragmentRevealCompletionUsesNullableBindingSnapshot() {
         val source = sourceFile("PageFragment.kt").readText()
         val readyCallbackBody = source.substringAfter("override fun onPageReadyForDisplay()")
@@ -129,7 +143,11 @@ class ArticleWebViewRecoveryTest {
         val releaseMethod = source.substringAfter("private fun releaseStoppedWebViewResources()")
             .substringBefore("private fun restoreStoppedWebViewResourcesIfNeeded()")
 
+        assertTrue(onPauseMethod.contains("if (!isHidden)"))
         assertTrue(onPauseMethod.contains("releaseStoppedWebViewResources()"))
+        val onStopMethod = source.substringAfter("override fun onStop()")
+            .substringBefore("override fun onPause()")
+        assertTrue(onStopMethod.contains("releaseStoppedWebViewResources()"))
         assertTrue(onResumeMethod.contains("restoreStoppedWebViewResourcesIfNeeded()"))
         assertTrue(releaseMethod.contains("destroyReleasedWebView(oldWebView)"))
         assertTrue(source.contains("private fun requestWebViewHeapTrim()"))
@@ -173,6 +191,10 @@ class ArticleWebViewRecoveryTest {
 
         assertTrue(pageActivityEntry.contains("android:launchMode=\"singleTop\""))
         assertTrue(source.contains("private val articleBackStack"))
+        assertTrue(source.contains("PixelCopy.request"))
+        assertTrue(source.contains("backPreviewStack"))
+        assertTrue(source.contains("captureViewRestore"))
+        assertTrue(source.contains("commitPushedArticle"))
         assertTrue(source.contains("override fun onNewIntent"))
         assertTrue(source.contains("showArticleFromIntent(intent, pushCurrent = true)"))
         assertTrue(source.contains("popArticleBackStack()"))
@@ -241,13 +263,14 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
-    fun pageAssetDownloaderDoesNotStartBackgroundPrefetchUnderDeepStacks() {
+    fun pageAssetDownloaderHasNoEagerOptionalMediaPrefetchUnderDeepStacks() {
         val source = sourceFile("PageAssetDownloader.kt").readText()
-        val backgroundMethod = source.substringAfter("fun downloadBackgroundAssets")
-            .substringBefore("private suspend fun downloadAndCache")
+        val preparedText = source.substringAfter("private suspend fun processPreparedText")
+            .substringBefore("private fun logPreparationFailure")
 
-        assertTrue(source.contains("private val backgroundPrefetchLimit = 0"))
-        assertTrue(backgroundMethod.contains("if (backgroundPrefetchLimit <= 0)"))
+        assertFalse(source.contains("downloadBackgroundAssets"))
+        assertFalse(source.contains("downloadPostTextPriorityAssets"))
+        assertTrue(preparedText.contains("backgroundUrls = emptyList()"))
     }
 
     @Test
@@ -265,14 +288,15 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
-    fun pageAssetDownloaderAvoidsPerImageCssClosestParsingForPriorityAssets() {
+    fun preparedArticlePathDoesNotPerformPriorityImageDiscoveryBeforeFirstPaint() {
         val source = sourceFile("PageAssetDownloader.kt").readText()
-        val extractMethod = source.substringAfter("private suspend fun extractAssetUrls")
-            .substringBefore("private fun addUrlsFromElement")
+        val preparedText = source.substringAfter("private suspend fun processPreparedText")
+            .substringBefore("private fun logPreparationFailure")
 
-        assertFalse(extractMethod.contains("closest(\".infobox, .mw-halign-left\")"))
-        assertTrue(extractMethod.contains("isPriorityImageElement(element)"))
-        assertTrue(extractMethod.contains("currentCoroutineContext().ensureActive()"))
+        assertFalse(source.contains("extractAssetUrls"))
+        assertFalse(source.contains("isPriorityImageElement"))
+        assertTrue(preparedText.contains("text-only"))
+        assertTrue(preparedText.contains("currentCoroutineContext().ensureActive()"))
     }
 
     @Test
@@ -309,7 +333,7 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
-    fun nativeMapPlaceholdersAreMeasuredWithoutCreatingMapLibreUntilOpened() {
+    fun visibleNativeMapPlaceholdersAttachImmediatelyWhileCollapsedMapsStayLazy() {
         val source = sourceFile("NativeMapHandler.kt").readText()
         val measuredBridgeBody = source.substringAfter("fun onMapPlaceholderMeasured")
             .substringBefore("@JavascriptInterface", missingDelimiterValue = source.substringAfter("fun onMapPlaceholderMeasured"))
@@ -320,6 +344,56 @@ class ArticleWebViewRecoveryTest {
         assertTrue(measuredBridgeBody.contains("rememberMapPlaceholder"))
         assertFalse(measuredBridgeBody.contains("createMapContainer"))
         assertTrue(toggleBridgeBody.contains("ensureMapContainer"))
+        assertTrue(source.contains("overlayState.recordDesiredVisibility(mapId, isOpening)"))
+        assertTrue(source.contains("overlayState.recordMeasurement("))
+        assertTrue(source.contains("mapContainers[id]?.let { applyMapContainerLayout(it, rect) }"))
+        assertTrue(source.contains("val shouldBeVisible = record.desiredVisible == true"))
+        assertTrue(source.contains("val initiallyVisible: Boolean = false"))
+        assertTrue(source.contains("renderedMapIds"))
+        assertTrue(source.contains("renderedMapIds += id"))
+        assertTrue(source.contains("renderedMapIds.contains(mapId)"))
+        assertTrue(source.contains("hideStaticPlaceholder(mapId)"))
+    }
+
+    @Test
+    fun articleNavigationWaitsForExplicitGenerationBoundDomOwnershipClassification() {
+        val source = sourceFile("PageFragment.kt").readText()
+        val setupBody = source.substringAfter("private fun setupGestureDetector()")
+            .substringBefore("/** Called on the view thread")
+
+        assertTrue(setupBody.contains("registerNavigationCandidate(generation)"))
+        assertTrue(setupBody.contains("resolveArticleSwipeOwnership(generation, gravity)"))
+        assertTrue(setupBody.contains("domSequenceFor(generation)"))
+        assertTrue(setupBody.contains("articleHorizontalGestureSnapshotQuery(domSequence)"))
+        assertTrue(setupBody.contains("recordFinalClassification(generation, snapshot)"))
+        assertFalse(setupBody.contains("latestTouchIsOwned"))
+        assertFalse(setupBody.contains("postDelayed"))
+        assertFalse(source.contains("LOCAL_SCROLL_CLAIM_GRACE_MS"))
+    }
+
+    @Test
+    fun articleMapDiscoveryIncludesVisibleAndNonCollapsibleKartographerMaps() {
+        val script = File("src/main/assets/web/collapsible_content.js").readText()
+        val measure = script.substringAfter("function measureAndPreloadMaps()")
+            .substringBefore("window.measureAndPreloadMaps")
+
+        assertTrue(measure.contains("document.querySelectorAll('.mw-kartographer-map')"))
+        assertTrue(measure.contains("container.classList.contains('collapsed')"))
+        assertTrue(measure.contains("sendMapMeasurement(mapPlaceholder, index)"))
+        assertTrue(script.contains("initiallyVisible: isNearViewport(rect)"))
+        assertTrue(script.contains("IntersectionObserver"))
+        assertTrue(script.contains("onMapViewportVisibilityChanged"))
+        assertFalse(measure.contains("if (!container) return"))
+    }
+
+    @Test
+    fun phrasingMediaWikiIconsRemainInlineWithoutChangingStandaloneFigures() {
+        val css = File("src/main/assets/styles/fixes.css").readText()
+
+        assertTrue(css.contains("span.mw-default-size[typeof^=\"mw:File\"] img.mw-file-element"))
+        assertTrue(css.contains("display: inline-block !important"))
+        assertTrue(css.contains("vertical-align: middle !important"))
+        assertFalse(css.contains("\nimg.mw-file-element {\n"))
     }
 
     @Test
@@ -337,6 +411,62 @@ class ArticleWebViewRecoveryTest {
         assertTrue(
             source.indexOf("val contentAlreadyLoaded") < source.indexOf("PageUiState(isLoading = true")
         )
+    }
+
+    @Test
+    fun pageActivityKeepsPreviousArticleFragmentAliveOnPushAndShowOnPop() {
+        val source = sourceFile("PageActivity.kt").readText()
+        val pushMethod = source.substringAfter("private fun pushCoveringArticleFragment()")
+            .substringBefore("private fun revealPreviousArticleFragment()")
+        val popMethod = source.substringAfter("private fun revealPreviousArticleFragment()")
+            .substringBefore("private fun replaceArticleFragmentIfFixtureProbeAllows()")
+
+        assertTrue(source.contains("hiddenArticleFragmentTags"))
+        assertTrue(pushMethod.contains(".hide("))
+        assertTrue(pushMethod.contains(".add(R.id.page_fragment_container"))
+        assertTrue(popMethod.contains(".show("))
+        assertTrue(popMethod.contains(".remove("))
+        assertTrue(source.contains("osrsUnderlyingActivityPreview"))
+        assertTrue(source.substringAfter("private fun popArticleBackStack()").contains("revealPreviousArticleFragment()"))
+        assertTrue(source.substringAfter("private fun commitPushedArticle").contains("pushCoveringArticleFragment()"))
+    }
+
+    @Test
+    fun pageActivityUsesCallerSnapshotWhenArticleBackPreviewStackIsEmpty() {
+        val source = sourceFile("PageActivity.kt").readText()
+        val progressMethod = source.substringAfter("private fun applyInteractiveBackProgress")
+            .substringBefore("private fun applyInteractiveContentsProgress")
+
+        assertTrue(progressMethod.contains("osrsUnderlyingActivityPreview"))
+        assertTrue(progressMethod.contains("backPreviewStack.lastOrNull()"))
+        assertTrue(source.contains("overridePendingTransition(0, 0)"))
+        val baseActivity = File("src/main/java/com/omiyawaki/osrswiki/activity/BaseActivity.kt").readText()
+        assertTrue(baseActivity.contains("osrsUnderlyingActivityPreview.captureFromCaller(this)"))
+        assertFalse(
+            progressMethod.contains("if (clamped > 0f && preview != null)") &&
+                !progressMethod.contains("osrsUnderlyingActivityPreview")
+        )
+    }
+
+    @Test
+    fun pageUiDoesNotCoverArticlesWithTheOsrsLoadingBar() {
+        val updater = sourceFile("PageUiUpdater.kt").readText()
+        val html = sourceFile("PageHtmlBuilder.kt").readText()
+        val css = File("src/main/assets/styles/base.css").readText()
+
+        assertFalse(updater.contains("progressContainer.visibility = View.VISIBLE"))
+        assertFalse(html.contains("style=\"visibility: hidden;\""))
+        assertFalse(css.contains("visibility: hidden;"))
+    }
+
+    @Test
+    fun openContentsRightSwipeIsNotBlockedByContentsProgressEarlyReturn() {
+        val source = sourceFile("PageActivity.kt").readText()
+        val progressMethod = source.substringAfter("private fun applyInteractiveContentsProgress")
+            .substringBefore("private fun setContentsRevealProgress")
+
+        assertFalse(progressMethod.contains("if (isContentsOpen && progress <= 0f)"))
+        assertTrue(source.contains("contentsOpen ="))
     }
 
     private fun sourceFile(fileName: String): File {

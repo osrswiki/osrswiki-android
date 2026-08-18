@@ -11,7 +11,6 @@ import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentPrivacyPolicyBinding
-import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.util.log.L
 
 class PrivacyPolicyFragment : Fragment() {
@@ -39,7 +38,6 @@ class PrivacyPolicyFragment : Fragment() {
         L.d("PrivacyPolicyFragment: onViewCreated called.")
         
         setupPrivacyContent()
-        setupFonts()
     }
     
     private fun setupPrivacyContent() {
@@ -55,9 +53,9 @@ class PrivacyPolicyFragment : Fragment() {
             text = section.text
             setTextAppearance(
                 if (section.isHeading) {
-                    R.style.AppTextAppearance_TitleBold
+                    R.style.AppTextAppearance_SettingsSubheading
                 } else {
-                    R.style.AppTextAppearance_Body
+                    R.style.AppTextAppearance_SettingsBody
                 }
             )
             if (section.isHeading) {
@@ -82,16 +80,6 @@ class PrivacyPolicyFragment : Fragment() {
         ).toInt()
     }
     
-    private fun setupFonts() {
-        L.d("PrivacyPolicyFragment: Setting up fonts...")
-        
-        // Apply fonts to headers
-        FontUtil.applyAlegreyaDisplay(binding.privacyTitle)
-        FontUtil.applyAlegreyaHeadline(binding.lastUpdated)
-        
-        L.d("PrivacyPolicyFragment: Fonts applied")
-    }
-
     override fun onDestroyView() {
         L.d("PrivacyPolicyFragment: onDestroyView called.")
         _binding = null

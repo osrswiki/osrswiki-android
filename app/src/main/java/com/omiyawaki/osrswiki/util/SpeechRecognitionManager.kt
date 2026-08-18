@@ -278,7 +278,7 @@ class SpeechRecognitionManager(
             } catch (e: Exception) {
                 L.e("SpeechRecognitionManager: Exception in stopListening()", e)
                 currentState = SpeechState.ERROR
-                onError("Failed to stop speech recognition: ${e.message ?: "Unknown error"}")
+                onError("Voice search could not complete. Please try again.")
                 resetState()
             }
         } else {

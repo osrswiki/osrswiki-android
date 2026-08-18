@@ -3,11 +3,12 @@ package com.omiyawaki.osrswiki.search
 import androidx.paging.PagingSource
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
-import com.omiyawaki.osrswiki.network.PageImagesApiResponse
+import com.omiyawaki.osrswiki.network.SearchResult
+import com.omiyawaki.osrswiki.network.Thumbnail
 import com.omiyawaki.osrswiki.network.WikiApiService
-import com.omiyawaki.osrswiki.network.model.SearchApiResponse
-import com.omiyawaki.osrswiki.network.model.SearchApiResult
-import com.omiyawaki.osrswiki.network.model.SearchQuery
+import com.omiyawaki.osrswiki.network.model.GeneratedSearchApiResponse
+import com.omiyawaki.osrswiki.network.model.GeneratedSearchContinuation
+import com.omiyawaki.osrswiki.network.model.QueryResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -19,21 +20,26 @@ import org.mockito.kotlin.whenever
 class SearchPagingSourceTest {
 
     @Test
-    fun loadAssignsResultIndicesByApiOrderEvenWhenRowsCompareEqual() = runTest {
-        val apiResult = SearchApiResult(
+    fun loadReranksExactTitleAheadOfNoisierServerResultAndPreservesApiMetadata() = runTest {
+        val apiResult = SearchResult(
             ns = 0,
             title = "Logs",
             pageid = 101,
+            index = 2,
             size = 10,
             wordcount = 2,
             snippet = "Logs",
-            timestamp = "2026-07-05T00:00:00Z"
+            timestamp = "2026-07-05T00:00:00Z",
+            thumbnail = Thumbnail(source = "https://example.test/logs.png")
         )
+        val rankedFirst = apiResult.copy(index = 1, pageid = 102, title = "Logs (first)")
         val apiService = mock<WikiApiService>()
-        whenever(apiService.searchPages("logs", 2, 0)).thenReturn(
-            SearchApiResponse(query = SearchQuery(search = listOf(apiResult, apiResult)))
+        whenever(apiService.generatedPrefixSearch("logs*", 2, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = GeneratedSearchContinuation(gsroffset = 2),
+                query = QueryResult(pages = listOf(apiResult, rankedFirst))
+            )
         )
-        whenever(apiService.getPageThumbnails("101|101", 240)).thenReturn(PageImagesApiResponse())
 
         val source = SearchPagingSource(
             apiService = apiService,
@@ -50,7 +56,10 @@ class SearchPagingSourceTest {
         )
 
         val page = result as PagingSource.LoadResult.Page
-        assertEquals(listOf(1, 2), page.data.map { it.index })
+        assertEquals(listOf(2, 1), page.data.map { it.index })
+        assertEquals(listOf(101, 102), page.data.map { it.pageid })
+        assertEquals("https://example.test/logs.png", page.data.first().thumbnailUrl)
+        assertEquals(2, page.nextKey)
     }
 
     private class FakeArticleMetaDao : ArticleMetaDao {

@@ -44,7 +44,6 @@ import androidx.test.rule.GrantPermissionRule
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import com.omiyawaki.osrswiki.about.AboutActivity
 import com.omiyawaki.osrswiki.database.AppDatabase
@@ -602,9 +601,7 @@ class ExpandedAndroidEnvironmentTest {
             waitUntil("contents drawer open") {
                 var isOpen = false
                 scenario.onActivity { activity ->
-                    val drawer = activity.findViewById<DrawerLayout>(R.id.page_drawer_layout)
-                    val sidePanel = activity.findViewById<android.view.View>(R.id.side_panel_container)
-                    isOpen = drawer.isDrawerOpen(sidePanel)
+                    isOpen = activity.isContentsDrawerOpen()
                 }
                 isOpen
             }
@@ -614,9 +611,7 @@ class ExpandedAndroidEnvironmentTest {
             waitUntil("contents drawer closed without finishing page") {
                 var isClosed = false
                 scenario.onActivity { activity ->
-                    val drawer = activity.findViewById<DrawerLayout>(R.id.page_drawer_layout)
-                    val sidePanel = activity.findViewById<android.view.View>(R.id.side_panel_container)
-                    isClosed = !drawer.isDrawerOpen(sidePanel)
+                    isClosed = !activity.isContentsDrawerOpen()
                 }
                 isClosed && scenario.state.isAtLeast(Lifecycle.State.STARTED)
             }

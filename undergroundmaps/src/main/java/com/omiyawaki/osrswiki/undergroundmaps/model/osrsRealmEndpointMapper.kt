@@ -22,6 +22,64 @@ data class osrsRealmEndpointDestination(
     val matchingLayoutCount: Int
 )
 
+data class osrsRelativeLinkZoomResult(
+    val sourceZoom: Double,
+    val sourceNativeMaxZoom: Int,
+    val targetNativeMaxZoom: Int,
+    val relativeZoom: Double,
+    val requestedTargetZoom: Double,
+    val finalTargetZoom: Double,
+    val targetMinZoom: Double,
+    val targetMaxZoom: Double,
+    val clampState: String
+)
+
+/**
+ * Preserves the apparent scale of the shared pre-realm-selector surface camera after the
+ * surface raster is placed in a differently sized Web Mercator canvas. A zoom value alone is
+ * not portable across those coordinate frames: halving the canvas requires subtracting one
+ * zoom level to keep the same source-pixel density on screen.
+ */
+fun osrsDefaultZoomForAsset(asset: osrsRealmAsset): Double {
+    require(asset.canvasSize > 0) { "Realm asset canvas must be positive" }
+    return osrsUndergroundMapDefaultView.ZOOM + log2(
+        asset.canvasSize.toDouble() / osrsUndergroundMapDefaultView.CANVAS_SIZE
+    )
+}
+
+fun osrsSurfaceDefaultZoomForAsset(asset: osrsRealmAsset): Double =
+    osrsDefaultZoomForAsset(asset)
+
+fun osrsRelativeLinkZoomForAssets(
+    currentZoom: Double,
+    sourceAsset: osrsRealmAsset,
+    targetAsset: osrsRealmAsset
+): osrsRelativeLinkZoomResult {
+    require(currentZoom.isFinite()) { "Source camera zoom must be finite" }
+    val targetMinZoom = osrsRealmCameraEnvelope.minZoom(targetAsset)
+    val targetMaxZoom = osrsRealmCameraEnvelope.maxZoom(targetAsset)
+    val relativeZoom = currentZoom - sourceAsset.maxZoom
+    val requestedTargetZoom = targetAsset.maxZoom + relativeZoom
+    val finalTargetZoom = requestedTargetZoom.coerceIn(targetMinZoom, targetMaxZoom)
+    val clampState = when (finalTargetZoom) {
+        requestedTargetZoom -> "none"
+        targetMinZoom -> "min"
+        targetMaxZoom -> "max"
+        else -> "unknown"
+    }
+    return osrsRelativeLinkZoomResult(
+        sourceZoom = currentZoom,
+        sourceNativeMaxZoom = sourceAsset.maxZoom,
+        targetNativeMaxZoom = targetAsset.maxZoom,
+        relativeZoom = relativeZoom,
+        requestedTargetZoom = requestedTargetZoom,
+        finalTargetZoom = finalTargetZoom,
+        targetMinZoom = targetMinZoom,
+        targetMaxZoom = targetMaxZoom,
+        clampState = clampState
+    )
+}
+
 /**
  * Projects cache game coordinates through the exact source-to-realm layout recorded in the
  * release manifest. No semantic or manually captured coordinate is involved.
@@ -47,8 +105,11 @@ class osrsRealmEndpointMapper(
             val target = component.assetPixelBounds
             val assetPixelX = target.minX + sourcePixelX - source.minX
             val assetPixelY = target.minY + sourcePixelY - source.minY
-            if (assetPixelX !in 0.0..<asset.width.toDouble() ||
-                assetPixelY !in 0.0..<asset.height.toDouble()) {
+            // Layout targets use shared padded-canvas coordinates. `width` and
+            // `height` describe the unpadded rendered source and therefore are
+            // not the legal coordinate extent after producer translation.
+            if (assetPixelX !in 0.0..<asset.canvasSize.toDouble() ||
+                assetPixelY !in 0.0..<asset.canvasSize.toDouble()) {
                 return@mapNotNull null
             }
             assetPixelX to assetPixelY
@@ -120,14 +181,12 @@ fun osrsEndpointZoomForViewport(
     val bounds = asset.contentPixelBounds
     require(bounds.size == 4) { "Realm endpoint camera requires four content bounds" }
 
-    val horizontalDistance = if (realm.isSurface) {
-        min(destination.assetPixelX - bounds[0], bounds[2] - destination.assetPixelX) / canvasSize
-    } else {
-        // Modular realm sources contain no neighboring atlas content and retain horizontal wrap.
-        0.5
-    }
-    val verticalMin = if (realm.isSurface) bounds[1].toDouble() else 0.0
-    val verticalMax = if (realm.isSurface) bounds[3].toDouble() else canvasSize
+    val horizontalDistance = min(
+        destination.assetPixelX - bounds[0],
+        bounds[2] - destination.assetPixelX
+    ) / canvasSize
+    val verticalMin = bounds[1].toDouble()
+    val verticalMax = bounds[3].toDouble()
     val verticalDistance = min(
         destination.assetPixelY - verticalMin,
         verticalMax - destination.assetPixelY

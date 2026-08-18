@@ -2,326 +2,349 @@ package com.omiyawaki.osrswiki.page
 
 import com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse
 import com.omiyawaki.osrswiki.network.model.ParseResult
-import com.omiyawaki.osrswiki.page.cache.AssetCache
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePreparationCoordinator
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmDecision
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmEnvironmentProvider
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmEnvironmentSubscription
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmLease
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmSuppression
+import com.omiyawaki.osrswiki.page.preemptive.PreparedArticleCache
 import com.omiyawaki.osrswiki.util.log.L
-import kotlinx.coroutines.CoroutineScope
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import okio.Buffer
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
-import java.io.ByteArrayOutputStream
-import java.io.IOException
-import java.util.concurrent.atomic.AtomicLong
 
-data class AssetUrls(val priority: List<String>, val background: List<String>)
-data class DownloadResult(val processedHtml: String, val parseResult: ParseResult, val backgroundUrls: List<String>)
+enum class ArticleContentSource { NETWORK, SAVED }
+
+/** Prepared article text only. Theme and runtime reader preferences are applied at render time. */
+data class DownloadResult(
+    val processedHtml: String,
+    val parseResult: ParseResult,
+    val backgroundUrls: List<String>,
+    val source: ArticleContentSource = ArticleContentSource.NETWORK
+)
 
 class PageAssetDownloader(
     private val okHttpClient: OkHttpClient,
-    private val pageRepository: PageRepository? = null
+    private val pageRepository: PageRepository? = null,
+    processScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
-    private val downloadSemaphore = Semaphore(2)
     private val jsonParser = Json { ignoreUnknownKeys = true }
     private val largeArticleImageDeferralThreshold = 1_000
-    private val backgroundPrefetchLimit = 0
-    private val maxBackgroundAssetBytes = 2 * 1024 * 1024L
     private val transparentImagePlaceholder =
         "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='1'%20height='1'%3E%3C/svg%3E"
+    private val prewarmEnvironmentListeners = CopyOnWriteArraySet<() -> Unit>()
 
-    fun downloadPriorityAssetsByTitle(title: String, pageUrl: String): Flow<DownloadProgress> = channelFlow {
-        L.d("downloadPriorityAssetsByTitle: Starting flow for title: $title")
-        
-        // First check if we have this page cached (including reading list saved pages)
-        pageRepository?.let { repo ->
-            val cachedPage = repo.getSavedPageContentByTitle(title)
-            if (cachedPage != null) {
-                L.d("downloadPriorityAssetsByTitle: Found cached content for title: $title")
-                // Convert cached page to ParseResult format and check assets
-                val parseResult = ParseResult(
-                    title = cachedPage.plainTextTitle ?: title,
-                    pageid = cachedPage.pageId ?: 0,
-                    revid = cachedPage.revisionId ?: 0,
-                    text = extractBodyFromHtml(cachedPage.htmlContent),
-                    displaytitle = cachedPage.title
-                )
+    @Volatile
+    private var prewarmEnvironmentProvider = ArticlePrewarmEnvironmentProvider {
+        ArticlePrewarmDecision(ArticlePrewarmSuppression.NONE, maxConcurrent = 2)
+    }
+    private val preparationCoordinator = ArticlePreparationCoordinator(
+        processScope = processScope,
+        cache = PreparedArticleCache(),
+        environmentProvider = ArticlePrewarmEnvironmentProvider {
+            prewarmEnvironmentProvider.currentDecision()
+        },
+        prepare = ::prepareArticle
+    )
 
-                L.d("downloadPriorityAssetsByTitle: Processing cached content and checking assets.")
-                processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
-                return@channelFlow
-            }
-        }
-        
-        val encodedTitle = java.net.URLEncoder.encode(title, "UTF-8")
-        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&page=$encodedTitle"
-        L.d("downloadPriorityAssetsByTitle: Constructed API URL: $apiUrl")
-        val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
-
-        L.d("downloadPriorityAssetsByTitle: Finished HTML download, processing assets.")
-        processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
-    }.flowOn(Dispatchers.IO)
-
-    fun downloadPriorityAssets(pageId: Int, pageUrl: String): Flow<DownloadProgress> = channelFlow {
-        L.d("downloadPriorityAssets: Starting flow for pageId: $pageId")
-        
-        // First check if we have this page cached (including reading list saved pages)
-        pageRepository?.let { repo ->
-            val cachedPage = repo.getSavedPageContent(pageId)
-            if (cachedPage != null) {
-                L.d("downloadPriorityAssets: Found cached content for pageId: $pageId")
-                // Convert cached page to ParseResult format and check assets
-                val parseResult = ParseResult(
-                    title = cachedPage.plainTextTitle ?: "Page $pageId",
-                    pageid = cachedPage.pageId ?: pageId,
-                    revid = cachedPage.revisionId ?: 0,
-                    text = extractBodyFromHtml(cachedPage.htmlContent),
-                    displaytitle = cachedPage.title
-                )
-
-                L.d("downloadPriorityAssets: Processing cached content and checking assets.")
-                processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
-                return@channelFlow
-            }
-        }
-        
-        val apiUrl = "$wikiSiteUrl/api.php?action=parse&format=json&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&pageid=$pageId"
-        L.d("downloadPriorityAssets: Constructed API URL: $apiUrl")
-        val parseResult = fetchParseResultWithProgress(apiUrl, this) ?: return@channelFlow
-
-        L.d("downloadPriorityAssets: Finished HTML download, processing assets.")
-        processAndDownloadAssets(parseResult, pageUrl).collect { send(it) }
-    }.flowOn(Dispatchers.IO)
-
-    private suspend fun fetchParseResultWithProgress(url: String, flow: ProducerScope<DownloadProgress>): ParseResult? {
-        try {
-            L.d("fetchParseResultWithProgress: Starting HTML download for URL: $url")
-            val request = Request.Builder().url(url).build()
-            L.d("fetchParseResultWithProgress: Making network request...")
-            
-            okHttpClient.newCall(request).execute().use { response ->
-                L.d("fetchParseResultWithProgress: Received response - Code: ${response.code}, Success: ${response.isSuccessful}")
-
-                if (!response.isSuccessful) {
-                    val errorMessage = "HTTP ${response.code}: ${response.message}"
-                    L.e("fetchParseResultWithProgress: HTTP error - $errorMessage")
-                    when (response.code) {
-                        404 -> throw IOException("Page not found (404): The requested page does not exist")
-                        500 -> throw IOException("Server error (500): Wiki server is experiencing issues")
-                        503 -> throw IOException("Service unavailable (503): Wiki server is temporarily unavailable")
-                        else -> throw IOException("Network error: $errorMessage")
-                    }
-                }
-
-                val body = response.body ?: throw IOException("Response body is null")
-                val totalBytes = body.contentLength()
-                L.d("fetchParseResultWithProgress: Response body size: $totalBytes bytes")
-
-                val source = body.source()
-                val buffer = Buffer()
-                val outputStream = ByteArrayOutputStream()
-                var bytesRead = 0L
-                var lastSentProgress = -1
-
-                flow.send(DownloadProgress.FetchingHtml(0))
-
-                while (true) {
-                    val readCount = source.read(buffer, 8192L)
-                    if (readCount == -1L) break
-                    outputStream.write(buffer.readByteArray(readCount))
-                    bytesRead += readCount
-
-                    if (totalBytes > 0) {
-                        val progress = ((bytesRead * 100) / totalBytes).toInt()
-                        if (progress > lastSentProgress) {
-                            flow.send(DownloadProgress.FetchingHtml(progress))
-                            lastSentProgress = progress
-                        }
-                    }
-                }
-
-                val responseJson = outputStream.toString()
-                L.d("fetchParseResultWithProgress: Downloaded ${responseJson.length} characters of JSON")
-                L.d("fetchParseResultWithProgress: JSON preview (first 200 chars): ${responseJson.take(200)}...")
-
-                val apiResponseContainer = jsonParser.decodeFromString<ArticleParseApiResponse>(responseJson)
-                L.d("fetchParseResultWithProgress: Successfully parsed JSON response")
-
-                if (apiResponseContainer.parse == null) {
-                    L.e("fetchParseResultWithProgress: API response parse object is null - possible API error")
-                    throw IOException("API returned empty parse result - page may not exist or be accessible")
-                }
-
-                L.d("fetchParseResultWithProgress: Parse result - PageID: ${apiResponseContainer.parse.pageid}, Title: '${apiResponseContainer.parse.title}'")
-                flow.send(DownloadProgress.FetchingHtml(100))
-                return apiResponseContainer.parse
-            }
-
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: java.net.UnknownHostException) {
-            L.e("fetchParseResultWithProgress: DNS/Network error - could not resolve host for $url", e)
-            flow.send(DownloadProgress.Failure(e))
-            return null
-        } catch (e: java.net.SocketTimeoutException) {
-            L.e("fetchParseResultWithProgress: Request timeout for $url", e)
-            flow.send(DownloadProgress.Failure(e))
-            return null
-        } catch (e: java.net.ConnectException) {
-            L.e("fetchParseResultWithProgress: Connection failed for $url", e)
-            flow.send(DownloadProgress.Failure(e))
-            return null
-        } catch (e: IOException) {
-            if (isExpectedCancellation(e)) {
-                L.d("fetchParseResultWithProgress: Request canceled for $url")
-            } else {
-                L.e("fetchParseResultWithProgress: Network error for $url", e)
-            }
-            flow.send(DownloadProgress.Failure(e))
-            return null
-        } catch (e: kotlinx.serialization.SerializationException) {
-            L.e("fetchParseResultWithProgress: JSON parsing failed for $url - invalid API response format", e)
-            flow.send(DownloadProgress.Failure(IOException("Invalid API response format", e)))
-            return null
-        } catch (e: Exception) {
-            L.e("fetchParseResultWithProgress: Unexpected error during download/parse for $url - Error type: ${e::class.simpleName}", e)
-            flow.send(DownloadProgress.Failure(e))
-            return null
-        }
+    internal fun configurePrewarmEnvironment(provider: ArticlePrewarmEnvironmentProvider) {
+        prewarmEnvironmentProvider = provider
+        preparationCoordinator.environmentChanged()
     }
 
-    private fun processAndDownloadAssets(parseResult: ParseResult, pageUrl: String): Flow<DownloadProgress> = channelFlow {
-        val rawHtmlContent = parseResult.text ?: ""
+    internal fun notifyPrewarmEnvironmentChanged() {
+        preparationCoordinator.environmentChanged()
+        prewarmEnvironmentListeners.forEach { listener -> runCatching(listener) }
+    }
+
+    internal fun addPrewarmEnvironmentListener(
+        listener: () -> Unit
+    ): ArticlePrewarmEnvironmentSubscription {
+        prewarmEnvironmentListeners += listener
+        return ArticlePrewarmEnvironmentSubscription { prewarmEnvironmentListeners -= listener }
+    }
+
+    internal fun prewarmArticle(request: ArticlePrewarmRequest): ArticlePrewarmLease =
+        preparationCoordinator.requestPrewarm(request)
+
+    fun peekPreparedArticle(title: String?, pageId: Int? = null): DownloadResult? {
+        val request = runCatching { ArticlePrewarmRequest(pageId = pageId, title = title) }.getOrNull()
+            ?: return null
+        return preparationCoordinator.peekPrepared(request)
+    }
+
+    internal fun clearPreparedArticleCache() = preparationCoordinator.clearCache()
+
+    internal fun invalidatePreparedArticle(pageId: Int?, title: String?) {
+        runCatching { ArticlePrewarmRequest(pageId = pageId, title = title) }
+            .getOrNull()
+            ?.let(preparationCoordinator::invalidate)
+    }
+
+    fun downloadPriorityAssetsByTitle(
+        title: String,
+        pageUrl: String,
+        forceNetwork: Boolean = false
+    ): Flow<DownloadProgress> {
+        L.d("downloadPriorityAssetsByTitle: title=$title pageUrl=$pageUrl forceNetwork=$forceNetwork")
+        return downloadPreparedArticle(ArticlePrewarmRequest(title = title), forceNetwork)
+    }
+
+    fun downloadPriorityAssets(
+        pageId: Int,
+        pageUrl: String,
+        forceNetwork: Boolean = false,
+        initialTitle: String? = null
+    ): Flow<DownloadProgress> {
+        L.d("downloadPriorityAssets: pageId=$pageId title=$initialTitle pageUrl=$pageUrl forceNetwork=$forceNetwork")
+        return downloadPreparedArticle(
+            ArticlePrewarmRequest(pageId = pageId, title = initialTitle),
+            forceNetwork
+        )
+    }
+
+    private fun downloadPreparedArticle(
+        request: ArticlePrewarmRequest,
+        forceNetwork: Boolean
+    ): Flow<DownloadProgress> = channelFlow {
+        val foregroundStart = System.nanoTime()
+        send(DownloadProgress.FetchingHtml(0))
+        try {
+            val result = preparationCoordinator.awaitForeground(request, forceNetwork) { progress ->
+                send(DownloadProgress.FetchingHtml(progress))
+            }
+            val elapsedMillis = (System.nanoTime() - foregroundStart) / 1_000_000L
+            // The text success boundary precedes all optional asset work. PageContentLoader may
+            // schedule assets only after this emission and the WebView can fetch visible images.
+            L.d(
+                "ArticlePrewarmTiming: foreground_text_ready key=${request.key.logValue()} " +
+                    "elapsedMs=$elapsedMillis source=${result.source} chars=${result.processedHtml.length}"
+            )
+            send(DownloadProgress.Success(result))
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            logPreparationFailure(request, failure)
+            val userFailure = if (failure is kotlinx.serialization.SerializationException) {
+                IOException("Invalid API response format", failure)
+            } else {
+                failure
+            }
+            send(DownloadProgress.Failure(userFailure))
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private suspend fun prepareArticle(
+        request: ArticlePrewarmRequest,
+        forceNetwork: Boolean,
+        reportHtmlProgress: (Int) -> Unit
+    ): DownloadResult {
+        if (!forceNetwork) {
+            val cachedPage = request.pageId?.let { pageRepository?.getSavedPageContent(it) }
+                ?: request.title?.let { pageRepository?.getSavedPageContentByTitle(it) }
+            if (cachedPage != null) {
+                val parseResult = ParseResult(
+                    title = cachedPage.plainTextTitle ?: request.title ?: "Page ${request.pageId}",
+                    pageid = cachedPage.pageId ?: request.pageId ?: 0,
+                    revid = cachedPage.revisionId ?: 0,
+                    text = extractBodyFromHtml(cachedPage.htmlContent),
+                    displaytitle = cachedPage.title
+                )
+                reportHtmlProgress(100)
+                return processPreparedText(parseResult, ArticleContentSource.SAVED)
+            }
+        }
+
+        val apiUrl = request.pageId?.let { pageId ->
+            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&pageid=$pageId"
+        } ?: run {
+            val encodedTitle = java.net.URLEncoder.encode(requireNotNull(request.title), Charsets.UTF_8.name())
+            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&page=$encodedTitle"
+        }
+        val parseResult = fetchParseResult(apiUrl, reportHtmlProgress)
+        return processPreparedText(parseResult, ArticleContentSource.NETWORK)
+    }
+
+    private suspend fun fetchParseResult(
+        url: String,
+        reportHtmlProgress: (Int) -> Unit
+    ): ParseResult {
+        L.d("fetchParseResult: Starting HTML download for URL: $url")
+        val request = Request.Builder().url(url).build()
+        val payload = readBodyCancellable(request, reportProgress = reportHtmlProgress)
+        L.d("fetchParseResult: responseCode=${payload.code} successful=${payload.isSuccessful}")
+        if (!payload.isSuccessful) {
+            val errorMessage = "HTTP ${payload.code}: ${payload.message}"
+            throw when (payload.code) {
+                404 -> IOException("Page not found (404): The requested page does not exist")
+                500 -> IOException("Server error (500): Wiki server is experiencing issues")
+                503 -> IOException("Service unavailable (503): Wiki server is temporarily unavailable")
+                else -> IOException("Network error: $errorMessage")
+            }
+        }
+        val responseJson = payload.bytes.toString(Charsets.UTF_8)
+        val apiResponse = jsonParser.decodeFromString<ArticleParseApiResponse>(responseJson)
+        val parseResult = apiResponse.parse
+            ?: throw IOException("API returned empty parse result - page may not exist or be accessible")
+        reportHtmlProgress(100)
+        return parseResult
+    }
+
+    private data class HttpBodyPayload(
+        val code: Int,
+        val message: String,
+        val isSuccessful: Boolean,
+        val bytes: ByteArray,
+        val exceededLimit: Boolean = false
+    )
+
+    /** Keeps Call.cancel registered until the complete response body has been consumed. */
+    private suspend fun readBodyCancellable(
+        request: Request,
+        maxBytes: Long = Long.MAX_VALUE,
+        reportProgress: (Int) -> Unit = {}
+    ): HttpBodyPayload =
+        suspendCancellableCoroutine { continuation ->
+            val call = okHttpClient.newCall(request)
+            continuation.invokeOnCancellation { call.cancel() }
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, error: IOException) {
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    try {
+                        response.use {
+                            if (!continuation.isActive) return
+                            val body = response.body
+                            if (body == null) {
+                                continuation.resumeWithException(IOException("Response body is null"))
+                                return
+                            }
+                            val totalBytes = body.contentLength()
+                            if (totalBytes > maxBytes) {
+                                continuation.resume(
+                                    HttpBodyPayload(
+                                        response.code,
+                                        response.message,
+                                        response.isSuccessful,
+                                        ByteArray(0),
+                                        exceededLimit = true
+                                    )
+                                )
+                                return
+                            }
+                            val source = body.source()
+                            val buffer = Buffer()
+                            val outputStream = ByteArrayOutputStream()
+                            var bytesRead = 0L
+                            var lastProgress = -1
+                            reportProgress(0)
+                            while (continuation.isActive) {
+                                val readCount = source.read(buffer, 8_192L)
+                                if (readCount == -1L) break
+                                bytesRead += readCount
+                                if (bytesRead > maxBytes) {
+                                    continuation.resume(
+                                        HttpBodyPayload(
+                                            response.code,
+                                            response.message,
+                                            response.isSuccessful,
+                                            ByteArray(0),
+                                            exceededLimit = true
+                                        )
+                                    )
+                                    return
+                                }
+                                outputStream.write(buffer.readByteArray(readCount))
+                                if (totalBytes > 0L) {
+                                    val progress = ((bytesRead * 100L) / totalBytes).toInt()
+                                    if (progress > lastProgress) {
+                                        reportProgress(progress)
+                                        lastProgress = progress
+                                    }
+                                }
+                            }
+                            if (continuation.isActive) {
+                                continuation.resume(
+                                    HttpBodyPayload(
+                                        response.code,
+                                        response.message,
+                                        response.isSuccessful,
+                                        outputStream.toByteArray()
+                                    )
+                                )
+                            }
+                        }
+                    } catch (failure: Throwable) {
+                        if (continuation.isActive) continuation.resumeWithException(failure)
+                    }
+                }
+            })
+        }
+
+    private suspend fun processPreparedText(
+        parseResult: ParseResult,
+        source: ArticleContentSource
+    ): DownloadResult = withContext(Dispatchers.Default) {
         currentCoroutineContext().ensureActive()
-        val document = Jsoup.parse(rawHtmlContent, "", Parser.xmlParser())
+        val document = Jsoup.parse(parseResult.text.orEmpty(), "", Parser.xmlParser())
         currentCoroutineContext().ensureActive()
-        val (priorityUrls, backgroundUrls) = extractAssetUrls(document)
-        currentCoroutineContext().ensureActive()
+        // Prepared results are mode-independent and text-only. Image, map, and chart work is
+        // deferred to the rendered WebView after Success, including when foreground joins prewarm.
         val processedHtml = preprocessHtml(document)
         currentCoroutineContext().ensureActive()
-
-        if (priorityUrls.isEmpty()) {
-            L.d("processAndDownloadAssets: No priority assets to download. -> Sending Success.")
-            send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
-            return@channelFlow
-        }
-
-        L.d("processAndDownloadAssets: Found ${priorityUrls.size} priority assets. Fetching sizes.")
-        val totalAssetBytes = getTotalAssetSize(priorityUrls)
-        L.d("processAndDownloadAssets: Total asset size: $totalAssetBytes bytes.")
-        if (totalAssetBytes == 0L) {
-            L.d("processAndDownloadAssets: Total asset size is zero. Skipping download phase. -> Sending Success.")
-            send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
-            return@channelFlow
-        }
-
-        val totalBytesRead = AtomicLong(0)
-        var lastSentProgress = -1
-
-        send(DownloadProgress.FetchingAssets(0))
-
-        coroutineScope {
-            priorityUrls.forEach { imageUrl ->
-                launch {
-                    downloadAndCacheWithProgress(imageUrl) { bytesRead ->
-                        val currentTotal = totalBytesRead.addAndGet(bytesRead)
-                        val progress = ((currentTotal * 100) / totalAssetBytes).toInt()
-                        if (progress > lastSentProgress) {
-                            send(DownloadProgress.FetchingAssets(progress))
-                            lastSentProgress = progress
-                        }
-                    }
-                }
-            }
-        }
-        L.d("processAndDownloadAssets: All assets finished downloading. -> Sending Success.")
-        send(DownloadProgress.FetchingAssets(100))
-        send(DownloadProgress.Success(DownloadResult(processedHtml, parseResult, backgroundUrls)))
+        DownloadResult(processedHtml, parseResult, backgroundUrls = emptyList(), source)
     }
 
-    private suspend fun getTotalAssetSize(urls: List<String>): Long = coroutineScope {
-        urls.map { url ->
-            async {
-                // Return 0 if already cached, as it won't be downloaded.
-                if (AssetCache.get(url) != null) return@async 0L
-                try {
-                    val request = Request.Builder().url(url).head().build()
-                    okHttpClient.newCall(request).execute().use { response ->
-                        if (response.isSuccessful) {
-                            response.header("Content-Length")?.toLongOrNull() ?: 0L
-                        } else {
-                            0L
-                        }
-                    }
-                } catch (e: IOException) {
-                    L.w("Failed to get content length for $url: ${e.message}")
-                    0L
-                }
-            }
-        }.sumOf { it.await() }
-    }
-
-    private suspend fun downloadAndCacheWithProgress(url: String, onProgress: suspend (Long) -> Unit) {
-        try {
-            if (AssetCache.get(url) != null) return
-
-            val request = Request.Builder().url(url).build()
-            okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-                val body = response.body ?: throw IOException("Response body is null")
-                val source = body.source()
-                val buffer = Buffer()
-                val outputStream = ByteArrayOutputStream()
-
-                while (true) {
-                    val readCount = source.read(buffer, 8192L)
-                    if (readCount == -1L) break
-                    outputStream.write(buffer.readByteArray(readCount))
-                    onProgress(readCount)
-                }
-                AssetCache.put(url, outputStream.toByteArray())
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            if (isExpectedCancellation(e)) {
-                L.d("Download with progress canceled for $url: ${e.message}")
+    private fun logPreparationFailure(request: ArticlePrewarmRequest, failure: Throwable) {
+        val prefix = "fetchParseResult: key=${request.key.logValue()}"
+        when (failure) {
+            is java.net.UnknownHostException -> L.e("$prefix DNS/network failure", failure)
+            is java.net.SocketTimeoutException -> L.e("$prefix timeout", failure)
+            is java.net.ConnectException -> L.e("$prefix connection failure", failure)
+            is IOException -> if (isExpectedCancellation(failure)) {
+                L.d("$prefix canceled")
             } else {
-                L.e("Download with progress FAILED for $url", e)
+                L.e("$prefix network failure", failure)
             }
+            is kotlinx.serialization.SerializationException -> L.e("$prefix JSON parsing failure", failure)
+            else -> L.e("$prefix unexpected ${failure::class.simpleName}", failure)
         }
     }
 
     private suspend fun preprocessHtml(document: Document): String {
         val siteUrl = "https://oldschool.runescape.wiki"
         currentCoroutineContext().ensureActive()
-        
-        // Remove unwanted infobox sections that should be hidden by default
-        val selectorsToRemove = listOf(
-            "tr.advanced-data",
-            "tr.leagues-global-flag", 
-            "tr.infobox-padding"
-        )
-        document.select(selectorsToRemove.joinToString(", ")).remove()
-        
+        document.select("tr.advanced-data, tr.leagues-global-flag, tr.infobox-padding").remove()
         normalizeRelativeUrls(document, siteUrl)
         currentCoroutineContext().ensureActive()
         deferLargeArticleTableImages(document)
@@ -345,26 +368,17 @@ class PageAssetDownloader(
     }
 
     private fun makeSrcsetAbsolute(srcset: String, siteUrl: String): String {
-        return srcset.split(",").joinToString(", ") { candidate ->
-            val trimmed = candidate.trim()
-            val parts = trimmed.split(Regex("\\s+"), limit = 2)
-            val url = parts.getOrNull(0).orEmpty()
-            val descriptor = parts.getOrNull(1)
+        return SrcsetParser.rewriteUrls(srcset) { url ->
             val absoluteUrl = if (url.startsWith("/") && !url.startsWith("//")) siteUrl + url else url
-            if (descriptor.isNullOrBlank()) absoluteUrl else "$absoluteUrl $descriptor"
+            absoluteUrl
         }
     }
 
     private fun deferLargeArticleTableImages(document: Document) {
         val imageCount = document.select("img").size
-        if (imageCount < largeArticleImageDeferralThreshold) {
-            return
-        }
-
+        if (imageCount < largeArticleImageDeferralThreshold) return
         val imagesToDefer = document.select("table.wikitable img, table.navbox img")
-        if (imagesToDefer.isEmpty()) {
-            return
-        }
+        if (imagesToDefer.isEmpty()) return
 
         imagesToDefer.forEach { image ->
             val src = image.attr("src")
@@ -386,139 +400,19 @@ class PageAssetDownloader(
             image.attr("loading", "lazy")
             image.attr("decoding", "async")
         }
-        L.d("preprocessHtml: Deferred ${imagesToDefer.size} table/navbox images for large article with $imageCount images.")
+        L.d("preprocessHtml: Deferred ${imagesToDefer.size} table/navbox images for article with $imageCount images.")
     }
 
-    fun downloadBackgroundAssets(scope: CoroutineScope, urls: List<String>): Job {
-        return scope.launch(Dispatchers.IO) {
-            if (urls.isEmpty()) {
-                return@launch
-            }
-            if (backgroundPrefetchLimit <= 0) {
-                L.d("downloadBackgroundAssets: Background prefetch disabled; WebView will request non-priority assets on demand.")
-                return@launch
-            }
-            val urlsToPrefetch = urls.take(backgroundPrefetchLimit)
-            if (urls.size > urlsToPrefetch.size) {
-                L.d("downloadBackgroundAssets: Prefetching ${urlsToPrefetch.size} of ${urls.size} background assets; WebView will request the rest on demand.")
-            }
-            urlsToPrefetch.forEach { url ->
-                launch {
-                    downloadSemaphore.withPermit {
-                        downloadAndCache(url)
-                    }
-                }
-            }
-        }
-    }
+    private fun isExpectedCancellation(error: Throwable): Boolean =
+        error is IOException && error.message?.equals("Canceled", ignoreCase = true) == true
 
-    private suspend fun downloadAndCache(url: String) {
-        try {
-            if (AssetCache.get(url) != null) return
-            val request = Request.Builder().url(url).build()
-            okHttpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val body = response.body ?: return
-                    val contentLength = body.contentLength()
-                    if (contentLength > maxBackgroundAssetBytes) {
-                        L.d("downloadAndCache: Skipping oversized background asset ($contentLength bytes): $url")
-                        return
-                    }
-                    val source = body.source()
-                    val buffer = Buffer()
-                    val outputStream = ByteArrayOutputStream()
-                    var totalBytesRead = 0L
-                    while (true) {
-                        val readCount = source.read(buffer, 8192L)
-                        if (readCount == -1L) break
-                        totalBytesRead += readCount
-                        if (totalBytesRead > maxBackgroundAssetBytes) {
-                            L.d("downloadAndCache: Aborting oversized background asset after $totalBytesRead bytes: $url")
-                            return
-                        }
-                        outputStream.write(buffer.readByteArray(readCount))
-                    }
-                    AssetCache.put(url, outputStream.toByteArray())
-                }
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            if (isExpectedCancellation(e)) {
-                L.d("Background download canceled for $url: ${e.message}")
-            } else {
-                L.e("Background download FAILED for $url", e)
-            }
-        }
-    }
-
-    private fun isExpectedCancellation(error: Throwable): Boolean {
-        return error is IOException && error.message?.equals("Canceled", ignoreCase = true) == true
-    }
-
-    private suspend fun extractAssetUrls(document: Document): AssetUrls {
-        val priorityUrls = mutableSetOf<String>()
-        val allUrls = mutableSetOf<String>()
-
-        document.getElementsByTag("img").forEachIndexed { index, element ->
-            if (index % 32 == 0) {
-                currentCoroutineContext().ensureActive()
-            }
-            addUrlsFromElement(element, allUrls)
-            if (isPriorityImageElement(element)) {
-                addUrlsFromElement(element, priorityUrls)
-            }
-        }
-        currentCoroutineContext().ensureActive()
-        return AssetUrls(priorityUrls.toList(), (allUrls - priorityUrls).toList())
-    }
-
-    private fun isPriorityImageElement(element: Element): Boolean {
-        var current: Element? = element
-        while (current != null) {
-            val classNames = current.classNames()
-            if ("infobox" in classNames || "mw-halign-left" in classNames) {
-                return true
-            }
-            current = current.parent()
-        }
-        return false
-    }
-
-    private fun addUrlsFromElement(element: Element, destination: MutableSet<String>) {
-        element.attr("src").takeIf { it.isNotBlank() }?.let { destination.add(makeUrlAbsolute(it)) }
-        element.attr("srcset").takeIf { it.isNotBlank() }?.split(",")?.forEach { part ->
-            part.trim().split("\\s+".toRegex()).firstOrNull()?.takeIf { it.isNotBlank() }?.let { destination.add(makeUrlAbsolute(it)) }
-        }
-    }
-
-    private fun makeUrlAbsolute(url: String): String = when {
-        url.startsWith("//") -> "https:$url"
-        url.startsWith("/") -> "$wikiSiteUrl$url"
-        else -> url
-    }
-    
-    /**
-     * Extracts the body content from a full HTML document for processing.
-     * This is needed when we have cached full HTML but need just the body content.
-     * Removes any existing page-header titles to prevent duplication.
-     */
     private fun extractBodyFromHtml(fullHtml: String?): String? {
         if (fullHtml == null) return null
         return try {
-            val document = Jsoup.parse(fullHtml)
-            val body = document.body()
-            if (body != null) {
-                // Remove any existing page-header titles to prevent duplication
-                // when buildFullHtmlDocument adds a new title header
-                body.select("h1.page-header").remove()
-                body.html()
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            L.e("extractBodyFromHtml: Failed to extract body from HTML", e)
-            fullHtml // Fallback to full HTML
+            Jsoup.parse(fullHtml).body()?.apply { select("h1.page-header").remove() }?.html()
+        } catch (failure: Exception) {
+            L.e("extractBodyFromHtml: Failed to extract body from HTML", failure)
+            fullHtml
         }
     }
 }

@@ -8,6 +8,11 @@ import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.offline.db.OfflineObject
 import com.omiyawaki.osrswiki.page.Namespace
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
+import com.omiyawaki.osrswiki.savedpages.ReadingListAssetRequestMarker
+import com.omiyawaki.osrswiki.savedpages.ReadingListAssetValidationException
+import com.omiyawaki.osrswiki.savedpages.OkHttpReadingListAssetFetcher
+import com.omiyawaki.osrswiki.savedpages.ReadingListSnapshotNetworkRequestMarker
+import com.omiyawaki.osrswiki.savedpages.SavedPageSaveCompletionPolicy
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Protocol
 import okhttp3.OkHttpClient
@@ -17,15 +22,19 @@ import okhttp3.ResponseBody
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlinx.coroutines.test.runTest
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -83,7 +92,41 @@ class OfflineCacheInterceptorTest {
     }
 
     @Test
-    fun offlineSaveStreamsBodyAndUpdatesReadingListStatusBeforeReturning() {
+    fun snapshotRefreshNeverFallsBackToGenerationBeingReplaced() {
+        val url = "https://oldschool.runescape.wiki/images/prior.png"
+        seedReadingListCache(
+            url = url,
+            path = "prior-generation",
+            metadata = "Content-Type: image/png",
+            content = "prior bytes"
+        )
+
+        val failure = runCatching {
+            offlineClient().newCall(
+                Request.Builder()
+                    .url(url)
+                    .tag(
+                        ReadingListSnapshotNetworkRequestMarker::class.java,
+                        ReadingListSnapshotNetworkRequestMarker
+                    )
+                    .build()
+            ).execute()
+        }.exceptionOrNull()
+
+        assertTrue(failure is IOException)
+        assertEquals("simulated network outage", failure?.message)
+        assertEquals(
+            "prior-generation",
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )?.path
+        )
+    }
+
+    @Test
+    fun offlineSaveStreamsBodyWithoutPrematurelyMarkingReadingListSaved() {
         val url = "https://oldschool.runescape.wiki/api.php?action=parse&page=Zulrah"
         val pageId = database.readingListPageDao().insertReadingListPage(
             ReadingListPage(
@@ -114,7 +157,251 @@ class OfflineCacheInterceptorTest {
         }
 
         assertNotNull(database.offlineObjectDao().getOfflineObjectByUrl(url))
-        assertEquals(ReadingListPage.STATUS_SAVED, database.readingListPageDao().getPageById(pageId)?.status)
+        assertEquals(
+            ReadingListPage.STATUS_QUEUE_FOR_SAVE,
+            database.readingListPageDao().getPageById(pageId)?.status
+        )
+    }
+
+    @Test
+    fun gifWithQueryAndSuccessfulHtmlResponseIsNotPersistedOrReportedComplete() {
+        val url = "https://oldschool.runescape.wiki/images/animated.GIF?revision=12"
+        val pageId = database.readingListPageDao().insertReadingListPage(
+            ReadingListPage(
+                wiki = WikiSite.OSRS_WIKI,
+                namespace = Namespace.MAIN,
+                displayTitle = "Captive asset",
+                apiTitle = "Captive asset",
+                offline = true,
+                status = ReadingListPage.STATUS_QUEUE_FOR_SAVE,
+                lang = "en"
+            )
+        )
+        val client = OkHttpClient.Builder()
+            .addInterceptor(
+                OfflineCacheInterceptor(context, database.offlineObjectDao(), database)
+            )
+            .addInterceptor { chain ->
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .header("Content-Type", "text/html; charset=utf-8")
+                    .body("<html><body>captive portal</body></html>".toResponseBody())
+                    .build()
+            }
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Offline-Save", "readinglist")
+            .header("X-Offline-Save-PageLibIds", "|$pageId|")
+            .tag(ReadingListAssetRequestMarker::class.java, ReadingListAssetRequestMarker)
+            .build()
+
+        val failure = runCatching { client.newCall(request).execute() }.exceptionOrNull()
+
+        assertTrue(failure is ReadingListAssetValidationException)
+        assertNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )
+        )
+        val storageDir = File(context.filesDir, "offline_pages_rl")
+        assertTrue(storageDir.listFiles().orEmpty().isEmpty())
+        assertEquals(
+            ReadingListPage.STATUS_QUEUE_FOR_SAVE,
+            database.readingListPageDao().getPageById(pageId)?.status
+        )
+        assertTrue(
+            !SavedPageSaveCompletionPolicy.isComplete(
+                htmlFetched = true,
+                textIndexed = true,
+                articlePersisted = true,
+                assetsPersisted = false
+            )
+        )
+    }
+
+    @Test
+    fun fetcherEvictsLegacyInvalidArtworkInsteadOfAttachingAnotherOwner() = runTest {
+        val url = "https://oldschool.runescape.wiki/images/legacy.gif?revision=7"
+        seedReadingListCache(
+            url = url,
+            path = "legacy-invalid-gif",
+            metadata = "Content-Type: text/html; charset=utf-8",
+            content = "<html><body>legacy captive portal</body></html>"
+        )
+        val client = OkHttpClient.Builder()
+            .addInterceptor(
+                OfflineCacheInterceptor(context, database.offlineObjectDao(), database)
+            )
+            .addInterceptor { chain ->
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .header("Content-Type", "text/html")
+                    .body("<html><body>still captive</body></html>".toResponseBody())
+                    .build()
+            }
+            .build()
+
+        val persisted = OkHttpReadingListAssetFetcher(
+            context = context,
+            client = client,
+            offlineObjectDao = database.offlineObjectDao()
+        ).fetchAndPersist(url, readingListPageId = 42L)
+
+        assertTrue(!persisted)
+        assertNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )
+        )
+        assertFalse(File(context.filesDir, "offline_pages_rl/legacy-invalid-gif.0").exists())
+        assertFalse(File(context.filesDir, "offline_pages_rl/legacy-invalid-gif.1").exists())
+    }
+
+    @Test
+    fun sameUrlCoexistsAcrossReadingListAndFullArchiveAndDeletingOneRealmPreservesOther() {
+        val url = "https://oldschool.runescape.wiki/images/shared.gif"
+        val pageId = database.readingListPageDao().insertReadingListPage(
+            ReadingListPage(
+                wiki = WikiSite.OSRS_WIKI,
+                namespace = Namespace.MAIN,
+                displayTitle = "Shared asset",
+                apiTitle = "Shared asset",
+                offline = true,
+                status = ReadingListPage.STATUS_QUEUE_FOR_SAVE,
+                lang = "en"
+            )
+        )
+        fun save(saveType: String, pageOwners: String?) {
+            val request = Request.Builder()
+                .url(url)
+                .header("X-Offline-Save", saveType)
+                .apply {
+                    pageOwners?.let { header("X-Offline-Save-PageLibIds", it) }
+                }
+                .build()
+            offlineClientWithNetworkBody(
+                url,
+                byteArrayOf(1, 2, 3).toResponseBody("image/gif".toMediaTypeOrNull())
+            ).newCall(request).execute().close()
+        }
+
+        save("readinglist", "|$pageId|")
+        save("fullarchive", null)
+
+        assertNotNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )
+        )
+        assertNotNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_FULL_ARCHIVE
+            )
+        )
+
+        database.offlineObjectDao().deleteObjectsForPageIds(listOf(pageId), context)
+
+        assertEquals(
+            null,
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )
+        )
+        assertNotNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                url,
+                "en",
+                OfflineObject.SAVE_TYPE_FULL_ARCHIVE
+            )
+        )
+    }
+
+    @Test
+    fun deletingLastSavedRealmFallsBackToSurvivingRealmDespiteMemoryHint() {
+        val url = "https://oldschool.runescape.wiki/images/shared-hint.gif"
+        val offline = AtomicBoolean(false)
+        val interceptor = OfflineCacheInterceptor(
+            context = context,
+            offlineObjectDao = database.offlineObjectDao(),
+            appDatabase = database
+        )
+        val client = OkHttpClient.Builder()
+            .addInterceptor(interceptor)
+            .addInterceptor { chain ->
+                if (offline.get()) throw IOException("offline")
+                Response.Builder()
+                    .request(chain.request())
+                    .protocol(Protocol.HTTP_1_1)
+                    .code(200)
+                    .message("OK")
+                    .header("Content-Type", "image/gif")
+                    .body(byteArrayOf(7, 8, 9).toResponseBody("image/gif".toMediaTypeOrNull()))
+                    .build()
+            }
+            .build()
+        client.newCall(
+            Request.Builder().url(url)
+                .header("X-Offline-Save", "readinglist")
+                .header("X-Offline-Save-PageLibIds", "|12|")
+                .build()
+        ).execute().close()
+        client.newCall(
+            Request.Builder().url(url).header("X-Offline-Save", "fullarchive").build()
+        ).execute().close()
+        val fullArchive = database.offlineObjectDao().findByUrlAndLangAndSaveType(
+            url,
+            "en",
+            OfflineObject.SAVE_TYPE_FULL_ARCHIVE
+        )!!
+        database.offlineObjectDao().deleteFilesForObject(fullArchive, context)
+        database.offlineObjectDao().deleteOfflineObjectQuery(fullArchive.id)
+        offline.set(true)
+
+        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            assertEquals(listOf<Byte>(7, 8, 9), response.body!!.bytes().toList())
+        }
+    }
+
+    @Test
+    fun resourceUrlIdentityPreservesMeaningfulPathCase() {
+        val upper = "https://cdn.example/images/A.png"
+        val lower = "https://cdn.example/images/a.png"
+        listOf(upper, lower).forEachIndexed { index, url ->
+            database.offlineObjectDao().insertOfflineObject(
+                OfflineObject(
+                    url = url,
+                    lang = "en",
+                    path = "case-$index",
+                    status = OfflineObject.STATUS_SAVED,
+                    usedByStr = "|1|",
+                    saveType = OfflineObject.SAVE_TYPE_READING_LIST
+                )
+            )
+        }
+
+        assertEquals("case-0", database.offlineObjectDao().findByUrlAndLangAndSaveType(
+            upper, "en", OfflineObject.SAVE_TYPE_READING_LIST
+        )?.path)
+        assertEquals("case-1", database.offlineObjectDao().findByUrlAndLangAndSaveType(
+            lower, "en", OfflineObject.SAVE_TYPE_READING_LIST
+        )?.path)
     }
 
     private fun offlineClient(): OkHttpClient {
@@ -123,7 +410,6 @@ class OfflineCacheInterceptorTest {
                 OfflineCacheInterceptor(
                     context = context,
                     offlineObjectDao = database.offlineObjectDao(),
-                    readingListPageDao = database.readingListPageDao(),
                     appDatabase = database
                 )
             )
@@ -139,7 +425,6 @@ class OfflineCacheInterceptorTest {
                 OfflineCacheInterceptor(
                     context = context,
                     offlineObjectDao = database.offlineObjectDao(),
-                    readingListPageDao = database.readingListPageDao(),
                     appDatabase = database
                 )
             )

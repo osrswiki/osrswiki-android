@@ -25,22 +25,30 @@ class AppearanceSettingsActivity : BaseActivity() {
          * @param context The Context to use.
          * @return An Intent to start AppearanceSettingsActivity.
          */
-        fun newIntent(context: Context): Intent {
+        @JvmOverloads
+        fun newIntent(
+            context: Context,
+            highlightFloorNumbering: Boolean = false
+        ): Intent {
             return Intent(context, AppearanceSettingsActivity::class.java)
+                .putExtra(EXTRA_HIGHLIGHT_FLOOR_NUMBERING, highlightFloorNumbering)
         }
+
+        const val EXTRA_HIGHLIGHT_FLOOR_NUMBERING = "highlight_floor_numbering"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_appearance_settings)
+        applyEdgeToEdgeInsets(findViewById(android.R.id.content))
 
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
                 .replace(
-                    R.id.appearance_settings_container, 
-                    CustomAppearanceSettingsFragment.newInstance(), 
-                    CustomAppearanceSettingsFragment.TAG
+                    R.id.appearance_settings_container,
+                    AppearanceSettingsFragment.newInstance(),
+                    AppearanceSettingsFragment.TAG
                 )
                 .commit()
         }
@@ -70,7 +78,7 @@ class AppearanceSettingsActivity : BaseActivity() {
     private fun setupThemeChangeReceiver() {
         themeChangeReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == CustomAppearanceSettingsFragment.ACTION_THEME_CHANGED) {
+                if (intent?.action == AppearanceSettingsFragment.ACTION_THEME_CHANGED) {
                     L.d("AppearanceSettingsActivity: Received theme change broadcast")
                     // For AppearanceSettings specifically, recreate the activity for complete refresh
                     // This ensures all preference items and backgrounds are properly themed
@@ -79,7 +87,7 @@ class AppearanceSettingsActivity : BaseActivity() {
             }
         }
         
-        val filter = IntentFilter(CustomAppearanceSettingsFragment.ACTION_THEME_CHANGED)
+        val filter = IntentFilter(AppearanceSettingsFragment.ACTION_THEME_CHANGED)
         LocalBroadcastManager.getInstance(this).registerReceiver(themeChangeReceiver!!, filter)
         L.d("AppearanceSettingsActivity: Theme change receiver registered")
     }

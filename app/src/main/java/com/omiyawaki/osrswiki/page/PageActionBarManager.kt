@@ -59,8 +59,23 @@ class PageActionBarManager(
                     clipDrawable?.level = (progress * 100).coerceIn(0, 10000) // Map 0-100 to 0-10000
                 }
                 saveButton.setCompoundDrawablesWithIntrinsicBounds(null, progressDrawable, null, null)
-                saveButton.isEnabled = false
-                saveButton.text = "Saving... ${progress}%"
+                // This is the in-app cancellation path when Android notification permission is
+                // denied (and is useful even when the foreground notification is visible).
+                saveButton.isEnabled = PageSaveButtonPolicy.isEnabled(saveState)
+                saveButton.text = binding.root.context.getString(
+                    R.string.page_action_cancel_save_progress,
+                    progress.coerceIn(0, 100)
+                )
+            }
+            SaveState.CANCELLING -> {
+                saveButton.setCompoundDrawablesWithIntrinsicBounds(
+                    0,
+                    R.drawable.ic_page_action_save_progress,
+                    0,
+                    0
+                )
+                saveButton.isEnabled = PageSaveButtonPolicy.isEnabled(saveState)
+                saveButton.text = binding.root.context.getString(R.string.page_action_cancelling_save)
             }
             SaveState.SAVED -> {
                 saveButton.setCompoundDrawablesWithIntrinsicBounds(0, R.drawable.ic_page_action_save_filled, 0, 0)
@@ -81,11 +96,17 @@ class PageActionBarManager(
     
     enum class SaveState {
         NOT_SAVED,
-        DOWNLOADING, 
+        DOWNLOADING,
+        CANCELLING,
         SAVED,
         ERROR
     }
     
     // Callback for save button clicks - will be set by PageReadingListManager
     var saveClickCallback: (() -> Unit)? = null
+}
+
+internal object PageSaveButtonPolicy {
+    fun isEnabled(state: PageActionBarManager.SaveState): Boolean =
+        state != PageActionBarManager.SaveState.CANCELLING
 }

@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/privacy_policy_title"
-            android:textAppearance="@style/AppTextAppearance.Display"
+            android:textAppearance="@style/AppTextAppearance.SettingsPageHero"
             android:textAlignment="center"
             android:layout_marginBottom="8dp"
             android:accessibilityHeading="true" />

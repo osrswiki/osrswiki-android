@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentFeedbackBinding
 import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 /**
  * Secure version of FeedbackFragment that uses Cloud Function for GitHub integration.
@@ -43,7 +42,6 @@ class FeedbackFragmentSecure : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("FeedbackFragmentSecure: onViewCreated called.")
         
-        setupFonts()
         setupClickListeners()
     }
     
@@ -101,26 +99,6 @@ class FeedbackFragmentSecure : Fragment() {
         startActivity(intent)
     }
     
-    private fun setupFonts() {
-        L.d("FeedbackFragmentSecure: Setting up fonts...")
-        
-        // Apply fonts to all TextViews
-        binding.feedbackTitle.applyAlegreyaHeadline()
-        
-        // Rate app card
-        binding.rateAppTitle.applyAlegreyaHeadline()
-        
-        // Report issue card
-        binding.reportIssueTitle.applyAlegreyaHeadline()
-        
-        // Request feature card
-        binding.requestFeatureTitle.applyAlegreyaHeadline()
-        
-        // Apply fonts to buttons
-        
-        L.d("FeedbackFragmentSecure: Fonts applied to all TextViews and buttons")
-    }
-
     override fun onDestroyView() {
         L.d("FeedbackFragmentSecure: onDestroyView called.")
         _binding = null

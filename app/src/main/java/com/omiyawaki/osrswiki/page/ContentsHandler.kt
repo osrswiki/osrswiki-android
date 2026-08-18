@@ -13,12 +13,12 @@ import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
-import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.color.MaterialColors
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.util.DimenUtil
 import com.omiyawaki.osrswiki.util.FontUtil
+import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.view.PageScrollerView
 import com.omiyawaki.osrswiki.views.ObservableWebView
 
@@ -30,7 +30,7 @@ class ContentsHandler(private val fragment: PageFragment) :
     private val webView = fragment.binding.pageWebView
     private val scrollerView = binding.pageScrollerView
     private val tocListView = binding.tocListView
-    private val drawerLayout = binding.pageDrawerLayout
+    private val drawerHost = binding.pageDrawerLayout
     private val tocAdapter = TocAdapter(activity)
     private var isInitialized = false
 
@@ -38,6 +38,7 @@ class ContentsHandler(private val fragment: PageFragment) :
         tocListView.adapter = tocAdapter
         tocListView.setOnItemClickListener { _, _, position, _ ->
             val section = tocAdapter.getItem(position) as Section
+            L.d("ContentsHandler: selected ${section.anchor} '${section.title}'")
             scrollToSection(section)
             hide()
         }
@@ -54,17 +55,17 @@ class ContentsHandler(private val fragment: PageFragment) :
 
     fun show() {
         if (!isInitialized) return
-        drawerLayout.openDrawer(binding.sidePanelContainer)
+        activity.openContents()
     }
 
     fun hide() {
         if (!isInitialized) return
-        drawerLayout.closeDrawer(binding.sidePanelContainer)
+        activity.closeContents(animate = true)
     }
 
     fun isVisible(): Boolean {
         if (!isInitialized) return false
-        return drawerLayout.isDrawerOpen(binding.sidePanelContainer)
+        return activity.isContentsDrawerOpen()
     }
 
     private fun scrollToSection(section: Section) {
@@ -72,8 +73,21 @@ class ContentsHandler(private val fragment: PageFragment) :
         if (section.isLead) {
             webView.scrollTo(0, 0)
         } else {
-            val script = "document.getElementById('${section.anchor}').scrollIntoView();"
-            webView.evaluateJavascript(script, null)
+            val script = osrsArticleSectionScroll.javaScript(section.anchor)
+            webView.evaluateJavascript(script) { raw ->
+                val viewportCss = raw?.trim()?.trim('"')?.toFloatOrNull()
+                if (viewportCss == null || viewportCss.isNaN()) {
+                    L.d("ContentsHandler: no heading offset for ${section.anchor} raw=$raw")
+                    return@evaluateJavascript
+                }
+                val scale = webView.scale.takeIf { it > 0f } ?: DimenUtil.densityScalar
+                val y = (webView.scrollY + viewportCss * scale).toInt().coerceAtLeast(0)
+                L.d(
+                    "ContentsHandler: ${section.anchor} raw=$raw css=$viewportCss " +
+                        "scrollY=${webView.scrollY} scale=$scale -> $y"
+                )
+                webView.post { webView.scrollTo(0, y) }
+            }
         }
     }
 
@@ -88,7 +102,7 @@ class ContentsHandler(private val fragment: PageFragment) :
         if (webViewContentHeight == 0f) return
         val availableScrollHeight = (webViewContentHeight - webView.height).coerceAtLeast(0f)
         val scrollProportion = webView.scrollY / availableScrollHeight
-        val availableScrollerHeight = (drawerLayout.height - scrollerView.height).coerceAtLeast(0)
+        val availableScrollerHeight = (drawerHost.height - scrollerView.height).coerceAtLeast(0)
         val newTopMargin = (scrollProportion * availableScrollerHeight).toInt()
         scrollerView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             topMargin = newTopMargin.coerceIn(0, availableScrollerHeight)
@@ -99,7 +113,7 @@ class ContentsHandler(private val fragment: PageFragment) :
         val webViewContentHeight = webView.contentHeight * DimenUtil.densityScalar
         if (webViewContentHeight == 0f) return
         val availableScrollHeight = (webViewContentHeight - webView.height)
-        val availableScrollerHeight = (drawerLayout.height - scrollerView.height).toFloat()
+        val availableScrollerHeight = (drawerHost.height - scrollerView.height).toFloat()
         if (availableScrollerHeight <= 0f) return
         val scrollBy = dy * (availableScrollHeight / availableScrollerHeight)
         webView.scrollBy(0, scrollBy.toInt())

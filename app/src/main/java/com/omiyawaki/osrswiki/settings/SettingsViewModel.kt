@@ -14,6 +14,8 @@ import com.omiyawaki.osrswiki.util.log.L
  */
 class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
 
+    val appearanceSettings: StateFlow<AppearancePreferences> = repository.settingsState
+
     private val _settingsList = MutableStateFlow<List<SettingItem>>(emptyList())
     val settingsList: StateFlow<List<SettingItem>> = _settingsList
 
@@ -27,8 +29,8 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     private fun loadSettings() {
         viewModelScope.launch {
             repository.settingsState.collect { state ->
-                val appThemeMode = state[SettingsRepository.KEY_APP_THEME_MODE] as String
-                val collapseTablesEnabled = state[SettingsRepository.KEY_COLLAPSE_TABLES] as Boolean
+                val appThemeMode = state.themeMode.persistedValue
+                val collapseTablesEnabled = state.collapseTables
 
                 val tablePreviewItem = SettingItem.InlineTablePreviewSelection(
                     key = SettingsRepository.KEY_COLLAPSE_TABLES,
@@ -59,7 +61,14 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     }
 
     fun onSwitchSettingToggled(key: String, isChecked: Boolean) {
-        // No more switch settings - all replaced with inline previews
+        when (key) {
+            SettingsRepository.KEY_COLLAPSE_TABLES ->
+                repository.setCollapseTablesEnabled(isChecked)
+            SettingsRepository.KEY_SWIPE_RIGHT_BACK ->
+                repository.setSwipeRightBackEnabled(isChecked)
+            SettingsRepository.KEY_SWIPE_LEFT_CONTENTS ->
+                repository.setSwipeLeftContentsEnabled(isChecked)
+        }
     }
 
     fun onTablePreviewSelected(collapseTablesEnabled: Boolean) {
@@ -85,4 +94,13 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
 
     fun getThemeOptions() = repository.getThemeOptions()
     fun getCurrentTheme() = repository.getAppThemeMode()
+    fun getCurrentSettings() = repository.currentSettings()
+
+    fun onReaderTextScaleChanged(percent: Int) {
+        repository.setReaderTextScalePercent(percent)
+    }
+
+    fun onFloorNumberingSelected(mode: String) {
+        repository.setFloorNumberingMode(mode)
+    }
 }

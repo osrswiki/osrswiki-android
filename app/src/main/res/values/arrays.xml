@@ -12,6 +12,17 @@
         <item>auto</item>
     </string-array>
 
+    <string-array name="floor_numbering_entries">
+        <item>Auto detect</item>
+        <item>UK</item>
+        <item>US</item>
+    </string-array>
+    <string-array name="floor_numbering_values">
+        <item>auto</item>
+        <item>gb</item>
+        <item>us</item>
+    </string-array>
+
 
     <!-- Cache Size Limit -->
     <string-array name="cache_size_limit_entries">

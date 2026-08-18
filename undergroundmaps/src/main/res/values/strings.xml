@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OSRS Underground Maps</string>
+    <string name="osrs_underground_app_name">OSRS Maps</string>
     <string name="map_content_description">Interactive map of Gielinor surface and selectable non-surface realms</string>
-    <string name="realm_selector_title">Choose a map</string>
-    <string name="realm_search_hint">Search maps</string>
-    <string name="realm_selector_description">Choose surface, realm, or other map</string>
-    <string name="floor_button_description">Show floor %1$d of %2$s</string>
-    <string name="loading_map">Loading map assets…</string>
+    <string name="map_compass_description">Map compass. Activate to reset the map rotation to north.</string>
+    <string name="realm_search_hint">Search realms</string>
+    <string name="realm_selector_expand">Open map selector. Current map: %1$s</string>
+    <string name="realm_selector_collapse">Close map selector. Current map: %1$s</string>
+    <string name="realm_selector_results">Map selector results</string>
+    <string name="realm_search_description">Search all maps</string>
+    <string name="floor_up_description">Show the next floor of %1$s</string>
+    <string name="floor_down_description">Show the previous floor of %1$s</string>
+    <string name="floor_current_description">Current floor %1$d of %2$s</string>
+    <string name="floor_controls_description">Floor controls</string>
+    <string name="floor_number">%1$d</string>
     <string name="reading_manifest">Reading deterministic realm manifest</string>
-    <string name="no_search_results">No maps match this search</string>
-    <string name="floor_label">Floor %1$d</string>
     <string name="realm_links_available">Links: %1$d available</string>
-    <string name="realm_links_mixed">Links: %1$d available • %2$d unavailable</string>
     <string name="realm_links_unavailable">Links unavailable</string>
-    <string name="realm_links_description">Authoritative entrance and intermap links for %1$s</string>
+    <string name="realm_links_action">Search map links for %1$s.</string>
     <string name="realm_links_dialog_title">Map links</string>
-    <string name="realm_links_dialog_unavailable">No authoritative links are available. %1$d unresolved links remain unavailable.</string>
-    <string name="realm_links_dialog_note">%1$d unresolved links remain unavailable.</string>
-    <string name="realm_link_target">%1$s • floor %2$d</string>
     <plurals name="realm_links_available_count">
         <item quantity="one">%1$d authoritative link available</item>
         <item quantity="other">%1$d authoritative links available</item>
@@ -30,5 +30,4 @@
     <string name="realm_link_search_hint">Search links by map, endpoint, or link ID</string>
     <string name="realm_link_results_description">%1$d map link records</string>
     <string name="no_link_search_results">No available links match this search</string>
-    <string name="close">Close</string>
 </resources>

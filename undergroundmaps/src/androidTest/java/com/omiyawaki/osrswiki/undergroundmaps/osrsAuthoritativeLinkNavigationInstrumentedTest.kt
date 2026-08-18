@@ -19,7 +19,7 @@ class osrsAuthoritativeLinkNavigationInstrumentedTest {
             }
             assumeTrue(
                 "Pinned full-release assets are required for the endpoint traversal contract",
-                initial.manifestRealmCount == 1097
+                initial.manifestRealmCount == 50
             )
 
             scenario.onActivity { activity ->

@@ -16,7 +16,7 @@ class osrsCandidate004InstrumentedTest {
     fun authoritativeLinksApplyDirectionalEndpointCoordinates() {
         ActivityScenario.launch(osrsUndergroundMapsActivity::class.java).use { scenario ->
             val surface = selectSurface(scenario)
-            assumeTrue("Exact Candidate 006 assets are required", surface.candidate == "006")
+            assumeTrue("Exact Candidate 010 assets are required", surface.candidate == "010")
 
             scenario.onActivity { activity ->
                 assertTrue(activity.selectAuthoritativeLinkForTesting("intermap-0357"))
@@ -34,9 +34,9 @@ class osrsCandidate004InstrumentedTest {
                 realmId = OSRS_MORYTANIA_REALM_ID,
                 gameX = 3405,
                 gameY = 9907,
-                latitude = 84.23194746223983,
-                longitude = -170.5078125,
-                zoom = 6.0,
+                latitude = 84.65716968703101,
+                longitude = -175.25390625,
+                zoom = OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM,
                 assetSha256 = OSRS_MORYTANIA_PLANE_ZERO_SHA256
             )
 
@@ -58,7 +58,7 @@ class osrsCandidate004InstrumentedTest {
                 gameY = 3506,
                 latitude = 75.19702129578613,
                 longitude = 34.9365234375,
-                zoom = 7.0
+                zoom = OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM
             )
 
             scenario.onActivity { activity ->
@@ -76,9 +76,9 @@ class osrsCandidate004InstrumentedTest {
                 realmId = OSRS_MORYTANIA_REALM_ID,
                 gameX = 3440,
                 gameY = 9886,
-                latitude = 82.54060382149495,
-                longitude = -145.8984375,
-                zoom = 4.0,
+                latitude = 83.92369331796978,
+                longitude = -162.94921875,
+                zoom = OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM,
                 assetSha256 = OSRS_MORYTANIA_PLANE_ZERO_SHA256
             )
             assertTrue(
@@ -92,7 +92,7 @@ class osrsCandidate004InstrumentedTest {
     fun activityRecreationPreservesEndpointRealmFloorCameraAndVerifiedAsset() {
         ActivityScenario.launch(osrsUndergroundMapsActivity::class.java).use { scenario ->
             val surface = selectSurface(scenario)
-            assumeTrue("Exact Candidate 006 assets are required", surface.candidate == "006")
+            assumeTrue("Exact Candidate 010 assets are required", surface.candidate == "010")
             scenario.onActivity { activity ->
                 assertTrue(activity.selectAuthoritativeLinkForTesting("intermap-0357"))
             }
@@ -184,12 +184,14 @@ class osrsCandidate004InstrumentedTest {
     private companion object {
         const val OSRS_SURFACE_REALM_ID = "surface-gielinor"
         const val OSRS_MORYTANIA_REALM_ID = "cache-world-map:morytania-underground"
-        // Bound to the retained locked Candidate 004 manifest and staged MBTiles bytes.
+        // Bound to the locked r12 manifest and regenerated finite-canvas MBTiles bytes.
         const val OSRS_MORYTANIA_PLANE_ZERO_SHA256 =
-            "969fecc404f2a5e400e469e9e67252537ae46217b7b869c863a04cee62ee2305"
+            "eff11f2b219398b87ac65588b76d9c6aa18ad6514f5da5b8ea1fc82059f92dbe"
         const val OSRS_SURFACE_PLANE_ZERO_PATH = "assets/surface-gielinor/plane-0.mbtiles"
         const val OSRS_TEST_TIMEOUT_NANOS = 30_000_000_000L
         const val OSRS_TEST_POLL_MILLIS = 100L
         const val OSRS_CAMERA_EPSILON = 1e-7
+        const val OSRS_SURFACE_TO_MORYTANIA_RELATIVE_ZOOM = 5.3414426741929
+        const val OSRS_MORYTANIA_TO_SURFACE_RELATIVE_ZOOM = 7.3414426741929
     }
 }

@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.page.osrsUnderlyingActivityPreview
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.ThemePreviewRenderer
 import com.omiyawaki.osrswiki.theme.ThemeAware
@@ -31,6 +32,32 @@ abstract class BaseActivity : AppCompatActivity() {
         
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
+    }
+
+    /**
+     * Keeps activity content clear of system bars on enforced edge-to-edge Android versions.
+     * The coordinator remembers authored padding, so repeat dispatches cannot compound it.
+     */
+    protected fun applyEdgeToEdgeInsets(
+        root: View,
+        applyStatusBar: Boolean = true,
+        applyNavigationBar: Boolean = true,
+        imeInsetHandling: EdgeToEdgeInsetCoordinator.ImeInsetHandling =
+            EdgeToEdgeInsetCoordinator.ImeInsetHandling.RESIZE
+    ) {
+        EdgeToEdgeInsetCoordinator.apply(
+            root,
+            EdgeToEdgeInsetCoordinator.Policy(
+                applyStatusBar = applyStatusBar,
+                applyNavigationBar = applyNavigationBar,
+                imeInsetHandling = imeInsetHandling
+            )
+        )
+    }
+
+    override fun onPause() {
+        osrsUnderlyingActivityPreview.captureFromCaller(this)
+        super.onPause()
     }
 
     override fun onResume() {

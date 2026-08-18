@@ -9,11 +9,11 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ItemHistoryEntryRichBinding
 import com.omiyawaki.osrswiki.databinding.ViewHistoryDateHeaderBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.util.StringUtil
-import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import com.omiyawaki.osrswiki.util.applyAlegreyaTitle
 
@@ -79,11 +79,14 @@ class HistoryAdapter(
                 pageTitleText.text = StringUtil.extractMainTitle(historyEntry.pageTitle.displayText)
                 pageTitleText.applyAlegreyaTitle()
 
-                // Set snippet text from history entry or hide if empty
-                if (!historyEntry.snippet.isNullOrBlank()) {
-                    pageSnippetText.text = historyEntry.snippet
+                // Normalize before deciding visibility: markup-only snippets should not reserve a
+                // blank second line when this holder is recycled.
+                val displaySnippet = StringUtil.decodeHtmlToFixedPoint(historyEntry.snippet).trim()
+                if (displaySnippet.isNotBlank()) {
+                    pageSnippetText.text = displaySnippet
                     pageSnippetText.visibility = View.VISIBLE
                 } else {
+                    pageSnippetText.text = null
                     pageSnippetText.visibility = View.GONE
                 }
 

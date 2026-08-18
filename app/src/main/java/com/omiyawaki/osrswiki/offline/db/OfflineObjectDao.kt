@@ -11,6 +11,7 @@ import androidx.room.Update
 import com.omiyawaki.osrswiki.page.PageTitle
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.offline.db.OfflineObject
+import com.omiyawaki.osrswiki.savedpages.ReadingListAssetOwnership
 import java.io.File
 
 @Dao
@@ -27,12 +28,16 @@ interface OfflineObjectDao {
     @Query("SELECT * FROM offline_objects WHERE url = :url LIMIT 1")
     fun getOfflineObjectByUrl(url: String): OfflineObject?
 
-    @Query("SELECT * FROM offline_objects WHERE usedByStr LIKE '%|' || :readingListPageId || '|%'")
+    @Query("SELECT * FROM offline_objects WHERE saveType = 'READING_LIST' AND usedByStr LIKE '%|' || :readingListPageId || '|%'")
     fun getObjectsUsedByPageId(readingListPageId: Long): List<OfflineObject>
 
     @Transaction
     suspend fun addObject(url: String, lang: String, path: String, originalPageTitle: PageTitle, readingListPageDao: ReadingListPageDao) {
-        var currentObj: OfflineObject? = getOfflineObject(url, lang)
+        var currentObj: OfflineObject? = findByUrlAndLangAndSaveType(
+            url,
+            lang,
+            OfflineObject.SAVE_TYPE_READING_LIST
+        )
         val isNewObject = currentObj == null
         var wasModified = false
 
@@ -78,32 +83,33 @@ interface OfflineObjectDao {
         }
     }
 
+    /**
+     * Detaches page ownership in one database transaction and returns objects whose files are no
+     * longer referenced. The physical files must be deleted only after this method commits.
+     */
     @Transaction
-    fun deleteObjectsForPageIds(readingListPageIds: List<Long>, context: Context) { 
+    fun releaseObjectsForPageIds(readingListPageIds: List<Long>): List<OfflineObject> {
+        val orphanedObjects = mutableListOf<OfflineObject>()
         readingListPageIds.forEach { pageId ->
             val objectsUsedByThisPage = getObjectsUsedByPageId(pageId)
-            objectsUsedByThisPage.forEach { currentObj -> 
-                val pageIdStrSegment = "|${pageId}|"
-                var updatedUsedByStr = currentObj.usedByStr.replace(pageIdStrSegment, "|")
-                
-                updatedUsedByStr = updatedUsedByStr.replace("||", "|")
-                if (updatedUsedByStr == "|") {
-                    updatedUsedByStr = ""
-                }
-                if (updatedUsedByStr.startsWith("|")) {
-                     updatedUsedByStr = updatedUsedByStr.removePrefix("|")
-                }
-                if (updatedUsedByStr.endsWith("|")) {
-                    updatedUsedByStr = updatedUsedByStr.removeSuffix("|")
-                }
+            objectsUsedByThisPage.forEach { currentObj ->
+                val updatedUsedByStr = ReadingListAssetOwnership.remove(currentObj.usedByStr, pageId)
 
                 if (updatedUsedByStr.isEmpty()) {
-                    deleteFilesForObject(currentObj, context) 
-                    deleteOfflineObjectQuery(currentObj.id) 
+                    deleteOfflineObjectQuery(currentObj.id)
+                    orphanedObjects += currentObj
                 } else {
                     updateOfflineObject(currentObj.copy(usedByStr = updatedUsedByStr))
                 }
             }
+        }
+        return orphanedObjects
+    }
+
+    /** Convenience for legacy callers; database detachment commits before physical deletion. */
+    fun deleteObjectsForPageIds(readingListPageIds: List<Long>, context: Context) {
+        releaseObjectsForPageIds(readingListPageIds).forEach { orphaned ->
+            deleteFilesForObject(orphaned, context)
         }
     }
 
@@ -115,8 +121,9 @@ interface OfflineObjectDao {
             val baseDir: File? = when (obj.saveType) {
                 OfflineObject.SAVE_TYPE_READING_LIST -> File(context.filesDir, "offline_pages_rl")
                 OfflineObject.SAVE_TYPE_FULL_ARCHIVE -> {
-                    val externalCacheSubDir = context.getExternalFilesDir("wiki_archive")
-                    externalCacheSubDir?.let { File(it, "content") }
+                    context.getExternalFilesDir(null)?.let {
+                        File(File(it, "wiki_archive"), "content")
+                    }
                 }
                 else -> {
                     Log.e("OfflineObjectDao", "Unknown saveType for file deletion: ${obj.saveType}")
@@ -148,8 +155,9 @@ interface OfflineObjectDao {
                 val baseDir: File? = when (obj.saveType) {
                     OfflineObject.SAVE_TYPE_READING_LIST -> File(context.filesDir, "offline_pages_rl")
                     OfflineObject.SAVE_TYPE_FULL_ARCHIVE -> {
-                         val externalCacheSubDir = context.getExternalFilesDir("wiki_archive")
-                         externalCacheSubDir?.let { File(it, "content") }
+                         context.getExternalFilesDir(null)?.let {
+                             File(File(it, "wiki_archive"), "content")
+                         }
                     }
                     else -> null
                 }

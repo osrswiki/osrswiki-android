@@ -20,6 +20,9 @@ import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.PageLocalDataSource
 import com.omiyawaki.osrswiki.page.PageRemoteDataSource
 import com.omiyawaki.osrswiki.page.PageRepository
+import com.omiyawaki.osrswiki.page.preemptive.AndroidArticlePrewarmEnvironmentProvider
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.AppForegroundTracker
 import com.omiyawaki.osrswiki.search.SearchRepository
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
@@ -62,10 +65,16 @@ class OSRSWikiApp : Application() {
     val currentNetworkStatus: StateFlow<Boolean> = _currentNetworkStatus.asStateFlow()
     private var connectivityManager: ConnectivityManager? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    private lateinit var appForegroundTracker: AppForegroundTracker
+    private var articlePrewarmEnvironment: AndroidArticlePrewarmEnvironmentProvider? = null
 
     companion object {
         lateinit var instance: OSRSWikiApp
             private set
+
+        internal fun invalidatePreparedArticleIfAvailable(request: ArticlePrewarmRequest) {
+            if (::instance.isInitialized) instance.invalidatePreparedArticle(request)
+        }
 
         @JvmStatic
         fun logCrashManually(throwable: Throwable, message: String? = null) {
@@ -80,6 +89,13 @@ class OSRSWikiApp : Application() {
         
         super.onCreate()
         instance = this
+        appForegroundTracker = AppForegroundTracker {
+            if (::pageAssetDownloader.isInitialized) {
+                pageAssetDownloader.notifyPrewarmEnvironmentChanged()
+            }
+        }
+        registerActivityLifecycleCallbacks(appForegroundTracker)
+        Prefs.migrateLegacyAppearancePreferences()
 
         if (BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true)
@@ -97,6 +113,12 @@ class OSRSWikiApp : Application() {
         Log.d("StartupTiming", "Starting initializeDependencies() after ${System.currentTimeMillis() - startupStartTime}ms")
         initializeDependencies()
         Log.i("StartupTiming", "OSRSWikiApp.onCreate() completed in ${System.currentTimeMillis() - startupStartTime}ms")
+    }
+
+    private fun invalidatePreparedArticle(request: ArticlePrewarmRequest) {
+        if (::pageAssetDownloader.isInitialized) {
+            pageAssetDownloader.invalidatePreparedArticle(request.pageId, request.title)
+        }
     }
 
     private fun initializeDependencies() {
@@ -146,7 +168,15 @@ class OSRSWikiApp : Application() {
             // Instantiate PageAssetDownloader with PageRepository for cache checking
             Log.d("StartupTiming", "Creating PageAssetDownloader...")
             val assetDownloaderStartTime = System.currentTimeMillis()
-            pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository)
+            articlePrewarmEnvironment = AndroidArticlePrewarmEnvironmentProvider(
+                context = this,
+                isAppInForeground = { appForegroundTracker.isAppInForeground },
+                isNetworkAvailable = { currentNetworkStatus.value }
+            )
+            pageAssetDownloader = PageAssetDownloader(okHttpClient, pageRepository, applicationScope).also { downloader ->
+                downloader.configurePrewarmEnvironment(requireNotNull(articlePrewarmEnvironment))
+            }
+            articlePrewarmEnvironment?.startObserving(pageAssetDownloader::notifyPrewarmEnvironmentChanged)
             Log.d("StartupTiming", "PageAssetDownloader created in ${System.currentTimeMillis() - assetDownloaderStartTime}ms")
 
             // Instantiate the SearchRepository with all its DAO dependencies.
@@ -179,6 +209,10 @@ class OSRSWikiApp : Application() {
     }
 
     override fun onTerminate() {
+        articlePrewarmEnvironment?.stopObserving()
+        if (::appForegroundTracker.isInitialized) {
+            unregisterActivityLifecycleCallbacks(appForegroundTracker)
+        }
         super.onTerminate()
         unregisterNetworkCallback()
     }
@@ -207,16 +241,16 @@ class OSRSWikiApp : Application() {
             isCurrentlyConnected = ::isCurrentlyConnected
         )
         
-        _currentNetworkStatus.value = networkStatusEvaluator.initialStatus()
+        updateNetworkStatus(networkStatusEvaluator.initialStatus())
         networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
-                _currentNetworkStatus.value = networkStatusEvaluator.statusAfterAvailableNetwork()
+                updateNetworkStatus(networkStatusEvaluator.statusAfterAvailableNetwork())
             }
 
             override fun onLost(network: Network) {
                 super.onLost(network)
-                _currentNetworkStatus.value = networkStatusEvaluator.statusAfterLostNetwork()
+                updateNetworkStatus(networkStatusEvaluator.statusAfterLostNetwork())
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
@@ -225,13 +259,20 @@ class OSRSWikiApp : Application() {
                 // Only require NET_CAPABILITY_INTERNET, not VALIDATED
                 // VALIDATED can fail in emulator environments even when internet works
                 val isConnected = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                _currentNetworkStatus.value = networkStatusEvaluator.statusAfterCapabilitiesChanged(isConnected)
+                updateNetworkStatus(networkStatusEvaluator.statusAfterCapabilitiesChanged(isConnected))
             }
         }
         val networkRequest = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             .build()
         connectivityManager?.registerNetworkCallback(networkRequest, networkCallback!!)
+    }
+
+    private fun updateNetworkStatus(isOnline: Boolean) {
+        _currentNetworkStatus.value = isOnline
+        if (::pageAssetDownloader.isInitialized) {
+            pageAssetDownloader.notifyPrewarmEnvironmentChanged()
+        }
     }
 
     /**

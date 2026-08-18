@@ -11,19 +11,37 @@ import retrofit2.http.Query
 
 interface WikiApiService {
     /**
-     * Performs a prefix search and simultaneously fetches extracts and thumbnails for the results.
-     * This uses 'prefixsearch' as a generator for a 'query' prop action, which is much more
-     * efficient than making separate API calls.
+     * Relevance-ranked fulltext search with Cirrus snippets and thumbnails.
+     * TextExtracts is intentionally omitted here: the extension caps extracts at 20 pages, and
+     * generating them for a full result page dominates typeahead latency. Prefix-only rows that
+     * have no Cirrus snippet get extracts from [generatedTitlePrefixSearch].
+     */
+    @GET("api.php?action=query&format=json&formatversion=2&redirects=true" +
+            "&generator=search" +
+            "&gsrprop=snippet|size|wordcount|timestamp" +
+            "&gsrsort=relevance" +
+            "&prop=pageimages" +
+            "&piprop=thumbnail&pilicense=any") // pageimages properties
+    suspend fun generatedPrefixSearch(
+        @Query("gsrsearch") query: String,
+        @Query("gsrlimit") limit: Int,
+        @Query("gsroffset") offset: Int,
+        @Query("pithumbsize") thumbSize: Int
+    ): GeneratedSearchApiResponse
+
+    /**
+     * Title-prefix generator used by the website search box. Cirrus fulltext
+     * drops prefix hits such as "earth ru" → Earth rune. Limited to 10 titles, so
+     * TextExtracts can fill preview gaps without the 20-extract cap starving later rows.
      */
     @GET("api.php?action=query&format=json&formatversion=2&redirects=true" +
             "&generator=prefixsearch" +
-            "&prop=extracts|pageimages" +
-            "&exintro=true&explaintext=true&exchars=280" + // extract properties
-            "&piprop=thumbnail&pilicense=any") // pageimages properties
-    suspend fun generatedPrefixSearch(
+            "&prop=pageimages|extracts" +
+            "&exintro=true&explaintext=true&exchars=160&exlimit=max" +
+            "&piprop=thumbnail&pilicense=any")
+    suspend fun generatedTitlePrefixSearch(
         @Query("gpssearch") query: String,
         @Query("gpslimit") limit: Int,
-        @Query("gpsoffset") offset: Int,
         @Query("pithumbsize") thumbSize: Int
     ): GeneratedSearchApiResponse
 
@@ -41,6 +59,12 @@ interface WikiApiService {
         @Query("srlimit") limit: Int,
         @Query("sroffset") offset: Int
     ): SearchApiResponse
+
+    @GET("api.php?action=opensearch&format=json&redirects=resolve")
+    suspend fun openSearch(
+        @Query("search") query: String,
+        @Query("limit") limit: Int = 10
+    ): okhttp3.ResponseBody
 
     /**
      * Fallback API call for pages that didn't get extracts with exintro=true.
@@ -65,11 +89,11 @@ interface WikiApiService {
         @Query("pageids") pageIds: String
     ): PageExtractsApiResponse
 
-    @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true")
+    @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300")
     suspend fun getArticleParseDataByPageId(@Query("pageid") pageId: Int): ArticleParseApiResponse
 
     // Add back a method to get parse data by page title for PageRemoteDataSource.
-    @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true")
+    @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300")
     suspend fun getArticleParseDataByTitle(@Query("page") title: String): ArticleParseApiResponse
 
     @GET("api.php?action=query&prop=imageinfo&iiprop=url&format=json&formatversion=2")

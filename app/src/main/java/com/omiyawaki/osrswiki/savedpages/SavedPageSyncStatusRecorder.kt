@@ -1,19 +1,34 @@
 package com.omiyawaki.osrswiki.savedpages
 
-import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 
 internal object SavedPageSyncStatusRecorder {
+    suspend fun markSaveSuccess(
+        readingListPageDao: ReadingListPageDao,
+        pageId: Long,
+        totalSizeBytes: Long,
+        currentTimeMs: Long
+    ): Boolean = readingListPageDao.transitionQueuedSaveToSaved(
+        pageId = pageId,
+        newSizeBytes = totalSizeBytes,
+        currentTimeMs = currentTimeMs
+    ) == 1
+
     suspend fun markSaveFailure(
         readingListPageDao: ReadingListPageDao,
-        page: ReadingListPage,
+        pageId: Long,
         currentTimeMs: Long
-    ) {
-        readingListPageDao.updatePageDownloadProgress(page.id, 0)
-        readingListPageDao.updatePageStatusToSavedAndMtime(
-            page.id,
-            ReadingListPage.STATUS_ERROR,
-            currentTimeMs
-        )
-    }
+    ): Boolean = readingListPageDao.transitionQueuedSaveToError(
+        pageId = pageId,
+        currentTimeMs = currentTimeMs
+    ) == 1
+}
+
+internal object SavedPageSaveCompletionPolicy {
+    fun isComplete(
+        htmlFetched: Boolean,
+        textIndexed: Boolean,
+        articlePersisted: Boolean,
+        assetsPersisted: Boolean
+    ): Boolean = htmlFetched && textIndexed && articlePersisted && assetsPersisted
 }

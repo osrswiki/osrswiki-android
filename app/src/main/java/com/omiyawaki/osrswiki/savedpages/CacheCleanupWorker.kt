@@ -8,8 +8,8 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase
-import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
@@ -26,7 +26,18 @@ class CacheCleanupWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     private val readingListPageDao: ReadingListPageDao by lazy { AppDatabase.instance.readingListPageDao() }
-    private val offlineObjectDao: OfflineObjectDao by lazy { AppDatabase.instance.offlineObjectDao() }
+    private val snapshotDeletion: ReadingListSnapshotDeletion by lazy {
+        ReadingListSnapshotDeletion(
+            context = applicationContext,
+            database = AppDatabase.instance,
+            invalidatePreparedArticle = { request ->
+                (applicationContext as OSRSWikiApp).pageAssetDownloader.invalidatePreparedArticle(
+                    pageId = request.pageId,
+                    title = request.title
+                )
+            }
+        )
+    }
 
     private val loggerTag = "CACHE_CLEANUP_WORKER"
 
@@ -69,29 +80,16 @@ class CacheCleanupWorker(
 
             if (pagesToDelete.isNotEmpty()) {
                 Log.i(loggerTag, "Cleaning up ${pagesToDelete.size} pages to free ${bytesFreed / (1024 * 1024)} MB")
-                
-                // Delete offline objects and FTS entries for these pages
-                for (page in pagesToDelete) {
-                    try {
-                        // Delete offline objects (cached files)
-                        offlineObjectDao.deleteObjectsForPageIds(listOf(page.id), applicationContext)
-                        
-                        // Delete FTS entry
-                        val pageTitleHelper = ReadingListPage.toPageTitle(page)
-                        val canonicalPageUrlForFts = pageTitleHelper.uri
-                        AppDatabase.instance.offlinePageFtsDao().deletePageContentByUrl(canonicalPageUrlForFts)
-                        
-                        Log.d(loggerTag, "Cleaned up offline data for page: ${page.displayTitle}")
-                    } catch (e: Exception) {
-                        Log.e(loggerTag, "Error cleaning up offline data for page: ${page.displayTitle}", e)
-                    }
-                }
-                
-                // Remove pages from reading list
-                val pageIds = pagesToDelete.map { it.id }
-                readingListPageDao.deletePagesByIds(pageIds)
-                
-                Log.i(loggerTag, "Cache cleanup completed. Freed approximately ${bytesFreed / (1024 * 1024)} MB")
+
+                val deletedPages = snapshotDeletion.deleteReadingListRows(
+                    pagesToDelete.map(ReadingListPage::id)
+                )
+                val deletedBytes = deletedPages.sumOf(ReadingListPage::sizeBytes)
+                Log.i(
+                    loggerTag,
+                    "Cache cleanup completed. Freed approximately " +
+                        "${deletedBytes / (1024 * 1024)} MB"
+                )
             } else {
                 Log.w(loggerTag, "No pages available for cleanup, but cache exceeds limit")
             }

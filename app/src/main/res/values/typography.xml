@@ -236,17 +236,76 @@
         <item name="android:textSize">18sp</item>
         <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
+
+    <!-- More/settings chrome: deliberately scoped system sans roles. Editorial and brand
+         surfaces continue to use the Alegreya roles above. -->
+    <style name="AppTextAppearance.SettingsToolbar" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">500</item>
+        <item name="android:textSize">22sp</item>
+    </style>
+
+    <style name="AppTextAppearance.SettingsRowTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">400</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="AppTextAppearance.SettingsPageHero" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">500</item>
+        <item name="android:textSize">30sp</item>
+    </style>
+
+    <style name="AppTextAppearance.SettingsSection" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">500</item>
+        <item name="android:textSize">24sp</item>
+    </style>
+
+    <style name="AppTextAppearance.SettingsSubheading" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">500</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="AppTextAppearance.SettingsBody" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">400</item>
+        <item name="android:textSize">16sp</item>
+    </style>
     
     <!-- Preference Styles - Using AppCompat parents as Expert 2 recommended -->
     <!-- Preference Title - Normal weight for conventional appearance -->
     <style name="AppTextAppearance.PreferenceTitle" parent="TextAppearance.AppCompat.Body1">
+        <item name="android:fontFamily">sans-serif</item>
         <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">400</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="AppTextAppearance.PreferenceCategory" parent="TextAppearance.AppCompat.Caption">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">500</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textSize">13sp</item>
+        <item name="textAllCaps">false</item>
     </style>
     
     <!-- Preference Summary - Normal weight for supporting text -->
     <style name="AppTextAppearance.PreferenceSummary" parent="TextAppearance.AppCompat.Body2">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:fontWeight" tools:targetApi="o">400</item>
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="android:textSize">13sp</item>
     </style>

@@ -32,7 +32,7 @@
             android:id="@+id/text_settings_category_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textAppearance="@style/AppTextAppearance.SettingsRowTitle"
             android:textColor="?android:attr/textColorPrimary"
             tools:text="Appearance" />
 
@@ -41,7 +41,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:textAppearance="@style/AppTextAppearance.PreferenceSummary"
             android:textColor="?android:attr/textColorSecondary"
             tools:text="Themes, colors, and display options" />
 

@@ -5,12 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import android.graphics.Typeface
 import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentAboutBinding
 import com.omiyawaki.osrswiki.util.ExternalUrlLauncher
-import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.util.log.L
 
 class AboutFragment : Fragment() {
@@ -51,10 +49,6 @@ class AboutFragment : Fragment() {
         setupMapLibreButton()
         setupWikipediaButton()
         setupPrivacyButton()
-        setupFonts()
-        
-        // Debug font loading
-        debugFontLoading()
     }
     
     private fun setupAppInfo() {
@@ -125,35 +119,6 @@ class AboutFragment : Fragment() {
         }
     }
     
-    private fun setupFonts() {
-        L.d("AboutFragment: Setting up fonts...")
-        
-        // Apply fonts using utility to bypass Huawei font system
-        FontUtil.applyAlegreyaDisplay(binding.aboutTitle)
-        FontUtil.applyAlegreyaHeadline(binding.creditsTitle)
-        FontUtil.applyAlegreyaTitle(binding.jagexTitle)
-        FontUtil.applyAlegreyaTitle(binding.wikiTitle)
-        FontUtil.applyAlegreyaTitle(binding.openrs2Title)
-        FontUtil.applyAlegreyaTitle(binding.maplibreTitle)
-        FontUtil.applyAlegreyaTitle(binding.wikipediaTitle)
-        FontUtil.applyAlegreyaTitle(binding.privacyTitle)
-        
-        L.d("AboutFragment: Fonts applied to all TextViews and buttons")
-    }
-    
-    private fun debugFontLoading() {
-        L.d("AboutFragment: ==== FONT DEBUG START ====")
-        
-        // Check if fonts are actually applied after using FontUtil
-        val aboutTitle = binding.aboutTitle
-        val typeface = aboutTitle.typeface
-        L.d("AboutFragment: Title typeface after FontUtil: $typeface")
-        L.d("AboutFragment: Title typeface style: ${typeface?.style}")
-        L.d("AboutFragment: Title typeface isBold: ${typeface?.isBold}")
-        
-        L.d("AboutFragment: ==== FONT DEBUG END ====")
-    }
-
     override fun onDestroyView() {
         L.d("AboutFragment: onDestroyView called.")
         

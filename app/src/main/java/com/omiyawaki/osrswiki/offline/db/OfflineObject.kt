@@ -1,19 +1,17 @@
 package com.omiyawaki.osrswiki.offline.db
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "offline_objects",
-    indices = [Index(value = ["url", "lang"], unique = true)]
+    indices = [Index(value = ["url", "lang", "saveType"], unique = true)]
 )
 data class OfflineObject(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
 
-    @ColumnInfo(collate = ColumnInfo.NOCASE)
     val url: String,
     val lang: String, // e.g., "en"
     val path: String, // Relative path to the file on disk (e.g., hashed_filename)

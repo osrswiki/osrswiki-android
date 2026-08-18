@@ -68,8 +68,25 @@ class AndroidRcSmokeTest {
             waitForDisplayed(allOf(withId(R.id.page_title), withText(R.string.search_history_title)))
 
             onView(allOf(withId(R.id.nav_map), isDisplayed())).perform(click())
-            waitForDisplayed(withId(R.id.floor_controls))
-            waitForDisplayed(withId(R.id.map_view))
+            waitForDisplayed(
+                withId(com.omiyawaki.osrswiki.undergroundmaps.R.id.osrs_floor_controls)
+            )
+            waitForDisplayed(
+                withId(com.omiyawaki.osrswiki.undergroundmaps.R.id.osrs_underground_map)
+            )
+            waitUntil("integrated realm map activity is foreground") {
+                UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+                    .wait(
+                        Until.hasObject(
+                            By.pkg(ApplicationProvider.getApplicationContext<android.content.Context>().packageName)
+                                .depth(0)
+                        ),
+                        100
+                    )
+            }
+
+            androidx.test.espresso.Espresso.pressBack()
+            waitForDisplayed(allOf(withId(R.id.page_title), withText(R.string.nav_news)))
 
             onView(allOf(withId(R.id.nav_more), isDisplayed())).perform(click())
             waitForDisplayed(withText(R.string.settings_category_appearance))
@@ -99,8 +116,22 @@ class AndroidRcSmokeTest {
             scenario.moveToState(Lifecycle.State.CREATED)
             scenario.moveToState(Lifecycle.State.RESUMED)
             waitForDisplayed(withText(R.string.settings_category_appearance))
+            waitUntil("restored activity window has input focus") {
+                var hasFocus = false
+                scenario.onActivity { activity -> hasFocus = activity.hasWindowFocus() }
+                hasFocus
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 
-            onView(allOf(withId(R.id.nav_search), isDisplayed())).perform(click())
+            // Espresso can inject while ActivityScenario's synthetic CREATED -> RESUMED
+            // transition still owns the input dispatcher even after Window.hasFocus() flips.
+            // Invoke the restored view's click listener on the main thread: this test is about
+            // listener/state restoration, while physical input routing is covered separately.
+            scenario.onActivity { activity ->
+                val search = activity.findViewById<android.view.View>(R.id.nav_search)
+                check(search.isShown && search.isEnabled)
+                check(search.performClick())
+            }
             waitForDisplayed(allOf(withId(R.id.page_title), withText(R.string.search_history_title)))
 
             scenario.recreate()

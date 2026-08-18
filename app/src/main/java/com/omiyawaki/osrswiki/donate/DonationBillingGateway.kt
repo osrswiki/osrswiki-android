@@ -10,6 +10,7 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
@@ -105,7 +106,12 @@ private class PlayDonationBillingGateway(
 
     private val billingClient: BillingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build()
+        )
+        .enableAutoServiceReconnection()
         .build()
 
     private var availableProducts = mapOf<String, ProductDetails>()
@@ -120,14 +126,20 @@ private class PlayDonationBillingGateway(
         val productDetails = availableProducts[productId]
             ?: return DonationBillingLaunchResult(false, "Product not available")
 
+        val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+
+        // PBL 8+ one-time products may expose multiple purchase options; prefer an explicit offer token.
+        val offerToken = productDetails.oneTimePurchaseOfferDetailsList
+            ?.firstOrNull()
+            ?.offerToken
+            ?: productDetails.oneTimePurchaseOfferDetails?.offerToken
+        if (!offerToken.isNullOrEmpty()) {
+            productDetailsParamsBuilder.setOfferToken(offerToken)
+        }
+
         val purchaseParams = BillingFlowParams.newBuilder()
-            .setProductDetailsParamsList(
-                listOf(
-                    BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(productDetails)
-                        .build()
-                )
-            )
+            .setProductDetailsParamsList(listOf(productDetailsParamsBuilder.build()))
             .build()
 
         val billingResult = billingClient.launchBillingFlow(activity, purchaseParams)
@@ -180,11 +192,26 @@ private class PlayDonationBillingGateway(
             .setProductList(productList)
             .build()
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
             if (disconnectRequested) return@queryProductDetailsAsync
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                availableProducts = productDetailsList.associateBy { it.productId }
-                notifyListener { onBillingReady(availableProducts.keys) }
+                // PBL 8+ returns QueryProductDetailsResult (fetched + unfetched product lists).
+                availableProducts = productDetailsResult.productDetailsList.associateBy { it.productId }
+                if (availableProducts.isEmpty()) {
+                    val unfetched = productDetailsResult.unfetchedProductList
+                        .joinToString { "${it.productId}(${it.statusCode})" }
+                    notifyListener {
+                        onBillingSetupFailed(
+                            if (unfetched.isNotEmpty()) {
+                                "No donation products available: $unfetched"
+                            } else {
+                                "No donation products available"
+                            }
+                        )
+                    }
+                } else {
+                    notifyListener { onBillingReady(availableProducts.keys) }
+                }
             } else {
                 notifyListener { onBillingSetupFailed(billingResult.debugMessage) }
             }
@@ -211,7 +238,9 @@ private class PlayDonationBillingGateway(
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> purchases?.forEach { handlePurchase(it) }
             BillingClient.BillingResponseCode.USER_CANCELED -> notifyListener { onPurchaseCancelled() }
-            else -> notifyListener { onPurchaseError(billingResult.debugMessage ?: "Purchase failed") }
+            else -> notifyListener {
+                onPurchaseError(billingResult.debugMessage.ifBlank { "Purchase failed" })
+            }
         }
     }
 

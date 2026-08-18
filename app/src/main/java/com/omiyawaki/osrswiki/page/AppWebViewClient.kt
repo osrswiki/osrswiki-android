@@ -12,14 +12,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.page.cache.AssetCache
 import com.omiyawaki.osrswiki.network.NetworkModuleCache
+import com.omiyawaki.osrswiki.savedpages.ReadingListOfflineAssetResolver
 import java.io.ByteArrayInputStream
 
 open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClient() {
     private val logTag = "PageLoadTrace"
     private lateinit var cdnRedirector: UniversalCdnRedirector
     private lateinit var moduleCache: NetworkModuleCache
+    private lateinit var readingListAssetResolver: ReadingListOfflineAssetResolver
     private val requestDiagnostics = WebViewRequestDiagnostics(logTag)
 
     companion object {
@@ -27,9 +30,23 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
         private const val WIKI_MODULE_HOST = "oldschool.runescape.wiki"
 
         internal fun normalizeModuleCacheUrl(url: String): String {
+            return rewriteLocalAssetHost(url, pathPrefix = "/load.php", exactPath = true)
+        }
+
+        internal fun normalizeWikiStaticUrl(url: String): String {
+            return rewriteLocalAssetHost(url, pathPrefix = "/images/", exactPath = false)
+        }
+
+        private fun rewriteLocalAssetHost(
+            url: String,
+            pathPrefix: String,
+            exactPath: Boolean
+        ): String {
             return try {
                 val uri = Uri.parse(url)
-                if (uri.host == LOCAL_ASSET_HOST && uri.path == "/load.php") {
+                val path = uri.path ?: return url
+                val matches = if (exactPath) path == pathPrefix else path.startsWith(pathPrefix)
+                if (uri.host == LOCAL_ASSET_HOST && matches) {
                     uri.buildUpon()
                         .scheme("https")
                         .authority(WIKI_MODULE_HOST)
@@ -71,6 +88,12 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
         if (!::moduleCache.isInitialized) {
             moduleCache = NetworkModuleCache.getInstance(view.context)
         }
+        if (!::readingListAssetResolver.isInitialized) {
+            readingListAssetResolver = ReadingListOfflineAssetResolver(
+                view.context.applicationContext,
+                AppDatabase.instance.offlineObjectDao()
+            )
+        }
         
         // 1. First check AssetCache for existing cached resources
         val cachedAsset = AssetCache.get(url)
@@ -87,7 +110,14 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             )
         }
         
-        // 2. Check NetworkModuleCache for MediaWiki load.php requests
+        // 2. Explicit reading-list saves own durable media independently of the process-memory
+        // cache. This exact-URL lookup keeps images/GIFs available after restart and offline.
+        readingListAssetResolver.open(url)?.let { savedAsset ->
+            Log.i(logTag, "  -> INTERCEPT [HIT] in reading-list asset store for: $url")
+            return WebResourceResponse(savedAsset.mimeType, savedAsset.encoding, savedAsset.stream)
+        }
+
+        // 3. Check NetworkModuleCache for MediaWiki load.php requests
         if (moduleCache.shouldCache(url)) {
             val moduleUrl = normalizeModuleCacheUrl(url)
             try {
@@ -110,7 +140,7 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             }
         }
         
-        // 3. Check for CDN redirection using automated mapping
+        // 4. Check for CDN redirection using automated mapping
         try {
             val cdnResponse = cdnRedirector.shouldRedirectRequest(request)
             if (cdnResponse != null) {
@@ -120,7 +150,7 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             Log.w(logTag, "CDN redirector error for $url: ${e.message}")
         }
 
-        // 4. Fallback to default behavior (local assets via WebViewAssetLoader or network)
+        // 5. Fallback to default behavior (local assets via WebViewAssetLoader or network)
         Log.d(logTag, "  -> INTERCEPT [MISS] in local caches for: $url")
         return super.shouldInterceptRequest(view, request)
     }

@@ -8,19 +8,19 @@ import java.io.File
 
 class osrsStandalonePackagingContractTest {
     @Test
-    fun `module is a separate application with exact identity and one launcher`() {
+    fun `module is an integrated library with one private activity and no launcher`() {
         val project = osrsModuleDirectory()
         val gradle = File(project, "build.gradle.kts").readText()
         val manifest = File(project, "src/main/AndroidManifest.xml").readText()
         val strings = File(project, "src/main/res/values/strings.xml").readText()
 
-        assertTrue(gradle.contains("applicationId = \"com.omiyawaki.osrswiki.undergroundmaps\""))
-        assertTrue(gradle.contains("versionCode = 6"))
-        assertTrue(gradle.contains("versionName = \"0.6.0-candidate-006\""))
-        assertTrue(strings.contains(">OSRS Underground Maps</string>"))
-        assertEquals(1, Regex("android.intent.category.LAUNCHER").findAll(manifest).count())
+        assertTrue(gradle.contains("alias(libs.plugins.android.library)"))
+        assertFalse(gradle.contains("applicationId ="))
+        assertTrue(strings.contains("name=\"osrs_underground_app_name\""))
+        assertEquals(0, Regex("android.intent.category.LAUNCHER").findAll(manifest).count())
         assertEquals(1, Regex("<activity(?:\\s|>)").findAll(manifest).count())
         assertTrue(manifest.contains(".osrsUndergroundMapsActivity"))
+        assertTrue(manifest.contains("android:exported=\"false\""))
         assertTrue(manifest.contains("android.permission.ACCESS_NETWORK_STATE"))
         assertTrue(manifest.contains("android.permission.INTERNET\"\n        tools:node=\"remove\""))
         assertFalse(gradle.contains("project(\":app\")"))
@@ -28,21 +28,20 @@ class osrsStandalonePackagingContractTest {
     }
 
     @Test
-    fun `release assembly scans apk release and retained evidence through one gate`() {
+    fun `library stages exact reviewed assets and exposes sanitized MapLibre to its host`() {
         val gradle = File(osrsModuleDirectory(), "build.gradle.kts").readText()
 
         assertTrue(gradle.contains("sanitize_osrs_maplibre_aar.py"))
         assertTrue(gradle.contains("7b86efb12b6581d1e73128d55036a4a4c8f4b756c7272b7cde774cbdb906c2f7"))
         assertTrue(gradle.contains("expectedReplacementCount", ignoreCase = true))
-        assertTrue(gradle.contains("osrsValidateReleaseApkPathHygiene"))
-        assertTrue(gradle.contains("osrs_public_path_hygiene.py"))
-        assertTrue(gradle.contains("--archive"))
-        assertTrue(gradle.contains("--public-tree"))
-        assertTrue(gradle.contains("--artifact-root"))
-        assertTrue(gradle.contains("osrsUndergroundEvidenceDir"))
-        assertTrue(gradle.contains("osrsRequireUndergroundPublicationClosure"))
-        assertTrue(gradle.contains("tasks.matching { it.name == \"assembleRelease\" }.configureEach"))
-        assertTrue(gradle.contains("finalizedBy(osrsValidateReleaseApkPathHygiene)"))
+        assertTrue(gradle.contains("expectedConstrainPatchCount", ignoreCase = true))
+        assertTrue(gradle.contains("--expected-constrain-patches"))
+        assertTrue(gradle.contains("api(osrsSanitizedMapLibreFiles)"))
+        assertTrue(gradle.contains("prepareUndergroundRealmAssets"))
+        assertTrue(gradle.contains("osrsExpectedUndergroundManifestSha256"))
+        assertTrue(gradle.contains("OSRS_EXPECTED_UNDERGROUND_MANIFEST_SHA256"))
+        assertTrue(gradle.contains("Canonical realm manifest SHA-256 mismatch"))
+        assertTrue(gradle.contains("android.sourceSets.getByName(\"main\").assets.srcDir"))
     }
 
     @Test
@@ -58,34 +57,122 @@ class osrsStandalonePackagingContractTest {
         assertFalse(productionSources.contains("Last Man Standing Desert Island"))
         assertFalse(productionSources.contains("Braindeath Island"))
         assertFalse(productionSources.contains("contains(\"underground\""))
-        assertTrue(productionSources.contains("mapLibreMap.moveCamera(CameraUpdateFactory.newLatLngBounds"))
-        assertFalse(productionSources.contains("mapLibreMap.easeCamera(CameraUpdateFactory.newLatLngBounds"))
+        assertTrue(productionSources.contains("osrsDefaultZoomForAsset(asset)"))
+        assertFalse(productionSources.contains("CameraUpdateFactory.newLatLngBounds"))
+        assertFalse(
+            Regex(
+                """mapLibreMap\.easeCamera\(\s*CameraUpdateFactory\.newLatLngBounds"""
+            ).containsMatchIn(productionSources)
+        )
     }
 
     @Test
-    fun `floor controls keep explicit contrast and lifecycle cancellation is not an app error`() {
+    fun `generated asset sync does not inherit immutable source permissions`() {
+        val gradle = File(osrsModuleDirectory(), "build.gradle.kts").readText()
+
+        assertTrue(gradle.contains("dirPermissions"))
+        assertTrue(gradle.contains("unix(\"0755\")"))
+        assertTrue(gradle.contains("filePermissions"))
+        assertTrue(gradle.contains("unix(\"0644\")"))
+    }
+
+    @Test
+    fun `vertical floor controls keep explicit contrast and lifecycle cancellation is not an app error`() {
+        val project = osrsModuleDirectory()
         val activity = File(
-            osrsModuleDirectory(),
+            project,
             "src/main/java/com/omiyawaki/osrswiki/undergroundmaps/osrsUndergroundMapsActivity.kt"
         ).readText()
+        val upIcon = File(project, "src/main/res/drawable/osrs_ic_arrow_up.xml").readText()
+        val downIcon = File(project, "src/main/res/drawable/osrs_ic_arrow_down.xml").readText()
 
-        assertTrue(activity.contains("setTextColor(floorTextColors)"))
-        assertTrue(activity.contains("backgroundTintList = floorBackgroundColors"))
-        assertTrue(activity.contains("strokeColor = floorStrokeColor"))
+        assertTrue(activity.contains("orientation = LinearLayout.VERTICAL"))
+        assertTrue(activity.contains("ContextCompat.getColor(context, R.color.osrs_parchment)"))
+        assertTrue(
+            activity.contains(
+                "setCardBackgroundColor(ContextCompat.getColor(context, R.color.osrs_map_control_surface))"
+            )
+        )
+        assertTrue(
+            activity.contains(
+                "strokeColor = ContextCompat.getColor(context, R.color.osrs_underground_parchment_dark)"
+            )
+        )
+        assertTrue(upIcon.contains("android:fillColor=\"@color/osrs_parchment\""))
+        assertTrue(downIcon.contains("android:fillColor=\"@color/osrs_parchment\""))
         assertTrue(activity.contains("catch (cancellation: CancellationException)"))
         assertFalse(activity.contains("runCatching { repository.loadCatalog() }"))
     }
 
     @Test
-    fun `camera target bounds isolate surface without clamping modular realm endpoints`() {
+    fun `realm selector globe is an outline coordinate icon`() {
+        val icon = File(
+            osrsModuleDirectory(),
+            "src/main/res/drawable/osrs_ic_globe.xml"
+        ).readText()
+
+        assertTrue(icon.contains("android:strokeColor=\"@color/osrs_parchment\""))
+        assertTrue(icon.contains("android:fillColor=\"@android:color/transparent\""))
+        assertTrue(icon.contains("C8.7,5.1"))
+        assertTrue(icon.contains("M3.2,8.3"))
+        assertFalse(icon.contains("android:fillColor=\"@color/osrs_parchment\""))
+    }
+
+    @Test
+    fun `camera target combines finite non surface bounds with the shared center envelope`() {
         val activity = File(
             osrsModuleDirectory(),
             "src/main/java/com/omiyawaki/osrswiki/undergroundmaps/osrsUndergroundMapsActivity.kt"
         ).readText()
 
-        assertTrue(activity.contains("val cameraTargetBounds = bounds.takeIf { realm.isSurface }"))
-        assertTrue(activity.contains("setLatLngBoundsForCameraTarget(cameraTargetBounds)"))
-        assertTrue(activity.contains("moveCamera(CameraUpdateFactory.newLatLngBounds(bounds"))
+        assertTrue(
+            activity.contains(
+                "setLatLngBoundsForCameraTarget(null)"
+            )
+        )
+        assertTrue(activity.contains("osrsCameraCenterEnvelope.fromVisibleAssets(visibleAssets)"))
+        assertTrue(activity.contains("osrsFiniteRealmMinimumZoom("))
+        assertFalse(activity.contains("if (realm.isSurface) return baseMinimum"))
+        assertTrue(activity.contains("horizontalWrapEnabled = false"))
+        assertTrue(activity.contains("clampCameraForActiveEnvelope"))
+        assertFalse(activity.contains("bounds.takeIf { realm.isSurface }"))
+        assertTrue(activity.contains("zoom = osrsDefaultZoomForAsset(asset).coerceIn("))
+        assertFalse(activity.contains("CameraUpdateFactory.newLatLngBounds"))
+    }
+
+    @Test
+    fun `dormant map links ui retains its internal presentation resources for future reuse`() {
+        val project = osrsModuleDirectory()
+        val activity = File(
+            project,
+            "src/main/java/com/omiyawaki/osrswiki/undergroundmaps/osrsUndergroundMapsActivity.kt"
+        ).readText()
+        val dialog = File(
+            project,
+            "src/main/java/com/omiyawaki/osrswiki/undergroundmaps/ui/osrsRealmLinksDialog.kt"
+        ).readText()
+        val strings = File(project, "src/main/res/values/strings.xml").readText()
+
+        assertTrue(activity.contains("OSRS_REALM_LINKS_UI_ENABLED = false"))
+        assertTrue(activity.contains("R.drawable.osrs_ic_search"))
+        assertFalse(activity.contains("R.drawable.osrs_ic_links"))
+        assertTrue(strings.contains("Search map links for %1\$s."))
+        listOf(
+            "osrs_map_control_surface",
+            "osrs_map_control_surface_pressed",
+            "osrs_parchment",
+            "osrs_underground_parchment_dark",
+            "osrs_map_control_divider"
+        ).forEach { paletteName ->
+            val resources = File(project, "src/main/res").walkTopDown()
+                .filter(File::isFile)
+                .joinToString("\n") { it.readText() }
+            assertTrue("Missing explicit palette resource $paletteName", resources.contains(paletteName))
+        }
+        assertTrue(dialog.contains("R.drawable.osrs_links_sheet_background"))
+        assertTrue(dialog.contains("R.drawable.osrs_links_search_background"))
+        assertTrue(dialog.contains("R.drawable.osrs_link_row_background"))
+        assertTrue(dialog.contains("R.drawable.osrs_link_divider"))
     }
 
     @Test
@@ -108,14 +195,44 @@ class osrsStandalonePackagingContractTest {
         assertTrue(activity.contains("osrsRealmAction.InstalledCameraChanged"))
         assertTrue(activity.contains("installedRequestId == identity.requestId"))
         assertTrue(activity.contains("installedStyleGeneration == identity.styleGeneration"))
-        assertTrue(activity.contains("windowManager.maximumWindowMetrics.bounds"))
-        assertTrue(activity.contains("windowManager.defaultDisplay.getRealMetrics(metrics)"))
-        assertTrue(activity.contains("osrsMaximumDisplayExtentDp("))
+        assertTrue(activity.contains("osrsRelativeLinkZoomForAssets("))
+        assertTrue(activity.contains("sourceCamera.bearing"))
+        assertTrue(activity.contains("sourceCamera.tilt"))
         assertFalse(activity.contains("coerceAtLeast(1.0)"))
         assertTrue(activity.contains("osrsRealmCameraEnvelope.minZoom(asset)"))
         assertTrue(activity.contains("osrsRealmCameraEnvelope.maxZoom(asset)"))
         assertTrue(endpointMapper.contains("OSRS_MAX_OVERZOOM_LEVELS = 8.0"))
         assertTrue(realmState.contains("osrsRealmCameraEnvelope.contains(asset, zoom)"))
+        assertTrue(realmState.contains("cameraGeometryFingerprint()"))
+    }
+
+    @Test
+    fun `standalone surface camera is stamped from the shared Lumbridge default`() {
+        val project = osrsModuleDirectory()
+        val repository = requireNotNull(project.parentFile?.parentFile?.parentFile)
+        val sharedDefault = File(repository, "shared/map-default-view.json").readText()
+        val standaloneDefault = File(
+            project,
+            "src/main/java/com/omiyawaki/osrswiki/undergroundmaps/model/" +
+                "osrsUndergroundMapDefaultView.kt"
+        ).readText()
+
+        val expectedValues = listOf(
+            "\"x\": 3222.0" to "GAME_X = 3222.0",
+            "\"y\": 3218.0" to "GAME_Y = 3218.0",
+            "\"plane\": 0" to "PLANE = 0",
+            "\"latitude\": \"-25.44327461230575\"" to
+                "LATITUDE = -25.44327461230575",
+            "\"longitude\": \"-130.2978515625\"" to
+                "LONGITUDE = -130.2978515625",
+            "\"zoom\": \"7.3414426741929\"" to "ZOOM = 7.3414426741929",
+            "\"canvasSize\": 65536.0" to "CANVAS_SIZE = 65536.0"
+        )
+
+        expectedValues.forEach { (sharedNeedle, standaloneNeedle) ->
+            assertTrue(sharedDefault.contains(sharedNeedle))
+            assertTrue(standaloneDefault.contains(standaloneNeedle))
+        }
     }
 
     private fun osrsModuleDirectory(): File {

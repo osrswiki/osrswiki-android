@@ -14,16 +14,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import androidx.fragment.app.viewModels
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentHistoryBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
@@ -37,6 +41,7 @@ class HistoryFragment : Fragment(), ThemeAware {
     
     private val viewModel: HistoryViewModel by viewModels()
     private lateinit var adapter: HistoryAdapter
+    private var articlePrewarmBinder: VisibleArticlePrewarmBinder? = null
     
     private lateinit var voiceRecognitionManager: SpeechRecognitionManager
     private val voiceSearchLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -59,6 +64,7 @@ class HistoryFragment : Fragment(), ThemeAware {
         setupSearch()
         setupFonts()
         setupRecyclerView()
+        setupArticlePrewarm()
         observeViewModel()
 
         // Diagnostic logging for header position
@@ -82,14 +88,15 @@ class HistoryFragment : Fragment(), ThemeAware {
     }
     
     private fun showClearAllConfirmationDialog() {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Clear all history")
-            .setMessage("This will delete all of your browsing history. Are you sure?")
-            .setPositiveButton("Clear All") { _, _ ->
-                viewModel.clearHistory()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        ThemedAlertDialogs.show(
+            ThemedAlertDialogs.builder(requireActivity())
+                .setTitle("Clear all history")
+                .setMessage("This will delete all of your browsing history. Are you sure?")
+                .setPositiveButton("Clear All") { _, _ ->
+                    viewModel.clearHistory()
+                }
+                .setNegativeButton("Cancel", null)
+        )
     }
 
     private fun setupSearch() {
@@ -152,6 +159,23 @@ class HistoryFragment : Fragment(), ThemeAware {
         }
     }
 
+    private fun setupArticlePrewarm() {
+        val app = requireActivity().application as OSRSWikiApp
+        articlePrewarmBinder = VisibleArticlePrewarmBinder(
+            recyclerView = binding.historyRecyclerView,
+            lifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            candidatesAt = { position, _ ->
+                val item = adapter.currentList.getOrNull(position) as? HistoryItem.EntryItem
+                setOfNotNull(item?.historyEntry?.let { entry ->
+                    ArticlePrewarmRequest(pageId = entry.pageId, title = entry.apiPath)
+                })
+            },
+            onDwell = app.pageAssetDownloader::prewarmArticle,
+            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener
+        )
+    }
+
     private fun observeViewModel() {
         viewModel.historyItems.observe(viewLifecycleOwner) { historyList ->
             adapter.submitList(historyList)
@@ -183,6 +207,8 @@ class HistoryFragment : Fragment(), ThemeAware {
 
 
     override fun onDestroyView() {
+        articlePrewarmBinder?.dispose()
+        articlePrewarmBinder = null
         super.onDestroyView()
         _binding = null
     }

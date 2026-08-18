@@ -12,6 +12,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorSurface"
         android:elevation="4dp"
+        app:titleTextAppearance="@style/AppTextAppearance.SettingsToolbar"
         app:title="@string/feedback_request_feature_title"
         app:navigationIcon="@drawable/ic_arrow_back" />
 
@@ -50,7 +51,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Request a Feature"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textAppearance="@style/AppTextAppearance.SettingsSubheading"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
 
@@ -58,7 +59,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Help us improve the app by suggesting new functionality. Great feature requests include:\n• Clear description of what you want\n• How the feature should work\n• Why it would be valuable\n• Real-world examples of when you'd use it"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textAppearance="@style/AppTextAppearance.SettingsBody"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
                 </LinearLayout>
@@ -162,7 +163,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Device Information"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textAppearance="@style/AppTextAppearance.SettingsSubheading"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
 

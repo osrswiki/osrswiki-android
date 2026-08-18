@@ -14,12 +14,22 @@ class ArticleAestheticCssContractTest {
         assertTrue(css.contains(".messagebox:not(.discord) a"))
         assertTrue(css.contains(".messagebox:not(.discord)"))
         assertTrue(css.contains("border-left-width: 6px"))
+        val genericMessageboxRule = css.substringAfter(".messagebox:not(.discord) {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertFalse(
+            "Generic quest/info banners must keep wiki parchment colors, not Wikipedia-info blue.",
+            genericMessageboxRule.contains("messagebox-info-background")
+        )
         assertTrue(css.contains("box-shadow: 0 2px 6px"))
         assertTrue(css.contains(".messagebox .messagebox-image"))
         assertTrue(css.contains("background-color: transparent !important"))
         assertTrue(css.contains("border: 0 !important"))
         assertTrue(css.contains(".collapsible-container"))
         assertTrue(css.contains(".collapsible-content"))
+        assertTrue(css.contains(".osrs-disclosure-body"))
+        assertTrue(css.contains("margin-inline: var(--osrs-disclosure-content-inline-inset, 12px) !important;"))
+        assertTrue(css.contains("display: flow-root !important;"))
+        assertTrue(css.contains("background-color: var(--wikitable-header-bg) !important;"))
         assertTrue(css.contains(".scp img.mw-file-element"))
         assertTrue(css.contains(".coins .mw-default-size"))
         assertTrue(css.contains(".plinkp-template img.mw-file-element"))
@@ -34,29 +44,77 @@ class ArticleAestheticCssContractTest {
     }
 
     @Test
+    fun sharedTableDensityKeepsAndroidReferencePaddingAndDoesNotForce112vwBonuses() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        assertTrue(fixes.contains("--osrs-table-cell-padding-block: 0.32em;"))
+        assertTrue(fixes.contains("--osrs-infobox-cell-padding-block: 0.24em;"))
+        assertTrue(fixes.contains("--osrs-bonuses-min-inline-size: 0;"))
+        assertFalse(fixes.contains("112vw"))
+        assertTrue(
+            fixes.contains(
+                ".recipe-table.osrs-recipe-unit > .collapsible-recipe-table:not(.collapsed) > .collapsible-content"
+            )
+        )
+        assertTrue(fixes.contains("--osrs-disclosure-content-inline-inset: 12px;"))
+        assertTrue(fixes.contains("--osrs-disclosure-content-block-inset: 8px;"))
+        assertTrue(fixes.contains(".osrs-disclosure-body"))
+        assertTrue(fixes.contains("margin-inline: var(--osrs-disclosure-content-inline-inset) !important;"))
+        assertTrue(fixes.contains("display: flow-root !important;"))
+        assertTrue(fixes.contains("float: none !important;"))
+        assertTrue(fixes.contains("background-color: var(--wikitable-header-bg) !important;"))
+        assertTrue(fixes.contains(".collapsible-container.collapsed > .collapsible-content"))
+        assertFalse(fixes.contains("padding: 12px 12px 0 12px !important;"))
+        assertFalse(fixes.contains("padding: 0 12px !important;"))
+    }
+
+    @Test
     fun collapseTransformerKeepsPrimaryArticleStructureExpandedAndMeaningfullyLabeled() {
         val source = assetFile("web/collapsible_content.js").readText()
 
+        assertTrue(source.contains("appendDisclosureBody"))
+        assertTrue(source.contains("absorbDisclosureChildren"))
+        assertTrue(source.contains("applyDisclosureInnerInset"))
+        assertTrue(source.contains("scheduleDisclosureInnerInsets"))
+        assertTrue(source.contains("osrs-disclosure-inset-target"))
+        assertTrue(source.contains("osrs-disclosure-body"))
         assertTrue(source.contains("deriveCaptionText"))
         assertTrue(source.contains("findContextHeading"))
         assertTrue(source.contains("collapsible-primary-infobox"))
         assertTrue(source.contains("collapsible-bonuses-infobox"))
-        assertTrue(source.contains("isAlwaysExpandedContent"))
+        assertTrue(source.contains("topLevelPrimaryInfobox"))
+        assertTrue(source.contains("shouldStartCollapsed(isPrimary)"))
         assertTrue(source.contains("restoreDeferredImages"))
+        assertTrue(source.contains("Array.from(content.querySelectorAll('.mw-kartographer-map'))"))
+        assertTrue(source.contains("mapPlaceholders.forEach"))
+        assertTrue(source.contains("directRecipeTables"))
+        assertTrue(source.contains("recipeRoleForTable"))
+        assertTrue(source.contains("dataset.osrsTableRole"))
+        assertTrue(source.contains("collapsible-recipe-table"))
+        assertTrue(source.contains("collapsible-map-table"))
         assertTrue(source.contains("Event: CollapsibleTransformsComplete"))
+        assertTrue(source.contains("authoredMapId"))
+        assertTrue(source.contains("dataset.mapid"))
         assertFalse(source.contains("Use generic labels for all collapsible containers"))
         assertFalse(source.contains("caption.style.display = 'none'"))
+        assertFalse(source.contains("getArticleContext"))
     }
 
     @Test
     fun tableScrollAffordanceSeparatesRootOverflowFromLocalTableOverflow() {
         val css = assetFile("styles/android-article-aesthetics.css").readText()
+        val fixes = assetFile("styles/fixes.css").readText()
         val horizontalScrollScript = assetFile("web/horizontal_scroll_interceptor.js").readText()
 
         assertTrue(css.contains(".osrs-scroll-affordance"))
-        assertTrue(css.contains(".osrs-scroll-affordance.osrs-scroll-can-right"))
-        assertTrue(css.contains("linear-gradient(to left"))
-        assertTrue(css.contains("box-shadow: inset -18px 0 16px"))
+        assertTrue(css.contains(".osrs-scroll-cue-layer"))
+        assertTrue(css.contains("display: none !important"))
+        assertTrue(css.contains("background-image: none !important"))
+        assertTrue(css.contains(".collapsible-primary-infobox"))
+        assertTrue(css.contains("overflow-x: hidden !important"))
+        assertTrue(css.contains(".collapsible-container.collapsible-recipe-table"))
+        assertTrue(css.contains("table.osrs-intrinsic-recipe-table"))
+        assertTrue(css.contains("width: 100% !important"))
+        assertTrue(css.contains("> caption"))
 
         assertTrue(horizontalScrollScript.contains("refreshHorizontalScrollAffordances"))
         assertTrue(horizontalScrollScript.contains("window.OSRSArticleMetrics"))
@@ -64,6 +122,84 @@ class ArticleAestheticCssContractTest {
         assertTrue(horizontalScrollScript.contains("localTableOverflowCount"))
         assertTrue(horizontalScrollScript.contains("tableAffordanceCount"))
         assertTrue(horizontalScrollScript.contains("maxLocalTableOverflowX"))
+        assertFalse(horizontalScrollScript.contains("'table.infobox-switch'"))
+        assertTrue(horizontalScrollScript.contains("table.infobox-bonuses"))
+        assertTrue(horizontalScrollScript.contains("osrs-local-scroll-surface"))
+        assertTrue(horizontalScrollScript.contains("window.OSRSHorizontalGestureOwnership"))
+        assertTrue(horizontalScrollScript.contains("latestTouchIsOwned"))
+        assertTrue(horizontalScrollScript.contains("snapshotForSequence"))
+        assertTrue(horizontalScrollScript.contains("setArticleTouchSequence"))
+        assertTrue(horizontalScrollScript.contains("if (activeTouchSequence !== null) return"))
+        assertFalse(horizontalScrollScript.contains("ensureScrollCueLayer"))
+        assertFalse(horizontalScrollScript.contains("scrollCueLayers"))
+        assertFalse(horizontalScrollScript.contains("dataset.osrsScrollCue"))
+        assertTrue(fixes.contains(".osrs-local-scroll-surface > table"))
+        assertTrue(fixes.contains(".collapsible-primary-infobox"))
+        assertTrue(fixes.contains(".collapsible-map-table"))
+        assertTrue(fixes.contains(":has(.mw-kartographer-map)"))
+        assertTrue(fixes.contains(":not(.osrs-map-table)"))
+        assertFalse(fixes.contains("table.osrs-map-table th:first-child"))
+        assertFalse(fixes.contains("width: 42% !important;"))
+        assertFalse(fixes.contains("width: 58% !important;"))
+        assertTrue(fixes.contains("float: none !important"))
+        assertTrue(fixes.contains("margin-inline: 0 !important"))
+        assertTrue(fixes.contains("--osrs-bonuses-min-inline-size"))
+        assertTrue(fixes.contains("--osrs-bonuses-label-inline-size"))
+        assertTrue(fixes.contains("--osrs-bonuses-state-inline-size"))
+        assertTrue(fixes.contains("--osrs-infobox-state-control-gap"))
+        assertTrue(fixes.contains(".infobox-switch .infobox-buttons .button"))
+        assertTrue(fixes.contains("min-width: 0 !important"))
+        assertTrue(fixes.contains("table.infobox-bonuses :is(th, td).infobox-nested"))
+        assertTrue(fixes.contains("table-layout: fixed !important"))
+        assertTrue(fixes.contains("overflow: hidden !important"))
+        assertTrue(fixes.contains("table.infobox-bonuses:not(.main-infobox)"))
+        assertFalse(File("src/main/assets/web/switch_infobox_styles.css").let {
+            if (it.exists()) it else File("app/src/main/assets/web/switch_infobox_styles.css")
+        }.readText().contains("min-width: 4rem"))
+        assertFalse(css.contains("min-width: 556px"))
+        assertFalse(css.contains("padding: 12px 12px 0 12px !important;"))
+        assertTrue(css.contains(".recipe-table.osrs-recipe-unit > .collapsible-recipe-table.collapsed > .collapsible-content"))
+    }
+
+    @Test
+    fun infoboxesAreNotHiddenUntilTransformsComplete() {
+        val tables = assetFile("web/collapsible_tables.css").readText()
+        assertFalse(tables.contains("body:not(.js-transforms-complete) .infobox"))
+        assertFalse(tables.contains("opacity: 0;"))
+        assertTrue(tables.contains(".mw-parser-output > table.infobox:not(.skill-info):not(.infobox-bonuses)"))
+        assertTrue(tables.contains("float: none !important"))
+
+        val components = assetFile("styles/components.css").readText()
+        val infoboxRule = components.substringAfter(".infobox {").substringBefore("}")
+        assertTrue(infoboxRule.contains("float: none"))
+        assertFalse(infoboxRule.contains("float: right"))
+    }
+
+    @Test
+    fun searchResultsReanchorToTopAfterQueryChanges() {
+        val source = File("src/main/java/com/omiyawaki/osrswiki/search/SearchResultsFragment.kt").let {
+            if (it.exists()) it else File("app/src/main/java/com/omiyawaki/osrswiki/search/SearchResultsFragment.kt")
+        }.readText()
+        assertTrue(source.contains("pendingScrollToTopQuery"))
+        assertTrue(source.contains("maybeAnchorSearchResultsToTop"))
+        assertTrue(source.contains("StateRestorationPolicy.PREVENT"))
+    }
+
+    @Test
+    fun geChartInitDoesNotMarkRenderedBeforeSuccess() {
+        val source = assetFile("web/ge_charts_init.js").readText()
+        assertTrue(source.contains("osrsChartPending"))
+        assertTrue(source.contains("Price history unavailable"))
+        assertTrue(source.contains("cache: 'no-cache'"))
+        assertFalse(source.contains("cache: 'force-cache'"))
+        assertTrue(source.contains("chartEl.dataset.rendered = '1'"))
+        assertTrue(source.contains("resolveHighcharts"))
+        assertTrue(source.contains("AbortController"))
+        assertTrue(source.contains("Highcharts never became available"))
+        val renderedBeforeFetch = Regex(
+            """dataset\.rendered = '1';[\s\S]{0,200}fetchSeries"""
+        )
+        assertFalse(renderedBeforeFetch.containsMatchIn(source))
     }
 
     private fun assetFile(path: String): File {

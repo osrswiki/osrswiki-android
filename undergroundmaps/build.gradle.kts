@@ -1,7 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.security.MessageDigest
 
 plugins {
-    alias(libs.plugins.android.application)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -15,21 +16,27 @@ val osrsMapLibreSanitizationSource by configurations.creating {
 val osrsSanitizedMapLibreAar = layout.buildDirectory.file(
     "generated/sanitizedDependencies/maplibre-android-sdk-11.12.1.aar"
 )
+val osrsMapLibreSanitizer = rootProject.projectDir.resolve(
+    "../../tools/map/sanitize_osrs_maplibre_aar.py"
+)
 val osrsSanitizeMapLibreAar by tasks.registering(Exec::class) {
-    description = "Replaces upstream MapLibre CI host paths with fixed-width logical paths."
+    description =
+        "Sanitizes MapLibre paths and enables its fixed-width unconstrained camera mode."
     group = "build setup"
     inputs.files(osrsMapLibreSanitizationSource)
+    inputs.file(osrsMapLibreSanitizer)
     inputs.property(
         "sourceSha256",
         "7b86efb12b6581d1e73128d55036a4a4c8f4b756c7272b7cde774cbdb906c2f7"
     )
     inputs.property("expectedReplacementCount", 24)
+    inputs.property("expectedConstrainPatchCount", 4)
     outputs.file(osrsSanitizedMapLibreAar)
 
     doFirst {
         commandLine(
             "python3",
-            rootProject.projectDir.resolve("../../tools/map/sanitize_osrs_maplibre_aar.py"),
+            osrsMapLibreSanitizer,
             "--input",
             osrsMapLibreSanitizationSource.singleFile,
             "--output",
@@ -37,7 +44,9 @@ val osrsSanitizeMapLibreAar by tasks.registering(Exec::class) {
             "--expected-source-sha256",
             "7b86efb12b6581d1e73128d55036a4a4c8f4b756c7272b7cde774cbdb906c2f7",
             "--expected-replacements",
-            "24"
+            "24",
+            "--expected-constrain-patches",
+            "4"
         )
     }
 }
@@ -49,19 +58,13 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.omiyawaki.osrswiki.undergroundmaps"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 6
-        versionName = "0.6.0-candidate-006"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -117,7 +120,7 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.material)
-    implementation(osrsSanitizedMapLibreFiles)
+    api(osrsSanitizedMapLibreFiles)
     // Explicit upstream runtime dependencies retained when the pinned AAR is sanitized locally.
     implementation("org.maplibre.gl:android-sdk-turf:6.0.1")
     implementation("androidx.annotation:annotation:1.8.2")
@@ -143,8 +146,16 @@ dependencies {
 val generatedRealmAssets = layout.buildDirectory.dir("generated/realmAssets/main")
 val suppliedRealmAssets = providers.gradleProperty("osrsUndergroundAssetsDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_ASSETS_DIR"))
+    .orElse(providers.provider {
+        val home = System.getProperty("user.home").orEmpty()
+        val cached = file("$home/Developer/osrswiki-local-artifacts/cache/binary-assets/underground-realms")
+        if (file("${cached.path}/underground-realms.json").isFile) cached.absolutePath else ""
+    })
 val suppliedPublicationEvidence = providers.gradleProperty("osrsUndergroundEvidenceDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_EVIDENCE_DIR"))
+val expectedRealmManifestSha256 = providers.gradleProperty(
+    "osrsExpectedUndergroundManifestSha256"
+).orElse(providers.environmentVariable("OSRS_EXPECTED_UNDERGROUND_MANIFEST_SHA256"))
 val requireCompletePublicationClosure = providers.gradleProperty(
     "osrsRequireUndergroundPublicationClosure"
 ).map(String::toBoolean).orElse(false)
@@ -153,9 +164,23 @@ val prepareUndergroundRealmAssets by tasks.registering(Sync::class) {
     description = "Stages the generated non-surface realm release into Android assets."
     group = "assets"
     into(generatedRealmAssets)
+    // Immutable candidate inputs may intentionally be read-only. The generated
+    // destination must remain writable so Gradle can populate nested realm paths.
+    dirPermissions {
+        unix("0755")
+    }
+    filePermissions {
+        unix("0644")
+    }
+    inputs.property(
+        "expectedRealmManifestSha256",
+        expectedRealmManifestSha256.orElse("fixture-or-unpinned")
+    )
+    inputs.property("requireCompletePublicationClosure", requireCompletePublicationClosure)
 
-    if (suppliedRealmAssets.isPresent) {
-        from(suppliedRealmAssets.map(::file)) {
+    val resolvedRealmAssets = suppliedRealmAssets.orNull.orEmpty()
+    if (resolvedRealmAssets.isNotBlank()) {
+        from(file(resolvedRealmAssets)) {
             include("underground-realms.json", "**/*.mbtiles")
         }
     } else {
@@ -168,51 +193,25 @@ val prepareUndergroundRealmAssets by tasks.registering(Sync::class) {
             "Expected underground-realms.json in " +
                 (suppliedRealmAssets.orNull ?: "undergroundmaps/src/fixtureAssets")
         }
+        if (requireCompletePublicationClosure.get()) {
+            check(suppliedRealmAssets.isPresent) {
+                "Candidate publication requires -PosrsUndergroundAssetsDir."
+            }
+            val expectedSha256 = expectedRealmManifestSha256.orNull
+            check(expectedSha256?.matches(Regex("^[0-9a-f]{64}$")) == true) {
+                "Candidate publication requires a lowercase SHA-256 through " +
+                    "-PosrsExpectedUndergroundManifestSha256."
+            }
+            val actualSha256 = MessageDigest.getInstance("SHA-256")
+                .digest(manifest.readBytes())
+                .joinToString("") { byte -> "%02x".format(byte) }
+            check(actualSha256 == expectedSha256) {
+                "Canonical realm manifest SHA-256 mismatch: expected " +
+                    "$expectedSha256 but staged $actualSha256."
+            }
+        }
     }
 }
 
 android.sourceSets.getByName("main").assets.srcDir(generatedRealmAssets)
 tasks.named("preBuild").configure { dependsOn(prepareUndergroundRealmAssets) }
-
-val osrsReleaseApk = layout.buildDirectory.file("outputs/apk/release/undergroundmaps-release.apk")
-val osrsValidateReleaseApkPathHygiene by tasks.registering(Exec::class) {
-    description = "Fails when the APK, release, or retained evidence closure contains a host path."
-    group = "verification"
-    mustRunAfter("assembleRelease")
-    inputs.file(osrsReleaseApk)
-    if (suppliedRealmAssets.isPresent) {
-        inputs.dir(suppliedRealmAssets.map(::file))
-    }
-    if (suppliedPublicationEvidence.isPresent) {
-        inputs.dir(suppliedPublicationEvidence.map(::file))
-    }
-
-    doFirst {
-        if (requireCompletePublicationClosure.get()) {
-            check(suppliedRealmAssets.isPresent) {
-                "Candidate publication requires -PosrsUndergroundAssetsDir."
-            }
-            check(suppliedPublicationEvidence.isPresent) {
-                "Candidate publication requires -PosrsUndergroundEvidenceDir."
-            }
-        }
-        val scannerArguments = mutableListOf(
-            "python3",
-            rootProject.projectDir.resolve("../../tools/map/osrs_public_path_hygiene.py"),
-            "--archive",
-            osrsReleaseApk.get().asFile
-        )
-        if (suppliedRealmAssets.isPresent) {
-            scannerArguments.add("--public-tree")
-            scannerArguments.add(file(suppliedRealmAssets.get()))
-        }
-        if (suppliedPublicationEvidence.isPresent) {
-            scannerArguments.add("--artifact-root")
-            scannerArguments.add(file(suppliedPublicationEvidence.get()))
-        }
-        commandLine(scannerArguments)
-    }
-}
-tasks.matching { it.name == "assembleRelease" }.configureEach {
-    finalizedBy(osrsValidateReleaseApkPathHygiene)
-}

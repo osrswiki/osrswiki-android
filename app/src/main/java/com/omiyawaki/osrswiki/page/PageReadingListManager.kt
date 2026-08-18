@@ -116,8 +116,22 @@ class PageReadingListManager(
                 
                 val existingEntry = readingListPageDao.findPageInAnyList(wikiSite, wikiSite.languageCode, namespace, titleText)
                 
-                when {
-                    existingEntry != null && existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_SAVED -> {
+                when (PageSaveTapPolicy.resolve(existingEntry)) {
+                    PageSaveTapAction.CANCEL_ACTIVE_SAVE -> {
+                        Log.i(TAG, "Cancelling active save for: $titleText")
+                        withContext(Dispatchers.Main) {
+                            pageActionBarManager?.updateSaveIcon(
+                                PageActionBarManager.SaveState.CANCELLING,
+                                existingEntry?.downloadProgress ?: 0
+                            )
+                        }
+                        SavedPageSyncWorker.cancelQueuedSave(
+                            context = context,
+                            readingListPageDao = readingListPageDao,
+                            pageId = checkNotNull(existingEntry).id
+                        )
+                    }
+                    PageSaveTapAction.REMOVE_SAVED -> {
                         // Page is saved, so remove it
                         Log.i(TAG, "Removing saved page: $titleText")
                         
@@ -126,9 +140,9 @@ class PageReadingListManager(
                             pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.NOT_SAVED, 0)
                         }
                         
-                        SavedPagesRepository(readingListPageDao).deleteSavedPage(existingEntry, context)
+                        SavedPagesRepository(readingListPageDao).deleteSavedPage(checkNotNull(existingEntry), context)
                     }
-                    existingEntry != null && existingEntry.offline && existingEntry.status == ReadingListPage.STATUS_ERROR -> {
+                    PageSaveTapAction.RETRY_FAILED_SAVE -> {
                         // Page had error, retry download
                         Log.i(TAG, "Retrying failed download for: $titleText")
                         
@@ -137,10 +151,14 @@ class PageReadingListManager(
                             pageActionBarManager?.updateSaveIcon(PageActionBarManager.SaveState.DOWNLOADING, 0)
                         }
                         
-                        readingListPageDao.updatePageStatusToSavedAndMtime(existingEntry.id, ReadingListPage.STATUS_QUEUE_FOR_SAVE, System.currentTimeMillis())
+                        readingListPageDao.updatePageStatusToSavedAndMtime(
+                            checkNotNull(existingEntry).id,
+                            existingEntry.retryQueueStatus,
+                            System.currentTimeMillis()
+                        )
                         SavedPageSyncWorker.enqueue(context)
                     }
-                    else -> {
+                    PageSaveTapAction.QUEUE_NEW_SAVE -> {
                         // Page is not saved, so queue it for saving
                         Log.i(TAG, "Queueing page for saving: $titleText")
                         
@@ -175,22 +193,53 @@ class PageReadingListManager(
                             }.id 
                         }
                         
-                        val newEntry = ReadingListPage(pageTitle).apply {
-                            offline = true
-                            status = ReadingListPage.STATUS_QUEUE_FOR_SAVE
-                            listId = defaultListId // Critical fix: Set the correct listId for observer
+                        if (existingEntry != null) {
+                            readingListPageDao.queueExistingPageForSave(
+                                pageId = existingEntry.id,
+                                currentTimeMs = System.currentTimeMillis()
+                            )
+                            Log.i(TAG, "Existing online-only entry queued with ID: ${existingEntry.id}")
+                        } else {
+                            val newEntry = ReadingListPage(pageTitle).apply {
+                                offline = true
+                                status = ReadingListPage.STATUS_QUEUE_FOR_SAVE
+                                listId = defaultListId // Critical fix: Set the correct listId for observer
+                            }
+                            val insertedId = readingListPageDao.insertReadingListPage(newEntry)
+                            Log.i(TAG, "Page queued with ID: $insertedId, status: ${ReadingListPage.STATUS_QUEUE_FOR_SAVE}")
                         }
-                        val insertedId = readingListPageDao.insertReadingListPage(newEntry)
-                        Log.i(TAG, "Page queued with ID: $insertedId, status: ${ReadingListPage.STATUS_QUEUE_FOR_SAVE}")
                         
                         // Enqueue the worker to download the content
                         Log.i(TAG, "Enqueuing SavedPageSyncWorker for background download")
                         SavedPageSyncWorker.enqueue(context)
+                    }
+                    PageSaveTapAction.NO_OP -> {
+                        Log.w(TAG, "Ignoring save tap for non-actionable state: ${existingEntry?.status}")
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error in toggleSaveState(): ${e.message}", e)
             }
         }
+    }
+}
+
+internal enum class PageSaveTapAction {
+    QUEUE_NEW_SAVE,
+    CANCEL_ACTIVE_SAVE,
+    REMOVE_SAVED,
+    RETRY_FAILED_SAVE,
+    NO_OP
+}
+
+internal object PageSaveTapPolicy {
+    fun resolve(entry: ReadingListPage?): PageSaveTapAction = when {
+        entry == null || !entry.offline -> PageSaveTapAction.QUEUE_NEW_SAVE
+        entry.status == ReadingListPage.STATUS_QUEUE_FOR_SAVE ||
+            entry.status == ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE ->
+            PageSaveTapAction.CANCEL_ACTIVE_SAVE
+        entry.status == ReadingListPage.STATUS_SAVED -> PageSaveTapAction.REMOVE_SAVED
+        entry.status == ReadingListPage.STATUS_ERROR -> PageSaveTapAction.RETRY_FAILED_SAVE
+        else -> PageSaveTapAction.NO_OP
     }
 }

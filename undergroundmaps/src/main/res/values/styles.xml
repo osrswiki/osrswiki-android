@@ -3,7 +3,7 @@
     <style name="Theme.OsrsUndergroundMaps" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/osrs_ink</item>
         <item name="colorOnPrimary">@color/osrs_parchment</item>
-        <item name="colorSecondary">@color/osrs_parchment_dark</item>
+        <item name="colorSecondary">@color/osrs_underground_parchment_dark</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowLightStatusBar">false</item>

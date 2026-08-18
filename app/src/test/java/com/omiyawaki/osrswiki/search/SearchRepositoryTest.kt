@@ -15,8 +15,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class SearchRepositoryTest {
 
     @Test
@@ -95,6 +100,22 @@ class SearchRepositoryTest {
         repository.clearAllRecentSearches()
 
         assertTrue(repository.getRecentSearches().first().isEmpty())
+    }
+
+    @Test
+    fun recentSearchesDecodeHtmlEntitiesAtStorageAndReadBoundaries() = runTest {
+        val recentSearchDao = FakeRecentSearchDao(
+            initial = listOf(RecentSearch("Wyrmscraig &amp; Sailing Changes", 1L))
+        )
+        val repository = repository(recentSearchDao = recentSearchDao)
+
+        assertEquals(
+            listOf("Wyrmscraig & Sailing Changes"),
+            repository.getRecentSearches().first().map { it.query }
+        )
+
+        repository.insertRecentSearch("Araxxor &amp; Updates")
+        assertEquals("Araxxor & Updates", recentSearchDao.lastInserted?.query)
     }
 
     private fun repository(
@@ -190,10 +211,14 @@ class SearchRepositoryTest {
         }
     }
 
-    private class FakeRecentSearchDao : RecentSearchDao {
-        private val searches = MutableStateFlow<List<RecentSearch>>(emptyList())
+    private class FakeRecentSearchDao(
+        initial: List<RecentSearch> = emptyList()
+    ) : RecentSearchDao {
+        private val searches = MutableStateFlow(initial)
+        var lastInserted: RecentSearch? = null
 
         override suspend fun insert(recentSearch: RecentSearch) {
+            lastInserted = recentSearch
             searches.value = listOf(recentSearch) + searches.value.filterNot {
                 it.query == recentSearch.query
             }

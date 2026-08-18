@@ -106,27 +106,26 @@ class MapLifecycleContractSourceTest {
     }
 
     @Test
-    fun tabMapFragmentDefersMapLibreUntilMapTabIsSelected() {
+    fun productionRealmMapIsLazilyAddedOnlyWhenMapTabIsSelected() {
         val mainActivity = File("src/main/java/com/omiyawaki/osrswiki/MainActivity.kt").readText()
-        val standardMapFragment = sourceFile("StandardNavigationMapFragment.kt").readText()
-        val onViewCreated = standardMapFragment.substringAfter("override fun onViewCreated")
-            .substringBefore("private fun attachSharedMapView")
+        val initialTransaction = mainActivity.substringAfter("supportFragmentManager.beginTransaction()")
+            .substringBefore(".runOnCommit")
 
         assertTrue(
-            "MainActivity should construct the tab map fragment in deferred mode",
-            mainActivity.contains("deferInitialAttach = true")
+            "MainActivity should construct the production realm map fragment",
+            mainActivity.contains("mapFragment = osrsUndergroundMapsFragment()")
         )
         assertFalse(
-            "StandardNavigationMapFragment.onViewCreated must not attach MapLibre immediately for deferred tab instances",
-            onViewCreated.contains("attachSharedMapView()")
+            "Home startup must not eagerly add the production realm map fragment",
+            initialTransaction.contains(".add(R.id.nav_host_container, mapFragment")
         )
         assertTrue(
-            "MainActivity should explicitly attach the map after the map tab is selected",
-            mainActivity.contains("mapFragment.attachMapForVisibleNavigation()")
+            "The selected map fragment should be lazily added to the persistent navigation host",
+            mainActivity.contains("transaction.add(R.id.nav_host_container, fragment, tag)")
         )
-        assertTrue(
-            "The map fragment should expose a visible-tab attachment entrypoint",
-            standardMapFragment.contains("fun attachMapForVisibleNavigation()")
+        assertFalse(
+            "Selecting Map must not leave the persistent navigation host for a standalone activity",
+            mainActivity.contains("startActivity(Intent(this, osrsUndergroundMapsActivity::class.java))")
         )
     }
 

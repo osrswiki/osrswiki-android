@@ -33,7 +33,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textAppearance="@style/AppTextAppearance.LabelLarge"
+            android:textAppearance="@style/AppTextAppearance.SettingsRowTitle"
             android:textColor="?android:attr/textColorPrimary"
             tools:text="Settings" />
 

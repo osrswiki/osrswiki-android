@@ -9,8 +9,12 @@ import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.webkit.WebView
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnAttach
 import com.omiyawaki.osrswiki.R
 
 class FindInPageManager(
@@ -23,6 +27,7 @@ class FindInPageManager(
     private var findInPageCountView: TextView? = null
     private var previousButton: View? = null
     private var nextButton: View? = null
+    private var keyboardTarget: View? = null
 
     override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
         val customView = LayoutInflater.from(context).inflate(R.layout.find_in_page_view, null)
@@ -59,8 +64,19 @@ class FindInPageManager(
             }
         })
         
-        searchView.requestFocus()
-        showKeyboard(searchView)
+        val searchInput = searchView.findViewById<EditText>(
+            androidx.appcompat.R.id.search_src_text
+        )
+        keyboardTarget = searchInput
+        customView.doOnAttach {
+            searchInput.post {
+                if (actionMode !== mode) return@post
+                searchInput.requestFocus()
+                ViewCompat.getWindowInsetsController(customView)
+                    ?.show(WindowInsetsCompat.Type.ime())
+                showKeyboard(searchInput)
+            }
+        }
 
         nextButton?.setOnClickListener {
             webView.findNext(true)
@@ -87,6 +103,9 @@ class FindInPageManager(
         this.actionMode = null
         previousButton = null
         nextButton = null
+        hideKeyboard(keyboardTarget)
+        keyboardTarget?.clearFocus()
+        keyboardTarget = null
         webView.clearMatches()
         webView.setFindListener(null)
         onActionModeClosed()
@@ -117,5 +136,12 @@ class FindInPageManager(
             val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(it, InputMethodManager.SHOW_IMPLICIT)
         }
+    }
+
+    private fun hideKeyboard(view: View?) {
+        view ?: return
+        ViewCompat.getWindowInsetsController(view)?.hide(WindowInsetsCompat.Type.ime())
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 }

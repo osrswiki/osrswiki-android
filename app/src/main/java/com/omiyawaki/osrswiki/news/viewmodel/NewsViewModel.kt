@@ -20,6 +20,7 @@ import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -56,6 +57,7 @@ class NewsViewModel(
     private var hasPendingConnectivityRetry = false
     private var pendingRetryForceRefresh = false
     private var lastKnownOnline = networkStatus.value
+    private var onlineRetryGeneration = 0
 
     init {
         // Initialize repository with application context
@@ -107,6 +109,7 @@ class NewsViewModel(
             }.onFailure { exception ->
                 _error.value = NewsErrorMessageFormatter.loadMessage(exception)
                 markPendingConnectivityRetry(forceRefresh = false)
+                scheduleAlreadyOnlineRetry()
             }
             _isLoading.value = false
         }
@@ -148,6 +151,7 @@ class NewsViewModel(
             }.onFailure { exception ->
                 _error.value = NewsErrorMessageFormatter.refreshMessage(exception)
                 markPendingConnectivityRetry(forceRefresh = true)
+                scheduleAlreadyOnlineRetry()
                 
                 if (isUserInitiated) {
                     // Error haptic feedback
@@ -167,15 +171,36 @@ class NewsViewModel(
                 lastKnownOnline = isOnline
 
                 if (connectivityRestored && hasPendingConnectivityRetry) {
-                    val forceRefresh = pendingRetryForceRefresh
-                    clearPendingConnectivityRetry()
-                    if (forceRefresh) {
-                        refreshNews(isUserInitiated = false)
-                    } else {
-                        fetchNews(forceRefresh = false)
-                    }
+                    retryPendingConnectivityLoad()
                 }
             }
+        }
+    }
+
+    private fun scheduleAlreadyOnlineRetry() {
+        if (!networkStatus.value || !hasPendingConnectivityRetry) {
+            return
+        }
+        val generation = ++onlineRetryGeneration
+        viewModelScope.launch {
+            delay(ONLINE_RETRY_DELAY_MS)
+            if (generation != onlineRetryGeneration || !hasPendingConnectivityRetry) {
+                return@launch
+            }
+            retryPendingConnectivityLoad()
+        }
+    }
+
+    private fun retryPendingConnectivityLoad() {
+        if (!hasPendingConnectivityRetry) {
+            return
+        }
+        val forceRefresh = pendingRetryForceRefresh
+        clearPendingConnectivityRetry()
+        if (forceRefresh) {
+            refreshNews(isUserInitiated = false)
+        } else {
+            fetchNews(forceRefresh = false)
         }
     }
 
@@ -187,6 +212,7 @@ class NewsViewModel(
     private fun clearPendingConnectivityRetry() {
         hasPendingConnectivityRetry = false
         pendingRetryForceRefresh = false
+        onlineRetryGeneration += 1
     }
     
     @SuppressLint("MissingPermission")
@@ -218,6 +244,10 @@ class NewsViewModel(
         }
     }
     
+    companion object {
+        private const val ONLINE_RETRY_DELAY_MS = 1_000L
+    }
+
     enum class HapticFeedbackType {
         MEDIUM_IMPACT,
         SUCCESS,

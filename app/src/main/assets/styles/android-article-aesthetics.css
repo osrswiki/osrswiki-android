@@ -12,9 +12,21 @@
     overflow-wrap: anywhere;
 }
 
+/* State chips size to their label so a short "1" is not as wide as "Uncharged". */
+.infobox-buttons .button,
+.switch-infobox-triggers .button {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+table.infobox-bonuses :is(th, td).infobox-nested {
+    padding-block: 1px !important;
+    line-height: 1.05 !important;
+    min-height: 0 !important;
+}
+
 .messagebox:not(.discord) {
-    background-color: var(--messagebox-info-background);
-    border-color: var(--messagebox-info-border);
     border-left-width: 6px;
     border-radius: 6px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
@@ -95,6 +107,15 @@
     padding-right: 0 !important;
 }
 
+:is(td, th) .scp,
+:is(td, th) .scp[style] {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: auto !important;
+    min-height: 0 !important;
+    vertical-align: middle !important;
+}
+
 .scp .mw-default-size,
 .coins .mw-default-size,
 .plinkp-template .mw-default-size,
@@ -103,7 +124,7 @@
 .mmg-itemline .mw-default-size {
     display: inline-block !important;
     height: auto !important;
-    line-height: 1 !important;
+    line-height: 0 !important;
     margin: 0 !important;
     vertical-align: middle !important;
     width: auto !important;
@@ -118,9 +139,9 @@
     display: inline-block !important;
     height: auto !important;
     margin: 0 !important;
-    max-height: 1.7em !important;
-    max-width: 1.7em !important;
-    vertical-align: -0.2em !important;
+    max-height: 2em !important;
+    max-width: 2em !important;
+    vertical-align: middle !important;
     width: auto !important;
 }
 
@@ -182,63 +203,119 @@
     max-width: 100%;
 }
 
-.collapsible-container .infobox-bonuses {
+.collapsible-container .infobox-bonuses:not(.main-infobox) {
     max-width: none;
-    min-width: 556px;
-    width: 556px;
+    min-width: var(--osrs-bonuses-min-inline-size, clamp(25rem, 112vw, 30rem));
+    table-layout: auto;
+    width: max-content;
+}
+
+/* The primary article infobox is reading content, not a carousel. Shared compatibility rules may
+   identify its switch table as wide; Android keeps the authored switch controls wrapping inside a
+   viewport-fit table and reserves local horizontal scrolling for irreducibly wide detail tables. */
+.collapsible-container.collapsible-primary-infobox,
+.collapsible-container.collapsible-primary-infobox > .collapsible-content,
+.collapsible-container.collapsible-primary-infobox > .collapsible-content.osrs-article-scroll-region {
+    box-sizing: border-box;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+}
+
+.collapsible-container.collapsible-primary-infobox
+    > .collapsible-content.osrs-article-scroll-region
+    table.main-infobox {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    width: 100% !important;
+    margin-inline: 0 !important;
+}
+
+/* Each direct recipe table is its own compact, ordered semantic disclosure. The shared
+   transformer owns role/caption normalization; Android only reinforces viewport containment. */
+.recipe-table.osrs-recipe-unit {
+    display: grid !important;
+    gap: 0.75rem;
+    max-width: 100% !important;
+    overflow: visible !important;
+    width: 100% !important;
+}
+
+.recipe-table.osrs-recipe-unit > .collapsible-container.collapsible-recipe-table {
+    display: block !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+}
+
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table:not(.collapsed) > .collapsible-content {
+    box-sizing: border-box;
+    margin: 0 !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    padding-inline: 0 !important;
+    padding-block: 0 !important;
+    width: 100% !important;
+}
+
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table.collapsed > .collapsible-content {
+    box-sizing: border-box !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+}
+
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table table.osrs-intrinsic-recipe-table {
+    display: table !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+    width: 100% !important;
+    margin-inline: 0 !important;
+}
+
+.collapsible-container.collapsible-wikitable
+    > .collapsible-content
+    > table.wikitable
+    > caption[aria-hidden="true"] {
+    display: none !important;
+}
+
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table .collapsible-close-footer {
+    display: block !important;
+    width: 100% !important;
+}
+
+.collapsible-header .collapsible-label,
+.collapsible-header .collapsible-state,
+.collapsible-close-button .title-wrapper {
+    font-family: inherit;
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
 }
 
 .osrs-scroll-affordance {
     overscroll-behavior-x: contain;
     position: relative;
-    transition: box-shadow 120ms ease-out;
+    background-image: none !important;
+    box-shadow: none !important;
 }
 
-.osrs-scroll-affordance.osrs-scroll-can-left {
-    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
-    background-position: left top;
-    background-repeat: no-repeat;
-    background-size: 42px 100%;
-    box-shadow: inset 18px 0 16px -16px rgba(0, 0, 0, 0.42);
-}
-
-.osrs-scroll-affordance.osrs-scroll-can-right {
-    background-image: linear-gradient(to left, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
-    background-position: right top;
-    background-repeat: no-repeat;
-    background-size: 42px 100%;
-    box-shadow: inset -18px 0 16px -16px rgba(0, 0, 0, 0.42);
-}
-
-.osrs-scroll-affordance.osrs-scroll-can-left.osrs-scroll-can-right {
-    background-image:
-        linear-gradient(to right, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0)),
-        linear-gradient(to left, rgba(0, 0, 0, 0.11), rgba(0, 0, 0, 0));
-    background-position: left top, right top;
-    background-repeat: no-repeat;
-    background-size: 42px 100%, 42px 100%;
-    box-shadow:
-        inset 18px 0 16px -16px rgba(0, 0, 0, 0.42),
-        inset -18px 0 16px -16px rgba(0, 0, 0, 0.42);
-}
-
-.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-left {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
-    box-shadow: inset 18px 0 16px -16px rgba(255, 255, 255, 0.34);
-}
-
-.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-right {
-    background-image: linear-gradient(to left, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
-    box-shadow: inset -18px 0 16px -16px rgba(255, 255, 255, 0.34);
-}
-
-.theme-osrs-dark .osrs-scroll-affordance.osrs-scroll-can-left.osrs-scroll-can-right {
-    background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0)),
-        linear-gradient(to left, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0));
-    box-shadow:
-        inset 18px 0 16px -16px rgba(255, 255, 255, 0.34),
-        inset -18px 0 16px -16px rgba(255, 255, 255, 0.34);
+/* Old cached pages can still contain a cue node. Keep it nonvisual. */
+.osrs-scroll-cue-layer,
+.osrs-scroll-cue-layer::before,
+.osrs-scroll-cue-layer::after {
+    display: none !important;
+    opacity: 0 !important;
 }
 
 .mw-parser-output > table.wikitable,
@@ -322,3 +399,103 @@ audio.mw-file-element,
     min-width: min(160px, 72vw);
     width: min(100%, 220px) !important;
 }
+
+table.infobox:not(.skill-info):not(.infobox-bonuses),
+.infobox-switch,
+.multi-infobox,
+.switch-infobox {
+    float: none !important;
+    clear: both !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 1em 0 !important;
+}
+
+/* Last-wins lock: inset the inner disclosure column, not the overflow
+   scrollport or the card itself. width:auto + inline margins leave the
+   header full-bleed while tables size to the narrower column. Paint the
+   card with table-header fill so the gutter is visible against the page
+   and against infobox body fill. */
+.collapsible-container:not(.collapsed) {
+    padding-inline: 0 !important;
+    background-color: var(--wikitable-header-bg) !important;
+}
+
+.collapsible-container:not(.collapsed) > .collapsible-header {
+    margin-inline: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    background-color: var(--wikitable-header-bg) !important;
+}
+
+.collapsible-container:not(.collapsed) > .collapsible-content {
+    box-sizing: border-box !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
+    padding-block: 0 !important;
+    border-inline-width: 0 !important;
+    background-color: transparent !important;
+}
+
+.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.collapsible-content > .osrs-disclosure-body {
+    box-sizing: border-box !important;
+    display: flow-root !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-block: 0 !important;
+    margin-inline: var(--osrs-disclosure-content-inline-inset, 12px) !important;
+    padding-inline: 0 !important;
+    padding-block: var(--osrs-disclosure-content-block-inset, 8px) !important;
+    overflow-x: auto !important;
+}
+
+.collapsible-container .infobox,
+.collapsible-container table.infobox,
+.osrs-disclosure-body table,
+.osrs-disclosure-body .infobox-switch {
+    float: none !important;
+    clear: none !important;
+}
+
+.osrs-local-scroll-surface > .osrs-disclosure-body,
+.collapsible-content.osrs-local-scroll-surface > .osrs-disclosure-body {
+    overflow-x: auto !important;
+}
+
+.collapsible-container.collapsible-primary-infobox:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(> table.infobox),
+.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(> .infobox-switch) {
+    overflow-x: hidden !important;
+}
+
+body.osrs-accessibility-reflow .collapsible-content,
+body.osrs-accessibility-reflow .osrs-disclosure-body,
+body.osrs-accessibility-reflow .collapsible-content :is(th, td),
+body.osrs-accessibility-reflow .osrs-disclosure-body :is(th, td) {
+    font-size: inherit !important;
+}
+
+.collapsible-container:not(.collapsed) table.infobox-bonuses,
+.collapsible-container:not(.collapsed) table.osrs-map-table,
+.collapsible-container:not(.collapsed) .osrs-intrinsic-table {
+    margin-inline: 0 !important;
+}
+
+.collapsible-map-table:not(.collapsed) > .collapsible-content > .osrs-disclosure-body {
+    margin-inline: 0 !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+.collapsible-map-table table.osrs-map-table > :is(thead, tbody, tfoot) > tr > :is(th, td):has(.mw-kartographer-map),
+.osrs-disclosure-body > table.osrs-map-table > :is(thead, tbody, tfoot) > tr > :is(th, td):has(.mw-kartographer-map),
+table.osrs-map-table > :is(thead, tbody, tfoot) > tr > :is(th, td):has(.mw-kartographer-map) {
+    width: 99% !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+}
+

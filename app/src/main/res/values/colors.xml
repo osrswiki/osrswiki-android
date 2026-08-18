@@ -54,6 +54,6 @@
     <color name="theme_preview_stroke">@android:color/transparent</color>
     
     <!-- Search term highlighting -->
-    <color name="search_highlight_light">#FF6B35</color>
+    <color name="search_highlight_light">#B53616</color>
     <color name="search_highlight_dark">#FF8A65</color>
 </resources>

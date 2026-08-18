@@ -60,13 +60,49 @@ class SavedPagesRepositoryTest {
 
         assertEquals(listOf("Vorkath", "Dragon boots"), results.map { it.displayTitle })
         assertEquals(listOf("dragon"), ftsDao.searchQueries)
-        assertEquals(
-            listOf(
-                ReadingListPage.STATUS_SAVED to true,
-                ReadingListPage.STATUS_SAVED to true
-            ),
-            readingListPageDao.statusOfflineQueries
+        assertEquals(2, readingListPageDao.readableSnapshotQueries)
+    }
+
+    @Test
+    fun savedSearchIncludesReadableForcedAndErrorSnapshotsButExcludesBrandNewPartial() = runTest {
+        val current = savedPage(10, "Snapshot current", "Snapshot_current", atime = 40)
+        val forced = savedPage(11, "Snapshot refreshing", "Snapshot_refreshing", atime = 30)
+            .copy(status = ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE, sizeBytes = 2_048L)
+        val failed = savedPage(12, "Snapshot retry", "Snapshot_retry", atime = 20)
+            .copy(status = ReadingListPage.STATUS_ERROR, sizeBytes = 1_024L)
+        val partial = savedPage(13, "Snapshot partial", "Snapshot_partial", atime = 10)
+            .copy(status = ReadingListPage.STATUS_QUEUE_FOR_SAVE, sizeBytes = 0L)
+        val dao = FakeReadingListPageDao(listOf(current, forced, failed, partial))
+
+        val results = repository(readingListPageDao = dao).searchSavedPages("snapshot")
+
+        assertEquals(listOf(10L, 11L, 12L), results.map { it.id })
+        assertEquals(2, dao.readableSnapshotQueries)
+    }
+
+    @Test
+    fun deleteAllSnapshotContractDeletesCurrentForcedAndFailedButNotBrandNewPartial() = runTest {
+        val current = savedPage(20, "Current", "Current")
+        val forced = savedPage(21, "Refreshing", "Refreshing")
+            .copy(status = ReadingListPage.STATUS_QUEUE_FOR_FORCED_SAVE, sizeBytes = 2_048L)
+        val failed = savedPage(22, "Retry", "Retry")
+            .copy(status = ReadingListPage.STATUS_ERROR, sizeBytes = 1_024L)
+        val partial = savedPage(23, "Partial", "Partial")
+            .copy(status = ReadingListPage.STATUS_QUEUE_FOR_SAVE, sizeBytes = 0L)
+        val dao = FakeReadingListPageDao(listOf(current, forced, failed, partial))
+        val offlineObjectDao = FakeOfflineObjectDao()
+        val repository = repository(
+            readingListPageDao = dao,
+            offlineObjectDao = offlineObjectDao
         )
+
+        val deleteAllRows = repository.getReadableOfflinePagesSnapshot()
+        repository.deleteSavedPages(deleteAllRows, ApplicationProvider.getApplicationContext())
+
+        assertEquals(listOf(20L, 21L, 22L), deleteAllRows.map { it.id })
+        assertEquals(listOf(20L, 21L, 22L), dao.deletedPageIds)
+        assertEquals(listOf(listOf(20L, 21L, 22L)), offlineObjectDao.deletedPageIds)
+        assertEquals(partial, dao.getPageById(23L))
     }
 
     @Test
@@ -98,7 +134,7 @@ class SavedPagesRepositoryTest {
         assertEquals(listOf(listOf(8L)), offlineObjectDao.deletedPageIds)
         assertEquals(listOf("https://oldschool.runescape.wiki/wiki/Abyssal_whip"), ftsDao.deletedUrls)
         assertEquals(listOf(4151), articleMetaDao.deletedPageIds)
-        assertEquals(listOf(page), readingListPageDao.deletedPages)
+        assertEquals(listOf(8L), readingListPageDao.deletedPageIds)
     }
 
     @Test
@@ -160,8 +196,30 @@ class SavedPagesRepositoryTest {
         return SavedPagesRepository(
             readingListPageDao = readingListPageDao,
             offlinePageFtsDaoProvider = { ftsDao },
-            offlineObjectDaoProvider = { offlineObjectDao },
-            articleMetaDaoProvider = { articleMetaDao }
+            deleteReadingListRowsOverride = { pageIds, context ->
+                val claimed = readingListPageDao.claimPagesForDeletion(pageIds)
+                offlineObjectDao.deleteObjectsForPageIds(claimed.map { it.id }, context)
+                claimed.distinctBy { listOf(it.wiki, it.lang, it.namespace, it.apiTitle) }
+                    .forEach { page ->
+                        if (
+                            !readingListPageDao.hasOfflineReferenceForPageIdentity(
+                                page.wiki,
+                                page.lang,
+                                page.namespace,
+                                page.apiTitle
+                            )
+                        ) {
+                            ftsDao.deletePageContentByUrl(ReadingListPage.toPageTitle(page).uri)
+                        }
+                    }
+                claimed.mapNotNull { it.mediaWikiPageId }.distinct().forEach { pageId ->
+                    if (!readingListPageDao.hasOfflineReferenceForMediaWikiPageId(pageId)) {
+                        articleMetaDao.getMetaByPageId(pageId)?.let { articleMetaDao.delete(it) }
+                    }
+                }
+                readingListPageDao.purgeClaimedPagesByIds(claimed.map { it.id })
+                claimed
+            }
         )
     }
 
@@ -196,20 +254,12 @@ class SavedPagesRepositoryTest {
         val deletedPages = mutableListOf<ReadingListPage>()
         val deletedPageIds = mutableListOf<Long>()
         val statusOfflineQueries = mutableListOf<Pair<Long, Boolean>>()
+        var readableSnapshotQueries = 0
 
         override fun insertReadingListPage(page: ReadingListPage): Long {
             val id = page.id.takeIf { it != 0L } ?: ((pages.keys.maxOrNull() ?: 0L) + 1L)
             pages[id] = page.copy(id = id)
             return id
-        }
-
-        override fun updateReadingListPage(page: ReadingListPage) {
-            pages[page.id] = page
-        }
-
-        override fun deleteReadingListPage(page: ReadingListPage) {
-            deletedPages += page
-            pages.remove(page.id)
         }
 
         override fun getAllPages(): List<ReadingListPage> = pages.values.toList()
@@ -220,8 +270,18 @@ class SavedPagesRepositoryTest {
             return pages.values.filter { it.listId == listId && it.status != excludedStatus }
         }
 
-        override fun getFullySavedPagesObservable(statusSaved: Long): Flow<List<ReadingListPage>> {
-            return flowOf(pages.values.filter { it.offline && it.status == statusSaved })
+        override fun getFullySavedPagesObservable(
+            statusSaved: Long,
+            statusForcedSave: Long,
+            statusError: Long
+        ): Flow<List<ReadingListPage>> {
+            readableSnapshotQueries += 1
+            return flowOf(pages.values.filter {
+                it.offline && (
+                    it.status == statusSaved ||
+                        (it.sizeBytes > 0 && it.status in setOf(statusForcedSave, statusError))
+                    )
+            })
         }
 
         override fun getPageByListIdAndTitle(
@@ -257,6 +317,58 @@ class SavedPagesRepositoryTest {
                     it.status != excludedStatus
             }
         }
+
+        override fun transitionPageToRegularOfflineSave(
+            pageId: Long,
+            queuedStatus: Long,
+            forcedQueuedStatus: Long
+        ): Int {
+            val page = pages[pageId] ?: return 0
+            if (page.offline && page.status in setOf(queuedStatus, forcedQueuedStatus)) return 0
+            page.offline = true
+            page.status = queuedStatus
+            page.downloadProgress = 0
+            return 1
+        }
+
+        override fun transitionPageToForcedOfflineSave(
+            pageId: Long,
+            forcedQueuedStatus: Long
+        ): Int {
+            val page = pages[pageId] ?: return 0
+            if (page.offline && page.status == forcedQueuedStatus) return 0
+            page.offline = true
+            page.status = forcedQueuedStatus
+            page.downloadProgress = 0
+            return 1
+        }
+
+        override fun transitionPageToOfflineDelete(pageId: Long, deleteStatus: Long): Int {
+            val page = pages[pageId] ?: return 0
+            if (!page.offline && page.status == deleteStatus) return 0
+            page.offline = false
+            page.status = deleteStatus
+            page.downloadProgress = 0
+            return 1
+        }
+
+        override fun transitionPageToDelete(pageId: Long, listId: Long, deleteStatus: Long): Int {
+            val page = pages[pageId] ?: return 0
+            if ((listId != -1L && page.listId != listId) || page.status == deleteStatus) return 0
+            page.status = deleteStatus
+            page.downloadProgress = 0
+            return 1
+        }
+
+        override suspend fun transitionPagesToDelete(
+            pageIds: List<Long>,
+            deleteStatus: Long
+        ): Int = pageIds.sumOf { transitionPageToDelete(it, -1L, deleteStatus) }
+
+        override suspend fun getPagesByIdsAndStatus(
+            pageIds: List<Long>,
+            status: Long
+        ): List<ReadingListPage> = pages.values.filter { it.id in pageIds && it.status == status }
 
         override suspend fun purgePagesByStatus(status: Long) {
             pages.values.removeAll { it.status == status }
@@ -297,13 +409,32 @@ class SavedPagesRepositoryTest {
             pages[pageId]?.sizeBytes = newSizeBytes
         }
 
-        override suspend fun updatePageAfterOfflineDeletion(pageId: Long, newStatus: Long, currentTimeMs: Long) {
+        override suspend fun updatePageAfterOfflineDeletion(
+            pageId: Long,
+            newStatus: Long,
+            currentTimeMs: Long,
+            noSettlementVersion: Int
+        ) {
             pages[pageId]?.let {
                 it.status = newStatus
                 it.offline = false
                 it.sizeBytes = 0
+                it.durableSettlementVersion = noSettlementVersion
                 it.mtime = currentTimeMs
             }
+        }
+
+        override suspend fun queueExistingPageForSave(
+            pageId: Long,
+            currentTimeMs: Long,
+            queuedStatus: Long
+        ): Int {
+            val page = pages[pageId] ?: return 0
+            page.offline = true
+            page.status = queuedStatus
+            page.downloadProgress = 0
+            page.mtime = currentTimeMs
+            return 1
         }
 
         override fun getPagesByStatusAndOffline(status: Long, offline: Boolean): List<ReadingListPage> {
@@ -329,6 +460,40 @@ class SavedPagesRepositoryTest {
             updatePageStatusToSavedAndMtimeBlocking(pageId, newStatus, currentTimeMs)
         }
 
+        override suspend fun transitionQueuedSaveToSaved(
+            pageId: Long,
+            newSizeBytes: Long,
+            currentTimeMs: Long,
+            savedStatus: Long,
+            queuedStatus: Long,
+            forcedQueuedStatus: Long,
+            settlementVersion: Int
+        ): Int {
+            val page = pages[pageId]
+            if (page == null || page.status !in setOf(queuedStatus, forcedQueuedStatus)) return 0
+            page.status = savedStatus
+            page.mtime = currentTimeMs
+            page.downloadProgress = 100
+            page.sizeBytes = newSizeBytes
+            page.durableSettlementVersion = settlementVersion
+            return 1
+        }
+
+        override suspend fun transitionQueuedSaveToError(
+            pageId: Long,
+            currentTimeMs: Long,
+            errorStatus: Long,
+            queuedStatus: Long,
+            forcedQueuedStatus: Long
+        ): Int {
+            val page = pages[pageId]
+            if (page == null || page.status !in setOf(queuedStatus, forcedQueuedStatus)) return 0
+            page.status = errorStatus
+            page.mtime = currentTimeMs
+            page.downloadProgress = 0
+            return 1
+        }
+
         override fun updatePageStatusToSavedAndMtimeBlocking(
             pageId: Long,
             newStatus: Long,
@@ -348,21 +513,70 @@ class SavedPagesRepositoryTest {
             pages[id]?.revId = revisionId
         }
 
-        override suspend fun updatePageDownloadProgress(id: Long, progress: Int) {
-            pages[id]?.downloadProgress = progress
+        override suspend fun updateQueuedSaveDownloadProgress(
+            id: Long,
+            progress: Int,
+            queuedStatus: Long,
+            forcedQueuedStatus: Long
+        ): Int {
+            val page = pages[id]
+            if (page == null || page.status !in setOf(queuedStatus, forcedQueuedStatus)) return 0
+            page.downloadProgress = progress
+            return 1
         }
 
-        override suspend fun getTotalCacheSizeBytes(statusSaved: Long): Long? {
-            return pages.values.filter { it.offline && it.status == statusSaved }.sumOf { it.sizeBytes }
+        override suspend fun getTotalCacheSizeBytes(
+            statusSaved: Long,
+            statusForcedSave: Long,
+            statusError: Long
+        ): Long? {
+            return pages.values.filter {
+                it.offline && (
+                    it.status == statusSaved ||
+                        (it.sizeBytes > 0 && it.status in setOf(statusForcedSave, statusError))
+                    )
+            }.sumOf { it.sizeBytes }
         }
 
-        override suspend fun getOldestSavedPages(statusSaved: Long): List<ReadingListPage> {
-            return pages.values.filter { it.offline && it.status == statusSaved }.sortedBy { it.atime }
+        override suspend fun getOldestSavedPages(
+            statusSaved: Long,
+            statusError: Long
+        ): List<ReadingListPage> {
+            return pages.values.filter {
+                it.offline && (
+                    it.status == statusSaved ||
+                        (it.sizeBytes > 0 && it.status == statusError)
+                    )
+            }.sortedBy { it.atime }
         }
 
-        override suspend fun deletePagesByIds(pageIds: List<Long>) {
-            deletedPageIds += pageIds
-            pageIds.forEach { pages.remove(it) }
+        override suspend fun hasOfflineReferenceForMediaWikiPageId(
+            mediaWikiPageId: Int,
+            deleteStatus: Long
+        ): Boolean = pages.values.any {
+            it.offline && it.status != deleteStatus && it.mediaWikiPageId == mediaWikiPageId
+        }
+
+        override suspend fun hasOfflineReferenceForPageIdentity(
+            wiki: WikiSite,
+            lang: String,
+            namespace: Namespace,
+            apiTitle: String,
+            deleteStatus: Long
+        ): Boolean = pages.values.any {
+            it.offline && it.status != deleteStatus && it.wiki == wiki && it.lang == lang &&
+                it.namespace == namespace && it.apiTitle == apiTitle
+        }
+
+        override suspend fun purgeClaimedPagesByIds(
+            pageIds: List<Long>,
+            deleteStatus: Long
+        ): Int {
+            val matches = pages.values.filter { it.id in pageIds && it.status == deleteStatus }
+            deletedPages += matches
+            deletedPageIds += matches.map { it.id }
+            matches.forEach { pages.remove(it.id) }
+            return matches.size
         }
     }
 

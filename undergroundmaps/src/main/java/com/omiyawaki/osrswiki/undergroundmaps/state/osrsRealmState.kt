@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.undergroundmaps.state
 
 import com.omiyawaki.osrswiki.undergroundmaps.model.OSRS_REALM_GROUPS
+import com.omiyawaki.osrswiki.undergroundmaps.model.cameraGeometryFingerprint
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmAsset
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmCatalog
 import com.omiyawaki.osrswiki.undergroundmaps.model.osrsRealmCameraEnvelope
@@ -71,7 +72,8 @@ class osrsCameraPersistenceOwnership {
 data class osrsPersistedRealmState(
     val lastRealmId: String? = null,
     val cameras: Map<String, osrsCameraState> = emptyMap(),
-    val planesByRealm: Map<String, Int> = emptyMap()
+    val planesByRealm: Map<String, Int> = emptyMap(),
+    val cameraGeometryFingerprint: String? = null
 )
 
 data class osrsRealmUiState(
@@ -90,7 +92,8 @@ data class osrsRealmUiState(
     fun persisted(): osrsPersistedRealmState = osrsPersistedRealmState(
         lastRealmId = activeRealmId,
         cameras = cameras,
-        planesByRealm = planesByRealm
+        planesByRealm = planesByRealm,
+        cameraGeometryFingerprint = catalog.cameraGeometryFingerprint()
     )
 
     fun filteredSections(): Map<String, List<osrsRealmRecord>> {
@@ -123,8 +126,14 @@ class osrsRealmStateReducer {
     ): osrsRealmUiState {
         val requestedId = restoredRealmId ?: persisted.lastRealmId
         val realm = requestedId?.let(catalog.byId::get) ?: catalog.surface
-        val validCameras = persisted.cameras.filter { (realmId, camera) ->
-            catalog.byId.containsKey(realmId) && camera.isFinite()
+        val validCameras = if (
+            persisted.cameraGeometryFingerprint == catalog.cameraGeometryFingerprint()
+        ) {
+            persisted.cameras.filter { (realmId, camera) ->
+                catalog.byId.containsKey(realmId) && camera.isFinite()
+            }
+        } else {
+            emptyMap()
         }
         val validPlanes = persisted.planesByRealm.mapNotNull { (realmId, plane) ->
             catalog.byId[realmId]?.takeIf { plane in it.planes }?.let { realmId to plane }

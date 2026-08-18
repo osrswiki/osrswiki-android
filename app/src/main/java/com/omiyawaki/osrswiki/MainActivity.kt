@@ -15,6 +15,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.omiyawaki.osrswiki.activity.EdgeToEdgeInsetCoordinator
+import androidx.core.graphics.Insets
 import androidx.fragment.app.Fragment
 import com.omiyawaki.osrswiki.activity.BaseActivity
 import com.omiyawaki.osrswiki.databinding.ActivityMainBinding
@@ -22,17 +24,20 @@ import com.omiyawaki.osrswiki.history.HistoryFragment
 import com.omiyawaki.osrswiki.navigation.AppRouterImpl
 import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
 import com.omiyawaki.osrswiki.search.SearchActivity
-import com.omiyawaki.osrswiki.search.SearchFragment
+import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.page.PageActivity
+import android.net.Uri
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.main.MainNavigationInsetPolicy
 import com.omiyawaki.osrswiki.ui.map.AndroidMapPreloader
-import com.omiyawaki.osrswiki.ui.map.StandardNavigationMapFragment
+import com.omiyawaki.osrswiki.undergroundmaps.osrsUndergroundMapsFragment
 import com.omiyawaki.osrswiki.ui.more.MoreFragment
 import android.view.Gravity
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.util.FontUtil
 import android.widget.TextView
 import com.omiyawaki.osrswiki.settings.ContentBoundsProvider
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.views.CustomBottomNavBar
 import kotlinx.coroutines.launch
 
@@ -41,7 +46,7 @@ class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var appRouter: AppRouterImpl
     private lateinit var mainFragment: MainFragment
-    private lateinit var mapFragment: StandardNavigationMapFragment
+    private lateinit var mapFragment: osrsUndergroundMapsFragment
     private lateinit var historyFragment: HistoryFragment
     private lateinit var savedPagesFragment: SavedPagesFragment
     private lateinit var moreFragment: MoreFragment
@@ -49,6 +54,7 @@ class MainActivity : BaseActivity() {
     
     private var themeChangeReceiver: BroadcastReceiver? = null
     private var isRefreshingColors: Boolean = false
+    private var mainSystemBarInsets: Insets = Insets.NONE
 
     companion object {
         const val ACTION_NAVIGATE_TO_SEARCH = "com.omiyawaki.osrswiki.ACTION_NAVIGATE_TO_SEARCH"
@@ -66,6 +72,9 @@ class MainActivity : BaseActivity() {
         Log.d(LIFECYCLE_TAG, "onCreate() called. Saved state is ${if (savedInstanceState == null) "null" else "present"}")
         Log.i("StartupTiming", "MainActivity.onCreate() - Main activity starting")
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra("osrs_disable_article_prewarm", false)) {
+            Prefs.disableArticlePrewarm = true
+        }
         
         // Enable edge-to-edge but respect the theme's status bar settings
         enableEdgeToEdge()
@@ -77,8 +86,16 @@ class MainActivity : BaseActivity() {
         
         // Handle system window insets to avoid content overlapping with status bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.navHostContainer) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val systemBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                cutout
+            )
+            mainSystemBarInsets = systemBars
+            val navigationBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()),
+                cutout
+            )
             val layoutParams = view.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
             val bottomMargin = MainNavigationInsetPolicy.hostBottomMarginForNavigationInset(navigationBars.bottom)
             if (layoutParams.bottomMargin != bottomMargin) {
@@ -88,14 +105,21 @@ class MainActivity : BaseActivity() {
 
             // Apply top and side padding to avoid overlapping with status and side system bars.
             // The bottom margin tracks the translated bottom navigation.
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
+            applyNavigationHostContentInsets()
             insets
         }
 
         // Handle system navigation bar insets for the bottom navigation using translation
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNav) { view, insets ->
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val navigationBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()),
+                cutout
+            )
+            val systemBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                cutout
+            )
             
             // Use translationY to move the view up without affecting layout space
             view.translationY = -navigationBars.bottom.toFloat()
@@ -111,8 +135,15 @@ class MainActivity : BaseActivity() {
 
         // Handle system navigation bar insets for the bottom navigation border using translation
         ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavBorder) { view, insets ->
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val navigationBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()),
+                cutout
+            )
+            val systemBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                cutout
+            )
             
             // Use translationY to move the border up without affecting layout space
             view.translationY = -navigationBars.bottom.toFloat()
@@ -138,14 +169,7 @@ class MainActivity : BaseActivity() {
             
             // Create new fragment instances
             mainFragment = MainFragment.newInstance()
-            mapFragment = StandardNavigationMapFragment.newInstance(
-                lat = null,
-                lon = null,
-                zoom = null,
-                plane = null,
-                deferInitialAttach = true,
-                enableSemanticPrototype = true
-            )
+            mapFragment = osrsUndergroundMapsFragment()
             historyFragment = HistoryFragment.newInstance()
             savedPagesFragment = SavedPagesFragment()
             moreFragment = MoreFragment.newInstance()
@@ -162,7 +186,6 @@ class MainActivity : BaseActivity() {
             
             supportFragmentManager.beginTransaction()
                 .add(R.id.nav_host_container, mainFragment, MAIN_FRAGMENT_TAG)
-                .add(R.id.nav_host_container, mapFragment, MAP_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, historyFragment, HISTORY_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, savedPagesFragment, SAVED_PAGES_FRAGMENT_TAG)
                 .add(R.id.nav_host_container, moreFragment, MORE_FRAGMENT_TAG)
@@ -178,15 +201,8 @@ class MainActivity : BaseActivity() {
             
             // Restore fragments from FragmentManager and assign to properties
             mainFragment = restoreFragment(MAIN_FRAGMENT_TAG) { MainFragment.newInstance() }
-            mapFragment = restoreFragment(MAP_FRAGMENT_TAG) {
-                StandardNavigationMapFragment.newInstance(
-                    lat = null,
-                    lon = null,
-                    zoom = null,
-                    plane = null,
-                    deferInitialAttach = true,
-                    enableSemanticPrototype = true
-                )
+            mapFragment = restoreFragment(MAP_FRAGMENT_TAG, addIfMissing = false) {
+                osrsUndergroundMapsFragment()
             }
             historyFragment = restoreFragment(HISTORY_FRAGMENT_TAG) { HistoryFragment.newInstance() }
             savedPagesFragment = restoreFragment(SAVED_PAGES_FRAGMENT_TAG) { SavedPagesFragment() }
@@ -226,18 +242,17 @@ class MainActivity : BaseActivity() {
         // This prevents triggering the listener cascade during initialization
         L.d("MainActivity: onCreate: Setting bottom nav selectedItemId to $selectedNavId")
         binding.bottomNav.setSelectedItem(selectedNavId)
-        if (selectedNavId == R.id.nav_map) {
-            binding.navHostContainer.post {
-                mapFragment.attachMapForVisibleNavigation()
-            }
-        }
         setupThemeChangeReceiver()
         handleIntentExtras(intent)
         
         Log.i("StartupTiming", "MainActivity.onCreate() completed - Activity ready for display")
     }
 
-    private inline fun <reified T : Fragment> restoreFragment(tag: String, factory: () -> T): T {
+    private inline fun <reified T : Fragment> restoreFragment(
+        tag: String,
+        addIfMissing: Boolean = true,
+        factory: () -> T
+    ): T {
         val existing = supportFragmentManager.findFragmentByTag(tag)
         if (existing is T) {
             return existing
@@ -251,7 +266,7 @@ class MainActivity : BaseActivity() {
         }
 
         val fragment = factory()
-        if (!supportFragmentManager.isStateSaved) {
+        if (addIfMissing && !supportFragmentManager.isStateSaved) {
             supportFragmentManager.beginTransaction()
                 .add(R.id.nav_host_container, fragment, tag)
                 .commitNow()
@@ -315,7 +330,7 @@ class MainActivity : BaseActivity() {
                     savedPagesFragment
                 }
                 R.id.nav_map -> {
-                    Log.d("MainActivity", "Navigating to Map")
+                    Log.d("MainActivity", "Navigating to integrated realm map")
                     mapFragment
                 }
                 R.id.nav_search -> {
@@ -343,9 +358,6 @@ class MainActivity : BaseActivity() {
             if (selectedFragment != null && selectedFragment !== activeFragment) {
                 L.d("MainActivity: Switching from ${activeFragment.javaClass.simpleName} to ${selectedFragment.javaClass.simpleName}")
                 if (switchToFragment(selectedFragment)) {
-                    if (selectedFragment === mapFragment) {
-                        mapFragment.attachMapForVisibleNavigation()
-                    }
                     // Refresh fonts to update active/inactive styling
                     try {
                         applyFontsToBottomNavigation(binding.bottomNav, itemId)
@@ -369,16 +381,34 @@ class MainActivity : BaseActivity() {
     }
 
     private fun handleIntentExtras(intent: Intent) {
-        if (intent.action == ACTION_NAVIGATE_TO_SEARCH) {
-            L.d("MainActivity: Received ACTION_NAVIGATE_TO_SEARCH")
-            if (supportFragmentManager.isStateSaved) {
-                L.d("MainActivity: Skipping search fragment transaction after state save")
+        if (intent.action == Intent.ACTION_VIEW) {
+            val data = intent.data
+            if (data != null && data.scheme == "osrswiki" && data.host == "page") {
+                val raw = data.pathSegments?.lastOrNull() ?: data.lastPathSegment
+                val title = raw?.let { Uri.decode(it).replace('_', ' ') }
+                if (!title.isNullOrBlank()) {
+                    startActivity(
+                        PageActivity.newIntent(
+                            this,
+                            title,
+                            null,
+                            HistoryEntry.SOURCE_INTERNAL_LINK
+                        )
+                    )
+                }
+                intent.action = null
+                intent.data = null
                 return
             }
-            supportFragmentManager.beginTransaction()
-                .add(android.R.id.content, SearchFragment.newInstance())
-                .addToBackStack(null)
-                .commit()
+        }
+        if (intent.action == ACTION_NAVIGATE_TO_SEARCH) {
+            L.d("MainActivity: Received ACTION_NAVIGATE_TO_SEARCH")
+            // SearchFragment is intentionally hosted by SearchActivity and reads that activity's
+            // toolbar binding. Attaching it to exported MainActivity makes an explicit navigation
+            // intent crash with ClassCastException. Consume the one-shot action before launching so
+            // recreation cannot create duplicate search screens.
+            intent.action = null
+            startActivity(Intent(this, SearchActivity::class.java))
         }
     }
 
@@ -418,7 +448,13 @@ class MainActivity : BaseActivity() {
                 // If not on main fragment (Home), navigate to Home
                 if (activeFragment !== mainFragment) {
                     L.d("MainActivity: Not on Home fragment, navigating to Home")
-                    binding.bottomNav.setSelectedItem(R.id.nav_news)
+                    // Programmatic selection deliberately does not invoke the bottom-nav
+                    // listener. Move the content first, then synchronize the visual selection;
+                    // otherwise Back only repaints Home while leaving the previous tab active.
+                    if (switchToFragment(mainFragment)) {
+                        binding.bottomNav.setSelectedItem(R.id.nav_news)
+                        applyFontsToBottomNavigation(binding.bottomNav, R.id.nav_news)
+                    }
                     return
                 }
                 
@@ -485,12 +521,29 @@ class MainActivity : BaseActivity() {
         // Hide current fragment (triggers onPause/onStop)
         activeFragment.let { transaction.hide(it) }
         
-        // Show new fragment (triggers onStart/onResume)
-        transaction.show(fragment)
+        // Lazily create the map so Home startup does not initialize MapLibre or the realm catalog.
+        if (fragment.isAdded) {
+            transaction.show(fragment)
+        } else {
+            val tag = if (fragment === mapFragment) MAP_FRAGMENT_TAG else null
+            transaction.add(R.id.nav_host_container, fragment, tag)
+        }
         transaction.commit()
         
         activeFragment = fragment
+        applyNavigationHostContentInsets()
         return true
+    }
+
+    private fun applyNavigationHostContentInsets() {
+        if (!::binding.isInitialized) return
+        val mapOwnsInsets = ::activeFragment.isInitialized && activeFragment === mapFragment
+        binding.navHostContainer.setPadding(
+            if (mapOwnsInsets) 0 else mainSystemBarInsets.left,
+            if (mapOwnsInsets) 0 else mainSystemBarInsets.top,
+            if (mapOwnsInsets) 0 else mainSystemBarInsets.right,
+            0
+        )
     }
     
     private fun refreshFragmentVisibility(reason: String = "theme change") {
@@ -511,12 +564,18 @@ class MainActivity : BaseActivity() {
         try {
             val transaction = supportFragmentManager.beginTransaction()
             if (activeFragment !== mainFragment) transaction.hide(mainFragment)
-            if (activeFragment !== mapFragment) transaction.hide(mapFragment)
+            if (mapFragment.isAdded && activeFragment !== mapFragment) transaction.hide(mapFragment)
             if (activeFragment !== historyFragment) transaction.hide(historyFragment)
             if (activeFragment !== savedPagesFragment) transaction.hide(savedPagesFragment)
             if (activeFragment !== moreFragment) transaction.hide(moreFragment)
-            transaction.show(activeFragment)
+            if (activeFragment.isAdded) {
+                transaction.show(activeFragment)
+            } else {
+                val tag = if (activeFragment === mapFragment) MAP_FRAGMENT_TAG else null
+                transaction.add(R.id.nav_host_container, activeFragment, tag)
+            }
             transaction.commit()
+            applyNavigationHostContentInsets()
             
             L.d("MainActivity: Fragment visibility refreshed using standard navigation ($reason)")
         } catch (e: Exception) {

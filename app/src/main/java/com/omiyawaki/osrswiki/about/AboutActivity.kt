@@ -3,11 +3,9 @@ package com.omiyawaki.osrswiki.about
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.TextView
 import com.google.android.material.appbar.MaterialToolbar
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
-import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 class AboutActivity : BaseActivity() {
 
@@ -20,6 +18,7 @@ class AboutActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_about)
+        applyEdgeToEdgeInsets(findViewById(android.R.id.content))
 
         if (savedInstanceState == null) {
             supportFragmentManager
@@ -45,17 +44,6 @@ class AboutActivity : BaseActivity() {
         }
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
-        }
-    }
-
-    private fun setupFonts() {
-        // Apply fonts to action bar title
-        supportActionBar?.let { actionBar ->
-            // Find the action bar title TextView and apply font
-            val titleId = resources.getIdentifier("action_bar_title", "id", "android")
-            if (titleId > 0) {
-                findViewById<TextView>(titleId)?.applyAlegreyaHeadline()
-            }
         }
     }
 

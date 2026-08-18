@@ -12,6 +12,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="?attr/colorSurface"
         android:elevation="4dp"
+        app:titleTextAppearance="@style/AppTextAppearance.SettingsToolbar"
         app:title="@string/feedback_report_issue_title"
         app:navigationIcon="@drawable/ic_arrow_back" />
 
@@ -50,7 +51,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Report a Bug"
-                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textAppearance="@style/AppTextAppearance.SettingsSubheading"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
 
@@ -58,7 +59,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Help us fix the issue by providing specific details. Good bug reports include:\n• What you were trying to do\n• What actually happened\n• Steps to reproduce the problem\n• What you expected to happen instead"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
+                        android:textAppearance="@style/AppTextAppearance.SettingsBody"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
                 </LinearLayout>
@@ -135,7 +136,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Device Information"
-                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:textAppearance="@style/AppTextAppearance.SettingsSubheading"
                         android:textColor="?attr/colorOnSurfaceVariant"
                         android:layout_marginBottom="8dp" />
 

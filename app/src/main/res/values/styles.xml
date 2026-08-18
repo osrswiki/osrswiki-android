@@ -93,13 +93,34 @@
         <item name="android:contentDescription">@string/search_hint_voice_search</item>
     </style>
 
-    <!-- Custom Material3 Alert Dialog Theme for wider dialogs -->
+    <!-- Width-only overlay kept for any caller that still references the Widget name. -->
     <style name="Widget.OSRSWiki.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-        <!-- Set minimum width to 90% for both portrait and landscape -->
         <item name="windowMinWidthMajor">90%</item>
         <item name="windowMinWidthMinor">90%</item>
-        <!-- Optional: customize the dialog shape -->
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.OSRSWiki.Dialog</item>
+    </style>
+
+    <!-- Activity `materialAlertDialogTheme`. Must remain a ThemeOverlay so
+         MaterialAlertDialogBuilder keeps the AppCompat activity theme. -->
+    <style name="ThemeOverlay.OSRSWiki.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">?attr/colorSurface</item>
+        <item name="colorOnSurface">?attr/colorOnSurface</item>
+        <item name="colorOnSurfaceVariant">?attr/colorOnSurfaceVariant</item>
+        <item name="colorPrimary">?attr/colorOnSurface</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.OSRSWiki.DialogTitle</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.OSRSWiki.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.OSRSWiki.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.OSRSWiki.DialogButton</item>
+    </style>
+
+    <style name="TextAppearance.OSRSWiki.DialogTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="Widget.OSRSWiki.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textAllCaps">false</item>
     </style>
     
     <style name="ShapeAppearance.OSRSWiki.Dialog" parent="">

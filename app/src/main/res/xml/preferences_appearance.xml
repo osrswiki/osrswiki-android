@@ -1,23 +1,75 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <ListPreference
-        app:key="app_theme_mode"
-        app:title="Theme"
-        app:summary="%s"
-        app:defaultValue="auto"
-        app:entries="@array/app_theme_mode_entries"
-        app:entryValues="@array/app_theme_mode_values"
-        app:useSimpleSummaryProvider="true"
-        app:iconSpaceReserved="false" />
+    <PreferenceCategory app:title="@string/settings_display_section">
 
-    <SwitchPreferenceCompat
-        app:key="collapseTables"
-        app:title="Tables"
-        app:summary="%s"
-        app:defaultValue="true"
-        app:iconSpaceReserved="false"
-        app:summaryOn="Collapsed"
-        app:summaryOff="Expanded" />
+        <ListPreference
+            app:key="app_theme_mode"
+            app:title="@string/settings_theme_title"
+            app:summary="@string/settings_theme_follow_system"
+            app:defaultValue="auto"
+            app:entries="@array/app_theme_mode_entries"
+            app:entryValues="@array/app_theme_mode_values"
+            app:icon="@drawable/ic_theme_circle_24"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+        <SeekBarPreference
+            app:key="reader_text_scale_percent"
+            app:title="@string/settings_reader_text_size_title"
+            app:summary="@string/settings_reader_text_size_default_summary"
+            app:defaultValue="100"
+            app:min="85"
+            android:max="140"
+            app:seekBarIncrement="5"
+            app:showSeekBarValue="true"
+            app:updatesContinuously="true"
+            app:icon="@drawable/ic_format_size_24"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+        <SwitchPreferenceCompat
+            app:key="collapseTables"
+            app:title="@string/settings_tables_title"
+            app:summary="@string/settings_tables_collapsed_summary"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_settings_tables_24"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+        <ListPreference
+            app:key="floor_numbering"
+            app:title="@string/settings_floor_numbering_title"
+            app:summary="@string/settings_floor_numbering_auto"
+            app:defaultValue="auto"
+            app:entries="@array/floor_numbering_entries"
+            app:entryValues="@array/floor_numbering_values"
+            app:icon="@drawable/ic_article_24"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/settings_navigation_gestures_section">
+
+        <SwitchPreferenceCompat
+            app:key="swipe_right_back"
+            app:title="@string/settings_swipe_right_back_title"
+            app:summary="@string/settings_swipe_right_back_summary"
+            app:defaultValue="true"
+            app:icon="@drawable/ic_arrow_back"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+        <SwitchPreferenceCompat
+            app:key="swipe_left_contents"
+            app:title="@string/settings_swipe_left_contents_title"
+            app:summary="@string/settings_swipe_left_contents_summary"
+            app:defaultValue="true"
+            app:icon="@drawable/ic_arrow_forward"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
+    </PreferenceCategory>
 
 </PreferenceScreen>

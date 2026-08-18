@@ -12,6 +12,7 @@ import android.util.Log
 import android.widget.Toast
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.Result
 import kotlinx.coroutines.CoroutineScope
@@ -127,6 +128,12 @@ class PageLinkHandler(
             context.getString(R.string.page_offline_link_unavailable, targetPageTitle),
             Toast.LENGTH_LONG
         ).show()
+    }
+
+    override fun onFloorNumberingSettingsRequested() {
+        context.startActivity(
+            AppearanceSettingsActivity.newIntent(context, highlightFloorNumbering = true)
+        )
     }
 
     override fun onExternalLinkClicked(uri: Uri) {

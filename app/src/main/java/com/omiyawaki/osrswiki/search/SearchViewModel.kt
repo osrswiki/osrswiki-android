@@ -12,34 +12,23 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.ArticleMetaEntity
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
-import com.omiyawaki.osrswiki.page.DownloadProgress
-import com.omiyawaki.osrswiki.page.PageAssetDownloader
-import com.omiyawaki.osrswiki.page.PageHtmlBuilder
-import com.omiyawaki.osrswiki.page.preemptive.PreloadedPage
-import com.omiyawaki.osrswiki.page.preemptive.PreloadedPageCache
-import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.StringUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SearchViewModel(
     private val searchRepository: SearchRepository,
-    val isOnline: StateFlow<Boolean>,
-    private val pageAssetDownloader: PageAssetDownloader,
-    private val pageHtmlBuilder: PageHtmlBuilder
+    val isOnline: StateFlow<Boolean>
 ) : ViewModel() {
 
     private val _currentQuery = MutableStateFlow<String?>(null)
     val currentQuery: StateFlow<String?> = _currentQuery.asStateFlow()
 
-    private var preemptiveLoadJob: Job? = null
-
     val onlineSearchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
-        .debounce(300L)
+        .debounce(80L)
         .distinctUntilChanged()
         .flatMapLatest { query ->
             if (query.isNullOrBlank() || !isOnline.value) {
@@ -56,7 +45,7 @@ class SearchViewModel(
         .cachedIn(viewModelScope)
 
     val combinedOfflineResultsList: StateFlow<List<CleanedSearchResultItem>> = _currentQuery
-        .debounce(300L)
+        .debounce(80L)
         .distinctUntilChanged()
         .flatMapLatest { query ->
             val trimmedQuery = query?.trim()
@@ -75,8 +64,6 @@ class SearchViewModel(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000L), emptyList())
 
     fun performSearch(query: String) {
-        preemptiveLoadJob?.cancel()
-        PreloadedPageCache.clear()
         _currentQuery.value = query.trim()
     }
 
@@ -86,40 +73,6 @@ class SearchViewModel(
             viewModelScope.launch {
                 searchRepository.insertRecentSearch(queryToSave)
             }
-        }
-    }
-
-    fun preemptivelyLoadTopResult(item: CleanedSearchResultItem) {
-        val pageId = item.id.toIntOrNull() ?: return
-        if (preemptiveLoadJob?.isActive == true) return
-
-        preemptiveLoadJob = viewModelScope.launch {
-            // Use page ID URL for downloading, but will be converted to canonical format later
-            val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
-            pageAssetDownloader.downloadPriorityAssets(pageId, pageUrl)
-                .collect { progress ->
-                    if (progress is DownloadProgress.Success) {
-                        val result = progress.result
-                        val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                        val finalHtml = pageHtmlBuilder.buildFullHtmlDocument(
-                            result.parseResult.displaytitle ?: "",
-                            result.processedHtml,
-                            OSRSWikiApp.instance.getCurrentTheme(),
-                            collapseTablesEnabled
-                        )
-                        // Use canonical URL format for consistency
-                        val canonicalUrl = "https://oldschool.runescape.wiki/w/${result.parseResult.title.replace(" ", "_")}"
-                        PreloadedPageCache.put(PreloadedPage(
-                            pageId = result.parseResult.pageid,
-                            finalHtml = finalHtml,
-                            plainTextTitle = result.parseResult.title,
-                            displayTitle = result.parseResult.displaytitle,
-                            wikiUrl = canonicalUrl,
-                            revisionId = result.parseResult.revid,
-                            lastFetchedTimestamp = System.currentTimeMillis()
-                        ))
-                    }
-                }
         }
     }
 
@@ -145,7 +98,7 @@ class SearchViewModel(
             }
         } ?: ""
         return CleanedSearchResultItem(
-            id = networkResult.pageid.toString(),
+            id = if (networkResult.pageid > 0) networkResult.pageid.toString() else "title:$cleanTitle",
             title = cleanTitle,
             snippet = cleanSnippet,
             thumbnailUrl = networkResult.thumbnailUrl, // Pass the URL from the network result.
@@ -184,9 +137,7 @@ class SearchViewModelFactory(
             val osrsWikiApplication = application as? OSRSWikiApp ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
             return SearchViewModel(
                 osrsWikiApplication.searchRepository,
-                isOnlineFlow,
-                osrsWikiApplication.pageAssetDownloader,
-                osrsWikiApplication.pageHtmlBuilder
+                isOnlineFlow
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

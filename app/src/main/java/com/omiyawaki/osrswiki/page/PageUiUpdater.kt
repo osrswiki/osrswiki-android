@@ -30,13 +30,11 @@ class PageUiUpdater(
             }
 
             if (state.isLoading) {
-                progressContainer.visibility = View.VISIBLE
+                progressContainer.visibility = View.GONE
                 progressBar.progress = state.progress ?: 0
                 progressText.text = state.progressText ?: ""
-                L.d(" - Updating progress bar: ${state.progressText} (${state.progress}%)")
+                L.d(" - Article is loading without covering progress UI: ${state.progressText} (${state.progress}%)")
             } else {
-                // When isLoading is false, the page has already been revealed by the
-                // fragment's callback. This block's only job is to hide the progress UI.
                 progressContainer.visibility = View.GONE
             }
 

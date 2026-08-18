@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -36,8 +37,11 @@ class AppDatabaseMigrationTest {
 
         database.openHelper.writableDatabase
 
-        assertEquals(16, database.openHelper.readableDatabase.version)
-        assertEquals("Abyssal whip", database.readingListPageDao().getAllPages().single().displayTitle)
+        assertEquals(18, database.openHelper.readableDatabase.version)
+        val legacyPage = database.readingListPageDao().getAllPages().single()
+        assertEquals("Abyssal whip", legacyPage.displayTitle)
+        assertEquals(ReadingListPage.STATUS_ERROR, legacyPage.status)
+        assertEquals(ReadingListPage.DURABLE_SETTLEMENT_VERSION_NONE, legacyPage.durableSettlementVersion)
         assertEquals(
             "offline/abyssal_whip.html",
             database.offlineObjectDao()

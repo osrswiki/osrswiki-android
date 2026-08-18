@@ -1,17 +1,25 @@
 package com.omiyawaki.osrswiki.undergroundmaps.ui
 
 import android.content.Context
+import android.content.res.Configuration
+import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.os.SystemClock
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -39,7 +47,18 @@ data class osrsRealmLinksDialogDebugState(
     val decorAttached: Boolean,
     val decorLaidOut: Boolean,
     val decorShown: Boolean,
-    val visibleBoundRowCount: Int
+    val visibleBoundRowCount: Int,
+    val explicitOsrsPalette: Boolean,
+    val titleTextColor: Int,
+    val summaryTextColor: Int,
+    val searchTextColor: Int,
+    val searchHintColor: Int,
+    val searchMinimumHeightPx: Int,
+    val searchWidthPx: Int,
+    val searchHeightPx: Int,
+    val searchFocused: Boolean,
+    val compactLandscapeImeChrome: Boolean,
+    val listBackgroundResource: Int
 )
 
 class osrsRealmLinksDialog(
@@ -49,6 +68,8 @@ class osrsRealmLinksDialog(
     private val onFilterMeasured: (query: String, resultCount: Int, elapsedNanos: Long) -> Unit
 ) {
     private val dialog: BottomSheetDialog
+    private val root: LinearLayout
+    private val title: TextView
     private val search: EditText
     private val summary: TextView
     private val list: RecyclerView
@@ -59,6 +80,7 @@ class osrsRealmLinksDialog(
     private val firstInitialAdapterSubmissionNanos: Long
     private var hasShown = false
     private var reportFilterChanges = true
+    private var compactLandscapeImeChrome = false
 
     val realmId: String
         get() = links.currentRealm.id
@@ -67,16 +89,21 @@ class osrsRealmLinksDialog(
         var viewConstructionNanos = 0L
         var viewSegmentStarted = SystemClock.elapsedRealtimeNanos()
         val builtDialog = BottomSheetDialog(context)
-        val root = LinearLayout(context).apply {
+        val builtRoot = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(18), dp(20), dp(12))
+            background = ContextCompat.getDrawable(
+                context,
+                R.drawable.osrs_links_sheet_background
+            )
         }
-        root.addView(TextView(context).apply {
+        val builtTitle = TextView(context).apply {
             text = context.getString(R.string.realm_links_dialog_title)
             textSize = 22f
-            setTextColor(context.getColor(R.color.osrs_ink))
+            setTextColor(context.getColor(R.color.osrs_parchment))
             contentDescription = text
-        }, matchWrap())
+        }
+        builtRoot.addView(builtTitle, matchWrap())
 
         val builtSummary = TextView(context).apply {
             id = R.id.osrs_links_summary
@@ -94,11 +121,11 @@ class osrsRealmLinksDialog(
                 )
             )
             textSize = 14f
-            setTextColor(context.getColor(R.color.osrs_ink))
+            setTextColor(context.getColor(R.color.osrs_underground_parchment_dark))
             setPadding(0, dp(8), 0, dp(4))
             contentDescription = text
         }
-        root.addView(builtSummary, matchWrap())
+        builtRoot.addView(builtSummary, matchWrap())
 
         val builtSearch = EditText(context).apply {
             id = R.id.osrs_links_search
@@ -106,10 +133,19 @@ class osrsRealmLinksDialog(
             contentDescription = hint
             isSingleLine = true
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            imeOptions = EditorInfo.IME_ACTION_DONE
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            minHeight = dp(OSRS_LINK_MINIMUM_TOUCH_TARGET_DP)
+            minimumHeight = dp(OSRS_LINK_MINIMUM_TOUCH_TARGET_DP)
+            setTextColor(context.getColor(R.color.osrs_parchment))
+            setHintTextColor(context.getColor(R.color.osrs_underground_parchment_dark))
+            background = ContextCompat.getDrawable(
+                context,
+                R.drawable.osrs_links_search_background
+            )
+            backgroundTintList = null
+            setPadding(dp(12), dp(10), dp(12), dp(10))
         }
-        root.addView(builtSearch, matchWrap().apply {
+        builtRoot.addView(builtSearch, matchWrap().apply {
             topMargin = dp(6)
             bottomMargin = dp(8)
         })
@@ -136,8 +172,18 @@ class osrsRealmLinksDialog(
             )
             isVerticalScrollBarEnabled = true
             isFocusableInTouchMode = true
+            setBackgroundColor(context.getColor(R.color.osrs_map_control_surface))
+            addItemDecoration(
+                DividerItemDecoration(context, DividerItemDecoration.VERTICAL).apply {
+                    setDrawable(
+                        requireNotNull(
+                            ContextCompat.getDrawable(context, R.drawable.osrs_link_divider)
+                        )
+                    )
+                }
+            )
         }
-        root.addView(builtList, LinearLayout.LayoutParams(
+        builtRoot.addView(builtList, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             0,
             1f
@@ -146,25 +192,87 @@ class osrsRealmLinksDialog(
         builtSearch.doAfterTextChanged {
             applyFilter(it?.toString().orEmpty(), report = reportFilterChanges)
         }
+        val updateCompactLandscapeImeChrome = { imeVisible: Boolean ->
+            val shouldCompact =
+                context.resources.configuration.orientation ==
+                    Configuration.ORIENTATION_LANDSCAPE &&
+                    imeVisible
+            if (compactLandscapeImeChrome != shouldCompact) {
+                compactLandscapeImeChrome = shouldCompact
+                builtTitle.visibility =
+                    if (compactLandscapeImeChrome) View.GONE else View.VISIBLE
+                builtSummary.visibility =
+                    if (compactLandscapeImeChrome) View.GONE else View.VISIBLE
+                builtRoot.setPadding(
+                    dp(20),
+                    dp(if (compactLandscapeImeChrome) 6 else 18),
+                    dp(20),
+                    dp(if (compactLandscapeImeChrome) 6 else 12)
+                )
+                builtRoot.post {
+                    builtRoot.requestLayout()
+                    builtList.requestLayout()
+                    (builtRoot.parent as? View)?.requestLayout()
+                }
+            }
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(builtRoot) { _, insets ->
+            updateCompactLandscapeImeChrome(
+                insets.isVisible(WindowInsetsCompat.Type.ime())
+            )
+            insets
+        }
+        builtRoot.viewTreeObserver.addOnGlobalLayoutListener {
+            val visibleFrame = Rect()
+            builtRoot.rootView.getWindowVisibleDisplayFrame(visibleFrame)
+            val obscuredHeight =
+                context.resources.displayMetrics.heightPixels - visibleFrame.bottom
+            val imeVisible =
+                ViewCompat.getRootWindowInsets(builtRoot)
+                    ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+            updateCompactLandscapeImeChrome(
+                imeVisible || obscuredHeight > dp(100)
+            )
+        }
+        builtSearch.setOnFocusChangeListener { _, _ ->
+            builtRoot.post {
+                ViewCompat.requestApplyInsets(builtRoot)
+            }
+        }
 
-        builtDialog.setContentView(root)
+        builtDialog.setContentView(builtRoot)
         builtDialog.setOnShowListener {
             val bottomSheet = builtDialog.findViewById<View>(
                 com.google.android.material.R.id.design_bottom_sheet
             )
+            bottomSheet?.background = ContextCompat.getDrawable(
+                context,
+                R.drawable.osrs_links_sheet_background
+            )
+            bottomSheet?.backgroundTintList = ColorStateList.valueOf(
+                context.getColor(R.color.osrs_map_control_surface)
+            )
             bottomSheet?.layoutParams = bottomSheet?.layoutParams?.apply {
                 height = (context.resources.displayMetrics.heightPixels * 0.88f).toInt()
             }
+            builtDialog.window?.navigationBarColor =
+                context.getColor(R.color.osrs_map_control_surface)
+            builtDialog.window?.setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
             builtDialog.behavior.apply {
                 state = BottomSheetBehavior.STATE_EXPANDED
                 skipCollapsed = true
             }
             builtList.requestFocus()
+            ViewCompat.requestApplyInsets(builtRoot)
         }
         builtDialog.setOnDismissListener { resetAfterDismiss() }
         viewConstructionNanos += SystemClock.elapsedRealtimeNanos() - viewSegmentStarted
 
         dialog = builtDialog
+        root = builtRoot
+        title = builtTitle
         search = builtSearch
         summary = builtSummary
         list = builtList
@@ -211,7 +319,21 @@ class osrsRealmLinksDialog(
             decorAttached = decor?.isAttachedToWindow == true,
             decorLaidOut = decor?.isLaidOut == true,
             decorShown = decor?.isShown == true,
-            visibleBoundRowCount = list.childCount
+            visibleBoundRowCount = list.childCount,
+            explicitOsrsPalette =
+                root.background != null &&
+                    search.background != null &&
+                    list.background != null,
+            titleTextColor = title.currentTextColor,
+            summaryTextColor = summary.currentTextColor,
+            searchTextColor = search.currentTextColor,
+            searchHintColor = search.currentHintTextColor,
+            searchMinimumHeightPx = search.minimumHeight,
+            searchWidthPx = search.width,
+            searchHeightPx = search.height,
+            searchFocused = search.hasFocus(),
+            compactLandscapeImeChrome = compactLandscapeImeChrome,
+            listBackgroundResource = R.color.osrs_map_control_surface
         )
     }
 
@@ -304,7 +426,11 @@ private class osrsRealmLinksAdapter(
                 gravity = Gravity.CENTER
                 text = context.getString(R.string.no_link_search_results)
                 textSize = 16f
-                setTextColor(context.getColor(R.color.osrs_ink))
+                setTextColor(context.getColor(R.color.osrs_parchment))
+                background = ContextCompat.getDrawable(
+                    context,
+                    R.drawable.osrs_link_row_background
+                )
             }
         } else {
             LinearLayout(context).apply {
@@ -314,26 +440,21 @@ private class osrsRealmLinksAdapter(
                 setPadding(dp(12), dp(8), dp(12), dp(8))
                 isClickable = viewType == OSRS_AVAILABLE_LINK_ROW
                 isFocusable = true
-                if (viewType == OSRS_AVAILABLE_LINK_ROW) {
-                    val attributes = context.obtainStyledAttributes(
-                        intArrayOf(android.R.attr.selectableItemBackground)
-                    )
-                    background = attributes.getDrawable(0)
-                    attributes.recycle()
-                } else {
-                    alpha = 0.82f
-                }
+                background = ContextCompat.getDrawable(
+                    context,
+                    R.drawable.osrs_link_row_background
+                )
                 addView(TextView(context).apply {
                     tag = OSRS_PRIMARY_TEXT_TAG
                     textSize = 16f
                     maxLines = 2
-                    setTextColor(context.getColor(R.color.osrs_ink))
+                    setTextColor(context.getColor(R.color.osrs_parchment))
                 }, matchWrap())
                 addView(TextView(context).apply {
                     tag = OSRS_SECONDARY_TEXT_TAG
                     textSize = 12f
                     maxLines = if (viewType == OSRS_UNAVAILABLE_LINK_ROW) 3 else 2
-                    setTextColor(context.getColor(R.color.osrs_ink))
+                    setTextColor(context.getColor(R.color.osrs_underground_parchment_dark))
                 }, matchWrap())
             }
         }
@@ -388,6 +509,8 @@ private class osrsRealmLinksAdapter(
         private const val OSRS_SECONDARY_TEXT_TAG = "osrs-link-secondary"
     }
 }
+
+private const val OSRS_LINK_MINIMUM_TOUCH_TARGET_DP = 48
 
 private fun List<osrsRealmLinksRow>.toAdapterRows(): List<osrsRealmLinkListRow> =
     if (isEmpty()) {

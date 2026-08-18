@@ -83,6 +83,22 @@ class UiIssueRegressionTest {
     }
 
     @Test
+    fun appassetsImagesUrlNormalizesToWikiHost() {
+        val localImageUrl = "https://appassets.androidplatform.net/images/Coins_25.png?cbfd9"
+
+        assertEquals(
+            "https://oldschool.runescape.wiki/images/Coins_25.png?cbfd9",
+            AppWebViewClient.normalizeWikiStaticUrl(localImageUrl)
+        )
+        assertEquals(
+            "https://appassets.androidplatform.net/assets/styles/fixes.css",
+            AppWebViewClient.normalizeWikiStaticUrl(
+                "https://appassets.androidplatform.net/assets/styles/fixes.css"
+            )
+        )
+    }
+
+    @Test
     fun moreLaunchedActivitiesDeclareToolbarNavigation() {
         listOf(
             "res/layout/activity_appearance_settings.xml",

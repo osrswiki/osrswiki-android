@@ -12,6 +12,7 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -219,9 +220,12 @@ class PageRepository(
         if (readingListPageDao == null) return null
         
         return try {
-            // Find any saved ReadingListPage that has this MediaWiki page ID
-            val savedPages = readingListPageDao.getPagesByStatusAndOffline(ReadingListPage.STATUS_SAVED, true)
-            val matchingPage = savedPages.find { it.mediaWikiPageId == pageId }
+            // A forced legacy revalidation keeps its prior bytes readable while the exhaustive
+            // replacement settles. Brand-new or partial saves remain excluded by the entity
+            // predicate until their terminal SAVED transition.
+            val matchingPage = readingListPageDao.getFullySavedPagesObservable().first().find {
+                it.mediaWikiPageId == pageId && it.hasReadableOfflineSnapshot
+            }
             
             if (matchingPage != null) {
                 // Try to get content from ArticleMeta first (since SavedPageSyncWorker saves there too)
@@ -257,7 +261,7 @@ class PageRepository(
                     ns = Namespace.MAIN,
                     apiTitle = candidate
                 )
-                if (savedPage != null && savedPage.offline && savedPage.status == ReadingListPage.STATUS_SAVED) {
+                if (savedPage?.hasReadableOfflineSnapshot == true) {
                     savedPage.mediaWikiPageId?.let { pageId ->
                         val cachedArticle = localDataSource.getArticleFromCache(pageId)
                         if (cachedArticle != null) {

@@ -10,7 +10,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class GeneratedSearchApiResponse(
+    @SerialName("continue")
+    val continuation: GeneratedSearchContinuation? = null,
     val query: QueryResult?
+)
+
+@Serializable
+data class GeneratedSearchContinuation(
+    val gsroffset: Int? = null
 )
 
 @Serializable

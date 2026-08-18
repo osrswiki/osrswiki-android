@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.security.MessageDigest
 import java.text.Normalizer
 import java.util.Locale
 
@@ -32,6 +33,7 @@ data class osrsRealmAsset(
     @SerialName("max_zoom") val maxZoom: Int,
     @SerialName("tile_count") val tileCount: Int,
     @SerialName("canvas_size") val canvasSize: Int,
+    @SerialName("canvas_origin") val canvasOrigin: List<Int>? = null,
     @SerialName("content_pixel_bounds") val contentPixelBounds: List<Int>,
     @SerialName("content_latlon_bounds") val contentLatlonBounds: List<Double>,
     @SerialName("source_bounds") val sourceBounds: JsonElement? = null,
@@ -229,6 +231,35 @@ data class osrsRealmCatalog(
     val selectorCount: Int get() = sections.values.sumOf { it.size }
 }
 
+/**
+ * The user-facing selector is deliberately limited to producer-classified canonical entries:
+ * Gielinor Surface plus named native cache world maps. Wiki-authored views and unnamed cache
+ * regions stay in [osrsRealmCatalog.manifest] and [osrsRealmCatalog.byId] so authoritative links,
+ * saved identities, and later semantic research can still resolve their immutable assets.
+ *
+ * Future in-game captures may corroborate or help name candidates after generation, but must not
+ * be used as a priori input for deciding which records this selector exposes.
+ */
+val osrsRealmRecord.isCanonicalSelectorRealm: Boolean
+    get() = group == OSRS_REALM_GROUP_SURFACE || group == OSRS_REALM_GROUP_REALMS
+
+fun osrsRealmCatalog.cameraGeometryFingerprint(): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    digest.update("source-pixel-default-v1".toByteArray(Charsets.UTF_8))
+    manifest.realms
+        .sortedBy { it.id }
+        .forEach { realm ->
+            digest.update(realm.id.toByteArray(Charsets.UTF_8))
+            realm.assets.sortedBy { it.plane }.forEach { asset ->
+                digest.update(asset.plane.toString().toByteArray(Charsets.UTF_8))
+                digest.update(asset.mbtilesSha256.toByteArray(Charsets.UTF_8))
+                digest.update(asset.canvasSize.toString().toByteArray(Charsets.UTF_8))
+                digest.update(asset.contentPixelBounds.joinToString(",").toByteArray(Charsets.UTF_8))
+            }
+        }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte) }
+}
+
 class osrsRealmManifestParser(
     private val json: Json = Json {
         ignoreUnknownKeys = true
@@ -245,7 +276,7 @@ class osrsRealmManifestParser(
         val sections = OSRS_REALM_GROUPS.associateWith { group ->
             manifest.realms
                 .asSequence()
-                .filter { it.group == group }
+                .filter { it.group == group && it.isCanonicalSelectorRealm }
                 .sortedWith(compareBy<osrsRealmRecord>({ normalizedSearchText(it.canonicalName) }, { it.id }))
                 .toList()
         }
@@ -347,6 +378,28 @@ class osrsRealmManifestParser(
             "Realm ${realm.id} plane assets do not match its published planes"
         }
         realm.assets.forEach { validateAsset(realm, it) }
+        require(realm.assets.map { it.canvasSize }.distinct().size == 1) {
+            "Realm ${realm.id} planes must share one Web Mercator canvas"
+        }
+        if (realm.assets.any { it.canvasOrigin != null }) {
+            require(realm.assets.all { it.canvasOrigin?.size == 2 }) {
+                "Realm ${realm.id} has incomplete shared-canvas origin provenance"
+            }
+            require(realm.assets.map { it.canvasOrigin }.distinct().size == 1) {
+                "Realm ${realm.id} planes must share one canvas origin"
+            }
+            val canvasSize = realm.assets.first().canvasSize
+            val unionWidth = realm.assets.maxOf { it.contentPixelBounds[2] } -
+                realm.assets.minOf { it.contentPixelBounds[0] }
+            val unionHeight = realm.assets.maxOf { it.contentPixelBounds[3] } -
+                realm.assets.minOf { it.contentPixelBounds[1] }
+            require(canvasSize >= 2 * unionWidth) {
+                "Realm ${realm.id} lacks one content-width of horizontal padding"
+            }
+            require(canvasSize >= 2 * unionHeight) {
+                "Realm ${realm.id} lacks one content-height of vertical padding"
+            }
+        }
     }
 
     private fun validateAsset(realm: osrsRealmRecord, asset: osrsRealmAsset) {
@@ -360,6 +413,15 @@ class osrsRealmManifestParser(
         require(asset.width > 0 && asset.height > 0 && asset.canvasSize > 0) {
             "Realm ${realm.id} has invalid local dimensions"
         }
+        asset.canvasOrigin?.let { origin ->
+            require(
+                origin.size == 2 && origin[0] >= 0 && origin[1] >= 0 &&
+                    origin[0] + asset.width <= asset.canvasSize &&
+                    origin[1] + asset.height <= asset.canvasSize
+            ) {
+                "Realm ${realm.id} has invalid shared-canvas origin provenance"
+            }
+        }
         require(asset.nonblank) { "Realm ${realm.id} publishes a blank asset" }
         require(asset.tileSize in 1..4096 && asset.tileCount > 0) {
             "Realm ${realm.id} has invalid tile metadata"
@@ -369,6 +431,16 @@ class osrsRealmManifestParser(
         }
         require(asset.contentPixelBounds.size == 4) {
             "Realm ${realm.id} has invalid content pixel bounds"
+        }
+        require(
+            asset.contentPixelBounds[0] >= 0 &&
+                asset.contentPixelBounds[1] >= 0 &&
+                asset.contentPixelBounds[0] < asset.contentPixelBounds[2] &&
+                asset.contentPixelBounds[1] < asset.contentPixelBounds[3] &&
+                asset.contentPixelBounds[2] <= asset.canvasSize &&
+                asset.contentPixelBounds[3] <= asset.canvasSize
+        ) {
+            "Realm ${realm.id} has content pixel bounds outside its shared canvas"
         }
         require(asset.contentLatlonBounds.size == 4 && asset.contentLatlonBounds.all(Double::isFinite)) {
             "Realm ${realm.id} has invalid realm-local map bounds"
@@ -388,8 +460,8 @@ class osrsRealmManifestParser(
                 "Realm ${realm.id} has non-size-preserving link geometry"
             }
             require(component.assetPixelBounds.minX >= 0 && component.assetPixelBounds.minY >= 0 &&
-                component.assetPixelBounds.maxX <= asset.width &&
-                component.assetPixelBounds.maxY <= asset.height) {
+                component.assetPixelBounds.maxX <= asset.canvasSize &&
+                component.assetPixelBounds.maxY <= asset.canvasSize) {
                 "Realm ${realm.id} has link geometry outside its asset"
             }
         }

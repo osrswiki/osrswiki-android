@@ -19,10 +19,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.image.GlideImageLoader
 import com.omiyawaki.osrswiki.news.viewmodel.NewsViewModel
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import com.omiyawaki.osrswiki.random.RandomPageRepository
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.theme.ThemeAware
@@ -44,6 +46,7 @@ class NewsFragment : Fragment(), ThemeAware {
 
     private val viewModel: NewsViewModel by viewModels()
     private lateinit var newsFeedAdapter: NewsFeedAdapter
+    private var articlePrewarmBinder: VisibleArticlePrewarmBinder? = null
     private val wikiBaseUrl = "https://oldschool.runescape.wiki"
     
     // Pre-rolled random page for instant navigation
@@ -71,6 +74,7 @@ class NewsFragment : Fragment(), ThemeAware {
         setupFonts(view)
         setupSwipeRefresh(view)
         setupRecyclerView(view)
+        setupArticlePrewarm(view)
         observeViewModel()
 
         // Diagnostic logging for header position
@@ -280,6 +284,19 @@ class NewsFragment : Fragment(), ThemeAware {
         }
     }
 
+    private fun setupArticlePrewarm(view: View) {
+        val app = requireActivity().application as OSRSWikiApp
+        articlePrewarmBinder = VisibleArticlePrewarmBinder(
+            recyclerView = view.findViewById(R.id.recyclerViewNews),
+            lifecycleOwner = viewLifecycleOwner,
+            scope = viewLifecycleOwner.lifecycleScope,
+            candidatesAt = newsFeedAdapter::prewarmCandidatesAt,
+            onDwell = app.pageAssetDownloader::prewarmArticle,
+            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener
+        )
+        newsFeedAdapter.setPrewarmVisibilityListener { articlePrewarmBinder?.refresh() }
+    }
+
     private fun observeViewModel() {
         val swipeRefreshLayout = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshLayout)
         val progressBar = view?.findViewById<View>(R.id.progressBarNews)
@@ -382,6 +399,8 @@ class NewsFragment : Fragment(), ThemeAware {
     }
     
     override fun onDestroyView() {
+        articlePrewarmBinder?.dispose()
+        articlePrewarmBinder = null
         super.onDestroyView()
         if (::voiceRecognitionManager.isInitialized) {
             voiceRecognitionManager.destroy()

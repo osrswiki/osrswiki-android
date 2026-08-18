@@ -8,18 +8,26 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
-import com.omiyawaki.osrswiki.ui.map.StandardNavigationMapFragment
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
 
+private val osrsNativeMapJson = Json { ignoreUnknownKeys = true }
+
 @Serializable
 private data class MapRect(val y: Float, val x: Float, val width: Float, val height: Float)
 
 @Serializable
-private data class MapData(val lat: String?, val lon: String?, val zoom: String?, val plane: String?)
+private data class MapData(
+    val lat: String?,
+    val lon: String?,
+    val zoom: String?,
+    val plane: String?,
+    val mapId: Int? = null,
+    val initiallyVisible: Boolean = false
+)
 
 private data class PendingMapPlaceholder(val rect: MapRect, val data: MapData)
 
@@ -31,11 +39,15 @@ class NativeMapHandler(
 
     private val pendingMapPlaceholders = mutableMapOf<String, PendingMapPlaceholder>()
     private val mapContainers = mutableMapOf<String, View>()
+    private val requestedVisibleMaps = mutableSetOf<String>()
+    private val overlayState = ArticleNativeMapOverlayState()
+    private val renderedMapIds = mutableSetOf<String>()
     private val offscreenTranslationX = -2000f // A value guaranteed to be off-screen
     private var isCleanedUp = false
 
     @Volatile
     var isHorizontalScrollInProgress = false
+        private set
 
     init {
         setupScrollListener()
@@ -50,8 +62,8 @@ class NativeMapHandler(
             fragment.viewLifecycleOwner.lifecycleScope.launch {
                 if (!fragment.isAdded || isCleanedUp) { return@launch }
                 try {
-                    val rect = Json.decodeFromString<MapRect>(rectJson)
-                    val mapData = Json.decodeFromString<MapData>(mapDataJson)
+                    val rect = osrsNativeMapJson.decodeFromString<MapRect>(rectJson)
+                    val mapData = osrsNativeMapJson.decodeFromString<MapData>(mapDataJson)
                     rememberMapPlaceholder(id, rect, mapData)
                 } catch (e: Exception) {
                     L.e("MAP_DEBUG: Failed to parse map placeholder JSON for pre-loading", e)
@@ -68,15 +80,43 @@ class NativeMapHandler(
                 if (isCleanedUp) {
                     return@post
                 }
+                // Record intent even when expansion happens before the DOM can report bounds.
+                overlayState.recordDesiredVisibility(mapId, isOpening)
+                if (isOpening) requestedVisibleMaps += mapId else requestedVisibleMaps -= mapId
                 val view = if (isOpening) {
                     ensureMapContainer(mapId)
                 } else {
                     mapContainers[mapId]
                 } ?: return@post
-                // Instantly move the view on or off screen.
-                view.translationX = if (isOpening) 0f else offscreenTranslationX
-                val script = "document.getElementById('${mapId}').style.opacity = ${if(isOpening) 0 else 1};"
-                binding.pageWebView.evaluateJavascript(script, null)
+                if (isOpening && renderedMapIds.contains(mapId)) {
+                    view.translationX = 0f
+                    hideStaticPlaceholder(mapId)
+                } else if (!isOpening) {
+                    view.translationX = offscreenTranslationX
+                    showStaticPlaceholder(mapId)
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun onMapViewportVisibilityChanged(mapId: String, isVisible: Boolean) {
+            if (isCleanedUp) return
+            fragment.view?.post {
+                if (isCleanedUp) return@post
+                // Intersection callbacks may also precede native overlay creation.
+                overlayState.recordDesiredVisibility(mapId, isVisible)
+                if (isVisible) {
+                    requestedVisibleMaps += mapId
+                    val view = ensureMapContainer(mapId)
+                    if (view != null && renderedMapIds.contains(mapId)) {
+                        view.translationX = 0f
+                        hideStaticPlaceholder(mapId)
+                    }
+                } else {
+                    requestedVisibleMaps -= mapId
+                    mapContainers[mapId]?.translationX = offscreenTranslationX
+                    showStaticPlaceholder(mapId)
+                }
             }
         }
 
@@ -85,13 +125,69 @@ class NativeMapHandler(
             if (isCleanedUp) {
                 return
             }
-            L.d("NativeMapHandler: setHorizontalScroll called, inProgress=$inProgress")
-            isHorizontalScrollInProgress = inProgress
+            fragment.view?.post {
+                updateHorizontalInteraction(inProgress, claimPointer = false)
+            }
+        }
+
+        @JavascriptInterface
+        fun setHorizontalScrollGesture(phase: String, gestureId: String, ownerId: String) {
+            if (isCleanedUp) return
+            fragment.view?.post {
+                if (isCleanedUp) return@post
+                val inProgress = phase == "begin" || phase == "change"
+                updateHorizontalInteraction(inProgress, claimPointer = false)
+                L.d("NativeMapHandler: local gesture phase=$phase id=$gestureId owner=$ownerId")
+            }
+        }
+
+        @JavascriptInterface
+        fun setArticleTouchSequence(sequence: Long) {
+            if (isCleanedUp) return
+            fragment.view?.post {
+                if (!isCleanedUp) {
+                    fragment.onArticleDomTouchSequence(sequence)
+                }
+            }
         }
         
         @JavascriptInterface
         fun log(message: String) {
             L.d("JS: $message")
+        }
+
+        @JavascriptInterface
+        fun openFloorNumberingSettings() {
+            if (isCleanedUp) return
+            fragment.view?.post {
+                if (!isCleanedUp) {
+                    fragment.openFloorNumberingSettings()
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun fetchText(url: String): String {
+            val started = android.os.SystemClock.elapsedRealtime()
+            return try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.instanceFollowRedirects = true
+                connection.connectTimeout = 4000
+                connection.readTimeout = 4000
+                connection.setRequestProperty(
+                    "User-Agent",
+                    "osrswiki-android/1.7 (https://github.com/omiyawaki/osrswiki; native-bridge)"
+                )
+                connection.setRequestProperty("Accept", "application/json")
+                val code = connection.responseCode
+                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                L.d("OsrsWikiBridge.fetchText $code in ${android.os.SystemClock.elapsedRealtime() - started}ms for $url")
+                if (code in 200..299) body else ""
+            } catch (error: Exception) {
+                L.w("OsrsWikiBridge.fetchText failed after ${android.os.SystemClock.elapsedRealtime() - started}ms for $url: ${error.message}")
+                ""
+            }
         }
     }
 
@@ -100,6 +196,22 @@ class NativeMapHandler(
             return
         }
         pendingMapPlaceholders[id] = PendingMapPlaceholder(rect, data)
+        val record = overlayState.recordMeasurement(
+            id = id,
+            bounds = rect.toArticleNativeMapBounds(),
+            initiallyVisible = data.initiallyVisible
+        )
+        // Remeasure the actual overlay rather than only updating the next-create payload.
+        mapContainers[id]?.let { applyMapContainerLayout(it, rect) }
+        val shouldBeVisible = record.desiredVisible == true
+        if (shouldBeVisible) {
+            requestedVisibleMaps += id
+            ensureMapContainer(id)
+        } else {
+            requestedVisibleMaps -= id
+            mapContainers[id]?.translationX = offscreenTranslationX
+            showStaticPlaceholder(id)
+        }
     }
 
     private fun ensureMapContainer(id: String): View? {
@@ -129,6 +241,39 @@ class NativeMapHandler(
         binding.root.addView(container)
         mapContainers[id] = container
 
+        applyMapContainerLayout(container, rect)
+
+        val mapFragment = CanonicalArticleMapFragment.newInstance(
+            lat = data.lat,
+            lon = data.lon,
+            plane = data.plane,
+            mapId = data.mapId?.toString()
+        ).also { fragment ->
+            fragment.onInteractionChanged = { inProgress ->
+                updateHorizontalInteraction(inProgress, claimPointer = true)
+            }
+            fragment.onFirstFrame = {
+                renderedMapIds += id
+                if (requestedVisibleMaps.contains(id)) {
+                    container.translationX = 0f
+                    hideStaticPlaceholder(id)
+                }
+            }
+            fragment.onFailure = { error ->
+                L.e("NativeMapHandler: canonical article map failed for $id", error)
+                showStaticPlaceholder(id)
+                pendingMapPlaceholders.remove(id)
+                removeMapContainer(id)
+            }
+        }
+        fragment.childFragmentManager.beginTransaction()
+            .replace(container.id, mapFragment)
+            .commit()
+        return container
+    }
+
+    /** Keep native overlays bound to live DOM cells after expansion, font load, or rotation. */
+    private fun applyMapContainerLayout(container: View, rect: MapRect) {
         val params = container.layoutParams as ConstraintLayout.LayoutParams
         val scale = binding.pageWebView.scale
         val correction = TypedValue.applyDimension(
@@ -141,17 +286,41 @@ class NativeMapHandler(
         params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID
         params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID
         container.layoutParams = params
+        container.translationY = -binding.pageWebView.scrollY.toFloat()
+    }
 
-        val mapFragment = StandardNavigationMapFragment.newInstance(
-            lat = data.lat,
-            lon = data.lon,
-            zoom = data.zoom,
-            plane = data.plane
+    private fun hideStaticPlaceholder(id: String) {
+        binding.pageWebView.evaluateJavascript(
+            "var el=document.getElementById('${id}'); if(el){el.style.opacity=0;}", null
         )
-        fragment.childFragmentManager.beginTransaction()
-            .replace(container.id, mapFragment)
-            .commit()
-        return container
+    }
+
+    private fun showStaticPlaceholder(id: String) {
+        binding.pageWebView.evaluateJavascript(
+            "var el=document.getElementById('${id}'); if(el){el.style.opacity=1;}", null
+        )
+    }
+
+    private fun updateHorizontalInteraction(inProgress: Boolean, claimPointer: Boolean) {
+        if (isCleanedUp) return
+        isHorizontalScrollInProgress = inProgress
+        if (inProgress && claimPointer) {
+            fragment.onArticleHorizontalScrollClaimed()
+        }
+    }
+
+    private fun removeMapContainer(id: String) {
+        renderedMapIds.remove(id)
+        overlayState.remove(id)
+        val container = mapContainers.remove(id) ?: return
+        try {
+            fragment.childFragmentManager.findFragmentById(container.id)?.let {
+                fragment.childFragmentManager.beginTransaction().remove(it).commitAllowingStateLoss()
+            }
+        } catch (error: Exception) {
+            L.e("NativeMapHandler: failed to remove article map $id", error)
+        }
+        (container.parent as? ViewGroup)?.removeView(container)
     }
 
     private fun setupScrollListener() {
@@ -201,8 +370,18 @@ class NativeMapHandler(
         // Clear the map to release references
         mapContainers.clear()
         pendingMapPlaceholders.clear()
+        requestedVisibleMaps.clear()
+        overlayState.clear()
+        renderedMapIds.clear()
         
         // Reset horizontal scroll state
         isHorizontalScrollInProgress = false
     }
+
+    private fun MapRect.toArticleNativeMapBounds() = ArticleNativeMapBounds(
+        top = y,
+        start = x,
+        width = width,
+        height = height
+    )
 }

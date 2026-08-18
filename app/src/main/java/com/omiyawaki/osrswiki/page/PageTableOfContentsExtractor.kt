@@ -5,7 +5,11 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
 object PageTableOfContentsExtractor {
-    fun extract(displayTitle: String?, html: String): List<Section> {
+    fun extract(
+        displayTitle: String?,
+        html: String,
+        convention: osrsArticleFloorConvention = osrsArticleFloorConvention.current()
+    ): List<Section> {
         val document = Jsoup.parseBodyFragment(html)
         val sections = mutableListOf(
             Section(
@@ -22,7 +26,10 @@ object PageTableOfContentsExtractor {
         document.select("h2[id], h3[id], h2 .mw-headline[id], h3 .mw-headline[id]").forEach { element ->
             val heading = element.headingElement() ?: return@forEach
             val anchor = element.id().ifBlank { heading.id() }
-            val title = if (element.hasClass("mw-headline")) element.text() else heading.text()
+            val title = osrsArticleSectionTitle.visible(
+                if (element.hasClass("mw-headline")) element else heading,
+                convention
+            )
             if (anchor.isBlank() || title.isBlank() || !seenAnchors.add(anchor)) {
                 return@forEach
             }

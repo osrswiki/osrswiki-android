@@ -1,15 +1,24 @@
 package com.omiyawaki.osrswiki.page
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Rect
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.ActionMode
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.PixelCopy
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -19,6 +28,8 @@ import androidx.core.os.BundleCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
+import com.omiyawaki.osrswiki.activity.EdgeToEdgeInsetCoordinator
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textview.MaterialTextView
 import com.omiyawaki.osrswiki.BuildConfig
@@ -28,8 +39,8 @@ import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.ActivityPageBinding
 import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
-import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.search.SearchActivity
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
@@ -46,8 +57,22 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
     private var snippetArg: String? = null
     private var thumbnailUrlArg: String? = null
+    private var pageScrollYArg: Int = 0
     private var currentActionMode: ActionMode? = null
     private val articleBackStack = ArrayDeque<ArticleArgs>()
+    private val backPreviewStack = ArrayDeque<Bitmap>()
+    private val hiddenArticleFragmentTags = ArrayDeque<String>()
+    private var currentArticleFragmentTag = FRAGMENT_TAG
+    private var deferCapturedBackPreviewPop = false
+    private var isContentsOpen = false
+    private var contentsDismissSwipe: osrsArticleInteractiveSwipe? = null
+    private var contentsDismissDownRawX = Float.NaN
+    private var contentsDismissDownRawY = Float.NaN
+    private var contentsDismissLastDx = 0f
+    private var contentsDismissLastVx = 0f
+    private var contentsDismissLastX = 0f
+    private var contentsDismissLastTime = 0L
+    private var contentsDismissTracking = false
     private var isRunningDeepNavigationFixtureProbe = false
 
     private lateinit var pageActionBarManager: PageActionBarManager
@@ -60,6 +85,9 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra("osrs_disable_article_prewarm", false)) {
+            Prefs.disableArticlePrewarm = true
+        }
         L.d("PageActivity.onCreate() called")
         binding = ActivityPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -74,8 +102,15 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
         // Handle system window insets - let AppBarLayout extend under status bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.pageFragmentContainer) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val systemBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                cutout
+            )
+            val navigationBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()),
+                cutout
+            )
             
             // Calculate total bottom padding: action bar height + navigation gesture area
             val navBarHeight = resources.getDimensionPixelSize(R.dimen.nav_bar_height)
@@ -88,8 +123,15 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
         // Handle bottom safe area for the page action bar
         ViewCompat.setOnApplyWindowInsetsListener(binding.root.findViewById(R.id.page_action_bar)) { view, insets ->
-            val navigationBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val navigationBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.navigationBars()),
+                cutout
+            )
+            val systemBars = EdgeToEdgeInsetCoordinator.maxPerEdge(
+                insets.getInsets(WindowInsetsCompat.Type.systemBars()),
+                cutout
+            )
             
             // Use translationY to move the action bar up without affecting layout space
             view.translationY = -navigationBars.bottom.toFloat()
@@ -113,6 +155,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
         setupToolbarListeners()
         setupBackNavigation()
+        setupInteractiveSwipeChrome()
         checkAndShowOfflineBanner()
     }
 
@@ -122,6 +165,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             STATE_ARTICLE_BACK_STACK,
             ArrayList(articleBackStack.map { it.toBundle() })
         )
+        outState.putStringArrayList(STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS, ArrayList(hiddenArticleFragmentTags))
+        outState.putString(STATE_CURRENT_ARTICLE_FRAGMENT_TAG, currentArticleFragmentTag)
         super.onSaveInstanceState(outState)
     }
 
@@ -136,10 +181,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     private fun showArticleFromIntent(intent: Intent, pushCurrent: Boolean) {
         if (pushCurrent) {
-            pushArticleArgsForNativeStack(readArticleArgs(intent), intent)
-        } else {
-            replaceCurrentArticleArgsForNativeStack(readArticleArgs(intent), intent)
+            pushArticleFromIntent(readArticleArgs(intent), intent)
+            return
         }
+        replaceCurrentArticleArgsForNativeStack(readArticleArgs(intent), intent)
         replaceArticleFragmentIfFixtureProbeAllows()
         checkAndShowOfflineBanner()
     }
@@ -148,14 +193,54 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         if (!popArticleArgsFromNativeStack()) {
             return false
         }
-        replaceArticleFragmentIfFixtureProbeAllows()
+        if (!deferCapturedBackPreviewPop) {
+            popCapturedBackPreview()
+        }
+        if (!revealPreviousArticleFragment()) {
+            replaceArticleFragmentIfFixtureProbeAllows()
+        }
         checkAndShowOfflineBanner()
         return true
+    }
+
+    private fun pushArticleFromIntent(args: ArticleArgs, sourceIntent: Intent? = null) {
+        val fragment = currentPageFragment()
+        if (fragment == null) {
+            commitPushedArticle(currentArticleArgs(), args, sourceIntent)
+            return
+        }
+        fragment.captureViewRestore { restore ->
+            if (isFinishing || isDestroyed) {
+                return@captureViewRestore
+            }
+            commitPushedArticle(currentArticleArgs().withRestore(restore), args, sourceIntent)
+        }
+    }
+
+    private fun commitPushedArticle(
+        stacked: ArticleArgs,
+        args: ArticleArgs,
+        sourceIntent: Intent? = null
+    ) {
+        if (isDeepNavigationFixtureProbeEnabledForDebugTests()) {
+            articleBackStack.addLast(stacked)
+            replaceCurrentArticleArgsForNativeStack(args, sourceIntent)
+            updateSystemGestureExclusionRects()
+            return
+        }
+        captureBackPreview {
+            articleBackStack.addLast(stacked)
+            replaceCurrentArticleArgsForNativeStack(args, sourceIntent)
+            updateSystemGestureExclusionRects()
+            pushCoveringArticleFragment()
+            checkAndShowOfflineBanner()
+        }
     }
 
     private fun pushArticleArgsForNativeStack(args: ArticleArgs, sourceIntent: Intent? = null) {
         articleBackStack.addLast(currentArticleArgs())
         replaceCurrentArticleArgsForNativeStack(args, sourceIntent)
+        updateSystemGestureExclusionRects()
     }
 
     private fun popArticleArgsFromNativeStack(): Boolean {
@@ -163,6 +248,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             return false
         }
         replaceCurrentArticleArgsForNativeStack(articleBackStack.removeLast())
+        updateSystemGestureExclusionRects()
         return true
     }
 
@@ -185,20 +271,61 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             ?.mapNotNull { ArticleArgs.fromBundle(it) }
             .orEmpty()
         articleBackStack.addAll(restoredBackStack)
+        hiddenArticleFragmentTags.clear()
+        savedInstanceState.getStringArrayList(STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS)
+            ?.let { hiddenArticleFragmentTags.addAll(it) }
+        currentArticleFragmentTag =
+            savedInstanceState.getString(STATE_CURRENT_ARTICLE_FRAGMENT_TAG) ?: FRAGMENT_TAG
         return savedInstanceState.getBundle(STATE_CURRENT_ARTICLE_ARGS)?.let { ArticleArgs.fromBundle(it) }
     }
 
     private fun replaceArticleFragment() {
-        val fragment = PageFragment.newInstance(
+        hiddenArticleFragmentTags.clear()
+        currentArticleFragmentTag = FRAGMENT_TAG
+        val fragment = newArticleFragment()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG)
+            .commitNowAllowingStateLoss()
+    }
+
+    private fun pushCoveringArticleFragment() {
+        val current = currentPageFragment()
+        val next = newArticleFragment()
+        val nextTag = "PageFragmentTag-${hiddenArticleFragmentTags.size + 1}-${System.nanoTime()}"
+        val transaction = supportFragmentManager.beginTransaction()
+        if (current != null) {
+            transaction.hide(current)
+            hiddenArticleFragmentTags.addLast(currentArticleFragmentTag)
+        }
+        transaction.add(R.id.page_fragment_container, next, nextTag)
+        transaction.commitNowAllowingStateLoss()
+        currentArticleFragmentTag = nextTag
+    }
+
+    private fun revealPreviousArticleFragment(): Boolean {
+        val previousTag = hiddenArticleFragmentTags.removeLastOrNull() ?: return false
+        val current = currentPageFragment()
+        val previous = supportFragmentManager.findFragmentByTag(previousTag) as? PageFragment
+            ?: return false
+        val transaction = supportFragmentManager.beginTransaction()
+        if (current != null) {
+            transaction.remove(current)
+        }
+        transaction.show(previous)
+        transaction.commitNowAllowingStateLoss()
+        currentArticleFragmentTag = previousTag
+        return true
+    }
+
+    private fun newArticleFragment(): PageFragment {
+        return PageFragment.newInstance(
             pageId = pageIdArg,
             pageTitle = pageTitleArg,
             source = navigationSourceArg,
             snippet = snippetArg,
-            thumbnailUrl = thumbnailUrlArg
+            thumbnailUrl = thumbnailUrlArg,
+            scrollY = currentArticleArgs().scrollY
         )
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG)
-            .commitNowAllowingStateLoss()
     }
 
     private fun replaceArticleFragmentIfFixtureProbeAllows() {
@@ -224,7 +351,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             pageId = pageIdArg,
             navigationSource = navigationSourceArg,
             snippet = snippetArg,
-            thumbnailUrl = thumbnailUrlArg
+            thumbnailUrl = thumbnailUrlArg,
+            scrollY = pageScrollYArg
         )
     }
 
@@ -259,6 +387,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         navigationSourceArg = args.navigationSource
         snippetArg = args.snippet
         thumbnailUrlArg = args.thumbnailUrl
+        pageScrollYArg = args.scrollY
 
         if (!isDeepNavigationFixtureProbeEnabledForDebugTests()) {
             L.d("PageActivity - Applied article args:")
@@ -270,24 +399,464 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
     }
 
-    override fun onPageSwipe(gravity: Int) {
+    override fun onPageSwipe(gravity: Int, velocityX: Float) {
+        val action = when (gravity) {
+            Gravity.START -> ReaderSwipeAction.BACK
+            Gravity.END -> ReaderSwipeAction.CONTENTS
+            else -> return
+        }
+        if (gravity == Gravity.END && isContentsOpen) {
+            L.d("PageActivity: Dismissing ToC drawer")
+            closeContents(animate = true, velocityX = velocityX)
+            return
+        }
+        if (!ReaderGesturePolicy.isEnabled(action, Prefs.readerPreferences)) {
+            L.d("PageActivity: Ignoring disabled $action swipe")
+            cancelInteractiveSwipeChrome()
+            return
+        }
         val direction = if (gravity == Gravity.START) "START (back)" else if (gravity == Gravity.END) "END (ToC)" else "UNKNOWN($gravity)"
         L.d("PageActivity: Received swipe, direction=$direction")
         
         if (gravity == Gravity.END) {
-            // A swipe from right-to-left opens the ToC drawer.
-            L.d("PageActivity: Opening ToC drawer")
-            binding.pageDrawerLayout.openDrawer(GravityCompat.END)
+            if (isContentsOpen) {
+                L.d("PageActivity: Dismissing ToC drawer")
+                closeContents(animate = true, velocityX = velocityX)
+            } else {
+                L.d("PageActivity: Opening ToC drawer")
+                openDrawer(GravityCompat.END, velocityX = velocityX)
+            }
         } else if (gravity == Gravity.START) {
-            // A swipe from left-to-right triggers the back action.
             L.d("PageActivity: Triggering back action")
-            onBackPressedDispatcher.onBackPressed()
+            commitInteractiveBack(velocityX)
         }
     }
 
+    override fun onPageSwipeProgress(gravity: Int, progress: Float) {
+        if (gravity == Gravity.END) {
+            applyInteractiveContentsProgress(progress)
+        } else if (gravity == Gravity.START) {
+            applyInteractiveBackProgress(progress)
+        }
+    }
+
+    override fun onPageSwipeCancelled() {
+        cancelInteractiveSwipeChrome()
+    }
+
+    private fun setupInteractiveSwipeChrome() {
+        binding.pageDrawerLayout.clipChildren = false
+        binding.pageDrawerLayout.clipToPadding = false
+        binding.pageContentHost.clipChildren = false
+        val slop = ViewConfiguration.get(this).scaledPagingTouchSlop
+        contentsDismissSwipe = osrsArticleInteractiveSwipe(touchSlop = slop)
+        binding.pageContentsScrim.setOnTouchListener { _, event ->
+            handleContentsDismissTouch(event, consumeUntracked = true, dismissOnTap = true)
+        }
+        binding.sidePanelContainer.setOnTouchListener { _, event ->
+            handleContentsDismissTouch(event, consumeUntracked = false, dismissOnTap = false)
+        }
+        binding.tocListView.setOnTouchListener { _, event ->
+            handleContentsDismissTouch(event, consumeUntracked = false, dismissOnTap = false)
+        }
+        binding.pageContentHost.doOnLayout {
+            updateSystemGestureExclusionRects()
+            if (!isContentsOpen) {
+                applyInteractiveContentsProgress(0f)
+            }
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun handleContentsDismissTouch(
+        event: MotionEvent,
+        consumeUntracked: Boolean,
+        dismissOnTap: Boolean
+    ): Boolean {
+        if (!isContentsOpen && event.actionMasked != MotionEvent.ACTION_DOWN) {
+            return false
+        }
+        val tracker = contentsDismissSwipe ?: return false
+        val drawerWidth = binding.sidePanelContainer.width.toFloat().coerceAtLeast(
+            osrsArticleInteractiveSwipe.CONTENTS_DRAWER_WIDTH_DP * resources.displayMetrics.density
+        )
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                if (!isContentsOpen) {
+                    return false
+                }
+                contentsDismissDownRawX = event.rawX
+                contentsDismissDownRawY = event.rawY
+                contentsDismissLastDx = 0f
+                contentsDismissLastVx = 0f
+                contentsDismissLastX = event.rawX
+                contentsDismissLastTime = event.eventTime
+                contentsDismissTracking = false
+                tracker.reset()
+                return consumeUntracked
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (contentsDismissDownRawX.isNaN()) {
+                    return false
+                }
+                val dx = event.rawX - contentsDismissDownRawX
+                val dy = event.rawY - contentsDismissDownRawY
+                val dt = (event.eventTime - contentsDismissLastTime).coerceAtLeast(1L)
+                contentsDismissLastVx = (event.rawX - contentsDismissLastX) * 1000f / dt
+                contentsDismissLastX = event.rawX
+                contentsDismissLastTime = event.eventTime
+                contentsDismissLastDx = dx
+                val axis = tracker.onMove(dx, dy, contentsOpen = true)
+                if (tracker.isTracking && axis == osrsArticleInteractiveSwipe.Axis.CONTENTS) {
+                    contentsDismissTracking = true
+                    binding.sidePanelContainer.parent?.requestDisallowInterceptTouchEvent(true)
+                    applyInteractiveContentsProgress(tracker.progress(dx, drawerWidth))
+                    return true
+                }
+                return consumeUntracked
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val dx = if (contentsDismissDownRawX.isNaN()) 0f else event.rawX - contentsDismissDownRawX
+                val dy = if (contentsDismissDownRawY.isNaN()) 0f else event.rawY - contentsDismissDownRawY
+                val wasTracking = contentsDismissTracking
+                val slop = ViewConfiguration.get(this).scaledTouchSlop
+                val isTap = !wasTracking &&
+                    kotlin.math.abs(dx) <= slop &&
+                    kotlin.math.abs(dy) <= slop
+                if (wasTracking) {
+                    tracker.onMove(dx, dy, contentsOpen = true)
+                    val commit = tracker.shouldCommit(dx, contentsDismissLastVx, drawerWidth)
+                    tracker.reset()
+                    contentsDismissTracking = false
+                    contentsDismissDownRawX = Float.NaN
+                    if (commit) {
+                        closeContents(animate = true, velocityX = contentsDismissLastVx)
+                    } else {
+                        cancelInteractiveSwipeChrome()
+                    }
+                    return true
+                }
+                tracker.reset()
+                contentsDismissTracking = false
+                contentsDismissDownRawX = Float.NaN
+                if (event.actionMasked == MotionEvent.ACTION_UP && isTap && isContentsOpen && dismissOnTap) {
+                    closeContents(animate = true)
+                    return true
+                }
+                return consumeUntracked
+            }
+        }
+        return false
+    }
+
+    override fun isContentsDrawerOpen(): Boolean = isContentsOpen
+
+    fun openContents() {
+        openDrawer(GravityCompat.END)
+    }
+
+    fun closeContents(animate: Boolean = true, velocityX: Float = 0f) {
+        setContentsRevealProgress(0f, animate = animate, velocityX = velocityX)
+        isContentsOpen = false
+    }
+
+    private fun openDrawer(@Suppress("UNUSED_PARAMETER") gravity: Int, velocityX: Float = 0f) {
+        setContentsRevealProgress(1f, animate = true, velocityX = velocityX)
+        isContentsOpen = true
+    }
+
+    private fun currentPageFragment(): PageFragment? {
+        return supportFragmentManager.findFragmentByTag(currentArticleFragmentTag) as? PageFragment
+            ?: supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
+    }
+
+    private fun captureBackPreview(onComplete: () -> Unit) {
+        val source = binding.navMenuTriggerLayout
+        if (source.width <= 0 || source.height <= 0) {
+            onComplete()
+            return
+        }
+        val bitmap = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val location = IntArray(2)
+            source.getLocationInWindow(location)
+            val srcRect = Rect(
+                location[0],
+                location[1],
+                location[0] + source.width,
+                location[1] + source.height
+            )
+            try {
+                PixelCopy.request(
+                    window,
+                    srcRect,
+                    bitmap,
+                    { result ->
+                        if (result == PixelCopy.SUCCESS) {
+                            backPreviewStack.addLast(bitmap)
+                            binding.pageBackPreview.setImageBitmap(bitmap)
+                        } else {
+                            bitmap.recycle()
+                            captureBackPreviewSoftware()
+                        }
+                        onComplete()
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+                return
+            } catch (_: Exception) {
+                bitmap.recycle()
+            }
+        } else {
+            bitmap.recycle()
+        }
+        captureBackPreviewSoftware()
+        onComplete()
+    }
+
+    private fun captureBackPreviewSoftware() {
+        val source = binding.navMenuTriggerLayout
+        if (source.width <= 0 || source.height <= 0) {
+            return
+        }
+        val bitmap = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        source.draw(Canvas(bitmap))
+        backPreviewStack.addLast(bitmap)
+        binding.pageBackPreview.setImageBitmap(bitmap)
+    }
+
+    private fun popCapturedBackPreview() {
+        if (backPreviewStack.isNotEmpty()) {
+            val removed = backPreviewStack.removeLast()
+            if (!backPreviewStack.contains(removed)) {
+                removed.recycle()
+            }
+        }
+        binding.pageBackPreview.setImageBitmap(backPreviewStack.lastOrNull())
+    }
+
+    private fun applyInteractiveBackProgress(progress: Float) {
+        val clamped = progress.coerceIn(0f, 1f)
+        val width = binding.navMenuTriggerLayout.width.toFloat().coerceAtLeast(1f)
+        binding.navMenuTriggerLayout.animate().cancel()
+        binding.pageBackPreview.animate().cancel()
+        val preview = backPreviewStack.lastOrNull() ?: osrsUnderlyingActivityPreview.peek()
+        if (clamped > 0f && preview != null) {
+            binding.pageBackPreview.setImageBitmap(preview)
+            binding.pageBackPreview.visibility = View.VISIBLE
+        }
+        binding.navMenuTriggerLayout.translationX = clamped * width
+        binding.pageBackPreview.translationX =
+            (clamped - 1f) * width * osrsArticleInteractiveSwipe.BACK_PREVIEW_PARALLAX
+    }
+
+    private fun commitInteractiveBack(velocityX: Float = 0f) {
+        val sliding = binding.navMenuTriggerLayout
+        val preview = binding.pageBackPreview
+        val width = sliding.width.toFloat().coerceAtLeast(1f)
+        val progress = (sliding.translationX / width).coerceIn(0f, 1f)
+        val remaining = osrsArticleInteractiveSwipe.remainingPx(progress, width)
+        val duration = osrsArticleInteractiveSwipe.remainingCommitDurationMs(
+            progress,
+            velocityX,
+            width,
+            resources.displayMetrics.density
+        )
+        val interpolator = osrsArticleInteractiveSwipe.settleInterpolator(
+            velocityX,
+            remaining,
+            duration
+        )
+        sliding.animate().cancel()
+        preview.animate().cancel()
+        val previewBitmap = backPreviewStack.lastOrNull() ?: osrsUnderlyingActivityPreview.peek()
+        if (previewBitmap != null) {
+            preview.setImageBitmap(previewBitmap)
+            preview.visibility = View.VISIBLE
+            preview.alpha = 1f
+            preview.translationX = 0f
+        }
+        sliding.bringToFront()
+        deferCapturedBackPreviewPop = true
+        sliding.animate()
+            .translationX(width)
+            .setDuration(duration)
+            .setInterpolator(interpolator)
+            .withEndAction {
+                onBackPressedDispatcher.onBackPressed()
+                overridePendingTransition(0, 0)
+                if (isFinishing || isDestroyed) {
+                    deferCapturedBackPreviewPop = false
+                    return@withEndAction
+                }
+                sliding.post {
+                    if (isFinishing || isDestroyed) return@post
+                    sliding.translationX = 0f
+                    sliding.post {
+                        if (isFinishing || isDestroyed) return@post
+                        resetInteractiveBackChrome()
+                        popCapturedBackPreview()
+                        deferCapturedBackPreviewPop = false
+                        sliding.bringToFront()
+                    }
+                }
+            }
+            .start()
+    }
+
+    private fun applyInteractiveContentsProgress(progress: Float) {
+        val clamped = progress.coerceIn(0f, 1f)
+        val drawer = binding.sidePanelContainer
+        drawer.animate().cancel()
+        val width = if (drawer.width > 0) {
+            drawer.width.toFloat()
+        } else {
+            osrsArticleInteractiveSwipe.CONTENTS_DRAWER_WIDTH_DP * resources.displayMetrics.density
+        }
+        drawer.translationX = osrsArticleInteractiveSwipe.contentsPeekTranslationX(width, clamped)
+        drawer.isClickable = clamped >= 0.98f
+        val scrim = binding.pageContentsScrim
+        if (isContentsOpen || clamped > 0.02f) {
+            scrim.visibility = View.VISIBLE
+            scrim.alpha = clamped.coerceAtLeast(if (isContentsOpen) 0.08f else 0f)
+            scrim.isClickable = true
+        } else {
+            hideContentsScrim()
+        }
+    }
+
+    private fun setContentsRevealProgress(
+        progress: Float,
+        animate: Boolean,
+        velocityX: Float = 0f
+    ) {
+        val drawer = binding.sidePanelContainer
+        val width = if (drawer.width > 0) {
+            drawer.width.toFloat()
+        } else {
+            osrsArticleInteractiveSwipe.CONTENTS_DRAWER_WIDTH_DP * resources.displayMetrics.density
+        }
+        val target = osrsArticleInteractiveSwipe.contentsPeekTranslationX(width, progress)
+        val scrim = binding.pageContentsScrim
+        drawer.animate().cancel()
+        scrim.animate().cancel()
+        if (animate) {
+            val remaining = kotlin.math.abs(drawer.translationX - target)
+            val traveled = 1f - (remaining / width.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            val duration = if (kotlin.math.abs(velocityX) <=
+                osrsArticleInteractiveSwipe.CONTENTS_PROGRAMMATIC_VELOCITY_DP_PER_SEC *
+                    resources.displayMetrics.density
+            ) {
+                osrsArticleInteractiveSwipe.contentsToggleDurationMs(
+                    velocityX,
+                    remaining,
+                    resources.displayMetrics.density
+                )
+            } else {
+                osrsArticleInteractiveSwipe.remainingCommitDurationMs(
+                    traveled,
+                    velocityX,
+                    width,
+                    resources.displayMetrics.density
+                )
+            }
+            val interpolator = osrsArticleInteractiveSwipe.settleInterpolator(
+                velocityX,
+                remaining,
+                duration
+            )
+            drawer.animate()
+                .translationX(target)
+                .setDuration(duration)
+                .setInterpolator(interpolator)
+                .start()
+            if (progress <= 0f) {
+                scrim.visibility = View.VISIBLE
+                scrim.animate()
+                    .alpha(0f)
+                    .setDuration(duration)
+                    .setInterpolator(interpolator)
+                    .withEndAction { hideContentsScrim() }
+                    .start()
+            } else {
+                scrim.visibility = View.VISIBLE
+                scrim.isClickable = true
+                scrim.animate()
+                    .alpha(progress.coerceAtLeast(0.08f))
+                    .setDuration(duration)
+                    .setInterpolator(interpolator)
+                    .start()
+            }
+        } else {
+            drawer.translationX = target
+            if (progress <= 0f) {
+                hideContentsScrim()
+            } else {
+                scrim.visibility = View.VISIBLE
+                scrim.alpha = progress.coerceAtLeast(0.08f)
+                scrim.isClickable = true
+            }
+        }
+        drawer.isClickable = progress >= 0.98f
+    }
+
+    private fun cancelInteractiveSwipeChrome() {
+        val sliding = binding.navMenuTriggerLayout
+        val width = sliding.width.toFloat().coerceAtLeast(1f)
+        val progress = (sliding.translationX / width).coerceIn(0f, 1f)
+        val remaining = progress * width
+        val duration = osrsArticleInteractiveSwipe.remainingCommitDurationMs(
+            1f - progress,
+            0f,
+            width,
+            resources.displayMetrics.density
+        )
+        val interpolator = osrsArticleInteractiveSwipe.settleInterpolator(0f, remaining, duration)
+        sliding.animate()
+            .translationX(0f)
+            .setDuration(duration)
+            .setInterpolator(interpolator)
+            .start()
+        if (isContentsOpen) {
+            setContentsRevealProgress(1f, animate = true)
+        } else {
+            setContentsRevealProgress(0f, animate = true)
+            hideContentsScrim()
+        }
+        binding.pageBackPreview.animate()
+            .translationX(
+                -width * osrsArticleInteractiveSwipe.BACK_PREVIEW_PARALLAX
+            )
+            .setDuration(duration)
+            .setInterpolator(interpolator)
+            .withEndAction { resetInteractiveBackChrome() }
+            .start()
+    }
+
+    private fun updateSystemGestureExclusionRects() {
+        val host = binding.pageContentHost
+        if (host.width <= 0 || host.height <= 0) {
+            return
+        }
+        // Yield both screen edges to the OS back gesture. Interior article swipes
+        // still start inside the page, outside the system-gesture insets.
+        ViewCompat.setSystemGestureExclusionRects(host, emptyList())
+    }
+
+    private fun resetInteractiveBackChrome() {
+        binding.navMenuTriggerLayout.translationX = 0f
+        binding.pageBackPreview.translationX = 0f
+        binding.pageBackPreview.visibility = View.GONE
+    }
+
+    private fun hideContentsScrim() {
+        binding.pageContentsScrim.visibility = View.GONE
+        binding.pageContentsScrim.alpha = 0f
+        binding.pageContentsScrim.isClickable = false
+    }
+
     fun showContents() {
-        val fragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
-        fragment?.showContents()
+        currentPageFragment()?.showContents()
     }
 
     private fun setupToolbarListeners() {
@@ -318,7 +887,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
 
         binding.pageToolbar.findViewById<View>(R.id.toolbar_overflow_menu_button).setOnClickListener { anchorView ->
-            val currentFragment = supportFragmentManager.findFragmentByTag(FRAGMENT_TAG) as? PageFragment
+            val currentFragment = currentPageFragment()
             currentFragment?.showPageOverflowMenu(anchorView) ?: run {
                 Toast.makeText(this, "Error: Could not show menu.", Toast.LENGTH_SHORT).show()
             }
@@ -337,8 +906,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     private fun setupBackNavigation() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (binding.pageDrawerLayout.isDrawerOpen(binding.sidePanelContainer)) {
-                    binding.pageDrawerLayout.closeDrawer(binding.sidePanelContainer)
+                if (isContentsDrawerOpen()) {
+                    closeContents(animate = true)
                     return
                 }
 
@@ -427,7 +996,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 apiTitle = pageTitle
             )
             
-            savedPage?.offline == true && savedPage.status == ReadingListPage.STATUS_SAVED
+            savedPage?.hasReadableOfflineSnapshot == true
         } catch (e: Exception) {
             false
         }
@@ -890,7 +1459,14 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         }
     }
     
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(0, 0)
+    }
+
     override fun onDestroy() {
+        binding.pageBackPreview.setImageDrawable(null)
+        backPreviewStack.clear()
         super.onDestroy()
     }
 
@@ -899,8 +1475,13 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         val pageId: String?,
         val navigationSource: Int,
         val snippet: String?,
-        val thumbnailUrl: String?
+        val thumbnailUrl: String?,
+        val scrollY: Int = 0
     ) {
+        fun withRestore(restore: osrsArticleViewRestore?): ArticleArgs {
+            return copy(scrollY = restore?.scrollY ?: 0)
+        }
+
         fun toBundle(): Bundle {
             return Bundle().apply {
                 putString(EXTRA_PAGE_TITLE, pageTitle)
@@ -908,6 +1489,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                 putInt(EXTRA_PAGE_SOURCE, navigationSource)
                 putString(EXTRA_PAGE_SNIPPET, snippet)
                 putString(EXTRA_PAGE_THUMBNAIL, thumbnailUrl)
+                putInt(EXTRA_PAGE_SCROLL_Y, scrollY)
             }
         }
 
@@ -918,7 +1500,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
                     pageId = bundle.getString(EXTRA_PAGE_ID),
                     navigationSource = bundle.getInt(EXTRA_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK),
                     snippet = bundle.getString(EXTRA_PAGE_SNIPPET),
-                    thumbnailUrl = bundle.getString(EXTRA_PAGE_THUMBNAIL)
+                    thumbnailUrl = bundle.getString(EXTRA_PAGE_THUMBNAIL),
+                    scrollY = bundle.getInt(EXTRA_PAGE_SCROLL_Y, 0)
                 )
             }
         }
@@ -930,10 +1513,13 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         const val EXTRA_PAGE_SOURCE = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SOURCE"
         const val EXTRA_PAGE_SNIPPET = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SNIPPET"
         const val EXTRA_PAGE_THUMBNAIL = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_THUMBNAIL"
+        const val EXTRA_PAGE_SCROLL_Y = "com.omiyawaki.osrswiki.page.EXTRA_PAGE_SCROLL_Y"
         const val EXTRA_DEEP_NAVIGATION_FIXTURE_PROBE_FOR_DEBUG_TESTS = "com.omiyawaki.osrswiki.page.EXTRA_DEEP_NAVIGATION_FIXTURE_PROBE_FOR_DEBUG_TESTS"
         const val FRAGMENT_TAG = "PageFragmentTag"
         private const val STATE_ARTICLE_BACK_STACK = "com.omiyawaki.osrswiki.page.STATE_ARTICLE_BACK_STACK"
         private const val STATE_CURRENT_ARTICLE_ARGS = "com.omiyawaki.osrswiki.page.STATE_CURRENT_ARTICLE_ARGS"
+        private const val STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS = "com.omiyawaki.osrswiki.page.STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS"
+        private const val STATE_CURRENT_ARTICLE_FRAGMENT_TAG = "com.omiyawaki.osrswiki.page.STATE_CURRENT_ARTICLE_FRAGMENT_TAG"
 
         fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
             L.d("PageActivity: Creating intent for UpdateItem")
@@ -1016,6 +1602,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             thumbnailUrl: String? = null
         ): Intent {
             L.d("PageActivity: Creating intent with - pageTitle: '$pageTitle', pageId: '$pageId', source: $source")
+            osrsUnderlyingActivityPreview.captureFromCaller(context)
             return Intent(context, PageActivity::class.java).apply {
                 putExtra(EXTRA_PAGE_TITLE, pageTitle)
                 putExtra(EXTRA_PAGE_ID, pageId)

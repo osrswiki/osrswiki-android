@@ -13,10 +13,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.omiyawaki.osrswiki.activity.BaseActivity
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ActivityReportIssueBinding
+import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.launch
 
@@ -40,6 +40,7 @@ class ReportIssueActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityReportIssueBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyEdgeToEdgeInsets(binding.root, applyNavigationBar = false)
 
         setupToolbar()
         setupWindowInsets()
@@ -157,7 +158,7 @@ class ReportIssueActivity : BaseActivity() {
                     },
                     onFailure = { error ->
                         L.e("ReportIssueActivity: Error submitting issue", error)
-                        showErrorDialog(error.message ?: getString(R.string.feedback_error_message))
+                        showErrorDialog(getString(R.string.feedback_error_message))
                         setFormEnabled(true)
                         binding.submitButton.text = getString(R.string.feedback_submit_issue)
                     }
@@ -230,7 +231,7 @@ class ReportIssueActivity : BaseActivity() {
     }
 
     private fun showSuccessDialog(message: String) {
-        MaterialAlertDialogBuilder(this)
+        ThemedAlertDialogs.builder(this)
             .setTitle(getString(R.string.feedback_success_title))
             .setMessage(message)
             .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -241,7 +242,7 @@ class ReportIssueActivity : BaseActivity() {
     }
 
     private fun showErrorDialog(message: String) {
-        MaterialAlertDialogBuilder(this)
+        ThemedAlertDialogs.builder(this)
             .setTitle(getString(R.string.feedback_error_title))
             .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)

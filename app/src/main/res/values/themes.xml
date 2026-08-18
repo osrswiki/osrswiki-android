@@ -42,6 +42,8 @@
         
         <!-- MaterialSwitch theming using expert guidance -->
         <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+        <item name="switchStyle">@style/Widget.OSRSWiki.SwitchCompat</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Light" parent="Theme.Material3.Light.NoActionBar">
@@ -70,6 +72,8 @@
         
         <!-- MaterialSwitch theming using expert guidance -->
         <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+        <item name="switchStyle">@style/Widget.OSRSWiki.SwitchCompat</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
     </style>
 
     <style name="Theme.OSRSWiki.Base.Dark" parent="Theme.Material3.Dark.NoActionBar">
@@ -95,6 +99,8 @@
         
         <!-- MaterialSwitch theming using expert guidance -->
         <item name="materialSwitchStyle">@style/Widget.OSRSWiki.MaterialSwitch</item>
+        <item name="switchStyle">@style/Widget.OSRSWiki.SwitchCompat</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Material3.MaterialAlertDialog</item>
     </style>
 
     <style name="Theme.OSRSWiki.OSRSLight" parent="Theme.OSRSWiki.Base.Light">
@@ -215,6 +221,17 @@
         <!-- Tell every <Preference> row which TextAppearances to use -->
         <item name="android:textAppearanceLarge">@style/AppTextAppearance.PreferenceTitle</item>
         <item name="android:textAppearanceSmall">@style/AppTextAppearance.PreferenceSummary</item>
+        <item name="android:textAppearanceListItem">@style/AppTextAppearance.PreferenceTitle</item>
+        <item name="android:textAppearanceListItemSecondary">@style/AppTextAppearance.PreferenceSummary</item>
+        <item name="preferenceCategoryTitleTextAppearance">@style/AppTextAppearance.PreferenceCategory</item>
+        <item name="switchStyle">@style/Widget.OSRSWiki.SwitchCompat</item>
+    </style>
+
+    <style name="Widget.OSRSWiki.SwitchCompat" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="android:thumbTint">@color/switch_thumb_tint</item>
+        <item name="android:trackTint">@color/switch_track_tint</item>
+        <item name="thumbTint">@color/switch_thumb_tint</item>
+        <item name="trackTint">@color/switch_track_tint</item>
     </style>
 
     <!-- Custom MaterialSwitch style for proper theming following expert guidance -->

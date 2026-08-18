@@ -29,6 +29,8 @@ import com.omiyawaki.osrswiki.news.model.AnnouncementItem
 import com.omiyawaki.osrswiki.news.model.OnThisDayItem
 import com.omiyawaki.osrswiki.news.model.PopularPageItem
 import com.omiyawaki.osrswiki.news.model.UpdateItem
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
+import com.omiyawaki.osrswiki.page.preemptive.VisibleRowViewportPolicy
 
 // Helper function moved to top-level to be accessible by all classes in this file.
 private fun TextView.setTextWithClickableLinks(html: String, onLinkClick: (url: String) -> Unit) {
@@ -112,6 +114,7 @@ class NewsFeedAdapter(
 
     private val items = mutableListOf<FeedItem>()
     private var updatesViewHolder: UpdatesViewHolder? = null
+    private var prewarmVisibilityChanged: (() -> Unit)? = null
 
     companion object {
         private const val VIEW_TYPE_UPDATES = 0
@@ -129,6 +132,80 @@ class NewsFeedAdapter(
     
     fun updateLastUpdatedText(text: String) {
         updatesViewHolder?.updateLastUpdatedText(text)
+    }
+
+    fun setPrewarmVisibilityListener(listener: (() -> Unit)?) {
+        prewarmVisibilityChanged = listener
+    }
+
+    /** Every actually visible tappable article in a grouped home row is independently eligible. */
+    fun prewarmCandidatesAt(position: Int, rowView: View): Set<ArticlePrewarmRequest> {
+        return when (val item = items.getOrNull(position)) {
+            is FeedItem.Updates -> {
+                val nested = rowView.findViewById<RecyclerView>(R.id.updates_recycler_view)
+                visibleRecyclerPositions(nested).mapNotNull { childPosition ->
+                    item.items.getOrNull(childPosition)?.let { update ->
+                        ArticlePrewarmRequest.fromWikiUrl(update.articleUrl, update.title)
+                    }
+                }.toSet()
+            }
+            is FeedItem.Announcement -> internalArticles(item.item.content)
+            is FeedItem.OnThisDay -> {
+                val container = rowView.findViewById<LinearLayout>(R.id.on_this_day_content_container)
+                visibleLinearChildIndices(container).flatMap { index ->
+                    item.item.events.getOrNull(index)?.let(::internalArticles).orEmpty()
+                }.toSet()
+            }
+            is FeedItem.Popular -> {
+                val container = rowView.findViewById<LinearLayout>(R.id.popular_content_container)
+                visibleLinearChildIndices(container).mapNotNull { index ->
+                    item.items.getOrNull(index)?.let { popular ->
+                        ArticlePrewarmRequest.fromWikiUrl(popular.pageUrl, popular.title)
+                    }
+                }.toSet()
+            }
+            null -> emptySet()
+        }
+    }
+
+    private fun internalArticles(html: String): Set<ArticlePrewarmRequest> {
+        val href = Regex("""href=[\"']([^\"']+)[\"']""", RegexOption.IGNORE_CASE)
+        return href.findAll(html).mapNotNull { match ->
+            match.groupValues.getOrNull(1)?.let(ArticlePrewarmRequest::fromWikiUrl)
+        }.toSet()
+    }
+
+    private fun visibleRecyclerPositions(recyclerView: RecyclerView): List<Int> {
+        val viewport = Rect()
+        if (!recyclerView.getGlobalVisibleRect(viewport)) return emptyList()
+        return recyclerView.children.mapNotNull { child ->
+            if (!intersectsVisibleViewport(child, viewport)) return@mapNotNull null
+            recyclerView.getChildAdapterPosition(child).takeUnless { it == RecyclerView.NO_POSITION }
+        }.toList()
+    }
+
+    private fun visibleLinearChildIndices(container: LinearLayout): List<Int> {
+        val viewport = Rect()
+        if (!container.getGlobalVisibleRect(viewport)) return emptyList()
+        return container.children.mapIndexedNotNull { index, child ->
+            index.takeIf { intersectsVisibleViewport(child, viewport) }
+        }.toList()
+    }
+
+    private fun intersectsVisibleViewport(child: View, viewport: Rect): Boolean {
+        val childBounds = Rect()
+        if (!child.getGlobalVisibleRect(childBounds)) return false
+        return VisibleRowViewportPolicy.intersectsViewport(
+            child.isShown,
+            viewport.left,
+            viewport.top,
+            viewport.right,
+            viewport.bottom,
+            childBounds.left,
+            childBounds.top,
+            childBounds.right,
+            childBounds.bottom
+        )
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -189,7 +266,10 @@ class NewsFeedAdapter(
         fun bind(items: List<UpdateItem>, listener: (UpdateItem) -> Unit) {
             nestedRecyclerView.adapter = UpdatesAdapter(items, imageLoader, listener)
             attachAccessibilityListenersOnce()
-            nestedRecyclerView.post { updateCarouselChildAccessibility() }
+            nestedRecyclerView.post {
+                updateCarouselChildAccessibility()
+                prewarmVisibilityChanged?.invoke()
+            }
         }
         
         fun updateLastUpdatedText(text: String) {
@@ -205,11 +285,15 @@ class NewsFeedAdapter(
             nestedRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     updateCarouselChildAccessibility()
+                    prewarmVisibilityChanged?.invoke()
                 }
             })
             nestedRecyclerView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
                 override fun onChildViewAttachedToWindow(view: View) {
-                    nestedRecyclerView.post { updateCarouselChildAccessibility() }
+                    nestedRecyclerView.post {
+                        updateCarouselChildAccessibility()
+                        prewarmVisibilityChanged?.invoke()
+                    }
                 }
 
                 override fun onChildViewDetachedFromWindow(view: View) = Unit

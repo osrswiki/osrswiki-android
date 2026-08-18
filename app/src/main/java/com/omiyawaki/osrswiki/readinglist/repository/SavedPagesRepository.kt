@@ -1,14 +1,16 @@
 package com.omiyawaki.osrswiki.readinglist.repository
 
 import android.util.Log
+import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.database.AppDatabase
-import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
-import com.omiyawaki.osrswiki.offline.db.OfflineObjectDao
+import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.savedpages.ReadingListSnapshotDeletion
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 // import javax.inject.Inject // Removed
 // import javax.inject.Singleton // Removed
 
@@ -20,8 +22,11 @@ import kotlinx.coroutines.flow.Flow
 class SavedPagesRepository constructor( // @Inject removed from constructor
     private val readingListPageDao: ReadingListPageDao,
     private val offlinePageFtsDaoProvider: () -> OfflinePageFtsDao = { AppDatabase.instance.offlinePageFtsDao() },
-    private val offlineObjectDaoProvider: () -> OfflineObjectDao = { AppDatabase.instance.offlineObjectDao() },
-    private val articleMetaDaoProvider: () -> ArticleMetaDao = { AppDatabase.instance.articleMetaDao() }
+    private val databaseProvider: () -> AppDatabase = { AppDatabase.instance },
+    private val invalidatePreparedArticle: (ArticlePrewarmRequest) -> Unit =
+        OSRSWikiApp::invalidatePreparedArticleIfAvailable,
+    private val deleteReadingListRowsOverride:
+        (suspend (List<Long>, android.content.Context) -> List<ReadingListPage>)? = null
 ) {
 
     /**
@@ -39,7 +44,7 @@ class SavedPagesRepository constructor( // @Inject removed from constructor
     suspend fun searchSavedPagesByTitle(query: String): List<ReadingListPage> {
         Log.d(TAG, "searchSavedPagesByTitle: Starting search for query='$query'")
         
-        val allPages = readingListPageDao.getPagesByStatusAndOffline(ReadingListPage.STATUS_SAVED, true)
+        val allPages = getReadableOfflinePagesSnapshot()
         Log.d(TAG, "searchSavedPagesByTitle: Found ${allPages.size} total saved pages")
         
         // Log details of saved pages for debugging
@@ -100,7 +105,7 @@ class SavedPagesRepository constructor( // @Inject removed from constructor
         Log.d(TAG, "searchSavedPages: Got ${ftsMatches.size} FTS matches")
         
         // Fix: Get all saved pages independently for FTS matching
-        val allSavedPages = readingListPageDao.getPagesByStatusAndOffline(ReadingListPage.STATUS_SAVED, true)
+        val allSavedPages = getReadableOfflinePagesSnapshot()
         Log.d(TAG, "searchSavedPages: Got ${allSavedPages.size} total saved pages for FTS matching")
         
         val ftsPageMatches = ftsMatches.mapNotNull { ftsResult ->
@@ -130,23 +135,15 @@ class SavedPagesRepository constructor( // @Inject removed from constructor
         return combinedResults.sortedByDescending { it.atime } // Sort by most recently accessed
     }
 
+    suspend fun getReadableOfflinePagesSnapshot(): List<ReadingListPage> =
+        readingListPageDao.getFullySavedPagesObservable().first()
+
     /**
      * Deletes a single saved page including its offline objects and FTS entries.
      */
     suspend fun deleteSavedPage(page: ReadingListPage, context: android.content.Context) {
         Log.d(TAG, "deleteSavedPage: Deleting page '${page.displayTitle}'")
-        
-        try {
-            deleteOfflineCachesForPages(listOf(page), context)
-            
-            // Delete the reading list page entry
-            readingListPageDao.deleteReadingListPage(page)
-            Log.d(TAG, "deleteSavedPage: Deleted reading list page entry")
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "deleteSavedPage: Error deleting page '${page.displayTitle}'", e)
-            throw e
-        }
+        deleteSavedPages(listOf(page), context)
     }
 
     /**
@@ -158,38 +155,17 @@ class SavedPagesRepository constructor( // @Inject removed from constructor
         Log.d(TAG, "deleteSavedPages: Deleting ${pages.size} saved pages")
 
         try {
-            deleteOfflineCachesForPages(pages, context)
-            readingListPageDao.deletePagesByIds(pages.map { it.id })
-            Log.d(TAG, "deleteSavedPages: Deleted ${pages.size} reading list page entries")
+            val pageIds = pages.map(ReadingListPage::id).distinct()
+            val deletedPages = deleteReadingListRowsOverride?.invoke(pageIds, context)
+                ?: ReadingListSnapshotDeletion(
+                    context = context,
+                    database = databaseProvider(),
+                    invalidatePreparedArticle = invalidatePreparedArticle
+                ).deleteReadingListRows(pageIds)
+            Log.d(TAG, "deleteSavedPages: Deleted ${deletedPages.size} reading list page entries")
         } catch (e: Exception) {
             Log.e(TAG, "deleteSavedPages: Error deleting saved pages", e)
             throw e
-        }
-    }
-
-    private suspend fun deleteOfflineCachesForPages(pages: List<ReadingListPage>, context: android.content.Context) {
-        val pageIds = pages.map { it.id }
-        val offlineObjectDao = offlineObjectDaoProvider()
-        offlineObjectDao.deleteObjectsForPageIds(pageIds, context)
-        Log.d(TAG, "deleteOfflineCachesForPages: Deleted offline objects for page IDs $pageIds")
-
-        val ftsDao = offlinePageFtsDaoProvider()
-        val articleMetaDao = articleMetaDaoProvider()
-
-        pages.forEach { page ->
-            val pageTitleHelper = ReadingListPage.toPageTitle(page)
-            val canonicalPageUrlForFts = pageTitleHelper.uri
-            ftsDao.deletePageContentByUrl(canonicalPageUrlForFts)
-            Log.d(TAG, "deleteOfflineCachesForPages: Deleted FTS entry for URL '$canonicalPageUrlForFts'")
-
-            val mediaWikiPageId = page.mediaWikiPageId
-            if (mediaWikiPageId != null) {
-                val articleMeta = articleMetaDao.getMetaByPageId(mediaWikiPageId)
-                if (articleMeta != null) {
-                    articleMetaDao.delete(articleMeta)
-                    Log.d(TAG, "deleteOfflineCachesForPages: Deleted ArticleMeta for page ID $mediaWikiPageId")
-                }
-            }
         }
     }
 

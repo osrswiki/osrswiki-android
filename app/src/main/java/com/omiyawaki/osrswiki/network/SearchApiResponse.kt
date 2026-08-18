@@ -29,12 +29,14 @@ data class SearchResult(
     val ns: Int,
     val title: String,
     val pageid: Int,
-    val index: Int, // The relevance index provided by the API for sorting.
+    val index: Int = 0, // The relevance index provided by the API for sorting.
     val size: Int? = null,
     val wordcount: Int? = null,
-    // The new API returns 'extract' instead of 'snippet'.
-    @SerialName("extract")
+    // Relevance-ranked list and generator search responses both return `snippet`.
+    @SerialName("snippet")
     val snippet: String? = null,
+    // Prefixsearch has no Cirrus snippet; `prop=extracts` fills this on the same request.
+    val extract: String? = null,
     val timestamp: String? = null,
     // The new API returns a nested 'thumbnail' object.
     val thumbnail: Thumbnail? = null,

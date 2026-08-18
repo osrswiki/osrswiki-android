@@ -15,7 +15,10 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -27,7 +30,6 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
-import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.model.LeadSectionDetails
 import com.omiyawaki.osrswiki.page.model.Section
@@ -37,6 +39,7 @@ import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.feedback.ReportIssueActivity
 import kotlinx.coroutines.Dispatchers
@@ -54,7 +57,10 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         fun onWebViewReady(webView: ObservableWebView)
         fun getPageToolbarContainer(): View
         fun getPageActionBarManager(): PageActionBarManager
-        fun onPageSwipe(gravity: Int)
+        fun onPageSwipe(gravity: Int, velocityX: Float = 0f)
+        fun onPageSwipeProgress(gravity: Int, progress: Float) {}
+        fun onPageSwipeCancelled() {}
+        fun isContentsDrawerOpen(): Boolean = false
     }
 
     private var _binding: FragmentPageBinding? = null
@@ -73,6 +79,21 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var pageUiUpdater: PageUiUpdater? = null
     private lateinit var gestureDetector: GestureDetector
     private var nativeMapHandler: NativeMapHandler? = null
+    private val horizontalGestureOwnership = ArticleHorizontalGestureOwnership()
+    private var lastAppliedCollapsePreference = Prefs.isCollapseTablesEnabled
+    private var lastAppliedFloorNumberingMode = Prefs.floorNumberingMode
+    private var lastPointerDownX = Float.NaN
+    private var lastPointerDownY = Float.NaN
+    private var lastPointerDownRawX = Float.NaN
+    private var lastPointerDownRawY = Float.NaN
+    private var interactiveSwipe: osrsArticleInteractiveSwipe? = null
+    private var lastInteractiveDx = 0f
+    private var lastInteractiveVx = 0f
+    private var lastInteractiveEventX = 0f
+    private var lastInteractiveEventTime = 0L
+    private var consumedInteractiveSwipe = false
+    private var injectingWebViewCancel = false
+    private var ignoreInteractiveSwipeForSystemBackEdge = false
 
     private var callback: Callback? = null
     private var isFindInPageActive = false
@@ -88,6 +109,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var navigationSource: Int = HistoryEntry.SOURCE_INTERNAL_LINK
     private var snippetArg: String? = null
     private var thumbnailUrlArg: String? = null
+    private var restoreScrollYArg: Int = 0
+    private var lastObservedScrollY = 0
+    private val scrollCaptureListener = ObservableWebView.OnScrollChangeListener { _, scrollY, _ ->
+        lastObservedScrollY = maxOf(lastObservedScrollY, scrollY)
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -109,6 +135,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             navigationSource = it.getInt(ARG_PAGE_SOURCE, HistoryEntry.SOURCE_INTERNAL_LINK)
             snippetArg = it.getString(ARG_PAGE_SNIPPET)
             thumbnailUrlArg = it.getString(ARG_PAGE_THUMBNAIL)
+            restoreScrollYArg = it.getInt(ARG_PAGE_SCROLL_Y, 0)
         }
         pageViewModel = PageViewModel()
         val appInstance = requireActivity().applicationContext as OSRSWikiApp
@@ -129,6 +156,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         super.onViewCreated(view, savedInstanceState)
         callback?.onWebViewReady(binding.pageWebView)
         setupGestureDetector()
+        trackWebViewScrollPosition()
         
         // Skip ContentsHandler and NativeMapHandler creation in debug mode (Coins page test)
         if (System.getProperty("debug.coins.test") != "true") {
@@ -137,6 +165,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
+        lastAppliedCollapsePreference = Prefs.isCollapseTablesEnabled
         val backgroundColorRes = when (currentTheme) {
             Theme.OSRS_DARK -> R.color.osrs_parchment_dark
             else -> R.color.osrs_parchment_light
@@ -164,7 +193,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val uiUpdater = PageUiUpdater(binding, pageViewModel, webViewManager) { this }
         pageUiUpdater = uiUpdater
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
-        val pageAssetDownloader = PageAssetDownloader(OkHttpClientFactory.offlineClient, pageRepository)
+        // A single process-owned downloader lets list dwell work and article foreground work share
+        // the same cache/in-flight generation across fragment recreation.
+        val pageAssetDownloader = app.pageAssetDownloader
 
         pageContentLoader = PageContentLoader(
             context = requireContext().applicationContext,
@@ -251,6 +282,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             nativeMapHandler = NativeMapHandler(this, binding)
         }
         setupGestureDetector()
+        trackWebViewScrollPosition()
         val webViewManager = createPageWebViewManager()
         pageWebViewManager = webViewManager
         pageUiUpdater = PageUiUpdater(binding, pageViewModel, webViewManager) { this }
@@ -258,9 +290,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestureDetector() {
+        horizontalGestureOwnership.reset()
+        val slop = ViewConfiguration.get(requireContext()).scaledPagingTouchSlop
+        interactiveSwipe = osrsArticleInteractiveSwipe(touchSlop = slop)
         val gestureListener = object : GestureDetector.SimpleOnGestureListener() {
-            private val swipeThreshold = 100
-            private val swipeVelocityThreshold = 100
+            private val swipeThreshold = 72
+            private val swipeVelocityThreshold = 80
 
             override fun onDown(e: MotionEvent): Boolean {
                 return true
@@ -279,24 +314,30 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 val dy = e2.y - e1.y
                 var result = false
                 try {
-                    val isMapScrolling = nativeMapHandler?.isHorizontalScrollInProgress ?: false
-                    L.d("Gesture: dx=${dx.toInt()}, dy=${dy.toInt()}, velX=${velocityX.toInt()}, mapScrolling=${isMapScrolling}")
+                    val generation = horizontalGestureOwnership.currentGeneration ?: return false
+                    val isLocalScrollOwned = horizontalGestureOwnership.owns(generation)
+                    L.d("Gesture: dx=${dx.toInt()}, dy=${dy.toInt()}, velX=${velocityX.toInt()}, localScrollOwned=$isLocalScrollOwned")
                     
-                    if (isMapScrolling) {
-                        L.d("Gesture: Blocked by map horizontal scroll")
+                    if (isLocalScrollOwned) {
+                        L.d("Gesture: Blocked by local horizontal scroll")
                         return false
                     }
                     if (abs(dx) > abs(dy) &&
                         abs(dx) > swipeThreshold &&
                         abs(velocityX) > swipeVelocityThreshold
                     ) {
-                        val direction = if (dx > 0) "START" else "END"
-                        L.d("Gesture: Valid swipe detected, direction=$direction")
-
-                        if (dx > 0) {
-                            callback?.onPageSwipe(Gravity.START)
-                        } else {
-                            callback?.onPageSwipe(Gravity.END)
+                        val gravity = if (dx > 0) Gravity.START else Gravity.END
+                        L.d("Gesture: Swipe candidate detected, generation=$generation")
+                        when (horizontalGestureOwnership.registerNavigationCandidate(generation)) {
+                            ArticleHorizontalGestureOwnership.NavigationDecision.WAITING_FOR_CLASSIFICATION ->
+                                resolveArticleSwipeOwnership(generation, gravity)
+                            ArticleHorizontalGestureOwnership.NavigationDecision.ALLOW_NAVIGATION -> {
+                                dispatchPageSwipeIfEnabled(gravity)
+                                horizontalGestureOwnership.finishPointer(generation)
+                            }
+                            ArticleHorizontalGestureOwnership.NavigationDecision.BLOCK_NAVIGATION ->
+                                horizontalGestureOwnership.finishPointer(generation)
+                            ArticleHorizontalGestureOwnership.NavigationDecision.STALE -> Unit
                         }
                         result = true
                     } else {
@@ -309,14 +350,273 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             }
         }
         gestureDetector = GestureDetector(requireContext(), gestureListener)
-        binding.pageWebView.setOnTouchListener { _, event ->
-            // If JS signaled an active horizontal interaction (e.g., Highcharts),
-            // do not feed events into the back-swipe GestureDetector.
-            if (nativeMapHandler?.isHorizontalScrollInProgress == true) {
+        binding.pageWebView.setOnTouchListener { view, event ->
+            if (injectingWebViewCancel) {
                 return@setOnTouchListener false
             }
-            gestureDetector.onTouchEvent(event)
-            false
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                val systemGestures = ViewCompat.getRootWindowInsets(view)
+                    ?.getInsets(WindowInsetsCompat.Type.systemGestures())
+                ignoreInteractiveSwipeForSystemBackEdge = osrsArticleSystemBackEdge.contains(
+                    event.x,
+                    view.width.toFloat(),
+                    systemGestures?.left ?: 0,
+                    systemGestures?.right ?: 0
+                )
+            }
+            if (ignoreInteractiveSwipeForSystemBackEdge) {
+                if (event.actionMasked == MotionEvent.ACTION_UP ||
+                    event.actionMasked == MotionEvent.ACTION_CANCEL
+                ) {
+                    ignoreInteractiveSwipeForSystemBackEdge = false
+                }
+                return@setOnTouchListener false
+            }
+            val tracker = interactiveSwipe
+            val generation = when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    lastPointerDownX = event.x
+                    lastPointerDownY = event.y
+                    lastPointerDownRawX = event.rawX
+                    lastPointerDownRawY = event.rawY
+                    lastInteractiveDx = 0f
+                    lastInteractiveVx = 0f
+                    lastInteractiveEventX = event.rawX
+                    lastInteractiveEventTime = event.eventTime
+                    consumedInteractiveSwipe = false
+                    tracker?.reset()
+                    horizontalGestureOwnership.beginPointer()
+                }
+                else -> horizontalGestureOwnership.currentGeneration
+            }
+
+            if (event.actionMasked == MotionEvent.ACTION_MOVE &&
+                tracker != null &&
+                !lastPointerDownRawX.isNaN() &&
+                !horizontalGestureOwnership.ownsCurrentPointer()
+            ) {
+                val dx = event.rawX - lastPointerDownRawX
+                val dy = event.rawY - lastPointerDownRawY
+                val dt = (event.eventTime - lastInteractiveEventTime).coerceAtLeast(1L)
+                lastInteractiveVx = (event.rawX - lastInteractiveEventX) * 1000f / dt
+                lastInteractiveEventX = event.rawX
+                lastInteractiveEventTime = event.eventTime
+                lastInteractiveDx = dx
+                val contentsOpen = callback?.isContentsDrawerOpen() == true
+                val axis = tracker.onMove(dx, dy, contentsOpen = contentsOpen)
+                if (tracker.isTracking && axis != null) {
+                    if (!consumedInteractiveSwipe) {
+                        consumedInteractiveSwipe = true
+                        val cancel = MotionEvent.obtain(
+                            event.downTime,
+                            event.eventTime,
+                            MotionEvent.ACTION_CANCEL,
+                            event.x,
+                            event.y,
+                            event.metaState
+                        )
+                        try {
+                            gestureDetector.onTouchEvent(cancel)
+                            injectingWebViewCancel = true
+                            view.onTouchEvent(cancel)
+                        } finally {
+                            injectingWebViewCancel = false
+                            cancel.recycle()
+                        }
+                    }
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    val gravity = tracker.gravity()
+                    val span = interactiveSpanPx(view, axis)
+                    if (gravity != null) {
+                        val action = when (gravity) {
+                            Gravity.START -> ReaderSwipeAction.BACK
+                            Gravity.END -> ReaderSwipeAction.CONTENTS
+                            else -> null
+                        }
+                        if (action != null && ReaderGesturePolicy.isEnabled(action, Prefs.readerPreferences)) {
+                            callback?.onPageSwipeProgress(gravity, tracker.progress(dx, span))
+                        }
+                    }
+                }
+            }
+
+            if (!horizontalGestureOwnership.ownsCurrentPointer() && !consumedInteractiveSwipe) {
+                gestureDetector.onTouchEvent(event)
+            }
+
+            if (generation != null) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_UP -> {
+                        val slop = ViewConfiguration.get(view.context).scaledTouchSlop
+                        val isTap = !lastPointerDownX.isNaN() &&
+                            kotlin.math.abs(event.x - lastPointerDownX) <= slop &&
+                            kotlin.math.abs(event.y - lastPointerDownY) <= slop
+                        if (isTap) {
+                            dismissFindInPageIfActive()
+                        }
+                        if (tracker != null && !lastPointerDownRawX.isNaN()) {
+                            lastInteractiveDx = event.rawX - lastPointerDownRawX
+                            tracker.onMove(
+                                lastInteractiveDx,
+                                event.rawY - lastPointerDownRawY,
+                                contentsOpen = callback?.isContentsDrawerOpen() == true
+                            )
+                            if (tracker.isTracking) {
+                                consumedInteractiveSwipe = true
+                            }
+                        }
+                        if (consumedInteractiveSwipe && tracker != null) {
+                            settleInteractiveSwipe(tracker, view)
+                        }
+                        if (!horizontalGestureOwnership.isAwaitingNavigationDecision(generation)) {
+                            horizontalGestureOwnership.finishPointer(generation)
+                        }
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        if (consumedInteractiveSwipe) {
+                            tracker?.reset()
+                            callback?.onPageSwipeCancelled()
+                        }
+                        horizontalGestureOwnership.finishPointer(generation)
+                    }
+                }
+            }
+            consumedInteractiveSwipe
+        }
+    }
+
+    private fun interactiveSpanPx(view: View, axis: osrsArticleInteractiveSwipe.Axis): Float {
+        return when (axis) {
+            osrsArticleInteractiveSwipe.Axis.BACK -> view.width.toFloat().coerceAtLeast(1f)
+            osrsArticleInteractiveSwipe.Axis.CONTENTS ->
+                osrsArticleInteractiveSwipe.CONTENTS_DRAWER_WIDTH_DP * view.resources.displayMetrics.density
+        }
+    }
+
+    private fun settleInteractiveSwipe(tracker: osrsArticleInteractiveSwipe, view: View) {
+        val axis = tracker.axis
+        val gravity = tracker.gravity()
+        val commit = axis != null &&
+            gravity != null &&
+            tracker.shouldCommit(
+                lastInteractiveDx,
+                lastInteractiveVx,
+                interactiveSpanPx(view, axis)
+            )
+        tracker.reset()
+        consumedInteractiveSwipe = false
+        val swipeGravity = gravity
+        if (!commit || swipeGravity == null) {
+            callback?.onPageSwipeCancelled()
+            return
+        }
+        val generation = horizontalGestureOwnership.currentGeneration
+        if (generation == null) {
+            callback?.onPageSwipeCancelled()
+            return
+        }
+        if (horizontalGestureOwnership.owns(generation)) {
+            callback?.onPageSwipeCancelled()
+            return
+        }
+        when (horizontalGestureOwnership.registerNavigationCandidate(generation)) {
+            ArticleHorizontalGestureOwnership.NavigationDecision.WAITING_FOR_CLASSIFICATION ->
+                resolveArticleSwipeOwnership(generation, swipeGravity)
+            ArticleHorizontalGestureOwnership.NavigationDecision.ALLOW_NAVIGATION -> {
+                dispatchPageSwipeIfEnabled(swipeGravity)
+                horizontalGestureOwnership.finishPointer(generation)
+            }
+            ArticleHorizontalGestureOwnership.NavigationDecision.BLOCK_NAVIGATION -> {
+                callback?.onPageSwipeCancelled()
+                horizontalGestureOwnership.finishPointer(generation)
+            }
+            ArticleHorizontalGestureOwnership.NavigationDecision.STALE ->
+                callback?.onPageSwipeCancelled()
+        }
+    }
+
+    private fun resolveArticleSwipeOwnership(generation: Long, gravity: Int) {
+        val webView = _binding?.pageWebView
+        if (webView == null) {
+            horizontalGestureOwnership.finishPointer(generation)
+            return
+        }
+        val domSequence = horizontalGestureOwnership.domSequenceFor(generation)
+        if (domSequence == null) {
+            // The ownership bridge is not installed yet (page still loading). Keep interior
+            // article chrome usable; OS edge swipes never reach this path.
+            horizontalGestureOwnership.recordFinalClassification(generation, null)
+            dispatchPageSwipeIfEnabled(gravity)
+            horizontalGestureOwnership.finishPointer(generation)
+            return
+        }
+        webView.evaluateJavascript(articleHorizontalGestureSnapshotQuery(domSequence)) { rawResult ->
+            if (_binding == null) {
+                horizontalGestureOwnership.finishPointer(generation)
+                return@evaluateJavascript
+            }
+            val snapshot = decodeArticleHorizontalGestureSnapshot(rawResult)
+            when (horizontalGestureOwnership.recordFinalClassification(generation, snapshot)) {
+                ArticleHorizontalGestureOwnership.NavigationDecision.ALLOW_NAVIGATION ->
+                    dispatchPageSwipeIfEnabled(gravity)
+                ArticleHorizontalGestureOwnership.NavigationDecision.BLOCK_NAVIGATION ->
+                    if (snapshot == null) {
+                        dispatchPageSwipeIfEnabled(gravity)
+                    } else {
+                        callback?.onPageSwipeCancelled()
+                    }
+                ArticleHorizontalGestureOwnership.NavigationDecision.WAITING_FOR_CLASSIFICATION,
+                ArticleHorizontalGestureOwnership.NavigationDecision.STALE ->
+                    callback?.onPageSwipeCancelled()
+            }
+            horizontalGestureOwnership.finishPointer(generation)
+        }
+    }
+
+    private fun dispatchPageSwipeIfEnabled(gravity: Int) {
+        val action = when (gravity) {
+            Gravity.START -> ReaderSwipeAction.BACK
+            Gravity.END -> ReaderSwipeAction.CONTENTS
+            else -> return
+        }
+        if (gravity == Gravity.END && callback?.isContentsDrawerOpen() == true) {
+            callback?.onPageSwipe(gravity, lastInteractiveVx)
+            return
+        }
+        // Read at dispatch time so changes made while PageActivity is paused apply immediately.
+        if (ReaderGesturePolicy.isEnabled(action, Prefs.readerPreferences)) {
+            callback?.onPageSwipe(gravity, lastInteractiveVx)
+        } else {
+            callback?.onPageSwipeCancelled()
+            L.d("Gesture: $action navigation disabled by reader preference")
+        }
+    }
+
+    /** Binds a primary DOM touch sequence to the exact native ACTION_DOWN that preceded it. */
+    internal fun onArticleDomTouchSequence(sequence: Long) {
+        horizontalGestureOwnership.bindNextDomTouchSequence(sequence)
+    }
+
+    /** Called on the view thread when DOM content or a native article map claims this gesture. */
+    internal fun onArticleHorizontalScrollClaimed() {
+        if (!horizontalGestureOwnership.claimCurrentPointer() || !::gestureDetector.isInitialized) {
+            return
+        }
+        interactiveSwipe?.reset()
+        consumedInteractiveSwipe = false
+        callback?.onPageSwipeCancelled()
+        val cancel = MotionEvent.obtain(
+            android.os.SystemClock.uptimeMillis(),
+            android.os.SystemClock.uptimeMillis(),
+            MotionEvent.ACTION_CANCEL,
+            0f,
+            0f,
+            0
+        )
+        try {
+            gestureDetector.onTouchEvent(cancel)
+        } finally {
+            cancel.recycle()
         }
     }
 
@@ -324,15 +624,25 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val script = """
             (function() {
                 var tocData = { leadSectionDetails: null, sections: [] };
-                var headerSpans = document.querySelectorAll('.mw-headline');
+                var headerSpans = document.querySelectorAll('h2[id], h3[id], .mw-headline[id]');
                 for (var i = 0; i < headerSpans.length; i++) {
                     var span = headerSpans[i];
-                    var header = span.parentElement;
-                    if (span.id && (header.tagName === 'H2' || header.tagName === 'H3')) {
+                    var header = span.tagName === 'H2' || span.tagName === 'H3' ? span : span.parentElement;
+                    if (!header || (header.tagName !== 'H2' && header.tagName !== 'H3')) continue;
+                    var clone = span.cloneNode(true);
+                    var hideSel = document.body.classList.contains('floornumber-setting-us')
+                        ? '.floornumber-gb, .floornumber-help'
+                        : '.floornumber-us, .floornumber-help';
+                    clone.querySelectorAll(hideSel).forEach(function(node) {
+                        node.remove();
+                    });
+                    var title = (clone.textContent || '').replace(/\\s+/g, ' ').trim();
+                    var anchor = span.id;
+                    if (anchor && title) {
                         var level = parseInt(header.tagName.substring(1));
                         var computedStyle = window.getComputedStyle(span);
                         tocData.sections.push({
-                            id: i + 1, level: level, anchor: span.id, title: span.textContent.trim(),
+                            id: tocData.sections.length + 1, level: level, anchor: anchor, title: title,
                             isItalic: computedStyle.fontStyle === 'italic',
                             isBold: parseInt(computedStyle.fontWeight) >= 700 || computedStyle.fontWeight === 'bold' || computedStyle.fontWeight === 'bolder'
                         });
@@ -394,10 +704,44 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         pageContentLoader.updateRenderProgress(98)
     }
 
+    fun captureViewRestore(): osrsArticleViewRestore {
+        val webView = _binding?.pageWebView
+        val nativeScroll = maxOf(webView?.scrollY ?: 0, lastObservedScrollY)
+        L.d("captureViewRestore native=${webView?.scrollY} last=$lastObservedScrollY -> $nativeScroll")
+        return osrsArticleViewRestore(scrollY = nativeScroll)
+    }
+
+    fun captureViewRestore(onCaptured: (osrsArticleViewRestore) -> Unit) {
+        val snapshot = captureViewRestore()
+        val webView = _binding?.pageWebView
+        if (webView == null) {
+            onCaptured(snapshot)
+            return
+        }
+        var delivered = false
+        fun deliver(restore: osrsArticleViewRestore) {
+            if (delivered) {
+                return
+            }
+            delivered = true
+            onCaptured(restore)
+        }
+        webView.postDelayed({ deliver(snapshot) }, 180)
+        webView.evaluateJavascript(
+            "(function(){return Math.round(window.pageYOffset||document.documentElement.scrollTop||0);})()"
+        ) { result ->
+            val jsCss = result?.trim('"')?.toFloatOrNull()?.toInt() ?: 0
+            val jsDevice = (jsCss * webView.scale).toInt()
+            val captured = maxOf(snapshot.scrollY, jsCss, jsDevice)
+            L.d("captureViewRestore jsCss=$jsCss jsDevice=$jsDevice scale=${webView.scale} -> $captured")
+            deliver(osrsArticleViewRestore(scrollY = captured))
+        }
+    }
+
     override fun onPageReadyForDisplay() {
         val webViewManager = pageWebViewManager ?: return
         if (isAdded && _binding != null && !webViewReleasedWhileStopped) {
-            webViewManager.finalizeAndRevealPage {
+            webViewManager.finalizeAndRevealPage(peekRestoreScrollY()) {
                 val currentBinding = _binding ?: return@finalizeAndRevealPage
                 if (!isAdded || webViewReleasedWhileStopped) {
                     return@finalizeAndRevealPage
@@ -434,6 +778,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         callback?.onPageStartActionMode(manager)
     }
 
+    private fun dismissFindInPageIfActive() {
+        if (!isFindInPageActive) return
+        callback?.onPageFinishActionMode()
+    }
+
     fun showContents() {
         contentsHandler?.show()
     }
@@ -454,6 +803,22 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         } else {
             showFindInPage()
         }
+    }
+
+    fun openFloorNumberingSettings() {
+        startActivity(AppearanceSettingsActivity.newIntent(requireContext(), highlightFloorNumbering = true))
+    }
+
+    private fun applyFloorNumberingPreference() {
+        pageWebViewManager?.refreshFloorNumberingPreference()
+        val html = pageViewModel.uiState.htmlContent ?: return
+        val sections = PageTableOfContentsExtractor.extract(
+            pageViewModel.uiState.title,
+            html,
+            osrsArticleFloorConvention.resolved()
+        )
+        pageViewModel.uiState = pageViewModel.uiState.copy(tableOfContentsSections = sections)
+        contentsHandler?.setup(sections)
     }
 
     private fun setupBottomActionBar() {
@@ -599,16 +964,34 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     override fun onPause() {
-        releaseStoppedWebViewResources()
+        // hide()+add() covers this fragment with the next article without
+        // stopping the activity. Keep that WebView alive so interactive-back
+        // can reveal it without a reload. onStop still releases when the
+        // activity actually leaves the screen.
+        if (!isHidden) {
+            releaseStoppedWebViewResources()
+        }
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         restoreStoppedWebViewResourcesIfNeeded()
+        pageWebViewManager?.refreshReaderTextScale()
+        val collapsePreference = Prefs.isCollapseTablesEnabled
+        if (collapsePreference != lastAppliedCollapsePreference) {
+            lastAppliedCollapsePreference = collapsePreference
+            pageWebViewManager?.refreshTableCollapsePreference()
+        }
+        val floorNumberingMode = Prefs.floorNumberingMode
+        if (floorNumberingMode != lastAppliedFloorNumberingMode) {
+            lastAppliedFloorNumberingMode = floorNumberingMode
+            applyFloorNumberingPreference()
+        }
     }
 
     private fun releaseStoppedWebViewResources() {
+        horizontalGestureOwnership.reset()
         val currentBinding = _binding ?: return
         val webViewManager = pageWebViewManager ?: return
         if (webViewReleasedWhileStopped) {
@@ -632,6 +1015,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val oldIndex = root.indexOfChild(oldWebView).takeIf { it >= 0 } ?: 0
         val oldLayoutParams = oldWebView.layoutParams
         releasedWebViewScrollY = oldWebView.scrollY
+        lastObservedScrollY = maxOf(lastObservedScrollY, oldWebView.scrollY)
         shouldRestoreReleasedWebViewScroll = releasedWebViewScrollY > 0 &&
             pageViewModel.uiState.htmlContent != null
         releasedWebViewIndex = oldIndex
@@ -686,6 +1070,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             nativeMapHandler = NativeMapHandler(this, binding)
         }
         setupGestureDetector()
+        trackWebViewScrollPosition()
         val webViewManager = createPageWebViewManager()
         pageWebViewManager = webViewManager
         val uiUpdater = PageUiUpdater(binding, pageViewModel, webViewManager) { this }
@@ -694,6 +1079,19 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
         val app = requireActivity().application as OSRSWikiApp
         pageLoadCoordinator?.initiatePageLoad(app.getCurrentTheme(), forceNetwork = false)
+    }
+
+    private fun trackWebViewScrollPosition() {
+        val webView = _binding?.pageWebView ?: return
+        webView.removeOnScrollChangeListener(scrollCaptureListener)
+        webView.addOnScrollChangeListener(scrollCaptureListener)
+        lastObservedScrollY = maxOf(lastObservedScrollY, webView.scrollY)
+    }
+
+    private fun peekRestoreScrollY(): Int {
+        val navigationScrollY = restoreScrollYArg
+        val releasedScrollY = if (shouldRestoreReleasedWebViewScroll) releasedWebViewScrollY else 0
+        return maxOf(navigationScrollY, releasedScrollY)
     }
 
     private fun restoreReleasedWebViewScrollPositionIfNeeded(webView: ObservableWebView) {
@@ -708,6 +1106,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     override fun onDestroyView() {
+        horizontalGestureOwnership.reset()
         super.onDestroyView()
         callback?.onPageFinishActionMode()
         if (::pageContentLoader.isInitialized) {
@@ -805,6 +1204,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         const val ARG_PAGE_SOURCE = "pageSource"
         const val ARG_PAGE_SNIPPET = "pageSnippet"
         const val ARG_PAGE_THUMBNAIL = "pageThumbnail"
+        const val ARG_PAGE_SCROLL_Y = "pageScrollY"
         private const val WEBVIEW_RELEASES_PER_HEAP_TRIM = 8
         private var webViewReleaseCount = 0
         @JvmStatic
@@ -813,7 +1213,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             pageTitle: String?, 
             source: Int,
             snippet: String? = null,
-            thumbnailUrl: String? = null
+            thumbnailUrl: String? = null,
+            scrollY: Int = 0
         ): PageFragment = PageFragment().apply {
             arguments = Bundle().apply {
                 putString(ARG_PAGE_ID, pageId)
@@ -821,7 +1222,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 putInt(ARG_PAGE_SOURCE, source)
                 putString(ARG_PAGE_SNIPPET, snippet)
                 putString(ARG_PAGE_THUMBNAIL, thumbnailUrl)
+                putInt(ARG_PAGE_SCROLL_Y, scrollY)
             }
         }
     }
 }
+
+data class osrsArticleViewRestore(
+    val scrollY: Int
+)

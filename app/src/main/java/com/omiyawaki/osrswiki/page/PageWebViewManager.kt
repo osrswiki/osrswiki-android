@@ -24,6 +24,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.webkit.WebViewAssetLoader
+import com.omiyawaki.osrswiki.settings.Prefs
 
 interface RenderCallback {
     fun onWebViewLoadFinished()
@@ -173,6 +174,11 @@ class PageWebViewManager(
             loadWithOverviewMode = true  // Fits page content to screen width
             useWideViewPort = true       // Enables viewport meta tag support
         }
+
+        webView.isVerticalScrollBarEnabled = true
+        webView.isHorizontalScrollBarEnabled = true
+        webView.scrollBarStyle = android.view.View.SCROLLBARS_INSIDE_INSET
+        webView.isScrollbarFadingEnabled = false
 
         val pageClient = object : AppWebViewClient(linkHandler) {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
@@ -406,12 +412,113 @@ class PageWebViewManager(
         """.trimIndent(), null)
     }
 
-    fun finalizeAndRevealPage(onComplete: () -> Unit) {
+    fun finalizeAndRevealPage(scrollY: Int = 0, onComplete: () -> Unit) {
         if (isDisposed) {
             return
         }
-        applyThemeColors(webView) {
+        if (scrollY > 0) {
+            webView.alpha = 0f
+        }
+        applyTableCollapsePreference {
+            applyReaderTextScale {
+                applyThemeColors(webView) {
+                    restoreScrollThenReveal(scrollY, onComplete)
+                }
+            }
+        }
+    }
+
+    private fun restoreScrollThenReveal(scrollY: Int, onComplete: () -> Unit) {
+        if (isDisposed) {
+            return
+        }
+        if (scrollY <= 0) {
+            webView.alpha = 1f
             revealBody(onComplete)
+            return
+        }
+        val callbackGeneration = renderGeneration
+        Log.d(logTag, "restoreScrollThenReveal target=$scrollY contentHeight=${webView.contentHeight} scale=${webView.scale}")
+        fun applyNativeScroll() {
+            webView.scrollTo(0, scrollY)
+        }
+        fun contentCanHoldScroll(): Boolean {
+            val contentPx = (webView.contentHeight * webView.scale).toInt()
+            return contentPx - webView.height >= scrollY
+        }
+        fun finishRestore() {
+            if (isDisposed || callbackGeneration != renderGeneration) {
+                return
+            }
+            applyNativeScroll()
+            webView.alpha = 1f
+            Log.d(logTag, "restoreScrollThenReveal applied native=${webView.scrollY} target=$scrollY")
+            onComplete()
+        }
+        fun waitUntilScrollable(attemptsLeft: Int) {
+            if (isDisposed || callbackGeneration != renderGeneration) {
+                return
+            }
+            applyNativeScroll()
+            if ((webView.scrollY >= scrollY - 4 && contentCanHoldScroll()) || attemptsLeft <= 0) {
+                finishRestore()
+                return
+            }
+            webView.postDelayed({ waitUntilScrollable(attemptsLeft - 1) }, 32)
+        }
+        revealBody {
+            waitUntilScrollable(48)
+        }
+    }
+
+    /** Applies the latest preference to both freshly built and previously cached HTML. */
+    fun refreshReaderTextScale() {
+        applyReaderTextScale()
+    }
+
+    /** Reconciles existing disclosure DOM after returning from Appearance without rebuilding. */
+    fun refreshTableCollapsePreference() {
+        applyTableCollapsePreference()
+    }
+
+    /** Swaps the live floor-number body class after the Appearance override changes. */
+    fun refreshFloorNumberingPreference() {
+        if (isDisposed) return
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            PageHtmlBuilder.floorNumberingRuntimeScript(
+                osrsArticleFloorConvention.resolved().bodyClass
+            )
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                Unit
+            }
+        }
+    }
+
+    private fun applyTableCollapsePreference(onFinished: () -> Unit = {}) {
+        if (isDisposed) return
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            PageHtmlBuilder.tableCollapseRuntimeScript(Prefs.isCollapseTablesEnabled)
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                onFinished()
+            }
+        }
+    }
+
+    private fun applyReaderTextScale(onFinished: () -> Unit = {}) {
+        if (isDisposed) {
+            return
+        }
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            PageHtmlBuilder.readerTextScaleRuntimeScript(Prefs.readerTextScale)
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                onFinished()
+            }
         }
     }
 

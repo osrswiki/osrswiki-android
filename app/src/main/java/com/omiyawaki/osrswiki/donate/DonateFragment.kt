@@ -11,7 +11,6 @@ import androidx.lifecycle.Lifecycle
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentDonateBinding
 import com.omiyawaki.osrswiki.util.log.L
-import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 import java.math.BigDecimal
 
 class DonateFragment : Fragment() {
@@ -49,7 +48,6 @@ class DonateFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         L.d("DonateFragment: onViewCreated called.")
         
-        setupFonts()
         setupAmountSelection()
         setupDonateButton()
         setupWikiDonateButton()
@@ -299,8 +297,9 @@ class DonateFragment : Fragment() {
     }
     
     private fun onPurchaseError(message: String) {
+        L.e("DonateFragment: Purchase failed: $message")
         hideStatusText()
-        setStatusText("${getString(R.string.donate_error_message)}: $message")
+        setStatusText(getString(R.string.donate_error_message))
         updateDonateButtonState()
     }
     
@@ -335,16 +334,6 @@ class DonateFragment : Fragment() {
         }
     }
     
-    private fun setupFonts() {
-        L.d("DonateFragment: Setting up fonts...")
-        
-        // Apply fonts to all TextViews
-        binding.donateTitle.applyAlegreyaHeadline()
-        binding.wikiSupportTitle.applyAlegreyaHeadline()
-        
-        L.d("DonateFragment: Fonts applied to all TextViews, chips, and buttons")
-    }
-
     override fun onDestroyView() {
         L.d("DonateFragment: onDestroyView called.")
         acceptsBillingCallbacks = false

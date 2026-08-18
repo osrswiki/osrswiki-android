@@ -40,7 +40,7 @@ import com.omiyawaki.osrswiki.database.converters.DateConverter
         HistoryEntry::class,
         RecentSearch::class
     ],
-    version = 16, // Increment the database version to remove legacy entities.
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(
@@ -203,6 +203,65 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Keeps reading-list and full-archive copies of the same URL as independent objects. */
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `offline_objects_new` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `url` TEXT NOT NULL,
+                        `lang` TEXT NOT NULL,
+                        `path` TEXT NOT NULL,
+                        `status` INTEGER NOT NULL,
+                        `usedByStr` TEXT NOT NULL,
+                        `saveType` TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO `offline_objects_new`
+                        (`id`, `url`, `lang`, `path`, `status`, `usedByStr`, `saveType`)
+                    SELECT `id`, `url`, `lang`, `path`, `status`, `usedByStr`, `saveType`
+                    FROM `offline_objects`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `offline_objects`")
+                db.execSQL("ALTER TABLE `offline_objects_new` RENAME TO `offline_objects`")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_offline_objects_url_lang_saveType` " +
+                        "ON `offline_objects` (`url`, `lang`, `saveType`)"
+                )
+            }
+        }
+
+        /**
+         * Marks the durable, exhaustive reading-list settlement generation per page. Version 17
+         * could call an offline row SAVED after persisting only a subset of rendered artwork. Keep
+         * every existing object and metadata row in place, but expose each formerly saved offline
+         * row as a retryable update. The app never silently starts an unbounded dataSync job after
+         * upgrade; an explicit Retry/Save action performs the current exhaustive settlement.
+         */
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `ReadingListPage` " +
+                        "ADD COLUMN `durableSettlementVersion` INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    """
+                    UPDATE `ReadingListPage`
+                    SET `status` = ${ReadingListPage.STATUS_ERROR},
+                        `downloadProgress` = 0
+                    WHERE `offline` = 1
+                      AND `status` = ${ReadingListPage.STATUS_SAVED}
+                      AND `durableSettlementVersion` < ${ReadingListPage.CURRENT_DURABLE_SETTLEMENT_VERSION}
+                    """.trimIndent()
+                )
+            }
+        }
+
         val ALL_MIGRATIONS: Array<Migration> = arrayOf(
             DatabaseMigrations.MIGRATION_6_7,
             DatabaseMigrations.MIGRATION_7_8,
@@ -213,7 +272,9 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_12_13,
             MIGRATION_13_14,
             MIGRATION_14_15,
-            MIGRATION_15_16
+            MIGRATION_15_16,
+            MIGRATION_16_17,
+            MIGRATION_17_18
         )
 
         val instance: AppDatabase by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

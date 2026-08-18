@@ -1,5 +1,8 @@
 package com.omiyawaki.osrswiki.undergroundmaps.state
 
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsCameraCenterEnvelope
+import com.omiyawaki.osrswiki.undergroundmaps.model.osrsClampCameraToEnvelope
+import com.omiyawaki.osrswiki.undergroundmaps.model.cameraGeometryFingerprint
 import com.omiyawaki.osrswiki.undergroundmaps.osrsTestCatalog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -52,6 +55,7 @@ class osrsRealmStateReducerTest {
 
     @Test
     fun `persisted selection restores only valid realm plane and camera values`() {
+        val catalog = osrsTestCatalog()
         val persisted = osrsPersistedRealmState(
             lastRealmId = "cache-world-map:lms-desert-island",
             cameras = mapOf(
@@ -61,15 +65,31 @@ class osrsRealmStateReducerTest {
             planesByRealm = mapOf(
                 "cache-world-map:lms-desert-island" to 1,
                 "cache-world-map:main" to 99
-            )
+            ),
+            cameraGeometryFingerprint = catalog.cameraGeometryFingerprint()
         )
 
-        val restored = reducer.initial(osrsTestCatalog(), persisted)
+        val restored = reducer.initial(catalog, persisted)
 
         assertEquals("cache-world-map:lms-desert-island", restored.activeRealmId)
         assertEquals(1, restored.activePlane)
         assertEquals(setOf("cache-world-map:lms-desert-island"), restored.cameras.keys)
         assertEquals(null, restored.planesByRealm["cache-world-map:main"])
+    }
+
+    @Test
+    fun `persisted cameras are discarded when asset geometry fingerprint changes`() {
+        val persisted = osrsPersistedRealmState(
+            lastRealmId = "cache-world-map:main",
+            cameras = mapOf(
+                "cache-world-map:main" to osrsCameraState(0.0, 0.0, 5.0)
+            ),
+            cameraGeometryFingerprint = "f".repeat(64)
+        )
+
+        val restored = reducer.initial(osrsTestCatalog(), persisted)
+
+        assertTrue(restored.cameras.isEmpty())
     }
 
     @Test
@@ -245,5 +265,40 @@ class osrsRealmStateReducerTest {
             styleGeneration = 4
         )
         assertTrue(ownership.markInstalled(reloaded, state, 4))
+    }
+
+    @Test
+    fun `only the final clamped camera target enters persisted realm state`() {
+        val catalog = osrsTestCatalog()
+        val reducer = osrsRealmStateReducer()
+        val state = reducer.initial(catalog)
+        val asset = state.activeAsset
+        val requested = osrsCameraState(
+            latitude = asset.north + 20.0,
+            longitude = asset.west - 360.0,
+            zoom = 6.0,
+            bearing = 18.0,
+            tilt = 22.0
+        )
+        val final = osrsClampCameraToEnvelope(
+            requested,
+            osrsCameraCenterEnvelope.from(asset)
+        ).final
+
+        val persisted = reducer.reduce(
+            state,
+            osrsRealmAction.InstalledCameraChanged(
+                realmId = state.activeRealmId,
+                plane = state.activePlane,
+                requestId = state.switchRequestId,
+                camera = final
+            )
+        )
+
+        assertEquals(asset.north, persisted.cameras.getValue(state.activeRealmId).latitude, 0.0)
+        assertEquals(asset.west, persisted.cameras.getValue(state.activeRealmId).longitude, 0.0)
+        assertEquals(requested.zoom, persisted.cameras.getValue(state.activeRealmId).zoom, 0.0)
+        assertEquals(requested.bearing, persisted.cameras.getValue(state.activeRealmId).bearing, 0.0)
+        assertEquals(requested.tilt, persisted.cameras.getValue(state.activeRealmId).tilt, 0.0)
     }
 }
