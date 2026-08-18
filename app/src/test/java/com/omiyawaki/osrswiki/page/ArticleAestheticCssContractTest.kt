@@ -44,6 +44,13 @@ class ArticleAestheticCssContractTest {
     }
 
     @Test
+    fun headingFontsOptOutOfLateSwapToKeepPageTitleGeometry() {
+        val fonts = assetFile("styles/fonts.css").readText()
+        assertTrue(fonts.contains("font-display: optional"))
+        assertTrue(fonts.contains("font-family: 'Alegreya'"))
+    }
+
+    @Test
     fun sharedTableDensityKeepsAndroidReferencePaddingAndDoesNotForce112vwBonuses() {
         val fixes = assetFile("styles/fixes.css").readText()
         assertTrue(fixes.contains("--osrs-table-cell-padding-block: 0.32em;"))
@@ -224,8 +231,6 @@ class ArticleAestheticCssContractTest {
         assertTrue(fixes.contains("mask-image:"))
         assertTrue(fixes.contains("padding-right: 0 !important"))
         assertTrue(fixes.contains("padding-inline-end: 0 !important"))
-        assertTrue(fixes.contains("p img.mw-file-element"))
-        assertTrue(fixes.contains("vertical-align: -0.2em !important"))
         assertTrue(fixes.contains("display: inline !important"))
         assertTrue(fixes.contains(".osrs-local-scroll-surface > table.infobox-bonuses"))
         assertTrue(fixes.contains("width: max-content !important"))
@@ -237,6 +242,21 @@ class ArticleAestheticCssContractTest {
         assertTrue(polish.contains("viewportWidth"))
         assertFalse(polish.contains("requestAnimationFrame(applyPolish)"))
         assertTrue(interceptor.contains("canConsumeHorizontalDelta"))
+        assertTrue(interceptor.contains("horizontalEdgeCapacity"))
+        assertTrue(interceptor.contains("sequenceAxisLock"))
+        assertTrue(interceptor.contains("const edgeSlop = 8"))
+        assertTrue(interceptor.contains("isProseBannerTable"))
+        assertFalse(interceptor.contains("if (!consume && isHorizontallyScrollable)"))
+        assertTrue(polish.contains("isProseBannerTable"))
+        assertTrue(polish.contains("unwrapGeneratedScrollSurface"))
+        assertTrue(polish.contains("articleChromeOffsetPx"))
+        assertTrue(fixes.contains("floated vignette"))
+        assertTrue(fixes.contains("width: 100% !important"))
+        assertTrue(fixes.contains("clear: both !important"))
+        assertTrue(fixes.contains("Prose banners"))
+        assertTrue(fixes.contains("table-layout: fixed !important;"))
+        assertTrue(fixes.contains(".mw-kartographer-container .thumbcaption"))
+        assertTrue(fixes.contains("color: var(--text-color) !important;"))
         assertTrue(interceptor.contains("isOverflowingHorizontalScroller"))
         assertTrue(interceptor.contains("overflowingHorizontalOwner"))
         assertTrue(downloader.contains("parseBodyFragment"))
@@ -254,6 +274,29 @@ class ArticleAestheticCssContractTest {
         assertTrue(historyViewModel.contains("getHistoryPreviewMetadata"))
         assertTrue(downloader.contains("markInlineIcons"))
         assertTrue(downloader.contains("osrs-inline-icon-wrapper"))
+    }
+
+    @Test
+    fun androidProseInlineIconsKeepTwoEmMiddleNotWebKitXHeight() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        val androidAesthetics = assetFile("styles/android-article-aesthetics.css").readText()
+        assertFalse(
+            "WebKit x-height optical align belongs in iOS aesthetics, not shared/Android CSS.",
+            fixes.contains("vertical-align: -0.2em")
+        )
+        assertFalse(
+            "Forcing prose icons to 1em shrinks Android glyphs that used to cap at 2em.",
+            Regex("""p img\.mw-file-element[\s\S]{0,500}height:\s*1em""").containsMatchIn(fixes)
+        )
+        val genericIcon = fixes.substringAfter("img.osrs-inline-icon {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertTrue(genericIcon.contains("max-height: 2em !important"))
+        assertTrue(genericIcon.contains("max-width: 2em !important"))
+        assertTrue(genericIcon.contains("vertical-align: middle !important"))
+        assertFalse(androidAesthetics.contains("vertical-align: -0.2em"))
+        assertFalse(
+            Regex("""p img\.mw-file-element[\s\S]{0,500}height:\s*1em""").containsMatchIn(androidAesthetics)
+        )
     }
 
     private fun assetFile(path: String): File {

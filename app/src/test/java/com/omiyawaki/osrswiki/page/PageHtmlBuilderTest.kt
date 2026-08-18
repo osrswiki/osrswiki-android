@@ -94,6 +94,11 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("var RLCONF ="))
         assertTrue(html.contains("var RLPAGEMODULES ="))
         assertTrue(html.contains("\"ext.Tabber\""))
+        assertTrue(html.contains("id=\"osrs-article-first-paint\""))
+        assertTrue(html.contains("h1.page-header"))
+        assertTrue(html.contains("min-height: 1.3em"))
+        assertTrue(html.contains("alegreya_bold.ttf"))
+        assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
     }
 
     @Test

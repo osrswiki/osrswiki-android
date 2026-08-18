@@ -204,7 +204,7 @@ class ArticleHorizontalGestureOwnershipTest {
     }
 
     @Test
-    fun edgeReleaseDropsALocalClaimSoNavigationCanTakeOver() {
+    fun edgeReleaseDropsALocalClaimSoALaterPointerCanNavigate() {
         val ownership = ArticleHorizontalGestureOwnership()
         val generation = ownership.beginPointer()
         assertTrue(ownership.claimCurrentPointer())

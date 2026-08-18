@@ -61,6 +61,9 @@ class ArticleMobilePolishContractTest {
 
         assertTrue(switcher.contains("data-default-version"))
         assertTrue(switcher.contains("preloader.decode()"))
+        assertTrue(switcher.contains("updateExistingImage"))
+        assertTrue(switcher.contains("lockSwitcherMinBlockSize"))
+        assertFalse(switcher.contains("container.classList.contains('infobox-bonuses')"))
         assertFalse(switcher.contains("\n            stabilizeInfoboxWidth(mainInfobox"))
     }
 

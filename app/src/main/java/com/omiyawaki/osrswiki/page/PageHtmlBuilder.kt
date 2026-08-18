@@ -190,8 +190,13 @@ class PageHtmlBuilder(private val context: Context) {
             val tableCollapseScript = createTableCollapseScript(collapseTablesEnabled)
             val readerTextScaleBootstrap = readerTextScaleBootstrap(readerTextScale)
 
-            // Preload the main web font to improve rendering performance
-            val fontPreloadLink = "<link rel=\"preload\" href=\"https://appassets.androidplatform.net/res/font/runescape_plain.ttf\" as=\"font\" type=\"font/ttf\" crossorigin=\"anonymous\">"
+            // Preload the heading face used by h1.page-header so first paint
+            // does not wait for a late @font-face swap that restyles the title.
+            val fontPreloadLink = """
+                <link rel="preload" href="https://appassets.androidplatform.net/res/font/alegreya_bold.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+                <link rel="preload" href="https://appassets.androidplatform.net/res/font/runescape_plain.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+            """.trimIndent()
+            val articleFirstPaintStyle = articleFirstPaintStyle()
 
             // Body visibility handled by RenderTimeline when JavaScript completes
             // No inline FOUC fix needed - prevents flash of untransformed content
@@ -212,6 +217,7 @@ class PageHtmlBuilder(private val context: Context) {
                 .append("<head>\n")
                 .append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">\n")
                 .append("    <title>").append(documentTitle).append("</title>\n")
+                .append("    ").append(articleFirstPaintStyle).append('\n')
                 .append("    ").append(fontPreloadLink).append('\n')
                 .append("    ").append(cssLinks).append('\n')
                 .append("    ").append(readerTextScaleBootstrap).append('\n')
@@ -265,6 +271,36 @@ class PageHtmlBuilder(private val context: Context) {
     companion object {
         private const val READER_STYLE_ID = "osrs-reader-text-scale-style"
         private const val READER_SCALE_VARIABLE = "--osrs-article-user-text-scale"
+
+        internal fun articleFirstPaintStyle(chromeClearancePx: Int = 0): String {
+            val chromePadding = if (chromeClearancePx > 0) {
+                """
+                    html {
+                        padding-top: calc(env(safe-area-inset-top, 0px) + ${chromeClearancePx}px) !important;
+                        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + ${chromeClearancePx}px) !important;
+                    }
+                """.trimIndent()
+            } else {
+                ""
+            }
+            return """
+                <style id="osrs-article-first-paint">
+                    $chromePadding
+                    h1.page-header {
+                        font-family: 'Alegreya', 'Palatino', 'Georgia', serif !important;
+                        font-weight: bold !important;
+                        font-size: 1.8em !important;
+                        line-height: 1.3 !important;
+                        margin-top: 0 !important;
+                        margin-bottom: 0.6em !important;
+                        padding-bottom: 0.2em !important;
+                        min-height: 1.3em;
+                        border-bottom: 1px solid var(--sidebar-color, currentColor);
+                        box-sizing: border-box;
+                    }
+                </style>
+            """.trimIndent()
+        }
 
         internal fun readerTextScaleBootstrap(scale: Float): String {
             val cssValue = readerTextScaleCssValue(scale)
