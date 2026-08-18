@@ -1,5 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
+import android.os.Handler
+import android.os.Looper
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -133,12 +135,25 @@ class NativeMapHandler(
         @JavascriptInterface
         fun setHorizontalScrollGesture(phase: String, gestureId: String, ownerId: String) {
             if (isCleanedUp) return
-            fragment.view?.post {
-                if (isCleanedUp) return@post
-                val inProgress = phase == "begin" || phase == "change"
-                updateHorizontalInteraction(inProgress, claimPointer = false)
-                L.d("NativeMapHandler: local gesture phase=$phase id=$gestureId owner=$ownerId")
+            val inProgress = phase == "begin" || phase == "change"
+            val local = inProgress && ownerId != "article-navigation"
+            val apply = Runnable {
+                if (isCleanedUp) return@Runnable
+                when {
+                    local -> updateHorizontalInteraction(true, claimPointer = true)
+                    phase == "begin" -> {
+                        fragment.onArticleHorizontalScrollNotOwned()
+                        updateHorizontalInteraction(false, claimPointer = false)
+                    }
+                    phase == "end" || phase == "cancel" -> {
+                        fragment.onArticleHorizontalScrollReleased()
+                        updateHorizontalInteraction(false, claimPointer = false)
+                    }
+                    else -> updateHorizontalInteraction(false, claimPointer = false)
+                }
+                L.d("NativeMapHandler: local gesture phase=$phase id=$gestureId owner=$ownerId local=$local")
             }
+            Handler(Looper.getMainLooper()).postAtFrontOfQueue(apply)
         }
 
         @JavascriptInterface

@@ -276,15 +276,15 @@ class ArticleWebViewRecoveryTest {
     @Test
     fun pageAssetDownloaderChecksCancellationBeforeHeavyHtmlSerialization() {
         val source = sourceFile("PageAssetDownloader.kt").readText()
-        val processMethod = source.substringAfter("private fun processAndDownloadAssets")
-            .substringBefore("private suspend fun getTotalAssetSize")
+        val processMethod = source.substringAfter("private suspend fun processPreparedText")
+            .substringBefore("private fun logPreparationFailure")
         val preprocessMethod = source.substringAfter("private suspend fun preprocessHtml")
             .substringBefore("private fun normalizeRelativeUrls")
 
         assertTrue(processMethod.contains("currentCoroutineContext().ensureActive()"))
         assertTrue(processMethod.indexOf("currentCoroutineContext().ensureActive()") < processMethod.indexOf("preprocessHtml(document)"))
         assertTrue(preprocessMethod.contains("currentCoroutineContext().ensureActive()"))
-        assertTrue(preprocessMethod.indexOf("currentCoroutineContext().ensureActive()") < preprocessMethod.indexOf("document.outerHtml()"))
+        assertTrue(preprocessMethod.indexOf("currentCoroutineContext().ensureActive()") < preprocessMethod.indexOf("document.body()"))
     }
 
     @Test
@@ -306,7 +306,7 @@ class ArticleWebViewRecoveryTest {
             .substringBefore("private fun removeDuplicatePageHeaders")
 
         assertTrue(buildMethod.contains("StringBuilder("))
-        assertTrue(buildMethod.contains("append(cleanedBodyContent)"))
+        assertTrue(buildMethod.contains("append(articleBodyContent)"))
         assertFalse(buildMethod.contains(".trimIndent()"))
     }
 
@@ -353,6 +353,9 @@ class ArticleWebViewRecoveryTest {
         assertTrue(source.contains("renderedMapIds += id"))
         assertTrue(source.contains("renderedMapIds.contains(mapId)"))
         assertTrue(source.contains("hideStaticPlaceholder(mapId)"))
+        assertTrue(source.contains("ownerId != \"article-navigation\""))
+        assertTrue(source.contains("onArticleHorizontalScrollNotOwned()"))
+        assertTrue(source.contains("claimPointer = true"))
     }
 
     @Test
@@ -366,6 +369,8 @@ class ArticleWebViewRecoveryTest {
         assertTrue(setupBody.contains("domSequenceFor(generation)"))
         assertTrue(setupBody.contains("articleHorizontalGestureSnapshotQuery(domSequence)"))
         assertTrue(setupBody.contains("recordFinalClassification(generation, snapshot)"))
+        assertTrue(setupBody.contains("hasDomClassification()"))
+        assertTrue(setupBody.contains("requestDisallowInterceptTouchEvent(true)"))
         assertFalse(setupBody.contains("latestTouchIsOwned"))
         assertFalse(setupBody.contains("postDelayed"))
         assertFalse(source.contains("LOCAL_SCROLL_CLAIM_GRACE_MS"))

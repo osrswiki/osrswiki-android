@@ -35,17 +35,20 @@ class PageHtmlBuilder(private val context: Context) {
         "startup.js"                                    // Core MediaWiki module loader - RLPAGEMODULES now inlined above
     )
     
+    private val articleTransformJsAssetPaths = listOf(
+        JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
+        JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
+        "web/collapsible_content.js",
+        "web/mobile_article_polish.js",
+        "web/horizontal_scroll_interceptor.js"
+    )
+
     // Base JavaScript assets (before conditional GE charts addition)
     private val jsAssetPaths = listOf(
         "js/tablesort.min.js",
         "js/tablesort_init.js",
-        "web/collapsible_content.js",
-        JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(), // Restored: Infobox switcher bootstrap
-        JavaScriptActionHandler.getInfoboxSwitcherJsPath(),          // Restored: Infobox switcher main script
-        "web/horizontal_scroll_interceptor.js",
         "web/tabber_init.js",
         "web/responsive_videos.js",
-        "web/mobile_article_polish.js",
         "web/clipboard_bridge.js",
         "web/table_column_normalize.js"
     )
@@ -131,6 +134,7 @@ class PageHtmlBuilder(private val context: Context) {
             
             // Clean any existing page-header titles from bodyContent to prevent duplication
             val cleanedBodyContent = removeDuplicatePageHeaders(bodyContent)
+            val articleBodyContent = wrapArticleBodyContent(cleanedBodyContent)
             val themeClass = when (theme) {
                 Theme.OSRS_DARK -> "theme-osrs-dark"
                 else -> "" // OSRS Light is the default theme in CSS, no class needed.
@@ -175,6 +179,9 @@ class PageHtmlBuilder(private val context: Context) {
                     tag
                 }
             }
+            val transformScripts = articleTransformJsAssetPaths.joinToString("\n") { assetPath ->
+                "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
+            }
             
             // Generate smart MediaWiki variables
             val smartMediawikiVariables = generateMediaWikiVariables(cleanedTitle, cleanedBodyContent)
@@ -214,8 +221,9 @@ class PageHtmlBuilder(private val context: Context) {
                 .append("</head>\n")
                 .append("<body class=\"").append(themeClass).append(" ").append(floorClass).append("\">\n")
                 .append(titleHeaderHtml)
-                .append(cleanedBodyContent)
+                .append(articleBodyContent)
                 .append('\n')
+                .append(transformScripts).append('\n')
                 .append(mediawikiScripts).append('\n')
                 .append(jsScripts).append('\n')
                 .append("</body>\n")
@@ -247,6 +255,11 @@ class PageHtmlBuilder(private val context: Context) {
             Log.e(logTag, "Error removing duplicate page headers", e)
             htmlContent // Return original content if cleaning fails
         }
+    }
+
+    private fun wrapArticleBodyContent(htmlContent: String): String {
+        if (htmlContent.contains("mw-body-content")) return htmlContent
+        return """<div class="mw-body-content">$htmlContent</div>"""
     }
 
     companion object {

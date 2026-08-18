@@ -385,6 +385,14 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                     lastInteractiveEventTime = event.eventTime
                     consumedInteractiveSwipe = false
                     tracker?.reset()
+                    // Keep DrawerLayout from stealing this pointer before DOM
+                    // classifies a local table scroller. Chrome swipe is owned by
+                    // this listener, not the drawer.
+                    var ancestor = view.parent
+                    while (ancestor != null) {
+                        ancestor.requestDisallowInterceptTouchEvent(true)
+                        ancestor = ancestor.parent
+                    }
                     horizontalGestureOwnership.beginPointer()
                 }
                 else -> horizontalGestureOwnership.currentGeneration
@@ -393,7 +401,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             if (event.actionMasked == MotionEvent.ACTION_MOVE &&
                 tracker != null &&
                 !lastPointerDownRawX.isNaN() &&
-                !horizontalGestureOwnership.ownsCurrentPointer()
+                !horizontalGestureOwnership.ownsCurrentPointer() &&
+                horizontalGestureOwnership.hasDomClassification()
             ) {
                 val dx = event.rawX - lastPointerDownRawX
                 val dy = event.rawY - lastPointerDownRawY
@@ -597,6 +606,16 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         horizontalGestureOwnership.bindNextDomTouchSequence(sequence)
     }
 
+    /** Called on the view thread when DOM content explicitly is not a local horizontal scroller. */
+    internal fun onArticleHorizontalScrollNotOwned() {
+        horizontalGestureOwnership.markCurrentPointerUnowned()
+    }
+
+    /** Called when a local scroller reaches its edge and releases the rest of this pointer. */
+    internal fun onArticleHorizontalScrollReleased() {
+        horizontalGestureOwnership.releaseCurrentPointerClaim()
+    }
+
     /** Called on the view thread when DOM content or a native article map claims this gesture. */
     internal fun onArticleHorizontalScrollClaimed() {
         if (!horizontalGestureOwnership.claimCurrentPointer() || !::gestureDetector.isInitialized) {
@@ -617,6 +636,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             gestureDetector.onTouchEvent(cancel)
         } finally {
             cancel.recycle()
+        }
+        var ancestor = binding.pageWebView.parent
+        while (ancestor != null) {
+            ancestor.requestDisallowInterceptTouchEvent(true)
+            ancestor = ancestor.parent
         }
     }
 

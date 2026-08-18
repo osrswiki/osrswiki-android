@@ -13,12 +13,21 @@ data class PageExtractsApiResponse(
 
 @Serializable
 data class ExtractsQuery(
-    val pages: List<PageExtract>? = null
+    val pages: List<PageExtract>? = null,
+    val redirects: List<WikiTitleRedirect>? = null
+)
+
+@Serializable
+data class WikiTitleRedirect(
+    val from: String? = null,
+    val to: String? = null
 )
 
 @Serializable
 data class PageExtract(
-    val pageid: Int,
-    val title: String,
-    val extract: String? = null
+    val pageid: Int? = null,
+    val title: String? = null,
+    val extract: String? = null,
+    val thumbnail: PageThumbnail? = null,
+    val missing: Boolean? = null
 )

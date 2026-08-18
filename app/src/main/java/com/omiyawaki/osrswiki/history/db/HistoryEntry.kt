@@ -61,6 +61,13 @@ data class HistoryEntry(
             apiPath = apiPath
         )
 
+    fun preserveExistingMetadata(existing: HistoryEntry?) {
+        if (existing == null) return
+        if (snippet.isNullOrBlank()) snippet = existing.snippet
+        if (thumbnailUrl.isNullOrBlank()) thumbnailUrl = existing.thumbnailUrl
+        if (pageId == null || pageId == -1) pageId = existing.pageId
+    }
+
     companion object {
         const val SOURCE_SEARCH = 1
         const val SOURCE_INTERNAL_LINK = 2

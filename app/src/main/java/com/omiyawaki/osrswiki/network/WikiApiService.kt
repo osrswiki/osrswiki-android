@@ -89,6 +89,17 @@ interface WikiApiService {
         @Query("pageids") pageIds: String
     ): PageExtractsApiResponse
 
+    @GET("api.php?action=query&prop=extracts&format=json&formatversion=2&exintro=true&explaintext=true&exchars=280")
+    suspend fun getPageExtractsByTitles(
+        @Query("titles") titles: String
+    ): PageExtractsApiResponse
+
+    @GET("api.php?action=query&prop=extracts|pageimages&format=json&formatversion=2&redirects=true&exintro=true&explaintext=true&exchars=280&exlimit=max&piprop=thumbnail&pilicense=any")
+    suspend fun getHistoryPreviewMetadata(
+        @Query("titles") titles: String,
+        @Query("pithumbsize") thumbSize: Int = 160
+    ): PageExtractsApiResponse
+
     @GET("api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300")
     suspend fun getArticleParseDataByPageId(@Query("pageid") pageId: Int): ArticleParseApiResponse
 

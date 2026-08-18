@@ -663,6 +663,11 @@ class PageRepositoryTest {
 
         override suspend fun getPageExtracts(pageIds: String): PageExtractsApiResponse = error("Not used")
 
+        override suspend fun getPageExtractsByTitles(titles: String): PageExtractsApiResponse = error("Not used")
+
+        override suspend fun getHistoryPreviewMetadata(titles: String, thumbSize: Int): PageExtractsApiResponse =
+            error("Not used")
+
         override suspend fun openSearch(query: String, limit: Int): okhttp3.ResponseBody =
             error("Not used")
 

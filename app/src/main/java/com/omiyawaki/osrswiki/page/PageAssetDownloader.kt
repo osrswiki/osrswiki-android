@@ -36,7 +36,6 @@ import okhttp3.Response
 import okio.Buffer
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import org.jsoup.parser.Parser
 
 enum class ArticleContentSource { NETWORK, SAVED }
 
@@ -56,6 +55,7 @@ class PageAssetDownloader(
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
     private val jsonParser = Json { ignoreUnknownKeys = true }
     private val largeArticleImageDeferralThreshold = 1_000
+    private val inlineIconWrapperTags = setOf("a", "span")
     private val transparentImagePlaceholder =
         "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='1'%20height='1'%3E%3C/svg%3E"
     private val prewarmEnvironmentListeners = CopyOnWriteArraySet<() -> Unit>()
@@ -181,11 +181,14 @@ class PageAssetDownloader(
             }
         }
 
+        // Match iOS / WikiApiService parse URLs. Minerva's mobile HTML formatter
+        // strips the in-article Contents list (#toc). The native sidebar TOC is
+        // additional navigation, not a replacement.
         val apiUrl = request.pageId?.let { pageId ->
-            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&pageid=$pageId"
+            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&pageid=$pageId"
         } ?: run {
             val encodedTitle = java.net.URLEncoder.encode(requireNotNull(request.title), Charsets.UTF_8.name())
-            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&mobileformat=html&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&page=$encodedTitle"
+            "$wikiSiteUrl/api.php?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle&redirects=true&disableeditsection=true&disablelimitreport=true&maxage=300&smaxage=300&page=$encodedTitle"
         }
         val parseResult = fetchParseResult(apiUrl, reportHtmlProgress)
         return processPreparedText(parseResult, ArticleContentSource.NETWORK)
@@ -316,7 +319,7 @@ class PageAssetDownloader(
         source: ArticleContentSource
     ): DownloadResult = withContext(Dispatchers.Default) {
         currentCoroutineContext().ensureActive()
-        val document = Jsoup.parse(parseResult.text.orEmpty(), "", Parser.xmlParser())
+        val document = Jsoup.parseBodyFragment(parseResult.text.orEmpty())
         currentCoroutineContext().ensureActive()
         // Prepared results are mode-independent and text-only. Image, map, and chart work is
         // deferred to the rendered WebView after Success, including when foreground joins prewarm.
@@ -347,9 +350,11 @@ class PageAssetDownloader(
         document.select("tr.advanced-data, tr.leagues-global-flag, tr.infobox-padding").remove()
         normalizeRelativeUrls(document, siteUrl)
         currentCoroutineContext().ensureActive()
+        markInlineIcons(document)
+        currentCoroutineContext().ensureActive()
         deferLargeArticleTableImages(document)
         currentCoroutineContext().ensureActive()
-        return document.outerHtml()
+        return document.body()?.html() ?: document.html()
     }
 
     private fun normalizeRelativeUrls(document: Document, siteUrl: String) {
@@ -371,6 +376,26 @@ class PageAssetDownloader(
         return SrcsetParser.rewriteUrls(srcset) { url ->
             val absoluteUrl = if (url.startsWith("/") && !url.startsWith("//")) siteUrl + url else url
             absoluteUrl
+        }
+    }
+
+    private fun markInlineIcons(document: Document) {
+        document.select("p img.mw-file-element, li img.mw-file-element, dd img.mw-file-element, td img.mw-file-element, th img.mw-file-element, figcaption img.mw-file-element").forEach { image ->
+            if (image.hasClass("osrs-inline-icon")) return@forEach
+            if (image.closest("figure, .gallery, .infobox-image, .infobox-bonuses-image, .infobox-nested, .infobox-bonuses, .navbox") != null) {
+                return@forEach
+            }
+            val width = image.attr("width").toIntOrNull() ?: 0
+            val height = image.attr("height").toIntOrNull() ?: 0
+            if (width <= 0 || height <= 0 || width > 48 || height > 48) return@forEach
+            image.addClass("osrs-inline-icon")
+            image.removeAttr("width")
+            image.removeAttr("height")
+            var wrapper = image.parent()
+            while (wrapper != null && wrapper.tagName() in inlineIconWrapperTags) {
+                wrapper.addClass("osrs-inline-icon-wrapper")
+                wrapper = wrapper.parent()
+            }
         }
     }
 

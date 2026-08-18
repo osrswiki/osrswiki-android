@@ -202,6 +202,60 @@ class ArticleAestheticCssContractTest {
         assertFalse(renderedBeforeFetch.containsMatchIn(source))
     }
 
+    @Test
+    fun collapsibleHeadersStayOneLineAndUseMaskChevrons() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        val tables = assetFile("web/collapsible_tables.css").readText()
+        val collapsible = assetFile("web/collapsible_content.js").readText()
+        val polish = assetFile("web/mobile_article_polish.js").readText()
+        val interceptor = assetFile("web/horizontal_scroll_interceptor.js").readText()
+        val downloader = File("src/main/java/com/omiyawaki/osrswiki/page/PageAssetDownloader.kt").let {
+            if (it.exists()) it else File("app/src/main/java/com/omiyawaki/osrswiki/page/PageAssetDownloader.kt")
+        }.readText()
+        val historyManager = File("src/main/java/com/omiyawaki/osrswiki/page/PageHistoryManager.kt").let {
+            if (it.exists()) it else File("app/src/main/java/com/omiyawaki/osrswiki/page/PageHistoryManager.kt")
+        }.readText()
+
+        assertFalse(collapsible.contains("Tap to collapse"))
+        assertFalse(collapsible.contains("Tap to expand"))
+        assertTrue(collapsible.contains("collapsible-label"))
+        assertTrue(fixes.contains("text-overflow: ellipsis"))
+        assertTrue(fixes.contains("white-space: nowrap"))
+        assertTrue(fixes.contains("mask-image:"))
+        assertTrue(fixes.contains("padding-right: 0 !important"))
+        assertTrue(fixes.contains("padding-inline-end: 0 !important"))
+        assertTrue(fixes.contains("p img.mw-file-element"))
+        assertTrue(fixes.contains("vertical-align: -0.2em !important"))
+        assertTrue(fixes.contains("display: inline !important"))
+        assertTrue(fixes.contains(".osrs-local-scroll-surface > table.infobox-bonuses"))
+        assertTrue(fixes.contains("width: max-content !important"))
+        assertTrue(fixes.contains(".osrs-mmg-rate-control"))
+        assertTrue(fixes.contains("display: table !important"))
+        assertTrue(tables.contains("mask-image:"))
+        assertFalse(tables.contains("fill='currentColor'"))
+        assertTrue(polish.contains("queueMicrotask"))
+        assertTrue(polish.contains("viewportWidth"))
+        assertFalse(polish.contains("requestAnimationFrame(applyPolish)"))
+        assertTrue(interceptor.contains("canConsumeHorizontalDelta"))
+        assertTrue(interceptor.contains("isOverflowingHorizontalScroller"))
+        assertTrue(interceptor.contains("overflowingHorizontalOwner"))
+        assertTrue(downloader.contains("parseBodyFragment"))
+        assertFalse(downloader.contains("Parser.xmlParser()"))
+        assertFalse(
+            "Minerva mobileformat strips #toc; in-article Contents must use the desktop parse text.",
+            downloader.contains("mobileformat")
+        )
+        assertTrue(historyManager.contains("fetchPagePreview"))
+        assertTrue(historyManager.contains("getHistoryPreviewMetadata"))
+        val historyViewModel = File("src/main/java/com/omiyawaki/osrswiki/history/HistoryViewModel.kt").let {
+            if (it.exists()) it else File("app/src/main/java/com/omiyawaki/osrswiki/history/HistoryViewModel.kt")
+        }.readText()
+        assertTrue(historyViewModel.contains("enrichIncompleteHistory"))
+        assertTrue(historyViewModel.contains("getHistoryPreviewMetadata"))
+        assertTrue(downloader.contains("markInlineIcons"))
+        assertTrue(downloader.contains("osrs-inline-icon-wrapper"))
+    }
+
     private fun assetFile(path: String): File {
         return listOf(
             File("src/main/assets", path),

@@ -18,9 +18,11 @@ interface HistoryEntryDao {
     /**
      * Upserts a history entry.
      * Uses the page_wikiUrl primary key to replace existing entries with the same URL,
-     * effectively updating the timestamp to the most recent visit.
+     * while keeping a previously stored snippet or thumbnail when the new visit omitted them.
      */
     suspend fun upsertEntry(entry: HistoryEntry) {
+        val existing = findEntryByUrl(entry.wikiUrl)
+        entry.preserveExistingMetadata(existing)
         insertEntry(entry)
     }
 

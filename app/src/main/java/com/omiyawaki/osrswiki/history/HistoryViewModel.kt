@@ -9,18 +9,24 @@ import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.network.RetrofitClient
+import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
     
     private val historyDao by lazy {
         AppDatabase.instance.historyEntryDao()
     }
+    private val wikiApiService: WikiApiService = RetrofitClient.apiService
+    private val previewAttempts = ConcurrentHashMap.newKeySet<String>()
     
     private val _searchQuery = MutableLiveData<String>("")
     private var searchJob: Job? = null
@@ -37,6 +43,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             }
             
             val groupedItems = groupByDate(filteredEntries)
+            enrichIncompleteHistory(filteredEntries)
             MutableLiveData(groupedItems)
         }
     }
@@ -86,6 +93,48 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             historyDao.deleteAllEntries()
             // The switchMap will automatically update when the database changes
+        }
+    }
+
+    private fun enrichIncompleteHistory(entries: List<HistoryEntry>) {
+        val candidates = entries.filter { entry ->
+            HistoryMetadataBackfill.needsEnrichment(entry) && previewAttempts.add(entry.wikiUrl)
+        }
+        if (candidates.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                candidates.chunked(20).forEach { batch ->
+                    val titles = batch.map(HistoryMetadataBackfill::previewTitle)
+                        .filter { it.isNotBlank() }
+                        .distinct()
+                    if (titles.isEmpty()) return@forEach
+                    val pages = wikiApiService.getHistoryPreviewMetadata(
+                        titles.joinToString("|"),
+                        160
+                    ).query
+                    val byTitle = linkedMapOf<String, com.omiyawaki.osrswiki.network.PageExtract>()
+                    pages?.pages.orEmpty().forEach { page ->
+                        val title = page.title ?: return@forEach
+                        byTitle[HistoryMetadataBackfill.matchKey(title)] = page
+                    }
+                    pages?.redirects.orEmpty().forEach { redirect ->
+                        val from = redirect.from ?: return@forEach
+                        val to = redirect.to ?: return@forEach
+                        pages?.pages.orEmpty().firstOrNull {
+                            HistoryMetadataBackfill.matchKey(it.title.orEmpty()) == HistoryMetadataBackfill.matchKey(to)
+                        }?.let { byTitle[HistoryMetadataBackfill.matchKey(from)] = it }
+                    }
+                    batch.forEach { entry ->
+                        val page = byTitle[HistoryMetadataBackfill.matchKey(HistoryMetadataBackfill.previewTitle(entry))]
+                        val updated = HistoryMetadataBackfill.filledCopy(entry, page?.extract, page?.thumbnail?.source)
+                        if (updated != null) {
+                            historyDao.updateEntry(updated)
+                        }
+                    }
+                }
+            } catch (error: Exception) {
+                L.e("History metadata backfill failed", error)
+            }
         }
     }
 }

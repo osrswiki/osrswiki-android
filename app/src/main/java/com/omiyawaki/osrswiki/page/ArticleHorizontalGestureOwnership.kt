@@ -96,6 +96,26 @@ internal class ArticleHorizontalGestureOwnership {
     fun ownsCurrentPointer(): Boolean =
         acceptingClaimsGeneration?.let(::owns) == true
 
+    /** True once DOM JS has claimed or explicitly declined this pointer. */
+    fun hasDomClassification(): Boolean {
+        val generation = acceptingClaimsGeneration ?: return false
+        return owns(generation) || finalClassification != null
+    }
+
+    fun markCurrentPointerUnowned() {
+        val generation = acceptingClaimsGeneration ?: return
+        if (owns(generation)) return
+        finalClassification = false
+    }
+
+    fun releaseCurrentPointerClaim() {
+        val generation = acceptingClaimsGeneration ?: return
+        if (claimedGeneration == generation) {
+            claimedGeneration = null
+        }
+        finalClassification = false
+    }
+
     /**
      * Registers a native back/sidebar swipe candidate without guessing how long the WebView bridge
      * needs to classify the DOM target. The caller must wait for [recordFinalClassification] when

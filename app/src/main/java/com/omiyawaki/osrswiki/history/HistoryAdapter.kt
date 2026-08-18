@@ -125,7 +125,15 @@ class HistoryAdapter(
         }
 
         override fun areContentsTheSame(oldItem: HistoryItem, newItem: HistoryItem): Boolean {
-            return oldItem == newItem
+            return when {
+                oldItem is HistoryItem.EntryItem && newItem is HistoryItem.EntryItem ->
+                    oldItem.historyEntry.wikiUrl == newItem.historyEntry.wikiUrl &&
+                        oldItem.historyEntry.displayText == newItem.historyEntry.displayText &&
+                        oldItem.historyEntry.snippet == newItem.historyEntry.snippet &&
+                        oldItem.historyEntry.thumbnailUrl == newItem.historyEntry.thumbnailUrl &&
+                        oldItem.historyEntry.timestamp == newItem.historyEntry.timestamp
+                else -> oldItem == newItem
+            }
         }
     }
 }

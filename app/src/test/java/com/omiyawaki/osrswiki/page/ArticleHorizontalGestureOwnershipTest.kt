@@ -191,4 +191,27 @@ class ArticleHorizontalGestureOwnershipTest {
         assertEquals(ArticleHorizontalGestureSnapshot(sequence = 404L, owned = true), decoded)
         assertEquals(null, decodeArticleHorizontalGestureSnapshot("null"))
     }
+
+    @Test
+    fun explicitBeginClassificationUnblocksChromeWithoutClaimingThePointer() {
+        val ownership = ArticleHorizontalGestureOwnership()
+        ownership.beginPointer()
+        assertFalse(ownership.hasDomClassification())
+
+        ownership.markCurrentPointerUnowned()
+        assertTrue(ownership.hasDomClassification())
+        assertFalse(ownership.ownsCurrentPointer())
+    }
+
+    @Test
+    fun edgeReleaseDropsALocalClaimSoNavigationCanTakeOver() {
+        val ownership = ArticleHorizontalGestureOwnership()
+        val generation = ownership.beginPointer()
+        assertTrue(ownership.claimCurrentPointer())
+        assertTrue(ownership.owns(generation))
+
+        ownership.releaseCurrentPointerClaim()
+        assertFalse(ownership.owns(generation))
+        assertTrue(ownership.hasDomClassification())
+    }
 }
