@@ -15,7 +15,8 @@
     <color name="osrs_interface_grey_dark">#3e3529</color>
     <color name="osrs_gold_muted">#d4af37</color>
     <color name="osrs_parchment_surface_light">#d8ccb4</color>
-    <color name="osrs_text_secondary_light">#8B7355</color>
+    <color name="osrs_text_secondary_light">#4C3D2A</color>
+    <color name="osrs_text_secondary_dark">#a5917a</color>
     
     <!-- Bottom Navigation Inactive (40% opacity of colorOnSurface) -->
     <color name="bottom_nav_inactive">#663A2E1C</color> <!-- 40% opacity of osrs_text_dark for light theme -->
@@ -39,7 +40,7 @@
     <color name="ic_launcher_background">#20252c</color>
     <color name="text_input_primary">#DE000000</color>
     <color name="search_box_bg_on_primary">#33F0E6D2</color>
-    <color name="link_color_osrs_light">#936039</color>
+    <color name="link_color_osrs_light">#744e2f</color>
     <color name="link_color_osrs_dark">#b79d7e</color>
 
     <color name="osrs_loading_bar_red">#8c1111</color>

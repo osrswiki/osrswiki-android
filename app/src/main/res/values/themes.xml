@@ -33,7 +33,7 @@
         <item name="border_color">?attr/colorSurfaceVariant</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/osrs_parchment_light</item>
-        <item name="secondary_text_color">@color/osrs_text_dark</item>
+        <item name="secondary_text_color">@color/osrs_text_secondary_light</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.App</item>
         <item name="map_control_background">@color/black</item>
@@ -182,7 +182,7 @@
         <item name="linkColor">@color/link_color_osrs_dark</item>
         <item name="primary_text_color">?attr/colorOnSurface</item>
         <item name="base_color">@color/osrs_parchment_dark</item>
-        <item name="secondary_text_color">#B8B8B8</item>
+        <item name="secondary_text_color">@color/osrs_text_secondary_dark</item>
         <item name="map_control_background">@color/black</item>
         <item name="map_control_text">@color/gray_very_light</item>
         <item name="map_control_text_disabled">@color/gray_very_light_disabled</item>
