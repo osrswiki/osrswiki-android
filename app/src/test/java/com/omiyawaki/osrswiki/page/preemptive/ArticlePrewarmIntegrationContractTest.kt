@@ -28,6 +28,9 @@ class ArticlePrewarmIntegrationContractTest {
         assertTrue(homeAdapter.contains("fun prewarmCandidatesAt"))
         assertTrue(homeAdapter.contains("visibleRecyclerPositions"))
         assertTrue(homeAdapter.contains("visibleLinearChildIndices"))
+        assertTrue(homeAdapter.contains("child.isClickable = true"))
+        assertFalse(homeAdapter.contains("child.isClickable = fullyVisible"))
+        assertTrue(homeAdapter.contains("nestedRecyclerView.clipChildren = false"))
     }
 
     @Test

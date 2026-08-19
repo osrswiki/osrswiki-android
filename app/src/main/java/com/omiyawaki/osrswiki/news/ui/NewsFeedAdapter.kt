@@ -259,7 +259,8 @@ class NewsFeedAdapter(
         private var accessibilityListenersAttached = false
         
         init {
-            // Apply fonts on ViewHolder creation
+            nestedRecyclerView.clipChildren = false
+            nestedRecyclerView.clipToPadding = false
             sectionTitle.applyAlegreyaSmallCaps()
         }
         
@@ -321,7 +322,8 @@ class NewsFeedAdapter(
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                 }
                 child.isFocusable = fullyVisible
-                child.isClickable = fullyVisible
+                // Peeking cards stay tappable; TalkBack still only focuses fully visible ones.
+                child.isClickable = true
             }
         }
     }
