@@ -88,6 +88,21 @@ class ArticleAestheticCssContractTest {
         assertTrue(fixes.contains(":has(.mw-kartographer-map)"))
         assertTrue(fixes.contains("width: max-content !important;"))
         assertTrue(fixes.contains("padding-inline: var(--osrs-disclosure-content-inline-inset) !important;"))
+        assertTrue(fixes.contains("min-width: max-content !important;"))
+        assertTrue(fixes.contains("hyphens: none !important;"))
+        assertTrue(
+            fixes.contains(".collapsible-primary-infobox table.infobox th:not(.infobox-header) {")
+        )
+        assertFalse(
+            "Location infobox labels wrap when every primary-infobox th is forced to white-space:normal.",
+            Regex(
+                """\.collapsible-primary-infobox th,\s*\n\s*\.collapsible-primary-infobox td \{"""
+            ).containsMatchIn(fixes)
+        )
+        assertFalse(
+            "Location labels are th[colspan=2]; excluding colspan from nowrap wraps Inhabitants.",
+            fixes.contains("table.infobox th:not(.infobox-header):not([colspan])")
+        )
         val themes = assetFile("styles/themes.css").readText()
         assertTrue(themes.contains("color-mix(in srgb, var(--body-main) 78%, var(--body-light) 22%)"))
         val tables = assetFile("web/collapsible_tables.css").readText()
