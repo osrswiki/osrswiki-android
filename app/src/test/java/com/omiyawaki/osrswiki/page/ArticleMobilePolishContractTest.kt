@@ -13,6 +13,8 @@ class ArticleMobilePolishContractTest {
 
         assertTrue(script.contains("width > 48 || height > 48"))
         assertTrue(script.contains("osrs-inline-lore-note"))
+        assertTrue(script.contains("osrs-inline-icon-prose"))
+        assertTrue(script.contains("osrsWrapperIsIconChrome"))
         assertTrue(script.contains("osrs-balanced-portrait"))
         assertTrue(script.contains("height / Math.max(width, 1) >= 1.45"))
         assertTrue(script.contains("osrs-balanced-vignette"))

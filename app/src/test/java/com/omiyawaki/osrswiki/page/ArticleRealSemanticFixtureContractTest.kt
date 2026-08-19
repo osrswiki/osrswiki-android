@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.page
 import org.jsoup.Jsoup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -20,6 +21,12 @@ class ArticleRealSemanticFixtureContractTest {
         assertTrue(loreIcon.attr("width").toInt() <= 48)
         assertTrue(loreIcon.attr("height").toInt() <= 48)
 
+        val sourced = barbarian.selectFirst("#lore-sources")!!
+        val sourcedGroup = sourced.selectFirst("span")!!
+        assertTrue(sourcedGroup.html().contains("<i>"))
+        assertTrue(sourced.text().contains("Varrock Museum"))
+        assertNotNull(sourcedGroup.selectFirst("img.mw-file-element"))
+
         val falador = fixture("falador-inline.html")
         val sampledIcons = falador.select("#Transportation + p img.mw-file-element, #Stores + ul img.mw-file-element")
         assertEquals(3, sampledIcons.size)
@@ -29,13 +36,16 @@ class ArticleRealSemanticFixtureContractTest {
         val script = asset("web/mobile_article_polish.js")
         val css = asset("styles/fixes.css")
         assertTrue(script.contains("image.closest('p, li, td, th, figcaption')"))
-        assertTrue(script.contains("hasOnlyInlineIconContent"))
-        assertTrue(script.contains("p > span:has(img.osrs-inline-icon)"))
+        assertTrue(script.contains("osrsWrapperIsIconChrome"))
+        assertTrue(script.contains("osrs-inline-icon-prose"))
+        assertTrue(script.contains("p:has(> .osrs-inline-icon-prose)"))
         assertFalse(script.contains("[style*=\"padding\"]"))
         assertTrue(script.contains("paragraph.classList.add('osrs-inline-lore-paragraph')"))
         assertTrue(css.contains(".osrs-inline-lore-note"))
+        assertTrue(css.contains(".osrs-inline-icon-prose"))
         assertTrue(css.contains("display: inline !important"))
         assertTrue(css.contains("padding: 0 !important"))
+        assertTrue(css.contains("padding-block: 0 !important"))
         assertTrue(css.contains(".osrs-inline-icon-only-paragraph"))
     }
 
@@ -111,9 +121,10 @@ class ArticleRealSemanticFixtureContractTest {
         val captionDerivation = script.substringAfter("function deriveCaptionText")
             .substringBefore("function recipeRoleForTable")
 
-        assertTrue(captionDerivation.contains("table && table.querySelector('.mw-kartographer-map')"))
-        assertTrue(captionDerivation.contains("findContextHeading(elementToWrap)"))
+        assertTrue(captionDerivation.contains("kind !== 'infobox' && table && table.querySelector('.mw-kartographer-map')"))
         assertTrue(captionDerivation.contains("'Map table'"))
+        assertFalse(captionDerivation.contains("findContextHeading(elementToWrap)"))
+        assertTrue(captionDerivation.contains("return defaultTitle"))
         assertTrue(toggle.contains("Array.from(content.querySelectorAll('.mw-kartographer-map'))"))
         assertTrue(toggle.contains("mapPlaceholders.forEach"))
         assertTrue(toggle.contains("bridgeCall('onCollapsibleToggled', mapPlaceholder.dataset.osrsNativeMapId, isOpening)"))

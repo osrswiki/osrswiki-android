@@ -175,6 +175,7 @@ table.infobox-bonuses :is(th, td).infobox-nested {
 
 .collapsible-container.collapsible-primary-infobox {
     max-width: 100%;
+    width: fit-content;
 }
 
 .collapsible-container.collapsible-float-right:not(.collapsible-primary-infobox) {
@@ -219,7 +220,7 @@ table.infobox-bonuses :is(th, td).infobox-nested {
     box-sizing: border-box;
     max-width: 100% !important;
     overflow-x: hidden !important;
-    width: 100% !important;
+    width: fit-content !important;
 }
 
 .collapsible-container.collapsible-primary-infobox
@@ -227,8 +228,8 @@ table.infobox-bonuses :is(th, td).infobox-nested {
     table.main-infobox {
     box-sizing: border-box !important;
     max-width: 100% !important;
-    table-layout: fixed !important;
-    width: 100% !important;
+    table-layout: auto !important;
+    width: fit-content !important;
     margin-inline: 0 !important;
 }
 
@@ -401,31 +402,40 @@ audio.mw-file-element,
 }
 
 table.infobox:not(.skill-info):not(.infobox-bonuses),
+.collapsible-infobox,
+.collapsible-primary-infobox,
 .infobox-switch,
 .multi-infobox,
 .switch-infobox {
     float: none !important;
     clear: both !important;
-    width: 100% !important;
+    width: fit-content !important;
     max-width: 100% !important;
     margin: 1em 0 !important;
+}
+
+.collapsible-infobox table.infobox,
+.collapsible-primary-infobox table.main-infobox,
+.collapsible-container table.main-infobox {
+    width: fit-content !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
 }
 
 /* Last-wins lock: inset the inner disclosure column, not the overflow
    scrollport or the card itself. width:auto + inline margins leave the
    header full-bleed while tables size to the narrower column. Paint the
-   card with table-header fill so the gutter is visible against the page
-   and against infobox body fill. */
+   card with disclosure chrome so table headers remain distinct. */
 .collapsible-container:not(.collapsed) {
     padding-inline: 0 !important;
-    background-color: var(--wikitable-header-bg) !important;
+    background-color: var(--osrs-disclosure-chrome-bg, var(--body-mid)) !important;
 }
 
 .collapsible-container:not(.collapsed) > .collapsible-header {
     margin-inline: 0 !important;
     width: auto !important;
     max-width: none !important;
-    background-color: var(--wikitable-header-bg) !important;
+    background-color: var(--osrs-disclosure-chrome-bg, var(--body-mid)) !important;
 }
 
 .collapsible-container:not(.collapsed) > .collapsible-content {

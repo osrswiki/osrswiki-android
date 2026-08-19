@@ -307,7 +307,8 @@ class ArticleWebViewRecoveryTest {
 
         assertTrue(buildMethod.contains("StringBuilder("))
         assertTrue(buildMethod.contains("append(articleBodyContent)"))
-        assertFalse(buildMethod.contains(".trimIndent()"))
+        assertFalse(buildMethod.contains("articleBodyContent.trimIndent"))
+        assertFalse(buildMethod.contains("cleanedBodyContent.trimIndent"))
     }
 
     @Test

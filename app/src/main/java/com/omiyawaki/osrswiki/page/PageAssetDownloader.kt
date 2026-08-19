@@ -36,6 +36,7 @@ import okhttp3.Response
 import okio.Buffer
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 
 enum class ArticleContentSource { NETWORK, SAVED }
 
@@ -56,6 +57,7 @@ class PageAssetDownloader(
     private val jsonParser = Json { ignoreUnknownKeys = true }
     private val largeArticleImageDeferralThreshold = 1_000
     private val inlineIconWrapperTags = setOf("a", "span")
+    private val inlineIconChromeTags = setOf("a", "span", "img")
     private val transparentImagePlaceholder =
         "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='1'%20height='1'%3E%3C/svg%3E"
     private val prewarmEnvironmentListeners = CopyOnWriteArraySet<() -> Unit>()
@@ -379,6 +381,15 @@ class PageAssetDownloader(
         }
     }
 
+    private fun osrsWrapperIsIconChrome(wrapper: Element): Boolean {
+        val clone = wrapper.clone()
+        clone.select("img").remove()
+        if (clone.text().trim().isNotEmpty()) return false
+        return wrapper.allElements.asSequence()
+            .filter { it !== wrapper }
+            .all { it.tagName() in inlineIconChromeTags }
+    }
+
     private fun markInlineIcons(document: Document) {
         document.select("p img.mw-file-element, li img.mw-file-element, dd img.mw-file-element, td img.mw-file-element, th img.mw-file-element, figcaption img.mw-file-element").forEach { image ->
             if (image.hasClass("osrs-inline-icon")) return@forEach
@@ -393,7 +404,12 @@ class PageAssetDownloader(
             image.removeAttr("height")
             var wrapper = image.parent()
             while (wrapper != null && wrapper.tagName() in inlineIconWrapperTags) {
-                wrapper.addClass("osrs-inline-icon-wrapper")
+                if (osrsWrapperIsIconChrome(wrapper)) {
+                    wrapper.addClass("osrs-inline-icon-wrapper")
+                } else {
+                    wrapper.removeClass("osrs-inline-icon-wrapper")
+                    wrapper.addClass("osrs-inline-icon-prose")
+                }
                 wrapper = wrapper.parent()
             }
         }

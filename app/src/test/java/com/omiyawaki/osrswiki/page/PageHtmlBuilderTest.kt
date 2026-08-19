@@ -217,4 +217,35 @@ class PageHtmlBuilderTest {
         deferTableImages.invoke(downloader, document)
         return document.outerHtml()
     }
+
+    @Test
+    fun markInlineIconsDoesNotTreatAuthoredProseGroupingSpansAsIconChrome() {
+        val document = Jsoup.parse(
+            """
+            <p>
+              <span id="group" style="padding:25.6px; font-size:10pt;">
+                <span><img class="mw-file-element" width="18" height="17" src="book.png"></span>
+                <i>The following lore is sourced from the Varrock Museum</i>.
+              </span>
+            </p>
+            <p>Walk <span id="iconOnly" style="padding:25.6px"><span><img class="mw-file-element" width="24" height="24" src="icon.png"></span></span> north.</p>
+            """.trimIndent()
+        )
+        invokeMarkInlineIcons(document)
+        val group = document.selectFirst("#group")!!
+        assertTrue(group.hasClass("osrs-inline-icon-prose"))
+        assertFalse(group.hasClass("osrs-inline-icon-wrapper"))
+        assertTrue(document.selectFirst("#iconOnly")!!.hasClass("osrs-inline-icon-wrapper"))
+        assertFalse(document.selectFirst("#iconOnly")!!.hasClass("osrs-inline-icon-prose"))
+    }
+
+    private fun invokeMarkInlineIcons(document: Document) {
+        val downloader = PageAssetDownloader(OkHttpClient())
+        val markInlineIcons = PageAssetDownloader::class.java.getDeclaredMethod(
+            "markInlineIcons",
+            Document::class.java
+        )
+        markInlineIcons.isAccessible = true
+        markInlineIcons.invoke(downloader, document)
+    }
 }

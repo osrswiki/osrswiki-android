@@ -29,6 +29,23 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
         private const val LOCAL_ASSET_HOST = "appassets.androidplatform.net"
         private const val WIKI_MODULE_HOST = "oldschool.runescape.wiki"
 
+        internal fun osrsShouldOverrideMainFrameNavigation(request: WebResourceRequest): Boolean {
+            return request.isForMainFrame
+        }
+
+        internal fun osrsShouldOpenExternalUriWithoutUserGesture(request: WebResourceRequest): Boolean {
+            return request.isForMainFrame && !request.hasGesture() && osrsIsExternalMediaHost(request.url.host)
+        }
+
+        internal fun osrsIsExternalMediaHost(host: String?): Boolean {
+            val normalized = host?.lowercase() ?: return false
+            return normalized == "youtu.be" ||
+                normalized == "youtube.com" ||
+                normalized.endsWith(".youtube.com") ||
+                normalized == "youtube-nocookie.com" ||
+                normalized.endsWith(".youtube-nocookie.com")
+        }
+
         internal fun normalizeModuleCacheUrl(url: String): String {
             return rewriteLocalAssetHost(url, pathPrefix = "/load.php", exactPath = true)
         }
@@ -64,17 +81,22 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
         Log.d(logTag, "AppWebViewClient.shouldOverrideUrlLoading: ${uri}")
-        
-        // Add specific logging for YouTube URLs to debug the "Watch on YouTube" button
+
+        if (!osrsShouldOverrideMainFrameNavigation(request)) {
+            Log.d(logTag, "Allowing subframe/embed navigation in WebView: $uri")
+            return false
+        }
+
+        if (osrsShouldOpenExternalUriWithoutUserGesture(request)) {
+            Log.i(logTag, "Ignoring ungestured main-frame media navigation without opening an external app: $uri")
+            return true
+        }
+
         if (uri.toString().contains("youtube.com", ignoreCase = true)) {
             Log.i(logTag, "YOUTUBE URL DETECTED: $uri - attempting to process as external link")
         }
-        
-        // Pass the URI to the LinkHandler for processing. The LinkHandler
-        // will determine if it's an internal or external link and then
-        // call the appropriate method.
+
         linkHandler.processUri(uri)
-        // Return true to indicate that the application has handled the URL.
         return true
     }
 
