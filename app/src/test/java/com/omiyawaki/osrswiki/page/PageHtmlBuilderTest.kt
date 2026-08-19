@@ -119,6 +119,10 @@ class PageHtmlBuilderTest {
             "Android article aesthetic overrides must load after shared fixes",
             androidArticleIndex > fixesIndex
         )
+        assertTrue(html.contains("osrs-android-disclosure-chrome"))
+        assertTrue(html.contains("min-height: 64px !important"))
+        assertTrue(html.contains("height: auto !important"))
+        assertTrue(html.contains("OSRS_ANDROID_DISCLOSURE_CHROME"))
     }
 
     @Test

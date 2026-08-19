@@ -86,6 +86,7 @@ class PageHtmlBuilder(private val context: Context) {
             <script>
                 // Global variable for table collapse preference that collapsible_content.js can read
                 window.OSRS_TABLE_COLLAPSED = $collapseTablesEnabled;
+                window.OSRS_ANDROID_DISCLOSURE_CHROME = true;
                 console.log('PageHtmlBuilder: Set global collapse preference to ' + window.OSRS_TABLE_COLLAPSED);
             </script>
         """.trimIndent()
@@ -183,6 +184,37 @@ class PageHtmlBuilder(private val context: Context) {
             val transformScripts = articleTransformJsAssetPaths.joinToString("\n") { assetPath ->
                 "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
             }
+            val androidDisclosureChrome = """
+                <style id="osrs-android-disclosure-chrome">
+                .collapsible-header, .collapsible-close-button {
+                    background-color: var(--body-mid, #d0bd97) !important;
+                    box-sizing: border-box !important;
+                    flex-shrink: 0 !important;
+                    height: auto !important;
+                    min-height: 64px !important;
+                    padding: 16px 16px !important;
+                }
+                </style>
+                <script>
+                (function () {
+                    function osrsApplyAndroidDisclosureChrome() {
+                        document.querySelectorAll('.collapsible-header, .collapsible-close-button').forEach(function (el) {
+                            el.style.setProperty('box-sizing', 'border-box', 'important');
+                            el.style.setProperty('flex-shrink', '0', 'important');
+                            el.style.setProperty('height', 'auto', 'important');
+                            el.style.setProperty('min-height', '64px', 'important');
+                            el.style.setProperty('padding', '16px 16px', 'important');
+                            el.style.setProperty('background-color', 'var(--body-mid, #d0bd97)', 'important');
+                        });
+                    }
+                    osrsApplyAndroidDisclosureChrome();
+                    if (window.mw && mw.hook) {
+                        mw.hook('wikipage.content').add(osrsApplyAndroidDisclosureChrome);
+                    }
+                    document.addEventListener('DOMContentLoaded', osrsApplyAndroidDisclosureChrome);
+                })();
+                </script>
+            """.trimIndent()
             
             // Generate smart MediaWiki variables
             val smartMediawikiVariables = generateMediaWikiVariables(cleanedTitle, cleanedBodyContent)
@@ -225,6 +257,7 @@ class PageHtmlBuilder(private val context: Context) {
                 .append("    ").append(themeUtilityScript).append('\n')
                 .append("    ").append(tableCollapseScript).append('\n')
                 .append("    ").append(smartMediawikiVariables).append('\n')
+                .append("    ").append(androidDisclosureChrome).append('\n')
                 .append("</head>\n")
                 .append("<body class=\"").append(themeClass).append(" ").append(floorClass)
                 .append(" ").append(wrapClass).append("\">\n")

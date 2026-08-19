@@ -65,6 +65,10 @@ class ArticleMobilePolishContractTest {
         assertTrue(switcher.contains("preloader.decode()"))
         assertTrue(switcher.contains("updateExistingImage"))
         assertTrue(switcher.contains("lockSwitcherMinBlockSize"))
+        assertTrue(switcher.contains("applySwitcherLayoutLock"))
+        assertTrue(switcher.contains("scheduleSwitcherLayoutLock"))
+        assertTrue(switcher.contains("setProperty('table-layout'"))
+        assertFalse(switcher.contains("'width:max-content'"))
         assertFalse(switcher.contains("container.classList.contains('infobox-bonuses')"))
         assertFalse(switcher.contains("\n            stabilizeInfoboxWidth(mainInfobox"))
     }

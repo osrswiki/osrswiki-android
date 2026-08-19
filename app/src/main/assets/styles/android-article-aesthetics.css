@@ -6,6 +6,13 @@
  * WebView polish can be adjusted without changing iOS or shared sources.
  */
 
+:root,
+html,
+body {
+    --osrs-disclosure-control-padding-block: 16px !important;
+    --osrs-disclosure-control-padding-inline: 16px !important;
+}
+
 .mw-parser-output {
     max-width: 100%;
     min-width: 0;
@@ -555,5 +562,18 @@ table.osrs-map-table > :is(thead, tbody, tfoot) > tr > :is(th, td):has(.mw-karto
     width: 99% !important;
     min-width: 0 !important;
     white-space: normal !important;
+}
+
+/* Restore the pre-density 12px control rows. A fixed 52px height plus 16px
+   padding in border-box clipped the label to ~20px and still read short.
+   Auto height with 16px padding and a 64px floor keeps the old tap-row size. */
+.collapsible-header,
+.collapsible-close-button {
+    background-color: var(--body-mid, #d0bd97) !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    height: auto !important;
+    min-height: 64px !important;
+    padding: 16px 16px !important;
 }
 

@@ -45,6 +45,13 @@ class ArticleAestheticCssContractTest {
         assertTrue(css.contains("table.musicplayer"))
         assertTrue(css.contains("float: none !important"))
         assertTrue(css.contains("min-width: min(160px, 72vw)"))
+        assertTrue(css.contains("--osrs-disclosure-control-padding-block: 16px !important;"))
+        assertTrue(css.contains("--osrs-disclosure-control-padding-inline: 16px !important;"))
+        assertTrue(css.contains("padding: 16px 16px !important;"))
+        assertTrue(css.contains("height: auto !important;"))
+        assertTrue(css.contains("min-height: 64px !important;"))
+        assertTrue(css.contains("background-color: var(--body-mid, #d0bd97) !important;"))
+        assertTrue(css.contains(".collapsible-close-button"))
     }
 
     @Test
@@ -94,7 +101,12 @@ class ArticleAestheticCssContractTest {
     fun collapseTransformerKeepsPrimaryArticleStructureExpandedAndMeaningfullyLabeled() {
         val source = assetFile("web/collapsible_content.js").readText()
 
-        assertTrue(source.contains("appendDisclosureBody"))
+        assertTrue(source.contains("osrsApplyAndroidDisclosureChrome"))
+        assertTrue(source.contains("osrsApplyAndroidDisclosureChromeAll"))
+        assertTrue(source.contains("OSRS_ANDROID_DISCLOSURE_CHROME"))
+        assertTrue(source.contains("height', 'auto'"))
+        assertTrue(source.contains("min-height', '64px'"))
+        assertTrue(source.contains("padding', '16px 16px'"))
         assertTrue(source.contains("absorbDisclosureChildren"))
         assertTrue(source.contains("applyDisclosureInnerInset"))
         assertTrue(source.contains("scheduleDisclosureInnerInsets"))
