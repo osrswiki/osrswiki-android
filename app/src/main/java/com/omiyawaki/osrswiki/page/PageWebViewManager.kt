@@ -496,6 +496,19 @@ class PageWebViewManager(
         }
     }
 
+    /** Applies the wrap-table-cells Appearance preference without rebuilding the article. */
+    fun refreshWrapTableCellsPreference() {
+        if (isDisposed) return
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            PageHtmlBuilder.wrapTableCellsRuntimeScript(Prefs.wrapTableCells)
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                Unit
+            }
+        }
+    }
+
     private fun applyTableCollapsePreference(onFinished: () -> Unit = {}) {
         if (isDisposed) return
         val callbackGeneration = renderGeneration

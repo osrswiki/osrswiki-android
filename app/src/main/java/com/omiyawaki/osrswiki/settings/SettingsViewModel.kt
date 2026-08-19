@@ -64,6 +64,8 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
         when (key) {
             SettingsRepository.KEY_COLLAPSE_TABLES ->
                 repository.setCollapseTablesEnabled(isChecked)
+            SettingsRepository.KEY_WRAP_TABLE_CELLS ->
+                repository.setWrapTableCellsEnabled(isChecked)
             SettingsRepository.KEY_SWIPE_RIGHT_BACK ->
                 repository.setSwipeRightBackEnabled(isChecked)
             SettingsRepository.KEY_SWIPE_LEFT_CONTENTS ->

@@ -150,6 +150,9 @@
     <string name="settings_tables_title">Collapse tables</string>
     <string name="settings_tables_collapsed_summary">Tables start collapsed</string>
     <string name="settings_tables_expanded_summary">Tables start expanded</string>
+    <string name="settings_wrap_table_cells_title">Wrap table cells</string>
+    <string name="settings_wrap_table_cells_summary_on">Table text wraps onto multiple lines</string>
+    <string name="settings_wrap_table_cells_summary_off">Table text stays on one line</string>
     <string name="settings_floor_numbering_title">Floor numbering</string>
     <string name="settings_floor_numbering_auto">Match this device’s locale</string>
     <string name="settings_floor_numbering_uk">UK (ground floor is the entrance)</string>

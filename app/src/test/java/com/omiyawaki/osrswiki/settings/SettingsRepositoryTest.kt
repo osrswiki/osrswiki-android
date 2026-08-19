@@ -40,6 +40,7 @@ class SettingsRepositoryTest {
 
         assertEquals(AppThemeMode.FOLLOW_SYSTEM, settings.themeMode)
         assertFalse(settings.collapseTables)
+        assertFalse(settings.wrapTableCells)
         assertEquals(ReaderTextScale.DEFAULT, settings.reader.textScale)
         assertTrue(settings.reader.swipeRightBackEnabled)
         assertTrue(settings.reader.swipeLeftContentsEnabled)
@@ -52,6 +53,7 @@ class SettingsRepositoryTest {
         val firstLaunch = SettingsRepository(sharedPreferences)
         firstLaunch.setAppThemeMode(SettingsRepository.THEME_DARK)
         firstLaunch.setCollapseTablesEnabled(false)
+        firstLaunch.setWrapTableCellsEnabled(true)
         firstLaunch.setReaderTextScale(1.37f)
         firstLaunch.setSwipeRightBackEnabled(false)
         firstLaunch.setSwipeLeftContentsEnabled(true)
@@ -60,6 +62,7 @@ class SettingsRepositoryTest {
 
         assertEquals(AppThemeMode.DARK, relaunched.themeMode)
         assertFalse(relaunched.collapseTables)
+        assertTrue(relaunched.wrapTableCells)
         assertEquals(1.37f, relaunched.reader.textScale)
         assertFalse(relaunched.reader.swipeRightBackEnabled)
         assertTrue(relaunched.reader.swipeLeftContentsEnabled)
@@ -111,6 +114,7 @@ class SettingsRepositoryTest {
 
         viewModel.onThemeSelected(SettingsRepository.THEME_LIGHT)
         viewModel.onSwitchSettingToggled(SettingsRepository.KEY_COLLAPSE_TABLES, false)
+        viewModel.onSwitchSettingToggled(SettingsRepository.KEY_WRAP_TABLE_CELLS, true)
         viewModel.onSwitchSettingToggled(SettingsRepository.KEY_SWIPE_RIGHT_BACK, false)
         viewModel.onSwitchSettingToggled(SettingsRepository.KEY_SWIPE_LEFT_CONTENTS, false)
         viewModel.onReaderTextScaleChanged(140)
@@ -118,6 +122,7 @@ class SettingsRepositoryTest {
         val relaunched = SettingsRepository(sharedPreferences).currentSettings()
         assertEquals(AppThemeMode.LIGHT, relaunched.themeMode)
         assertFalse(relaunched.collapseTables)
+        assertTrue(relaunched.wrapTableCells)
         assertEquals(ReaderTextScale.MAX, relaunched.reader.textScale)
         assertFalse(relaunched.reader.swipeRightBackEnabled)
         assertFalse(relaunched.reader.swipeLeftContentsEnabled)

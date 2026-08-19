@@ -37,6 +37,15 @@
             app:iconSpaceReserved="true"
             app:persistent="false" />
 
+        <SwitchPreferenceCompat
+            app:key="wrap_table_cells"
+            app:title="@string/settings_wrap_table_cells_title"
+            app:summary="@string/settings_wrap_table_cells_summary_off"
+            app:defaultValue="false"
+            app:icon="@drawable/ic_settings_tables_24"
+            app:iconSpaceReserved="true"
+            app:persistent="false" />
+
         <ListPreference
             app:key="floor_numbering"
             app:title="@string/settings_floor_numbering_title"

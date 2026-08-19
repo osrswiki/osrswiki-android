@@ -82,6 +82,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private val horizontalGestureOwnership = ArticleHorizontalGestureOwnership()
     private var lastAppliedCollapsePreference = Prefs.isCollapseTablesEnabled
     private var lastAppliedFloorNumberingMode = Prefs.floorNumberingMode
+    private var lastAppliedWrapTableCells = Prefs.wrapTableCells
     private var lastPointerDownX = Float.NaN
     private var lastPointerDownY = Float.NaN
     private var lastPointerDownRawX = Float.NaN
@@ -166,6 +167,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val app = requireActivity().application as OSRSWikiApp
         val currentTheme = app.getCurrentTheme()
         lastAppliedCollapsePreference = Prefs.isCollapseTablesEnabled
+        lastAppliedWrapTableCells = Prefs.wrapTableCells
         val backgroundColorRes = when (currentTheme) {
             Theme.OSRS_DARK -> R.color.osrs_parchment_dark
             else -> R.color.osrs_parchment_light
@@ -1011,6 +1013,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         if (floorNumberingMode != lastAppliedFloorNumberingMode) {
             lastAppliedFloorNumberingMode = floorNumberingMode
             applyFloorNumberingPreference()
+        }
+        val wrapTableCells = Prefs.wrapTableCells
+        if (wrapTableCells != lastAppliedWrapTableCells) {
+            lastAppliedWrapTableCells = wrapTableCells
+            pageWebViewManager?.refreshWrapTableCellsPreference()
         }
     }
 

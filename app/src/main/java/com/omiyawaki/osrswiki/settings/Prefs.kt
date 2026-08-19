@@ -9,6 +9,7 @@ object Prefs {
     const val KEY_APP_THEME_MODE = AppearancePreferenceKeys.APP_THEME_MODE
     const val KEY_DOWNLOAD_READING_LIST_ARTICLES = "downloadReadingListArticles"
     const val KEY_COLLAPSE_TABLES = AppearancePreferenceKeys.COLLAPSE_TABLES
+    const val KEY_WRAP_TABLE_CELLS = AppearancePreferenceKeys.WRAP_TABLE_CELLS
     const val KEY_READER_TEXT_SCALE_PERCENT = AppearancePreferenceKeys.READER_TEXT_SCALE_PERCENT
     const val KEY_SWIPE_RIGHT_BACK = AppearancePreferenceKeys.SWIPE_RIGHT_BACK
     const val KEY_SWIPE_LEFT_CONTENTS = AppearancePreferenceKeys.SWIPE_LEFT_CONTENTS
@@ -21,6 +22,9 @@ object Prefs {
      */
     val isCollapseTablesEnabled
         get() = appearancePreferences.collapseTables
+
+    val wrapTableCells
+        get() = appearancePreferences.wrapTableCells
 
     /**
      * Gets whether reading list articles should be downloaded for offline use.

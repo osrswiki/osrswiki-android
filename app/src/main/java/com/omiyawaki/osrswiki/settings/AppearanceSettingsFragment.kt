@@ -24,6 +24,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
     private lateinit var viewModel: SettingsViewModel
     private lateinit var themePreference: ListPreference
     private lateinit var collapseTablesPreference: SwitchPreferenceCompat
+    private lateinit var wrapTableCellsPreference: SwitchPreferenceCompat
     private lateinit var textScalePreference: SeekBarPreference
     private lateinit var swipeRightBackPreference: SwitchPreferenceCompat
     private lateinit var swipeLeftContentsPreference: SwitchPreferenceCompat
@@ -39,6 +40,7 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
         setPreferencesFromResource(R.xml.preferences_appearance, rootKey)
         themePreference = requirePreference(Prefs.KEY_APP_THEME_MODE)
         collapseTablesPreference = requirePreference(Prefs.KEY_COLLAPSE_TABLES)
+        wrapTableCellsPreference = requirePreference(Prefs.KEY_WRAP_TABLE_CELLS)
         textScalePreference = requirePreference(Prefs.KEY_READER_TEXT_SCALE_PERCENT)
         swipeRightBackPreference = requirePreference(Prefs.KEY_SWIPE_RIGHT_BACK)
         swipeLeftContentsPreference = requirePreference(Prefs.KEY_SWIPE_LEFT_CONTENTS)
@@ -74,6 +76,11 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
         collapseTablesPreference.onPreferenceChangeListener =
             Preference.OnPreferenceChangeListener { _, value ->
                 viewModel.onSwitchSettingToggled(Prefs.KEY_COLLAPSE_TABLES, value as Boolean)
+                true
+            }
+        wrapTableCellsPreference.onPreferenceChangeListener =
+            Preference.OnPreferenceChangeListener { _, value ->
+                viewModel.onSwitchSettingToggled(Prefs.KEY_WRAP_TABLE_CELLS, value as Boolean)
                 true
             }
         textScalePreference.onPreferenceChangeListener =
@@ -113,6 +120,14 @@ class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
                 R.string.settings_tables_collapsed_summary
             } else {
                 R.string.settings_tables_expanded_summary
+            }
+        )
+        wrapTableCellsPreference.isChecked = settings.wrapTableCells
+        wrapTableCellsPreference.summary = getString(
+            if (settings.wrapTableCells) {
+                R.string.settings_wrap_table_cells_summary_on
+            } else {
+                R.string.settings_wrap_table_cells_summary_off
             }
         )
         val percent = ReaderTextScale.toPercent(settings.reader.textScale)

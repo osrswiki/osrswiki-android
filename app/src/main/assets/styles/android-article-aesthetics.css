@@ -463,6 +463,19 @@ table.infobox:not(.skill-info):not(.infobox-bonuses),
     overflow-x: auto !important;
 }
 
+.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body > :first-child,
+.recipe-table.osrs-recipe-unit > .collapsible-recipe-table:not(.collapsed) > .collapsible-content > .osrs-disclosure-body > :first-child,
+.collapsible-content > .osrs-disclosure-body > :first-child,
+.collapsible-content > .osrs-disclosure-body > :first-child:is(:empty, br, [hidden], [aria-hidden="true"]) + *,
+.collapsible-content > .osrs-disclosure-body > .osrs-disclosure-first-content,
+.collapsible-infobox .osrs-disclosure-body > table.infobox,
+.collapsible-primary-infobox .osrs-disclosure-body > table.infobox,
+.osrs-disclosure-body > .infobox-switch,
+.osrs-disclosure-body > .switch-infobox-triggers,
+.osrs-disclosure-body > .infobox-buttons {
+    margin-block-start: 0 !important;
+}
+
 .collapsible-container .infobox,
 .collapsible-container table.infobox,
 .osrs-disclosure-body table,
@@ -486,7 +499,7 @@ table.infobox:not(.skill-info):not(.infobox-bonuses),
 .collapsible-primary-infobox:not(.collapsed) > .collapsible-content {
     box-sizing: border-box !important;
     padding-inline: var(--osrs-disclosure-content-inline-inset, 12px) !important;
-    padding-block: var(--osrs-disclosure-content-block-inset, 8px) !important;
+    padding-block: 0 !important;
 }
 
 .collapsible-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body,

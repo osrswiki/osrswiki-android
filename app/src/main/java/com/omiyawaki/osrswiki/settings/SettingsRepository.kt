@@ -15,6 +15,7 @@ class SettingsRepository(private val sharedPreferences: SharedPreferences) {
         // Use existing preference keys to maintain compatibility
         const val KEY_APP_THEME_MODE = AppearancePreferenceKeys.APP_THEME_MODE
         const val KEY_COLLAPSE_TABLES = AppearancePreferenceKeys.COLLAPSE_TABLES
+        const val KEY_WRAP_TABLE_CELLS = AppearancePreferenceKeys.WRAP_TABLE_CELLS
         const val KEY_READER_TEXT_SCALE_PERCENT = AppearancePreferenceKeys.READER_TEXT_SCALE_PERCENT
         const val KEY_SWIPE_RIGHT_BACK = AppearancePreferenceKeys.SWIPE_RIGHT_BACK
         const val KEY_SWIPE_LEFT_CONTENTS = AppearancePreferenceKeys.SWIPE_LEFT_CONTENTS
@@ -51,6 +52,13 @@ class SettingsRepository(private val sharedPreferences: SharedPreferences) {
 
     fun setCollapseTablesEnabled(enabled: Boolean) {
         sharedPreferences.edit().putBoolean(KEY_COLLAPSE_TABLES, enabled).apply()
+        refreshState()
+    }
+
+    fun wrapTableCells(): Boolean = loadCurrentState().wrapTableCells
+
+    fun setWrapTableCellsEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean(KEY_WRAP_TABLE_CELLS, enabled).apply()
         refreshState()
     }
 

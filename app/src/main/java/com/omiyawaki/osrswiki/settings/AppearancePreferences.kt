@@ -24,6 +24,7 @@ data class ReaderPreferences(
 data class AppearancePreferences(
     val themeMode: AppThemeMode = AppThemeMode.FOLLOW_SYSTEM,
     val collapseTables: Boolean = false,
+    val wrapTableCells: Boolean = false,
     val reader: ReaderPreferences = ReaderPreferences(),
     val floorNumberingMode: String = osrsArticleFloorNumberingMode.AUTO.persistedValue
 )
@@ -31,6 +32,7 @@ data class AppearancePreferences(
 object AppearancePreferenceKeys {
     const val APP_THEME_MODE = "app_theme_mode"
     const val COLLAPSE_TABLES = "collapseTables"
+    const val WRAP_TABLE_CELLS = "wrap_table_cells"
     const val READER_TEXT_SCALE_PERCENT = "reader_text_scale_percent"
     const val SWIPE_RIGHT_BACK = "swipe_right_back"
     const val SWIPE_LEFT_CONTENTS = "swipe_left_contents"
@@ -69,6 +71,10 @@ internal object AppearancePreferencesCodec {
             AppearancePreferenceKeys.COLLAPSE_TABLES,
             defaultValue = false
         )
+        val wrapTableCells = stored.booleanOrDefault(
+            AppearancePreferenceKeys.WRAP_TABLE_CELLS,
+            defaultValue = false
+        )
         val swipeRightBack = stored.booleanOrDefault(
             AppearancePreferenceKeys.SWIPE_RIGHT_BACK,
             defaultValue = true
@@ -91,6 +97,10 @@ internal object AppearancePreferencesCodec {
         }
         if (stored[AppearancePreferenceKeys.COLLAPSE_TABLES] !is Boolean) {
             editor.putBoolean(AppearancePreferenceKeys.COLLAPSE_TABLES, collapseTables)
+            needsWrite = true
+        }
+        if (stored[AppearancePreferenceKeys.WRAP_TABLE_CELLS] !is Boolean) {
+            editor.putBoolean(AppearancePreferenceKeys.WRAP_TABLE_CELLS, wrapTableCells)
             needsWrite = true
         }
         if (stored[AppearancePreferenceKeys.SWIPE_RIGHT_BACK] !is Boolean) {
@@ -120,6 +130,7 @@ internal object AppearancePreferencesCodec {
         return AppearancePreferences(
             themeMode = themeMode,
             collapseTables = collapseTables,
+            wrapTableCells = wrapTableCells,
             reader = ReaderPreferences(
                 textScale = ReaderTextScale.fromPercent(textScalePercent),
                 swipeRightBackEnabled = swipeRightBack,

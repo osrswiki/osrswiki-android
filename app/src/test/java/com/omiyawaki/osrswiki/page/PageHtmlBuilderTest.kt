@@ -52,6 +52,7 @@ class PageHtmlBuilderTest {
 
         assertTrue(document.body().hasClass("theme-osrs-dark"))
         assertTrue(document.body().hasClass(osrsArticleFloorConvention.current().bodyClass))
+        assertFalse(document.body().hasClass("osrs-table-cells-wrap"))
         assertFalse(document.body().hasAttr("style"))
         assertTrue(html.contains("window.OSRS_TABLE_COLLAPSED = false;"))
     }

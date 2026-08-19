@@ -126,6 +126,7 @@ class PageHtmlBuilder(private val context: Context) {
     ): String {
         var finalHtml: String
         val floorClass = osrsArticleFloorConvention.resolved(deviceLocale()).bodyClass
+        val wrapClass = if (Prefs.wrapTableCells) "osrs-table-cells-wrap" else ""
         val time = measureTimeMillis {
             // Preserved title logic from working version
             val cleanedTitle = StringUtil.extractMainTitle(title)
@@ -213,7 +214,7 @@ class PageHtmlBuilder(private val context: Context) {
                 2_048
             finalHtml = StringBuilder(estimatedSize)
                 .append("<!DOCTYPE html>\n")
-                .append("<html>\n")
+                .append("<html class=\"").append(wrapClass).append("\">\n")
                 .append("<head>\n")
                 .append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">\n")
                 .append("    <title>").append(documentTitle).append("</title>\n")
@@ -225,7 +226,8 @@ class PageHtmlBuilder(private val context: Context) {
                 .append("    ").append(tableCollapseScript).append('\n')
                 .append("    ").append(smartMediawikiVariables).append('\n')
                 .append("</head>\n")
-                .append("<body class=\"").append(themeClass).append(" ").append(floorClass).append("\">\n")
+                .append("<body class=\"").append(themeClass).append(" ").append(floorClass)
+                .append(" ").append(wrapClass).append("\">\n")
                 .append(titleHeaderHtml)
                 .append(articleBodyContent)
                 .append('\n')
@@ -349,6 +351,21 @@ class PageHtmlBuilder(private val context: Context) {
                 })();
             """.trimIndent()
         }
+
+        internal fun wrapTableCellsRuntimeScript(enabled: Boolean): String = """
+            (function() {
+                var enabled = $enabled;
+                if (typeof window.osrsApplyTableCellWrapPreference === 'function') {
+                    window.osrsApplyTableCellWrapPreference(enabled);
+                    return;
+                }
+                [document.documentElement, document.body].forEach(function(element) {
+                    if (element) {
+                        element.classList.toggle('osrs-table-cells-wrap', enabled);
+                    }
+                });
+            })();
+        """.trimIndent()
 
         internal fun tableCollapseRuntimeScript(collapseTablesEnabled: Boolean): String = """
             (function() {
