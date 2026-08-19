@@ -115,7 +115,7 @@
 }
 
 .infobox .infobox-full-width-content {
-        padding: 0;
+        padding: var(--osrs-infobox-cell-padding-block, 0.24em) var(--osrs-infobox-cell-padding-inline, 0.42em);
         text-align: center;
 }
 
@@ -163,8 +163,10 @@
         width: fit-content; /* Wrap around child exactly */
 }
 
-/* Full Width Content (navboxes, large tables) */
-.collapsible-container:has(.navbox, .wikitable) {
+/* Full Width Content (navboxes, large tables).
+   Do not let a nested .wikitable inside an infobox (maps, subtables)
+   promote the infobox card to a full-bleed navbox. */
+.collapsible-container:has(.navbox, .wikitable):not(.collapsible-infobox):not(.collapsible-primary-infobox) {
         width: 100%; /* Match full-width content */
         max-width: calc(100vw - 32px); /* Account for body margin (16px each side) */
         margin: 1em auto 0; /* Match navbox margins */
@@ -175,14 +177,14 @@
 }
 
 /* Ensure tables inside collapsible containers fill the width */
-.collapsible-container .wikitable {
+.collapsible-container:not(.collapsible-infobox):not(.collapsible-primary-infobox) .wikitable {
         width: 100%;
         table-layout: auto;
         margin: 0; /* Remove duplicate margins */
 }
 
 /* For table containers, provide consistent spacing like infoboxes and navboxes */
-.collapsible-container:has(.wikitable) .collapsible-content {
+.collapsible-container:has(.wikitable):not(.collapsible-infobox):not(.collapsible-primary-infobox) .collapsible-content {
         padding-inline: 0;
         padding-block: 0;
 }
