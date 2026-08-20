@@ -110,7 +110,13 @@ class PageContentLoader(
                     currentCoroutineContext().ensureActive()
                     lateinit var finalHtml: String
                     val documentBuildTime = measureTimeMillis {
-                        finalHtml = pageHtmlBuilder.buildFullHtmlDocument(displayTitle ?: "", result.processedHtml, theme, collapseTablesEnabled)
+                        finalHtml = pageHtmlBuilder.buildFullHtmlDocument(
+                            displayTitle ?: "",
+                            result.processedHtml,
+                            theme,
+                            collapseTablesEnabled,
+                            canonicalTitle = result.parseResult.title
+                        )
                     }
                     currentCoroutineContext().ensureActive()
                     L.d("ArticleRenderPhase: tocExtractionMs=$tocTime documentBuildMs=$documentBuildTime processedChars=${result.processedHtml.length} finalChars=${finalHtml.length}")

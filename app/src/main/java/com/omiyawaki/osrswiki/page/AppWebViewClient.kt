@@ -54,6 +54,10 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             return rewriteLocalAssetHost(url, pathPrefix = "/images/", exactPath = false)
         }
 
+        internal fun normalizeWikiApiUrl(url: String): String {
+            return osrsWikiWebViewUrl.rewriteToWiki(url)
+        }
+
         private fun rewriteLocalAssetHost(
             url: String,
             pathPrefix: String,
@@ -102,6 +106,11 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
 
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
+
+        osrsWikiWebViewProxy.intercept(request, view.context)?.let { proxied ->
+            Log.i(logTag, "  -> INTERCEPT [HIT] wiki calculator/API proxy for: $url")
+            return proxied
+        }
         
         // Initialize CDN redirector and module cache if needed
         if (!::cdnRedirector.isInitialized) {

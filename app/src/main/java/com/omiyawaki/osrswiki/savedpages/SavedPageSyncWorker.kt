@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.page.osrsCalculatorSaveWarmer
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.network.OkHttpClientFactory
@@ -206,13 +207,19 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                                     displayTitle ?: parsedCanonicalTitle,
                                     articleHtml,
                                     Theme.DEFAULT_LIGHT,
-                                    Prefs.isCollapseTablesEnabled
+                                    Prefs.isCollapseTablesEnabled,
+                                    canonicalTitle = parsedCanonicalTitle
                                 )
                             stagedArticleFile = snapshotStage.stageArticleHtml(
                                 parsedPageId,
                                 fullHtml
                             )
                             pageArticlePrepared = true
+                            osrsCalculatorSaveWarmer.warmDefaultParse(
+                                applicationContext,
+                                articleHtml,
+                                parsedCanonicalTitle
+                            )
                             updateQueuedSaveProgressOrCancel(page.id, 80)
                         }
 

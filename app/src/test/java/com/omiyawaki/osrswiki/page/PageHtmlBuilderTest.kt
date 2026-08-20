@@ -158,6 +158,25 @@ class PageHtmlBuilderTest {
     }
 
     @Test
+    fun calculatorPagesLoadCalcCoreAndCalculatorNamespace() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Calculator:Combat level",
+            bodyContent = """<pre class="jcConfig">template = Calculator:Combat level/Template</pre>""",
+            theme = Theme.OSRS_LIGHT
+        )
+
+        assertTrue(html.contains("\"oojs-ui-core\""))
+        assertTrue(html.contains("\"mediawiki.widgets\""))
+        assertTrue(html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116"))
+        assertTrue(html.contains("mediawiki/gadget_calc_core.js"))
+        assertTrue(html.contains("web/osrs_calculator_runtime.js"))
+        assertTrue(html.contains("styles/gadget_calc.css"))
+        assertTrue(html.contains("id=\"bodyContent\""))
+        assertTrue(html.contains("--osrs-article-bottom-chrome"))
+        assertTrue(html.contains("padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px)"))
+    }
+
+    @Test
     fun preprocessingDefersLargeArticleTableImagesUntilExpansion() {
         val tableImages = (1..1001).joinToString("\n") { index ->
             """<img src="/images/task-$index.png" srcset="/images/task-$index.png 1x, /images/task-${index}@2x.png 2x" width="24" height="24" alt="Task $index">"""

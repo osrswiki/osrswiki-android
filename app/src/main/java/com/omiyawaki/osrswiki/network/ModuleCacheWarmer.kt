@@ -152,7 +152,10 @@ class ModuleCacheWarmer private constructor(context: Context) {
             "mediawiki.page.ready",
             "ext.gadget.rsw-util",
             "ext.gadget.GECharts",
-            "ext.gadget.tooltips"
+            "ext.gadget.tooltips",
+            "ext.gadget.calc-core",
+            "oojs-ui-core",
+            "mediawiki.widgets"
         )
         
         Log.d(TAG, "Warming cache with essential modules")

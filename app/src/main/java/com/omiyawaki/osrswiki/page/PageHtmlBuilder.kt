@@ -27,12 +27,14 @@ class PageHtmlBuilder(private val context: Context) {
         "web/collapsible_sections.css",                 // Restored: Collapsible sections CSS
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(), // Restored: Infobox switcher CSS
         "styles/fixes.css",
+        "styles/gadget_calc.css",
         "styles/android-article-aesthetics.css"
     )
 
     // Simple MediaWiki ResourceLoader - let it work naturally
     private val mediawikiArtifacts = listOf(
-        "startup.js"                                    // Core MediaWiki module loader - RLPAGEMODULES now inlined above
+        "startup.js",
+        "mediawiki/gadget_calc_core.js"
     )
     
     private val articleTransformJsAssetPaths = listOf(
@@ -48,6 +50,7 @@ class PageHtmlBuilder(private val context: Context) {
         "js/tablesort.min.js",
         "js/tablesort_init.js",
         "web/tabber_init.js",
+        "web/osrs_calculator_runtime.js",
         "web/responsive_videos.js",
         "web/clipboard_bridge.js",
         "web/table_column_normalize.js"
@@ -96,19 +99,24 @@ class PageHtmlBuilder(private val context: Context) {
      * Generate smart MediaWiki variables based on page content.
      * Uses WikiModuleRegistry for intelligent module detection.
      */
-    private fun generateMediaWikiVariables(title: String, bodyContent: String): String {
+    private fun generateMediaWikiVariables(title: String, bodyContent: String, canonicalTitle: String? = null): String {
         // Generate smart RLPAGEMODULES based on content analysis
-        val detectedModules = WikiModuleRegistry.generateRLPAGEMODULES(bodyContent, title)
+        val detectedModules = WikiModuleRegistry.generateRLPAGEMODULES(bodyContent, canonicalTitle ?: title)
         val modulesList = detectedModules.joinToString(", ") { "\"$it\"" }
-        
-        // Use page title for MediaWiki variables
-        val safetitle = title.replace("\"", "\\\"")
+        val pageConfig = osrsWikiWebViewUrl.mediaWikiPageConfig(
+            canonicalTitle = canonicalTitle ?: title,
+            displayTitle = title
+        )
+        val safetitle = pageConfig.pageName.replace("\"", "\\\"")
+        val safeVisibleTitle = pageConfig.title.replace("\"", "\\\"")
+        val namespaceNumber = pageConfig.namespaceNumber
+        val canonicalNamespace = pageConfig.canonicalNamespace
         
         return """
             <script>
                 // Smart MediaWiki variables generated based on page content
                 // Module detection via WikiModuleRegistry for scalable maintenance
-                var RLCONF = {"wgBreakFrames": false, "wgSeparatorTransformTable": ["", ""], "wgDigitTransformTable": ["", ""], "wgDefaultDateFormat": "dmy", "wgMonthNames": ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "wgRequestId": "smart-module-loader", "wgCanonicalNamespace": "", "wgCanonicalSpecialPageName": false, "wgNamespaceNumber": 0, "wgPageName": "$safetitle", "wgTitle": "$safetitle", "wgCurRevisionId": 0, "wgRevisionId": 0, "wgArticleId": 1, "wgIsArticle": true, "wgIsRedirect": false, "wgAction": "view", "wgUserName": null, "wgUserGroups": ["*"], "wgPageViewLanguage": "en-gb", "wgPageContentLanguage": "en-gb", "wgPageContentModel": "wikitext", "wgRelevantPageName": "$safetitle", "wgRelevantArticleId": 1, "wgIsProbablyEditable": true, "wgRelevantPageIsProbablyEditable": true, "wgRestrictionEdit": [], "wgRestrictionMove": [], "wgServer": "https://oldschool.runescape.wiki", "wgServerName": "oldschool.runescape.wiki", "wgScriptPath": "", "wgScript": "/load.php"};
+                var RLCONF = {"wgBreakFrames": false, "wgSeparatorTransformTable": ["", ""], "wgDigitTransformTable": ["", ""], "wgDefaultDateFormat": "dmy", "wgMonthNames": ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "wgRequestId": "smart-module-loader", "wgCanonicalNamespace": "$canonicalNamespace", "wgCanonicalSpecialPageName": false, "wgNamespaceNumber": $namespaceNumber, "wgPageName": "$safetitle", "wgTitle": "$safeVisibleTitle", "wgCurRevisionId": 0, "wgRevisionId": 0, "wgArticleId": 1, "wgIsArticle": true, "wgIsRedirect": false, "wgAction": "view", "wgUserName": null, "wgUserGroups": ["*"], "wgPageViewLanguage": "en-gb", "wgPageContentLanguage": "en-gb", "wgPageContentModel": "wikitext", "wgRelevantPageName": "$safetitle", "wgRelevantArticleId": 1, "wgIsProbablyEditable": true, "wgRelevantPageIsProbablyEditable": true, "wgRestrictionEdit": [], "wgRestrictionMove": [], "wgServer": "https://oldschool.runescape.wiki", "wgServerName": "oldschool.runescape.wiki", "wgScriptPath": "", "wgScript": "/index.php", "wgLoadScript": "/load.php"};
                 var RLSTATE = {"ext.gadget.switch-infobox-styles": "ready", "ext.gadget.articlefeedback-styles": "ready", "ext.gadget.falseSubpage": "ready", "ext.gadget.headerTargetHighlight": "ready", "site.styles": "ready", "user.styles": "ready", "user": "ready", "user.options": "loading", "ext.cite.styles": "ready", "ext.kartographer.style": "ready", "skins.minerva.base.styles": "ready", "skins.minerva.content.styles.images": "ready", "mediawiki.hlist": "ready", "skins.minerva.codex.styles": "ready", "skins.minerva.icons.wikimedia": "ready", "skins.minerva.mainMenu.icons": "ready", "skins.minerva.mainMenu.styles": "ready", "jquery.tablesorter.styles": "ready", "ext.embedVideo.styles": "ready", "mobile.init.styles": "ready"};
                 var RLPAGEMODULES = [$modulesList];
                 
@@ -123,7 +131,8 @@ class PageHtmlBuilder(private val context: Context) {
         bodyContent: String,
         theme: Theme,
         collapseTablesEnabled: Boolean = true,
-        readerTextScale: Float = Prefs.readerTextScale
+        readerTextScale: Float = Prefs.readerTextScale,
+        canonicalTitle: String? = null
     ): String {
         var finalHtml: String
         val floorClass = osrsArticleFloorConvention.resolved(deviceLocale()).bodyClass
@@ -217,7 +226,11 @@ class PageHtmlBuilder(private val context: Context) {
             """.trimIndent()
             
             // Generate smart MediaWiki variables
-            val smartMediawikiVariables = generateMediaWikiVariables(cleanedTitle, cleanedBodyContent)
+            val smartMediawikiVariables = generateMediaWikiVariables(
+                cleanedTitle,
+                cleanedBodyContent,
+                canonicalTitle ?: title
+            )
 
             // Create table collapse preference script
             val tableCollapseScript = createTableCollapseScript(collapseTablesEnabled)
@@ -229,7 +242,11 @@ class PageHtmlBuilder(private val context: Context) {
                 <link rel="preload" href="https://appassets.androidplatform.net/res/font/alegreya_bold.ttf" as="font" type="font/ttf" crossorigin="anonymous">
                 <link rel="preload" href="https://appassets.androidplatform.net/res/font/runescape_plain.ttf" as="font" type="font/ttf" crossorigin="anonymous">
             """.trimIndent()
-            val articleFirstPaintStyle = articleFirstPaintStyle()
+            val isCalculatorPage = cleanedBodyContent.contains("jcConfig") ||
+                osrsWikiWebViewUrl.isCalculatorNamespaceTitle(canonicalTitle ?: cleanedTitle)
+            val firstPaintStyle = articleFirstPaintStyle(
+                bottomChromePx = if (isCalculatorPage) 96 else 0
+            )
 
             // Body visibility handled by RenderTimeline when JavaScript completes
             // No inline FOUC fix needed - prevents flash of untransformed content
@@ -250,7 +267,8 @@ class PageHtmlBuilder(private val context: Context) {
                 .append("<head>\n")
                 .append("    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, viewport-fit=cover\">\n")
                 .append("    <title>").append(documentTitle).append("</title>\n")
-                .append("    ").append(articleFirstPaintStyle).append('\n')
+                .append("    ").append(firstPaintStyle).append('\n')
+                .append("    <meta name=\"ResourceLoaderDynamicStyles\" content=\"\">\n")
                 .append("    ").append(fontPreloadLink).append('\n')
                 .append("    ").append(cssLinks).append('\n')
                 .append("    ").append(readerTextScaleBootstrap).append('\n')
@@ -299,24 +317,44 @@ class PageHtmlBuilder(private val context: Context) {
     }
 
     private fun wrapArticleBodyContent(htmlContent: String): String {
-        if (htmlContent.contains("mw-body-content")) return htmlContent
-        return """<div class="mw-body-content">$htmlContent</div>"""
+        if (htmlContent.contains("id=\"bodyContent\"") || htmlContent.contains("id='bodyContent'")) {
+            return htmlContent
+        }
+        return """<div id="bodyContent" class="mw-body-content">$htmlContent</div>"""
     }
 
     companion object {
         private const val READER_STYLE_ID = "osrs-reader-text-scale-style"
         private const val READER_SCALE_VARIABLE = "--osrs-article-user-text-scale"
 
-        internal fun articleFirstPaintStyle(chromeClearancePx: Int = 0): String {
-            val chromePadding = if (chromeClearancePx > 0) {
-                """
-                    html {
-                        padding-top: calc(env(safe-area-inset-top, 0px) + ${chromeClearancePx}px) !important;
-                        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + ${chromeClearancePx}px) !important;
+        internal fun articleFirstPaintStyle(
+            chromeClearancePx: Int = 0,
+            bottomChromePx: Int = 0
+        ): String {
+            val chromePadding = buildString {
+                if (chromeClearancePx > 0 || bottomChromePx > 0) {
+                    appendLine("html:root {")
+                    if (bottomChromePx > 0) {
+                        appendLine("    --osrs-article-bottom-chrome: ${bottomChromePx}px;")
                     }
-                """.trimIndent()
-            } else {
-                ""
+                    appendLine("}")
+                    appendLine("html {")
+                    if (chromeClearancePx > 0) {
+                        appendLine(
+                            "    padding-top: calc(env(safe-area-inset-top, 0px) + ${chromeClearancePx}px) !important;"
+                        )
+                    }
+                    if (bottomChromePx > 0) {
+                        appendLine(
+                            "    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + ${bottomChromePx}px) !important;"
+                        )
+                    } else if (chromeClearancePx > 0) {
+                        appendLine(
+                            "    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + ${chromeClearancePx}px) !important;"
+                        )
+                    }
+                    appendLine("}")
+                }
             }
             return """
                 <style id="osrs-article-first-paint">

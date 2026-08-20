@@ -141,6 +141,7 @@ class PageWebViewManager(
         runCatching { webView.webViewClient = WebViewClient() }
         runCatching { webView.removeJavascriptInterface("RenderTimeline") }
         runCatching { webView.removeJavascriptInterface("ClipboardBridge") }
+        runCatching { webView.removeJavascriptInterface("osrsCalculatorApi") }
         jsInterfaceName?.let { name ->
             runCatching { webView.removeJavascriptInterface(name) }
         }
@@ -153,6 +154,7 @@ class PageWebViewManager(
         }
         webView.addJavascriptInterface(RenderTimelineLogger(), "RenderTimeline")
         webView.addJavascriptInterface(ClipboardBridge(), "ClipboardBridge")
+        webView.addJavascriptInterface(osrsCalculatorApiBridge(webView.context), "osrsCalculatorApi")
 
 
         webView.settings.apply {

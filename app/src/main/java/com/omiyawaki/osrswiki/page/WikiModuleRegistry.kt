@@ -33,6 +33,10 @@ object WikiModuleRegistry {
             dependencies = listOf("jquery", "mediawiki.api"),
             priority = Priority.HIGH
         ),
+        "ext.gadget.calc-core" to ModuleConfig(
+            dependencies = listOf("ext.gadget.rsw-util", "oojs-ui-core", "mediawiki.widgets"),
+            priority = Priority.HIGH
+        ),
         
         // Medium priority modules (load when detected)
         "ext.Tabber" to ModuleConfig(
@@ -87,6 +91,14 @@ object WikiModuleRegistry {
             }
         }
         
+        if (htmlContent.contains("jcConfig", ignoreCase = true) ||
+            pageTitle?.startsWith("Calculator:") == true
+        ) {
+            detectedModules.add("oojs-ui-core")
+            detectedModules.add("mediawiki.widgets")
+            detectedModules.add("ext.gadget.rsw-util")
+        }
+
         // Add template-based modules if page matches pattern
         pageTitle?.let { title ->
             val lowerTitle = title.lowercase()

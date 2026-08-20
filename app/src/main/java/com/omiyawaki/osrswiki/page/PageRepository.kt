@@ -96,7 +96,13 @@ class PageRepository(
         val canonicalTitle = parseResult.title
         val displayTitle = parseResult.displaytitle ?: canonicalTitle
         val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-        val finalHtml = htmlBuilder.buildFullHtmlDocument(displayTitle, combinedContent, theme, collapseTablesEnabled)
+        val finalHtml = htmlBuilder.buildFullHtmlDocument(
+            displayTitle,
+            combinedContent,
+            theme,
+            collapseTablesEnabled,
+            canonicalTitle = canonicalTitle
+        )
 
         val uiState = PageUiState(
             isLoading = false,
@@ -122,7 +128,13 @@ class PageRepository(
                 val canonicalTitle = parseResult.title
                 val displayTitle = parseResult.displaytitle ?: canonicalTitle
                 val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                val htmlContent = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, theme, collapseTablesEnabled)
+                val htmlContent = htmlBuilder.buildFullHtmlDocument(
+                    displayTitle,
+                    parseResult.text!!,
+                    theme,
+                    collapseTablesEnabled,
+                    canonicalTitle = canonicalTitle
+                )
                 val uiState = PageUiState(
                     isLoading = false, error = null, imageUrl = null,
                     pageId = parseResult.pageid,
@@ -153,7 +165,13 @@ class PageRepository(
                 // Saving offline uses the default light theme, as it has no user context.
                 // For offline saving, use the current table collapse preference
                 val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(displayTitle, parseResult.text!!, Theme.DEFAULT_LIGHT, collapseTablesEnabled)
+                val fullHtmlToSave = htmlBuilder.buildFullHtmlDocument(
+                    displayTitle,
+                    parseResult.text!!,
+                    Theme.DEFAULT_LIGHT,
+                    collapseTablesEnabled,
+                    canonicalTitle = canonicalTitle
+                )
                 localDataSource.saveArticle(
                     pageId = parseResult.pageid,
                     canonicalTitle = canonicalTitle,
