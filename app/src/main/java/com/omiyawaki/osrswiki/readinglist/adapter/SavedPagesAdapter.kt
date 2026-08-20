@@ -10,7 +10,8 @@ import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
  * Uses ListAdapter for efficient list updates with DiffUtil.
  */
 class SavedPagesAdapter(
-    private val onItemClicked: (ReadingListPage) -> Unit
+    private val onItemClicked: (ReadingListPage) -> Unit,
+    private val onUpdateClicked: (ReadingListPage) -> Unit = {}
 ) : ListAdapter<ReadingListPage, SavedPageViewHolder>(SavedPageDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SavedPageViewHolder {
@@ -19,7 +20,7 @@ class SavedPagesAdapter(
 
     override fun onBindViewHolder(holder: SavedPageViewHolder, position: Int) {
         val savedPage = getItem(position)
-        holder.bind(savedPage, onItemClicked)
+        holder.bind(savedPage, onItemClicked, onUpdateClicked)
     }
 }
 

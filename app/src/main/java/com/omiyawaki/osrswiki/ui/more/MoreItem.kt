@@ -11,6 +11,7 @@ data class MoreItem(
 
 enum class MoreAction {
     APPEARANCE,
+    DOWNLOADS,
     DONATE,
     ABOUT,
     FEEDBACK

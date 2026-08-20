@@ -134,22 +134,20 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
-    fun pageFragmentReleasesArticleWebViewWhenCoveredByNextPage() {
+    fun pageFragmentPausesArticleWebViewWhenLeavingForeground() {
         val source = sourceFile("PageFragment.kt").readText()
         val onPauseMethod = source.substringAfter("override fun onPause()")
             .substringBefore("override fun onResume()")
         val onResumeMethod = source.substringAfter("override fun onResume()")
             .substringBefore("override fun onStart()")
-        val releaseMethod = source.substringAfter("private fun releaseStoppedWebViewResources()")
-            .substringBefore("private fun restoreStoppedWebViewResourcesIfNeeded()")
-
-        assertTrue(onPauseMethod.contains("if (!isHidden)"))
-        assertTrue(onPauseMethod.contains("releaseStoppedWebViewResources()"))
         val onStopMethod = source.substringAfter("override fun onStop()")
             .substringBefore("override fun onPause()")
-        assertTrue(onStopMethod.contains("releaseStoppedWebViewResources()"))
-        assertTrue(onResumeMethod.contains("restoreStoppedWebViewResourcesIfNeeded()"))
-        assertTrue(releaseMethod.contains("destroyReleasedWebView(oldWebView)"))
+
+        assertTrue(onPauseMethod.contains("pageWebView?.onPause()"))
+        assertFalse(onPauseMethod.contains("releaseStoppedWebViewResources()"))
+        assertTrue(onStopMethod.contains("pageWebView?.onPause()"))
+        assertFalse(onStopMethod.contains("releaseStoppedWebViewResources()"))
+        assertTrue(onResumeMethod.contains("pageWebView?.onResume()"))
         assertTrue(source.contains("private fun requestWebViewHeapTrim()"))
         assertTrue(source.contains("System.runFinalization()"))
     }

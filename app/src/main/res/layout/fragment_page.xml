@@ -6,28 +6,34 @@
     android:layout_height="match_parent"
     tools:context=".page.PageFragment">
 
-    <com.omiyawaki.osrswiki.views.ObservableWebView
-        android:id="@+id/page_web_view"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/article_swipe_refresh"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:visibility="invisible"
-        android:clipToPadding="false"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        tools:visibility="visible"/>
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.omiyawaki.osrswiki.views.ObservableWebView
+            android:id="@+id/page_web_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"
+            android:clipToPadding="false"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior"
+            tools:visibility="visible"/>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <FrameLayout
         android:id="@+id/progress_container"
         android:layout_width="305dp"
         android:layout_height="35dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/page_web_view"
-        app:layout_constraintEnd_toEndOf="@+id/page_web_view"
-        app:layout_constraintStart_toStartOf="@+id/page_web_view"
-        app:layout_constraintTop_toTopOf="@+id/page_web_view"
+        app:layout_constraintBottom_toBottomOf="@+id/article_swipe_refresh"
+        app:layout_constraintEnd_toEndOf="@+id/article_swipe_refresh"
+        app:layout_constraintStart_toStartOf="@+id/article_swipe_refresh"
+        app:layout_constraintTop_toTopOf="@+id/article_swipe_refresh"
         tools:visibility="visible">
 
         <ProgressBar
@@ -64,10 +70,10 @@
         android:textAppearance="?attr/textAppearanceSubtitle1"
         android:textColor="?attr/colorError"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/page_web_view"
-        app:layout_constraintEnd_toEndOf="@+id/page_web_view"
-        app:layout_constraintStart_toStartOf="@+id/page_web_view"
-        app:layout_constraintTop_toTopOf="@+id/page_web_view" />
+        app:layout_constraintBottom_toBottomOf="@+id/article_swipe_refresh"
+        app:layout_constraintEnd_toEndOf="@+id/article_swipe_refresh"
+        app:layout_constraintStart_toStartOf="@+id/article_swipe_refresh"
+        app:layout_constraintTop_toTopOf="@+id/article_swipe_refresh" />
 
     <com.omiyawaki.osrswiki.view.PageScrollerView
         android:id="@+id/page_scroller_view"

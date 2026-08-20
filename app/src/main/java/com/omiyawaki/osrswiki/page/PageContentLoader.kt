@@ -71,7 +71,7 @@ class PageContentLoader(
                     L.d("handleDownloadProgress: Received FetchingHtml ${progress.progress}%. Setting scaled progress to $scaledProgress%.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         progress = scaledProgress,
-                        progressText = "Downloading..."
+                        progressText = "Opening page..."
                     )
                     onStateUpdated()
                 }

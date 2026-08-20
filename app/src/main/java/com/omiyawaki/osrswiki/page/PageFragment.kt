@@ -29,12 +29,19 @@ import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.databinding.FragmentPageBinding
+import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
+import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.model.LeadSectionDetails
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.page.model.TocData
+import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
+import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
+import com.omiyawaki.osrswiki.savedpages.osrsSavedPageRevisionProbe
+import com.omiyawaki.osrswiki.settings.osrsDownloadSettings
+import com.omiyawaki.osrswiki.settings.osrsSavedPageUpdateTrigger
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
@@ -216,6 +223,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, uiUpdater) { this }
         pageLoadCoordinator?.initiatePageLoad(currentTheme, forceNetwork = false)
         binding.errorTextView.setOnClickListener {
+            reloadCurrentPage()
+        }
+        binding.articleSwipeRefresh.setOnRefreshListener {
             reloadCurrentPage()
         }
 
@@ -787,6 +797,56 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                     fetchTableOfContents()
                 }
                 currentBinding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
+                currentBinding.articleSwipeRefresh.isRefreshing = false
+                scheduleSavedSnapshotRefreshIfNeeded()
+            }
+        }
+    }
+
+    private fun scheduleSavedSnapshotRefreshIfNeeded() {
+        val titleText = pageViewModel.uiState.plainTextTitle?.takeIf { it.isNotBlank() }
+            ?: pageTitleArg?.takeIf { it.isNotBlank() }
+            ?: return
+        val context = context ?: return
+        val settings = osrsDownloadSettings.load()
+        val isOnline = osrsDownloadSettings.isOnline(context)
+        val isUnmetered = osrsDownloadSettings.isUnmetered(context)
+        if (!settings.shouldRefreshSnapshot(
+                osrsSavedPageUpdateTrigger.ACCESS,
+                isOnline,
+                isUnmetered
+            )
+        ) {
+            return
+        }
+        val localRevision = pageViewModel.uiState.revisionId
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val wikiSite = WikiSite.OSRS_WIKI
+            val savedPage = readingListPageDao.findPageInAnyList(
+                wikiSite,
+                wikiSite.languageCode,
+                Namespace.MAIN,
+                titleText
+            ) ?: readingListPageDao.findPageInAnyList(
+                wikiSite,
+                wikiSite.languageCode,
+                Namespace.MAIN,
+                titleText.replace(" ", "_")
+            ) ?: return@launch
+            if (!savedPage.offline || savedPage.status != ReadingListPage.STATUS_SAVED) {
+                return@launch
+            }
+            val remote = osrsSavedPageRevisionProbe.fetchRemoteRevision(
+                savedPage.apiTitle,
+                OkHttpClientFactory.offlineClient
+            ) ?: return@launch
+            val savedRevision = localRevision ?: savedPage.revId
+            if (!osrsSavedPageRevisionProbe.snapshotNeedsRefresh(savedRevision, remote.revisionId)) {
+                return@launch
+            }
+            readingListPageDao.transitionPageToForcedOfflineSave(savedPage.id)
+            withContext(Dispatchers.Main) {
+                SavedPageSyncWorker.enqueue(context)
             }
         }
     }
@@ -985,23 +1045,18 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     override fun onStop() {
-        releaseStoppedWebViewResources()
+        _binding?.pageWebView?.onPause()
         super.onStop()
     }
 
     override fun onPause() {
-        // hide()+add() covers this fragment with the next article without
-        // stopping the activity. Keep that WebView alive so interactive-back
-        // can reveal it without a reload. onStop still releases when the
-        // activity actually leaves the screen.
-        if (!isHidden) {
-            releaseStoppedWebViewResources()
-        }
+        _binding?.pageWebView?.onPause()
         super.onPause()
     }
 
     override fun onResume() {
         super.onResume()
+        _binding?.pageWebView?.onResume()
         restoreStoppedWebViewResourcesIfNeeded()
         pageWebViewManager?.refreshReaderTextScale()
         val collapsePreference = Prefs.isCollapseTablesEnabled

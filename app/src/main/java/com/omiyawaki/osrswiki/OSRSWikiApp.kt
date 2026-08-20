@@ -24,7 +24,10 @@ import com.omiyawaki.osrswiki.page.preemptive.AndroidArticlePrewarmEnvironmentPr
 import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
 import com.omiyawaki.osrswiki.page.preemptive.AppForegroundTracker
 import com.omiyawaki.osrswiki.search.SearchRepository
+import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.osrsDownloadSettings
+import com.omiyawaki.osrswiki.settings.osrsSavedPageUpdatePolicy
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.AppNetworkStatusEvaluator
@@ -112,6 +115,9 @@ class OSRSWikiApp : Application() {
 
         Log.d("StartupTiming", "Starting initializeDependencies() after ${System.currentTimeMillis() - startupStartTime}ms")
         initializeDependencies()
+        if (osrsDownloadSettings.load().updatePolicy == osrsSavedPageUpdatePolicy.AUTOMATIC) {
+            SavedPageSyncWorker.enqueue(this)
+        }
         Log.i("StartupTiming", "OSRSWikiApp.onCreate() completed in ${System.currentTimeMillis() - startupStartTime}ms")
     }
 

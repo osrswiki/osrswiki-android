@@ -42,4 +42,23 @@
         <item>2048</item>
     </string-array>
 
+    <string-array name="saved_page_update_policy_entries">
+        <item>@string/settings_saved_page_update_automatic</item>
+        <item>@string/settings_saved_page_update_on_access</item>
+        <item>@string/settings_saved_page_update_manual</item>
+    </string-array>
+    <string-array name="saved_page_update_policy_values">
+        <item>automatic</item>
+        <item>onAccess</item>
+        <item>manual</item>
+    </string-array>
+    <string-array name="saved_page_download_network_entries">
+        <item>@string/settings_saved_page_network_wifi</item>
+        <item>@string/settings_saved_page_network_any</item>
+    </string-array>
+    <string-array name="saved_page_download_network_values">
+        <item>wifiOnly</item>
+        <item>any</item>
+    </string-array>
+
 </resources>

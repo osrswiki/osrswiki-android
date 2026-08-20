@@ -420,12 +420,20 @@ class PageWebViewManager(
         }
         if (scrollY > 0) {
             webView.alpha = 0f
+            applyTableCollapsePreference {
+                applyReaderTextScale {
+                    applyThemeColors(webView) {
+                        restoreScrollThenReveal(scrollY, onComplete)
+                    }
+                }
+            }
+            return
         }
+        webView.alpha = 1f
+        revealBody(onComplete)
         applyTableCollapsePreference {
             applyReaderTextScale {
-                applyThemeColors(webView) {
-                    restoreScrollThenReveal(scrollY, onComplete)
-                }
+                applyThemeColors(webView) {}
             }
         }
     }

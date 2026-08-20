@@ -5,6 +5,7 @@ import android.text.format.Formatter
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
@@ -23,7 +24,8 @@ class SavedPageViewHolder(
 
     fun bind(
         savedPage: ReadingListPage,
-        onItemClicked: (ReadingListPage) -> Unit
+        onItemClicked: (ReadingListPage) -> Unit,
+        onUpdateClicked: (ReadingListPage) -> Unit = {}
     ) {
         val context = binding.root.context
         
@@ -56,6 +58,17 @@ class SavedPageViewHolder(
 
         binding.root.setOnClickListener {
             onItemClicked(savedPage)
+        }
+        binding.root.setOnLongClickListener {
+            PopupMenu(context, binding.root).apply {
+                menu.add(context.getString(R.string.action_update_saved_page))
+                setOnMenuItemClickListener {
+                    onUpdateClicked(savedPage)
+                    true
+                }
+                show()
+            }
+            true
         }
     }
     

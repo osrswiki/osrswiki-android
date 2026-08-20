@@ -19,6 +19,9 @@ import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
 import com.omiyawaki.osrswiki.readinglist.db.ReadingListPageDao
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.settings.osrsDownloadSettings
+import com.omiyawaki.osrswiki.settings.osrsSavedPageDownloadNetwork
+import com.omiyawaki.osrswiki.settings.osrsSavedPageUpdateTrigger
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.extractTextFromHtmlString
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +71,7 @@ class SavedPageSyncWorker(
         var pagesToSave: List<ReadingListPage> = emptyList()
 
         try {
+            queueAutomaticRevisionRefreshes()
             pagesToSave = readingListPageDao.getPagesToProcessForSaving()
             val pagesToDelete = readingListPageDao.getPagesToProcessForDeleting()
             Log.i(loggerTag, "Phase 3 Queue Status: ${pagesToSave.size} pages to save, ${pagesToDelete.size} pages to delete")
@@ -117,6 +121,28 @@ class SavedPageSyncWorker(
 
         Log.d(loggerTag, "SavedPageSyncWorker finished. Overall success: $overallSuccess")
         return@withContext if (overallSuccess) Result.success() else Result.failure()
+    }
+
+    private suspend fun queueAutomaticRevisionRefreshes() {
+        val settings = osrsDownloadSettings.load()
+        if (!settings.shouldRefreshSnapshot(
+                osrsSavedPageUpdateTrigger.AUTOMATIC_SCAN,
+                isOnline = true,
+                isUnmetered = true
+            )
+        ) {
+            return
+        }
+        val savedPages = readingListPageDao.getPagesByStatus(ReadingListPage.STATUS_SAVED)
+            .filter { it.offline }
+        for (page in savedPages) {
+            val remote = osrsSavedPageRevisionProbe.fetchRemoteRevision(page.apiTitle, okHttpClient)
+                ?: continue
+            if (!osrsSavedPageRevisionProbe.snapshotNeedsRefresh(page.revId, remote.revisionId)) {
+                continue
+            }
+            readingListPageDao.transitionPageToForcedOfflineSave(page.id)
+        }
     }
 
 private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Boolean {
@@ -418,7 +444,12 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
         private fun newWorkRequest() = OneTimeWorkRequestBuilder<SavedPageSyncWorker>()
             .setConstraints(
                 Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiredNetworkType(
+                        when (osrsDownloadSettings.load().downloadNetwork) {
+                            osrsSavedPageDownloadNetwork.WIFI_ONLY -> NetworkType.UNMETERED
+                            osrsSavedPageDownloadNetwork.ANY -> NetworkType.CONNECTED
+                        }
+                    )
                     .build()
             )
             .addTag(UNIQUE_WORK_NAME)

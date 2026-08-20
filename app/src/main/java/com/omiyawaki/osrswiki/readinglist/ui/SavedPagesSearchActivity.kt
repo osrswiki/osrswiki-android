@@ -29,7 +29,12 @@ import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.FontUtil
 import com.omiyawaki.osrswiki.util.log.L
+import android.widget.Toast
+import com.omiyawaki.osrswiki.savedpages.SavedPageSyncWorker
+import com.omiyawaki.osrswiki.util.StringUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SavedPagesSearchActivity : BaseActivity() {
 
@@ -81,9 +86,14 @@ class SavedPagesSearchActivity : BaseActivity() {
     }
 
     private fun setupRecyclerView() {
-        searchAdapter = SavedPagesAdapter { readingListPage ->
-            navigateToPage(readingListPage)
-        }
+        searchAdapter = SavedPagesAdapter(
+            onItemClicked = { readingListPage ->
+                navigateToPage(readingListPage)
+            },
+            onUpdateClicked = { readingListPage ->
+                updateSavedPage(readingListPage)
+            }
+        )
         
         binding.searchRecyclerView.apply {
             adapter = searchAdapter
@@ -192,6 +202,21 @@ class SavedPagesSearchActivity : BaseActivity() {
         )
         
         startActivity(intent)
+    }
+
+    private fun updateSavedPage(page: ReadingListPage) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                AppDatabase.instance.readingListPageDao()
+                    .transitionPageToForcedOfflineSave(page.id)
+            }
+            SavedPageSyncWorker.enqueue(this@SavedPagesSearchActivity)
+            Toast.makeText(
+                this@SavedPagesSearchActivity,
+                getString(R.string.saved_page_updating, StringUtil.extractMainTitle(page.displayTitle)),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     @Deprecated("Deprecated in Java")

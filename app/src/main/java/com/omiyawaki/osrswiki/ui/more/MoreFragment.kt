@@ -12,6 +12,7 @@ import com.omiyawaki.osrswiki.databinding.FragmentMoreBinding
 import com.omiyawaki.osrswiki.donate.DonateActivity
 import com.omiyawaki.osrswiki.feedback.FeedbackActivity
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
+import com.omiyawaki.osrswiki.settings.OfflineSettingsActivity
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 
@@ -51,6 +52,11 @@ class MoreFragment : Fragment(), ThemeAware {
                 action = MoreAction.APPEARANCE
             ),
             MoreItem(
+                titleRes = R.string.menu_title_downloads,
+                iconRes = R.drawable.ic_download_24,
+                action = MoreAction.DOWNLOADS
+            ),
+            MoreItem(
                 titleRes = R.string.menu_title_donate,
                 iconRes = R.drawable.ic_donate_24,
                 action = MoreAction.DONATE
@@ -87,6 +93,10 @@ class MoreFragment : Fragment(), ThemeAware {
                 val intent = AppearanceSettingsActivity.newIntent(requireContext())
                 startActivity(intent)
             }
+            MoreAction.DOWNLOADS -> {
+                val intent = OfflineSettingsActivity.newIntent(requireContext())
+                startActivity(intent)
+            }
             MoreAction.DONATE -> {
                 val intent = DonateActivity.newIntent(requireContext())
                 startActivity(intent)
@@ -98,9 +108,6 @@ class MoreFragment : Fragment(), ThemeAware {
             MoreAction.FEEDBACK -> {
                 val intent = FeedbackActivity.newIntent(requireContext())
                 startActivity(intent)
-            }
-            else -> {
-                L.d("MoreFragment: Action not yet implemented: $action")
             }
         }
     }

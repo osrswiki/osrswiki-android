@@ -151,9 +151,14 @@ class SavedPagesFragment : Fragment(), ThemeAware {
     }
 
     private fun setupRecyclerView() {
-        savedPagesAdapter = SavedPagesAdapter { readingListPage ->
-            navigateToPage(readingListPage)
-        }
+        savedPagesAdapter = SavedPagesAdapter(
+            onItemClicked = { readingListPage ->
+                navigateToPage(readingListPage)
+            },
+            onUpdateClicked = { readingListPage ->
+                updateSavedPage(readingListPage)
+            }
+        )
         
         // Setup swipe-to-delete
         val swipeCallback = SwipeToDeleteCallback { savedPage ->
@@ -213,6 +218,21 @@ class SavedPagesFragment : Fragment(), ThemeAware {
         )
         
         startActivity(intent)
+    }
+
+    private fun updateSavedPage(page: ReadingListPage) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                AppDatabase.instance.readingListPageDao()
+                    .transitionPageToForcedOfflineSave(page.id)
+            }
+            SavedPageSyncWorker.enqueue(requireContext())
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.saved_page_updating, StringUtil.extractMainTitle(page.displayTitle)),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun showSwipeDeleteUndo(savedPage: ReadingListPage) {

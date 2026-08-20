@@ -13,6 +13,18 @@ body {
     --osrs-disclosure-control-padding-inline: 16px !important;
 }
 
+html,
+body,
+.mw-parser-output,
+.mw-content-text,
+.mw-parser-output p,
+.mw-parser-output > ul,
+.mw-parser-output > ol,
+.mw-parser-output > dl,
+.mw-content-text p {
+    line-height: 1.35 !important;
+}
+
 .mw-parser-output {
     max-width: 100%;
     min-width: 0;

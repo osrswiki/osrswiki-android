@@ -2,6 +2,26 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <ListPreference
+        app:key="osrsSavedPageUpdatePolicy"
+        app:title="@string/settings_saved_page_update_policy_title"
+        app:summary="%s"
+        app:defaultValue="onAccess"
+        app:entries="@array/saved_page_update_policy_entries"
+        app:entryValues="@array/saved_page_update_policy_values"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        app:key="osrsSavedPageDownloadNetwork"
+        app:title="@string/settings_saved_page_network_title"
+        app:summary="%s"
+        app:defaultValue="wifiOnly"
+        app:entries="@array/saved_page_download_network_entries"
+        app:entryValues="@array/saved_page_download_network_values"
+        app:useSimpleSummaryProvider="true"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
         app:key="offlineCacheSizeLimit"
         app:title="Cache size limit"
         app:summary="%s"

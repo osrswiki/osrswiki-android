@@ -36,10 +36,11 @@ class PageLoadCoordinator(
             }
         }
 
-        // Immediately set the UI to a loading state with initial progress.
+        // Keep the title visible immediately. Saved snapshots resolve from disk next;
+        // do not flash a network "Downloading..." label before that is known.
         val titleDuringLoad = pageTitleArg ?: fragment.getString(R.string.label_loading)
-        pageViewModel.uiState = PageUiState(isLoading = true, title = titleDuringLoad, progress = 5, progressText = "Downloading...")
-        L.d("PageLoadCoordinator.initiatePageLoad: Set initial UI state to 5% 'Downloading...'.")
+        pageViewModel.uiState = PageUiState(isLoading = true, title = titleDuringLoad, progress = 5, progressText = "Opening page...")
+        L.d("PageLoadCoordinator.initiatePageLoad: Set initial UI state to 5% 'Opening page...'.")
         uiUpdater.updateUi()
 
         if (idToLoad != null) {
