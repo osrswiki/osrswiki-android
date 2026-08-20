@@ -6,6 +6,7 @@ import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.page.model.Section
 import com.omiyawaki.osrswiki.theme.Theme
 import com.omiyawaki.osrswiki.util.log.L
+import com.omiyawaki.osrswiki.savedpages.osrsArticleViewAssetStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -26,6 +27,8 @@ class PageContentLoader(
 ) {
     private var pageLoadJob: Job? = null
     private var backgroundAssetsJob: Job? = null
+    @Volatile
+    private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
@@ -163,6 +166,7 @@ class PageContentLoader(
                     )
                     backgroundAssetsJob?.cancel()
                     backgroundAssetsJob = null
+                    liveArticleAssetWarmer = null
                     // WebView owns visible media after the document commit.
                     onStateUpdated()
                 }
@@ -212,10 +216,52 @@ class PageContentLoader(
         onStateUpdated()
     }
 
+    fun startLiveArticleAssetWarm(html: String, wikiUrl: String) {
+        backgroundAssetsJob?.cancel()
+        if (html.isBlank()) {
+            liveArticleAssetWarmer = null
+            backgroundAssetsJob = null
+            return
+        }
+        val warmer = osrsLiveArticleAssetWarmer()
+        liveArticleAssetWarmer = warmer
+        backgroundAssetsJob = coroutineScope.launch(Dispatchers.IO) {
+            try {
+                warmer.warm(html, wikiUrl.ifBlank { "https://oldschool.runescape.wiki/" })
+            } finally {
+                if (liveArticleAssetWarmer === warmer) {
+                    liveArticleAssetWarmer = null
+                }
+            }
+        }
+    }
+
+    fun promoteLiveArticleAssets(urls: List<String>) {
+        val base = pageViewModel.uiState.wikiUrl?.ifBlank { null }
+            ?: "https://oldschool.runescape.wiki/"
+        val resolved = urls.mapNotNull { raw ->
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) {
+                return@mapNotNull null
+            }
+            val absolute = runCatching {
+                when {
+                    trimmed.startsWith("//") -> "https:$trimmed"
+                    trimmed.startsWith("http://", ignoreCase = true) ||
+                        trimmed.startsWith("https://", ignoreCase = true) -> trimmed
+                    else -> java.net.URI(base).resolve(trimmed).toString()
+                }
+            }.getOrNull() ?: return@mapNotNull null
+            osrsArticleViewAssetStore.canonicalize(absolute)
+        }
+        liveArticleAssetWarmer?.promote(resolved)
+    }
+
     fun cancelActivePageWork() {
         pageLoadJob?.cancel()
         pageLoadJob = null
         backgroundAssetsJob?.cancel()
         backgroundAssetsJob = null
+        liveArticleAssetWarmer = null
     }
 }

@@ -50,6 +50,19 @@ class ArticlePrewarmIntegrationContractTest {
             .substringBefore("is DownloadProgress.Failure ->")
         assertFalse(successBranch.contains("downloadPostTextPriorityAssets"))
         assertTrue(successBranch.contains("WebView owns visible media after the document commit"))
+        assertFalse(successBranch.contains("startLiveArticleAssetWarm"))
+
+        val fragment = source("page/PageFragment.kt")
+        val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")
+            .substringBefore("fun showFindInPage()")
+        assertTrue(readyCallback.contains("finalizeAndRevealPage"))
+        assertTrue(readyCallback.contains("startLiveArticleAssetWarm"))
+        assertTrue(
+            readyCallback.indexOf("finalizeAndRevealPage") <
+                readyCallback.indexOf("startLiveArticleAssetWarm")
+        )
+        assertFalse(preparedText.contains("startLiveArticleAssetWarm"))
+        assertFalse(downloader.contains("osrsLiveArticleAssetWarmer"))
     }
 
     @Test

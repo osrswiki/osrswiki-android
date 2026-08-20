@@ -167,6 +167,27 @@ class NativeMapHandler(
         }
         
         @JavascriptInterface
+        fun warmNearViewportAssets(urlsJson: String) {
+            if (isCleanedUp) {
+                return
+            }
+            val urls = runCatching {
+                val array = org.json.JSONArray(urlsJson)
+                (0 until array.length()).mapNotNull { index ->
+                    array.optString(index).takeIf { it.isNotBlank() }
+                }
+            }.getOrDefault(emptyList())
+            if (urls.isEmpty()) {
+                return
+            }
+            fragment.view?.post {
+                if (!isCleanedUp) {
+                    fragment.promoteLiveArticleAssets(urls)
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun log(message: String) {
             L.d("JS: $message")
         }

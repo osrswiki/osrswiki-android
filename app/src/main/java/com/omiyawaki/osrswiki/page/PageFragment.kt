@@ -774,6 +774,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
     }
 
+    fun promoteLiveArticleAssets(urls: List<String>) {
+        if (::pageContentLoader.isInitialized) {
+            pageContentLoader.promoteLiveArticleAssets(urls)
+        }
+    }
+
     override fun onPageReadyForDisplay() {
         val webViewManager = pageWebViewManager ?: return
         if (isAdded && _binding != null && !webViewReleasedWhileStopped) {
@@ -798,6 +804,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 }
                 currentBinding.pageWebView.evaluateJavascript("javascript:measureAndPreloadMaps();", null)
                 currentBinding.articleSwipeRefresh.isRefreshing = false
+                if (!pageViewModel.uiState.isCurrentlyOffline) {
+                    pageContentLoader.startLiveArticleAssetWarm(
+                        pageViewModel.uiState.htmlContent.orEmpty(),
+                        pageViewModel.uiState.wikiUrl ?: "https://oldschool.runescape.wiki/"
+                    )
+                }
                 scheduleSavedSnapshotRefreshIfNeeded()
             }
         }

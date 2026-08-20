@@ -121,6 +121,7 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("startup.js"))
         assertTrue(html.contains("js/tablesort.min.js"))
         assertTrue(html.contains("web/collapsible_content.js"))
+        assertTrue(html.contains("web/live_article_asset_warm.js"))
         assertTrue(html.contains("var RLCONF ="))
         assertTrue(html.contains("var RLPAGEMODULES ="))
         assertTrue(html.contains("\"ext.Tabber\""))

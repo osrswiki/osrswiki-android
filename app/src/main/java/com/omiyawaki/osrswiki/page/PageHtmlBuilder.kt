@@ -41,6 +41,7 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
         "web/collapsible_content.js",
+        "web/live_article_asset_warm.js",
         "web/mobile_article_polish.js",
         "web/horizontal_scroll_interceptor.js"
     )

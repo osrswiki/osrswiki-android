@@ -203,6 +203,31 @@ internal object ReadingListAssetUrlExtractor {
         }.toList()
     }
 
+    /**
+     * Infobox and lead artwork from the same allowlist [extract] uses. First-screen warm
+     * promotes these ahead of later document-order URLs.
+     */
+    fun extractInfobox(html: String, baseUrl: String = WIKI_BASE_URL): List<String> {
+        val document = Jsoup.parse(html, baseUrl)
+        return linkedSetOf<String>().apply {
+            document.select(
+                "table.infobox, table.main-infobox, .infobox, .collapsible-primary-infobox"
+            ).forEach { root ->
+                root.select("img, picture > source").forEach { element ->
+                    addImageElement(element, baseUrl)
+                }
+                root.select("svg image").forEach { image ->
+                    sequenceOf("href", "xlink:href").forEach { attribute ->
+                        normalize(image.attr(attribute), baseUrl)?.let(::add)
+                    }
+                }
+                root.attr("style").takeIf(String::isNotBlank)?.let { style ->
+                    addAll(extractCss(style, baseUrl))
+                }
+            }
+        }.toList()
+    }
+
     /** Discovers artwork and nested imports in a persisted stylesheet. */
     fun extractCss(css: String, baseUrl: String): List<String> {
         // Explicit reading-list settlement mirrors rendered artwork, not web fonts. A generic
