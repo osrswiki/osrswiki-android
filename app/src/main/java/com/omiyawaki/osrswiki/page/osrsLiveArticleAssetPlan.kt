@@ -5,24 +5,29 @@ internal data class osrsLiveArticleAssetPlan(
     val low: List<String>
 ) {
     companion object {
-        const val FIRST_SCREEN_LIMIT = 24
+        const val FIRST_VIEW_CAP = 48
 
         fun partition(
             requiredUrls: List<String>,
-            infoboxUrls: List<String> = emptyList(),
-            firstScreenLimit: Int = FIRST_SCREEN_LIMIT
+            firstViewUrls: List<String> = emptyList(),
+            firstViewCap: Int = FIRST_VIEW_CAP
         ): osrsLiveArticleAssetPlan {
             val required = requiredUrls.distinct()
             val requiredSet = required.toHashSet()
+            val cap = firstViewCap.coerceAtLeast(0)
             val high = LinkedHashSet<String>()
-            infoboxUrls.forEach { url ->
+            for (url in firstViewUrls.distinct()) {
+                if (high.size >= cap) {
+                    break
+                }
                 if (url in requiredSet) {
                     high.add(url)
                 }
             }
-            required.take(firstScreenLimit.coerceAtLeast(0)).forEach(high::add)
-            val low = required.filter { it !in high }
-            return osrsLiveArticleAssetPlan(high.toList(), low)
+            val cappedHigh = high.toList()
+            val highSet = cappedHigh.toHashSet()
+            val low = required.filter { it !in highSet }
+            return osrsLiveArticleAssetPlan(cappedHigh, low)
         }
     }
 }

@@ -63,6 +63,9 @@ class ArticlePrewarmIntegrationContractTest {
         )
         assertFalse(preparedText.contains("startLiveArticleAssetWarm"))
         assertFalse(downloader.contains("osrsLiveArticleAssetWarmer"))
+        assertTrue(downloader.contains("osrsFirstViewAssetWarmer"))
+        assertTrue(downloader.contains("cancelFirstViewIfUnpinned"))
+        assertFalse(downloader.contains("FIRST_SCREEN_LIMIT"))
     }
 
     @Test

@@ -188,6 +188,18 @@ class NativeMapHandler(
         }
 
         @JavascriptInterface
+        fun firstViewComplete() {
+            if (isCleanedUp) {
+                return
+            }
+            fragment.view?.post {
+                if (!isCleanedUp) {
+                    fragment.markFirstViewComplete()
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun log(message: String) {
             L.d("JS: $message")
         }

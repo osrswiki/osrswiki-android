@@ -213,16 +213,51 @@ internal object ReadingListAssetUrlExtractor {
             document.select(
                 "table.infobox, table.main-infobox, .infobox, .collapsible-primary-infobox"
             ).forEach { root ->
-                root.select("img, picture > source").forEach { element ->
-                    addImageElement(element, baseUrl)
-                }
-                root.select("svg image").forEach { image ->
-                    sequenceOf("href", "xlink:href").forEach { attribute ->
-                        normalize(image.attr(attribute), baseUrl)?.let(::add)
+                addClusterImages(root, baseUrl)
+            }
+        }.toList()
+    }
+
+    /**
+     * Images that occupy the first-viewport slot: the primary infobox including every switcher
+     * state and gender render, plus lead images that appear before the first heading.
+     */
+    fun extractFirstViewSlot(html: String, baseUrl: String = WIKI_BASE_URL): List<String> {
+        val document = Jsoup.parse(html, baseUrl)
+        return linkedSetOf<String>().apply {
+            val switcher = document.selectFirst(
+                ".infobox-switch, .collapsible-primary-infobox, .switch-infobox"
+            ) ?: document.selectFirst("table.infobox, table.main-infobox, .infobox")
+            if (switcher != null) {
+                addClusterImages(switcher, baseUrl)
+                val resourceClass = switcher.attr("data-resource-class").trim()
+                if (resourceClass.isNotEmpty()) {
+                    runCatching { document.select(resourceClass) }.getOrNull()?.forEach { pool ->
+                        addClusterImages(pool, baseUrl)
                     }
                 }
-                root.attr("style").takeIf(String::isNotBlank)?.let { style ->
-                    addAll(extractCss(style, baseUrl))
+            }
+            document.select(".infobox-switch-resources, [class*=infobox-resources-]").forEach { pool ->
+                addClusterImages(pool, baseUrl)
+            }
+            document.select("[data-attr-param] [data-attr-index]").forEach { node ->
+                addClusterImages(node, baseUrl)
+            }
+            document.select(".switch-infobox .item").forEach { pane ->
+                addClusterImages(pane, baseUrl)
+            }
+            document.select(
+                ".infobox-bonuses-image.render-m, .infobox-bonuses-image.render-f"
+            ).forEach { render ->
+                addClusterImages(render, baseUrl)
+            }
+            for (element in document.body().select("img, picture > source, video[poster], h2, .mw-heading")) {
+                if (element.tagName() == "h2" || element.classNames().any { it.contains("mw-heading") }) {
+                    break
+                }
+                when (element.tagName()) {
+                    "img", "source" -> addImageElement(element, baseUrl)
+                    "video" -> normalize(element.attr("poster"), baseUrl)?.let(::add)
                 }
             }
         }.toList()
@@ -242,6 +277,26 @@ internal object ReadingListAssetUrlExtractor {
                 normalize(match.groupValues[2], baseUrl)?.let(::add)
             }
         }.toList()
+    }
+
+    private fun MutableSet<String>.addClusterImages(
+        root: org.jsoup.nodes.Element,
+        baseUrl: String
+    ) {
+        root.select("img, picture > source").forEach { element ->
+            addImageElement(element, baseUrl)
+        }
+        root.select("svg image").forEach { image ->
+            sequenceOf("href", "xlink:href").forEach { attribute ->
+                normalize(image.attr(attribute), baseUrl)?.let(::add)
+            }
+        }
+        root.select("video[poster]").forEach { video ->
+            normalize(video.attr("poster"), baseUrl)?.let(::add)
+        }
+        root.attr("style").takeIf(String::isNotBlank)?.let { style ->
+            addAll(extractCss(style, baseUrl))
+        }
     }
 
     private fun MutableSet<String>.addImageElement(

@@ -13,18 +13,23 @@ import com.omiyawaki.osrswiki.page.preemptive.PreparedArticleCache
 import com.omiyawaki.osrswiki.util.log.L
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArraySet
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -52,7 +57,7 @@ data class DownloadResult(
 class PageAssetDownloader(
     private val okHttpClient: OkHttpClient,
     private val pageRepository: PageRepository? = null,
-    processScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val processScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val wikiSiteUrl = "https://oldschool.runescape.wiki"
     private val jsonParser = Json { ignoreUnknownKeys = true }
@@ -75,6 +80,8 @@ class PageAssetDownloader(
         },
         prepare = ::prepareArticle
     )
+    private val firstViewJobs = ConcurrentHashMap<String, Job>()
+    private val firstViewPinned = ConcurrentHashMap<String, Boolean>()
 
     internal fun configurePrewarmEnvironment(provider: ArticlePrewarmEnvironmentProvider) {
         prewarmEnvironmentProvider = provider
@@ -93,8 +100,57 @@ class PageAssetDownloader(
         return ArticlePrewarmEnvironmentSubscription { prewarmEnvironmentListeners -= listener }
     }
 
-    internal fun prewarmArticle(request: ArticlePrewarmRequest): ArticlePrewarmLease =
-        preparationCoordinator.requestPrewarm(request)
+    internal fun prewarmArticle(request: ArticlePrewarmRequest): ArticlePrewarmLease {
+        val key = request.key.logValue()
+        preparationCoordinator.peekPrepared(request)?.processedHtml?.takeIf { it.isNotBlank() }?.let { html ->
+            val job = startFirstViewWarm(request, html)
+            return ArticlePrewarmLease {
+                cancelFirstViewIfUnpinned(key, job)
+            }
+        }
+        val htmlLease = preparationCoordinator.requestPrewarm(request)
+        val waitJob = processScope.launch {
+            while (isActive) {
+                val html = preparationCoordinator.peekPrepared(request)?.processedHtml
+                if (!html.isNullOrBlank()) {
+                    startFirstViewWarm(request, html)
+                    return@launch
+                }
+                delay(50)
+            }
+        }
+        return ArticlePrewarmLease {
+            htmlLease.cancel()
+            if (firstViewPinned[key] == true) {
+                return@ArticlePrewarmLease
+            }
+            waitJob.cancel()
+            firstViewJobs[key]?.cancel()
+        }
+    }
+
+    private fun startFirstViewWarm(request: ArticlePrewarmRequest, html: String): Job {
+        val key = request.key.logValue()
+        firstViewJobs[key]?.let { existing ->
+            if (existing.isActive) {
+                return existing
+            }
+        }
+        val job = processScope.launch {
+            osrsFirstViewAssetWarmer().warm(html)
+        }
+        firstViewJobs[key] = job
+        job.invokeOnCompletion { firstViewJobs.remove(key, job) }
+        return job
+    }
+
+    private fun cancelFirstViewIfUnpinned(key: String, job: Job) {
+        if (firstViewPinned[key] == true) {
+            return
+        }
+        job.cancel()
+        firstViewJobs.remove(key, job)
+    }
 
     fun peekPreparedArticle(title: String?, pageId: Int? = null): DownloadResult? {
         val request = runCatching { ArticlePrewarmRequest(pageId = pageId, title = title) }.getOrNull()
@@ -137,11 +193,13 @@ class PageAssetDownloader(
         forceNetwork: Boolean
     ): Flow<DownloadProgress> = channelFlow {
         val foregroundStart = System.nanoTime()
+        firstViewPinned[request.key.logValue()] = true
         send(DownloadProgress.FetchingHtml(0))
         try {
             val result = preparationCoordinator.awaitForeground(request, forceNetwork) { progress ->
                 send(DownloadProgress.FetchingHtml(progress))
             }
+            startFirstViewWarm(request, result.processedHtml)
             val elapsedMillis = (System.nanoTime() - foregroundStart) / 1_000_000L
             // The text success boundary precedes all optional asset work. PageContentLoader may
             // schedule assets only after this emission and the WebView can fetch visible images.

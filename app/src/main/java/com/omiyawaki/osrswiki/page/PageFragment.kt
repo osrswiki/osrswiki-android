@@ -780,6 +780,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
     }
 
+    fun markFirstViewComplete() {
+        if (::pageContentLoader.isInitialized) {
+            pageContentLoader.markFirstViewComplete()
+        }
+    }
+
     override fun onPageReadyForDisplay() {
         val webViewManager = pageWebViewManager ?: return
         if (isAdded && _binding != null && !webViewReleasedWhileStopped) {

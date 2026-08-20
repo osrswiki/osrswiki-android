@@ -29,12 +29,15 @@ class PageContentLoader(
     private var backgroundAssetsJob: Job? = null
     @Volatile
     private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
+    @Volatile
+    private var firstViewOpenAtElapsed: Long? = null
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
         val mobileUrl = WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)
         L.d("PageContentLoader: Generated mobile URL: $mobileUrl")
         cancelActivePageWork()
+        firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
             pageAssetDownloader.downloadPriorityAssetsByTitle(
@@ -53,6 +56,7 @@ class PageContentLoader(
         val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
         L.d("PageContentLoader: Generated page URL: $pageUrl")
         cancelActivePageWork()
+        firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
             pageAssetDownloader.downloadPriorityAssets(
@@ -255,6 +259,13 @@ class PageContentLoader(
             osrsArticleViewAssetStore.canonicalize(absolute)
         }
         liveArticleAssetWarmer?.promote(resolved)
+    }
+
+    fun markFirstViewComplete() {
+        val started = firstViewOpenAtElapsed ?: return
+        firstViewOpenAtElapsed = null
+        val elapsed = android.os.SystemClock.elapsedRealtime() - started
+        L.d("osrsFirstViewComplete elapsedMs=$elapsed")
     }
 
     fun cancelActivePageWork() {
