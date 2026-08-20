@@ -8,6 +8,7 @@ import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.dataclient.okhttp.OfflineResponseFileWriter
 import com.omiyawaki.osrswiki.offline.db.OfflineObject
 import com.omiyawaki.osrswiki.readinglist.database.ReadingListPage
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URI
@@ -47,7 +48,9 @@ internal class ReadingListPageSnapshotStage(
     private val readingListPageId: Long,
     private val language: String = "en",
     generationId: String = UUID.randomUUID().toString(),
-    private val priorAssets: Map<String, OfflineObject> = emptyMap()
+    private val priorAssets: Map<String, OfflineObject> = emptyMap(),
+    private val sessionAssets: osrsSessionAssetLookup? = null,
+    private val extraDurableLookup: ((String) -> OfflineObject?)? = null
 ) : ReadingListAssetFetcher, AutoCloseable {
     private val offlineRoot = File(context.filesDir, ReadingListOfflineAssetResolver.STORAGE_DIRECTORY)
     private val relativeGenerationDirectory = ".generations/$generationId"
@@ -65,7 +68,7 @@ internal class ReadingListPageSnapshotStage(
     override suspend fun fetchAndPersist(url: String, readingListPageId: Long): Boolean {
         check(readingListPageId == this.readingListPageId)
         stagedResponses[url]?.let { return true }
-        reusePriorAsset(url)?.let { reused ->
+        reuseExistingBytes(url)?.let { reused ->
             stagedResponses[url] = reused
             reusedUrls += url
             return true
@@ -131,8 +134,18 @@ internal class ReadingListPageSnapshotStage(
         }
     }
 
-    private fun reusePriorAsset(url: String): ReadingListStagedResponse? {
-        val prior = priorAssets[url] ?: return null
+    private fun reuseExistingBytes(url: String): ReadingListStagedResponse? {
+        copyDurableObject(url, priorAssets[url])?.let { return it }
+        reuseSessionAsset(url)?.let { return it }
+        val extra = extraDurableLookup?.invoke(url)
+        if (extra != null && extra.path != priorAssets[url]?.path) {
+            copyDurableObject(url, extra)?.let { return it }
+        }
+        return null
+    }
+
+    private fun copyDurableObject(url: String, prior: OfflineObject?): ReadingListStagedResponse? {
+        if (prior == null) return null
         val metadataFile = File(offlineRoot, "${prior.path}.0")
         val contentFile = File(offlineRoot, "${prior.path}.1")
         if (!metadataFile.isFile || !contentFile.isFile) {
@@ -145,6 +158,36 @@ internal class ReadingListPageSnapshotStage(
                 metadata = metadataFile.readBytes(),
                 body = contentFile.inputStream()
             )
+            ReadingListStagedResponse(
+                url = url,
+                language = language,
+                relativePath = "$relativeGenerationDirectory/${staged.path}",
+                metadataFile = staged.metadataFile,
+                contentFile = staged.contentFile
+            )
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    private fun reuseSessionAsset(url: String): ReadingListStagedResponse? {
+        val asset = sessionAssets?.get(url) ?: return null
+        return try {
+            val metadata = "Content-Type: ${asset.contentType}\n".toByteArray(StandardCharsets.UTF_8)
+            val staged = OfflineResponseFileWriter.stageResponse(
+                storageDir = generationDirectory,
+                hashedBaseName = hashUrl(url, language),
+                metadata = metadata,
+                body = ByteArrayInputStream(asset.body)
+            )
+            ReadingListAssetResponseValidator.invalidReason(
+                url = url,
+                contentType = asset.contentType,
+                contentFile = staged.contentFile
+            )?.let {
+                staged.discard()
+                return null
+            }
             ReadingListStagedResponse(
                 url = url,
                 language = language,

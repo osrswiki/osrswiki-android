@@ -217,6 +217,103 @@ class ReadingListPageSnapshotTest {
         stage.close()
     }
 
+    @Test
+    fun firstSaveReusesSessionStoreBytesAndFetchesTheRest() = runTest {
+        val fixture = seedPriorSnapshot()
+        val requested = mutableListOf<String>()
+        val sessionUrl = "https://oldschool.runescape.wiki/session.png"
+        val stage = ReadingListPageSnapshotStage(
+            context = context,
+            client = snapshotClient(requestedUrls = requested),
+            readingListPageId = fixture.pageId,
+            generationId = "session-generation",
+            sessionAssets = osrsSessionAssetLookup { url ->
+                if (url == sessionUrl) {
+                    osrsSessionAsset(body = OLD_ASSET_BYTES, contentType = "image/png")
+                } else {
+                    null
+                }
+            }
+        )
+        assertTrue(
+            ReadingListOfflineAssetSaver(stage)
+                .persistAll(fixture.pageId, "<img src='$sessionUrl'><img src='$NEW_OK_URL'>")
+                .isComplete
+        )
+        val counts = stage.reuseCounts()
+        assertEquals(1, counts.reused)
+        assertEquals(1, counts.fetched)
+        assertFalse(requested.contains(sessionUrl))
+        assertTrue(requested.contains(NEW_OK_URL))
+        val reused = stage.stagedResponses().single { it.url == sessionUrl }
+        assertEquals(OLD_ASSET_BYTES.toList(), reused.contentFile.readBytes().toList())
+        stage.close()
+    }
+
+    @Test
+    fun firstSaveDoesNotReuseInvalidSessionHtml() = runTest {
+        val fixture = seedPriorSnapshot()
+        val requested = mutableListOf<String>()
+        val sessionUrl = "https://oldschool.runescape.wiki/session.png"
+        val stage = ReadingListPageSnapshotStage(
+            context = context,
+            client = snapshotClient(requestedUrls = requested),
+            readingListPageId = fixture.pageId,
+            generationId = "invalid-session-generation",
+            sessionAssets = osrsSessionAssetLookup { url ->
+                if (url == sessionUrl) {
+                    osrsSessionAsset(
+                        body = "<html>captive portal</html>".toByteArray(),
+                        contentType = "text/html"
+                    )
+                } else {
+                    null
+                }
+            }
+        )
+        assertTrue(
+            ReadingListOfflineAssetSaver(stage)
+                .persistAll(fixture.pageId, "<img src='$sessionUrl'>")
+                .isComplete
+        )
+        val counts = stage.reuseCounts()
+        assertEquals(0, counts.reused)
+        assertEquals(1, counts.fetched)
+        assertTrue(requested.contains(sessionUrl))
+        stage.close()
+    }
+
+    @Test
+    fun firstSaveReusesDurableBytesFromAnotherSavedPage() = runTest {
+        val fixture = seedPriorSnapshot()
+        val requested = mutableListOf<String>()
+        val extra = requireNotNull(
+            database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                OLD_ASSET_URL,
+                "en",
+                OfflineObject.SAVE_TYPE_READING_LIST
+            )
+        )
+        val stage = ReadingListPageSnapshotStage(
+            context = context,
+            client = snapshotClient(requestedUrls = requested),
+            readingListPageId = fixture.pageId,
+            generationId = "global-generation",
+            extraDurableLookup = { url -> extra.takeIf { it.url == url } }
+        )
+        assertTrue(
+            ReadingListOfflineAssetSaver(stage)
+                .persistAll(fixture.pageId, "<img src='$OLD_ASSET_URL'><img src='$NEW_OK_URL'>")
+                .isComplete
+        )
+        val counts = stage.reuseCounts()
+        assertEquals(1, counts.reused)
+        assertEquals(1, counts.fetched)
+        assertFalse(requested.contains(OLD_ASSET_URL))
+        assertTrue(requested.contains(NEW_OK_URL))
+        stage.close()
+    }
+
     private suspend fun seedPriorSnapshot(): PriorSnapshotFixture {
         val pageId = database.readingListPageDao().insertReadingListPage(
             ReadingListPage(

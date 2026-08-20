@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.savedpages
 
 import android.content.Context
 import android.text.Html
+import android.os.SystemClock
 import android.util.Log
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -167,8 +168,13 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                 readingListPageId = page.id,
                 priorAssets = AppDatabase.instance.offlineObjectDao()
                     .getObjectsUsedByPageId(page.id)
-                    .associateBy { it.url }
+                    .associateBy { it.url },
+                sessionAssets = osrsArticleViewAssetStore,
+                extraDurableLookup = { url ->
+                    AppDatabase.instance.offlineObjectDao().getOfflineObjectByUrl(url)
+                }
             )
+            val saveStartedAt = SystemClock.elapsedRealtime()
 
             try {
                 Log.d(loggerTag, "----------------------------------------------------")
@@ -255,6 +261,7 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                             updateQueuedSaveProgressOrCancel(page.id, 80)
                         }
 
+                        val artworkStartedAt = SystemClock.elapsedRealtime()
                         val assetResult = ReadingListOfflineAssetSaver(snapshotStage)
                             .persistAll(page.id, articleHtml) { persisted, required ->
                                 val spanned = 80 + ((persisted.toFloat() / required.toFloat()) * 15f).toInt()
@@ -262,12 +269,19 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                             }
                         pageAssetsPersisted = assetResult.isComplete
                         val reuse = snapshotStage.reuseCounts()
+                        val artworkElapsedMs = SystemClock.elapsedRealtime() - artworkStartedAt
                         Log.i(
                             loggerTag,
                             "Staged explicit-save media for page ${page.id}: " +
                                 "${assetResult.persistedCount}/${assetResult.requiredCount}; " +
                                 "failures=${assetResult.failedUrls.size}; " +
                                 "reused=${reuse.reused} fetched=${reuse.fetched}"
+                        )
+                        Log.i(
+                            loggerTag,
+                            "osrsSnapshotSave: title='${page.displayTitle}' phase=artwork " +
+                                "elapsedMs=$artworkElapsedMs reused=${reuse.reused} " +
+                                "fetched=${reuse.fetched} required=${assetResult.requiredCount}"
                         )
                         updateQueuedSaveProgressOrCancel(page.id, 95)
                     }
@@ -350,6 +364,14 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                 if (terminalTransitionWon || publicationOwnershipReleased) {
                     reportForegroundItemCompleted()
                 }
+                val reuse = snapshotStage.reuseCounts()
+                val totalElapsedMs = SystemClock.elapsedRealtime() - saveStartedAt
+                Log.i(
+                    loggerTag,
+                    "osrsSnapshotSave: title='${page.displayTitle}' phase=total " +
+                        "elapsedMs=$totalElapsedMs reused=${reuse.reused} fetched=${reuse.fetched} " +
+                        "complete=$pageSaveComplete"
+                )
                 Log.d(loggerTag, "----------------------------------------------------")
             } catch (ownershipLost: ReadingListSnapshotOwnershipLostException) {
                 foregroundCancelableSavePageId = null

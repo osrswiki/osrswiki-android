@@ -16,6 +16,7 @@ import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.page.cache.AssetCache
 import com.omiyawaki.osrswiki.network.NetworkModuleCache
 import com.omiyawaki.osrswiki.savedpages.ReadingListOfflineAssetResolver
+import com.omiyawaki.osrswiki.savedpages.osrsArticleViewAssetStore
 import java.io.ByteArrayInputStream
 
 open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClient() {
@@ -181,7 +182,20 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             Log.w(logTag, "CDN redirector error for $url: ${e.message}")
         }
 
-        // 5. Fallback to default behavior (local assets via WebViewAssetLoader or network)
+        // 5. Capture live wiki media into a session store so first save can copy instead of GET.
+        if (
+            !request.isForMainFrame &&
+            request.method.equals("GET", ignoreCase = true) &&
+            osrsArticleViewAssetStore.isEligible(url)
+        ) {
+            osrsArticleViewAssetStore.install(view.context)
+            osrsArticleViewAssetStore.openWebResponse(url)?.let { sessionAsset ->
+                Log.i(logTag, "  -> INTERCEPT [HIT] in article-view session store for: $url")
+                return sessionAsset
+            }
+        }
+
+        // 6. Fallback to default behavior (local assets via WebViewAssetLoader or network)
         Log.d(logTag, "  -> INTERCEPT [MISS] in local caches for: $url")
         return super.shouldInterceptRequest(view, request)
     }

@@ -17,4 +17,16 @@ class osrsSavedPageAssetReuseTest {
         assertEquals(listOf("https://wiki/old.png"), partition.reusedUrls)
         assertEquals(listOf("https://wiki/new.png"), partition.fetchUrls)
     }
+
+    @Test
+    fun copySourceUrlsUnionPriorAndSessionHits() {
+        val combined = osrsSavedPageAssetReuse.copySourceUrls(
+            priorUrls = setOf("https://wiki/old.png"),
+            sessionUrls = setOf("https://wiki/old.png", "https://wiki/viewed.png")
+        )
+        assertEquals(
+            setOf("https://wiki/old.png", "https://wiki/viewed.png"),
+            combined
+        )
+    }
 }

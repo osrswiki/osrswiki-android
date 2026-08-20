@@ -27,5 +27,10 @@ object osrsSavedPageAssetReuse {
         return Partition(reused, fetch)
     }
 
+    fun copySourceUrls(
+        priorUrls: Set<String>,
+        sessionUrls: Set<String>
+    ): Set<String> = priorUrls + sessionUrls
+
     data class Counts(val reused: Int, val fetched: Int)
 }
