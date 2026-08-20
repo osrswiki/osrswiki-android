@@ -46,7 +46,8 @@ internal class ReadingListPageSnapshotStage(
     private val client: OkHttpClient,
     private val readingListPageId: Long,
     private val language: String = "en",
-    generationId: String = UUID.randomUUID().toString()
+    generationId: String = UUID.randomUUID().toString(),
+    private val priorAssets: Map<String, OfflineObject> = emptyMap()
 ) : ReadingListAssetFetcher, AutoCloseable {
     private val offlineRoot = File(context.filesDir, ReadingListOfflineAssetResolver.STORAGE_DIRECTORY)
     private val relativeGenerationDirectory = ".generations/$generationId"
@@ -58,12 +59,20 @@ internal class ReadingListPageSnapshotStage(
     private val stagedResponses = ConcurrentHashMap<String, ReadingListStagedResponse>()
     @Volatile
     private var published = false
+    private val reusedUrls = ConcurrentHashMap.newKeySet<String>()
+    private val fetchedUrls = ConcurrentHashMap.newKeySet<String>()
 
     override suspend fun fetchAndPersist(url: String, readingListPageId: Long): Boolean {
         check(readingListPageId == this.readingListPageId)
         stagedResponses[url]?.let { return true }
+        reusePriorAsset(url)?.let { reused ->
+            stagedResponses[url] = reused
+            reusedUrls += url
+            return true
+        }
         val staged = stageResponse(url, validateArtwork = true) ?: return false
         stagedResponses[url] = staged
+        fetchedUrls += url
         return true
     }
 
@@ -89,6 +98,9 @@ internal class ReadingListPageSnapshotStage(
 
     fun stagedResponses(): List<ReadingListStagedResponse> =
         stagedResponses.values.sortedBy(ReadingListStagedResponse::url)
+
+    fun reuseCounts(): osrsSavedPageAssetReuse.Counts =
+        osrsSavedPageAssetReuse.Counts(reused = reusedUrls.size, fetched = fetchedUrls.size)
 
     fun stageArticleHtml(pageId: Int, fullHtml: String): File {
         articleGenerationDirectory.mkdirs()
@@ -116,6 +128,32 @@ internal class ReadingListPageSnapshotStage(
         if (!published) {
             generationDirectory.deleteRecursively()
             articleGenerationDirectory.deleteRecursively()
+        }
+    }
+
+    private fun reusePriorAsset(url: String): ReadingListStagedResponse? {
+        val prior = priorAssets[url] ?: return null
+        val metadataFile = File(offlineRoot, "${prior.path}.0")
+        val contentFile = File(offlineRoot, "${prior.path}.1")
+        if (!metadataFile.isFile || !contentFile.isFile) {
+            return null
+        }
+        return try {
+            val staged = OfflineResponseFileWriter.stageResponse(
+                storageDir = generationDirectory,
+                hashedBaseName = hashUrl(url, language),
+                metadata = metadataFile.readBytes(),
+                body = contentFile.inputStream()
+            )
+            ReadingListStagedResponse(
+                url = url,
+                language = language,
+                relativePath = "$relativeGenerationDirectory/${staged.path}",
+                metadataFile = staged.metadataFile,
+                contentFile = staged.contentFile
+            )
+        } catch (_: Throwable) {
+            null
         }
     }
 

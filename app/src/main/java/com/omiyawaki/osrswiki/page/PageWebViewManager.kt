@@ -418,22 +418,23 @@ class PageWebViewManager(
         if (isDisposed) {
             return
         }
-        if (scrollY > 0) {
-            webView.alpha = 0f
+        val app = webView.context.applicationContext as? com.omiyawaki.osrswiki.OSRSWikiApp
+        val isDark = app?.getCurrentTheme()?.isDark() == true
+        webView.alpha = 0f
+        applyThemeClass(isDark) {
             applyTableCollapsePreference {
                 applyReaderTextScale {
-                    applyThemeColors(webView) {
-                        restoreScrollThenReveal(scrollY, onComplete)
+                    applyWrapPreference {
+                        applyThemeColors(webView) {
+                            if (scrollY > 0) {
+                                restoreScrollThenReveal(scrollY, onComplete)
+                            } else {
+                                webView.alpha = 1f
+                                revealBody(onComplete)
+                            }
+                        }
                     }
                 }
-            }
-            return
-        }
-        webView.alpha = 1f
-        revealBody(onComplete)
-        applyTableCollapsePreference {
-            applyReaderTextScale {
-                applyThemeColors(webView) {}
             }
         }
     }
@@ -515,6 +516,30 @@ class PageWebViewManager(
         ) {
             if (!isDisposed && callbackGeneration == renderGeneration) {
                 Unit
+            }
+        }
+    }
+
+    private fun applyThemeClass(isDark: Boolean, onFinished: () -> Unit) {
+        if (isDisposed) return
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            "if (window.OSRSWikiTheme) { window.OSRSWikiTheme.switchTheme($isDark); }"
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                onFinished()
+            }
+        }
+    }
+
+    private fun applyWrapPreference(onFinished: () -> Unit = {}) {
+        if (isDisposed) return
+        val callbackGeneration = renderGeneration
+        webView.evaluateJavascript(
+            PageHtmlBuilder.wrapTableCellsRuntimeScript(Prefs.wrapTableCells)
+        ) {
+            if (!isDisposed && callbackGeneration == renderGeneration) {
+                onFinished()
             }
         }
     }
@@ -620,7 +645,11 @@ class PageWebViewManager(
         // MediaWiki will now load modules naturally from the correct domain
         
         val baseUrl = "https://$localAssetDomain/"
-        Log.d(logTag, ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars, BaseURL: $baseUrl)")
+        val paintSnapshot = fullHtml.contains("data-osrs-inline-css")
+        Log.d(
+            logTag,
+            ">>> Calling webView.loadDataWithBaseURL()... (HTML size: ${fullHtml.length} chars, BaseURL: $baseUrl, paintSnapshot=$paintSnapshot)"
+        )
         
         
         webView.loadDataWithBaseURL(
@@ -644,6 +673,7 @@ class PageWebViewManager(
         val elapsed = System.currentTimeMillis() - renderStartTime
         val status = if (elapsed <= RENDER_READY_BUDGET_MS) "met" else "missed"
         Log.d(logTag, "ArticleRenderBudget: readyReason=$reason elapsedMs=$elapsed budgetMs=$RENDER_READY_BUDGET_MS status=$status")
+        Log.d(logTag, "ArticlePaintOpen: readyReason=$reason elapsedMs=$elapsed")
     }
 
     private fun revealBody(onComplete: () -> Unit) {

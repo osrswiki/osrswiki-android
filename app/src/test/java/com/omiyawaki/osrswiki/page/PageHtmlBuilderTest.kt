@@ -80,6 +80,35 @@ class PageHtmlBuilderTest {
     }
 
     @Test
+    fun buildFullHtmlDocumentInlinesFirstPaintCssAndLeavesScriptsLinked() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Varrock",
+            bodyContent = "<p>Capital of Misthalin.</p>",
+            theme = Theme.OSRS_LIGHT,
+            inlineFirstPaintCss = true,
+            bakeChromeInsets = false
+        )
+
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/themes.css\""))
+        assertFalse(
+            html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/themes.css\">")
+        )
+        assertTrue(html.contains("<script src=\"https://appassets.androidplatform.net/assets/js/tablesort.min.js\""))
+        assertTrue(html.contains("id=\"osrs-article-first-paint\""))
+        assertTrue(html.contains("background-color: var(--body-main"))
+        assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
+    }
+
+    @Test
+    fun articleFirstPaintStyleIncludesBodyColorAndBackgroundFallbacks() {
+        val style = PageHtmlBuilder.articleFirstPaintStyle()
+        assertTrue(style.contains("background-color: var(--body-main, #e2dbc8)"))
+        assertTrue(style.contains("color: var(--text-color, #000000)"))
+        assertTrue(style.contains("body.theme-osrs-dark"))
+        assertTrue(style.contains("#28221d"))
+    }
+
+    @Test
     fun buildFullHtmlDocumentIncludesBaseAssetsAndMediaWikiVariables() {
         val html = builder.buildFullHtmlDocument(
             title = "Combat guide",

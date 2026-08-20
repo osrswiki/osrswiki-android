@@ -39,8 +39,14 @@ class PageLoadCoordinator(
         // Keep the title visible immediately. Saved snapshots resolve from disk next;
         // do not flash a network "Downloading..." label before that is known.
         val titleDuringLoad = pageTitleArg ?: fragment.getString(R.string.label_loading)
-        pageViewModel.uiState = PageUiState(isLoading = true, title = titleDuringLoad, progress = 5, progressText = "Opening page...")
-        L.d("PageLoadCoordinator.initiatePageLoad: Set initial UI state to 5% 'Opening page...'.")
+        val savedOpen = fragment.getNavigationSource() == com.omiyawaki.osrswiki.history.db.HistoryEntry.SOURCE_SAVED_PAGE
+        pageViewModel.uiState = PageUiState(
+            isLoading = true,
+            title = titleDuringLoad,
+            progress = if (savedOpen) null else 5,
+            progressText = if (savedOpen) null else "Opening page..."
+        )
+        L.d("PageLoadCoordinator.initiatePageLoad: Set initial UI state savedOpen=$savedOpen")
         uiUpdater.updateUi()
 
         if (idToLoad != null) {

@@ -67,6 +67,9 @@ class PageContentLoader(
         when (progress) {
             is DownloadProgress.FetchingHtml -> {
                 withContext(Dispatchers.Main) {
+                    if (pageViewModel.uiState.progressText == null) {
+                        return@withContext
+                    }
                     val scaledProgress = 5 + (progress.progress * 0.05).toInt()
                     L.d("handleDownloadProgress: Received FetchingHtml ${progress.progress}%. Setting scaled progress to $scaledProgress%.")
                     pageViewModel.uiState = pageViewModel.uiState.copy(
@@ -91,44 +94,62 @@ class PageContentLoader(
                 val result = progress.result
                 L.d("handleDownloadProgress: Received Success - PageID: ${result.parseResult.pageid}, Title: '${result.parseResult.title}', DisplayTitle: '${result.parseResult.displaytitle}'")
                 L.d("handleDownloadProgress: HTML content length: ${result.processedHtml.length} characters")
-                
-                // Perform CPU-intensive HTML string building on a background thread.
+                val paintSnapshot = result.readyToPaintHtml
                 val (finalHtml, tableOfContentsSections) = withContext(Dispatchers.Default) {
                     currentCoroutineContext().ensureActive()
-                    L.d("handleDownloadProgress: Building final HTML on background thread.")
                     val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                    L.d("handleDownloadProgress: Using table collapse preference: $collapseTablesEnabled")
                     val displayTitle = result.parseResult.displaytitle ?: result.parseResult.title
+                    val tocHtml = if (paintSnapshot != null) {
+                        osrsSavedPaintHtml.extractBodyForToc(paintSnapshot)
+                    } else {
+                        result.processedHtml
+                    }
                     lateinit var tableOfContentsSections: List<Section>
                     val tocTime = measureTimeMillis {
                         tableOfContentsSections = PageTableOfContentsExtractor.extract(
                             displayTitle,
-                            result.processedHtml,
+                            tocHtml,
                             osrsArticleFloorConvention.resolved()
                         )
                     }
                     currentCoroutineContext().ensureActive()
                     lateinit var finalHtml: String
                     val documentBuildTime = measureTimeMillis {
-                        finalHtml = pageHtmlBuilder.buildFullHtmlDocument(
-                            displayTitle ?: "",
-                            result.processedHtml,
-                            theme,
-                            collapseTablesEnabled,
-                            canonicalTitle = result.parseResult.title
-                        )
+                        finalHtml = if (paintSnapshot != null) {
+                            val isCalculatorPage = tocHtml.contains("jcConfig") ||
+                                osrsWikiWebViewUrl.isCalculatorNamespaceTitle(result.parseResult.title)
+                            osrsSavedPaintHtml.applyingLivePreferences(
+                                osrsSavedPaintHtml.inlineLinkedFirstPaintCss(paintSnapshot) { path ->
+                                    pageHtmlBuilder.loadAssetText(path)
+                                },
+                                isDark = theme.isDark(),
+                                wrapEnabled = Prefs.wrapTableCells,
+                                scaleCssValue = PageHtmlBuilder.readerTextScaleCssValue(Prefs.readerTextScale),
+                                bottomChromePx = if (isCalculatorPage) 96 else 0
+                            )
+                        } else {
+                            pageHtmlBuilder.buildFullHtmlDocument(
+                                displayTitle ?: "",
+                                result.processedHtml,
+                                theme,
+                                collapseTablesEnabled,
+                                canonicalTitle = result.parseResult.title
+                            )
+                        }
                     }
                     currentCoroutineContext().ensureActive()
-                    L.d("ArticleRenderPhase: tocExtractionMs=$tocTime documentBuildMs=$documentBuildTime processedChars=${result.processedHtml.length} finalChars=${finalHtml.length}")
+                    L.d(
+                        "ArticleRenderPhase: tocExtractionMs=$tocTime documentBuildMs=$documentBuildTime " +
+                            "processedChars=${result.processedHtml.length} finalChars=${finalHtml.length} " +
+                            "paintSnapshot=${paintSnapshot != null}"
+                    )
                     finalHtml to tableOfContentsSections
                 }
                 L.d("handleDownloadProgress: Final HTML length: ${finalHtml.length} characters")
-                
-                // Switch back to the main thread to update the UI and state.
+
                 withContext(Dispatchers.Main) {
-                    L.d("handleDownloadProgress: Received Success. Setting progress to 50%.")
                     val wikiUrl = WikiSite.OSRS_WIKI.mobileUrl(result.parseResult.title ?: "")
-                    L.d("handleDownloadProgress: Generated wiki URL: $wikiUrl")
+                    val savedPaintOpen = paintSnapshot != null
                     pageViewModel.uiState = pageViewModel.uiState.copy(
                         isLoading = true, error = null, pageId = result.parseResult.pageid,
                         title = result.parseResult.displaytitle ?: result.parseResult.title,
@@ -136,14 +157,13 @@ class PageContentLoader(
                         wikiUrl = wikiUrl,
                         revisionId = result.parseResult.revid, lastFetchedTimestamp = System.currentTimeMillis(),
                         isCurrentlyOffline = result.source == ArticleContentSource.SAVED,
-                        progress = 50, progressText = "Rendering page...",
+                        progress = if (savedPaintOpen) 90 else 50,
+                        progressText = if (savedPaintOpen) null else "Rendering page...",
                         tableOfContentsSections = tableOfContentsSections
                     )
-                    // WebView owns visible media after the document commit. An eager image pass at
-                    // text-success races first paint and duplicates WebKit's requests. Explicit
-                    // reading-list saves use a separate durable, exhaustive asset path.
                     backgroundAssetsJob?.cancel()
                     backgroundAssetsJob = null
+                    // WebView owns visible media after the document commit.
                     onStateUpdated()
                 }
             }
@@ -165,7 +185,7 @@ class PageContentLoader(
     }
 
     fun updateRenderProgress(progress: Int) {
-        if (pageViewModel.uiState.progress in 50..99) {
+        if (pageViewModel.uiState.progress in 50..99 && pageViewModel.uiState.progressText == "Rendering page...") {
             val newProgress = 50 + (progress * 0.5).toInt()
             L.d("updateRenderProgress: WebView progress: $progress%. Setting new progress to $newProgress%.")
             pageViewModel.uiState = pageViewModel.uiState.copy(

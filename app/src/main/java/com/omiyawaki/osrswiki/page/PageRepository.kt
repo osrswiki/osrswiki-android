@@ -170,7 +170,9 @@ class PageRepository(
                     parseResult.text!!,
                     Theme.DEFAULT_LIGHT,
                     collapseTablesEnabled,
-                    canonicalTitle = canonicalTitle
+                    canonicalTitle = canonicalTitle,
+                    inlineFirstPaintCss = true,
+                    bakeChromeInsets = false
                 )
                 localDataSource.saveArticle(
                     pageId = parseResult.pageid,

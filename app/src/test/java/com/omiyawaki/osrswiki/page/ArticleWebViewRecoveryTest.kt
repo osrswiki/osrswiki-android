@@ -412,8 +412,9 @@ class ArticleWebViewRecoveryTest {
     fun pageLoadCoordinatorChecksAlreadyRenderedContentBeforeResettingLoadingState() {
         val source = sourceFile("PageLoadCoordinator.kt").readText()
 
+        assertTrue(source.contains("val contentAlreadyLoaded"))
         assertTrue(
-            source.indexOf("val contentAlreadyLoaded") < source.indexOf("PageUiState(isLoading = true")
+            source.indexOf("val contentAlreadyLoaded") < source.indexOf("progressText = if (savedOpen)")
         )
     }
 

@@ -183,6 +183,40 @@ class ReadingListPageSnapshotTest {
         assertFalse(fixture.oldAssetMetadata.exists())
     }
 
+    @Test
+    fun refreshReusesPriorGenerationBytesForUnchangedUrls() = runTest {
+        val fixture = seedPriorSnapshot()
+        val requested = mutableListOf<String>()
+        val stage = ReadingListPageSnapshotStage(
+            context = context,
+            client = snapshotClient(requestedUrls = requested),
+            readingListPageId = fixture.pageId,
+            generationId = "reuse-generation",
+            priorAssets = mapOf(
+                OLD_ASSET_URL to requireNotNull(
+                    database.offlineObjectDao().findByUrlAndLangAndSaveType(
+                        OLD_ASSET_URL,
+                        "en",
+                        OfflineObject.SAVE_TYPE_READING_LIST
+                    )
+                )
+            )
+        )
+        assertTrue(
+            ReadingListOfflineAssetSaver(stage)
+                .persistAll(fixture.pageId, "<img src='$OLD_ASSET_URL'><img src='$NEW_OK_URL'>")
+                .isComplete
+        )
+        val counts = stage.reuseCounts()
+        assertEquals(1, counts.reused)
+        assertEquals(1, counts.fetched)
+        assertFalse(requested.contains(OLD_ASSET_URL))
+        assertTrue(requested.contains(NEW_OK_URL))
+        val reused = stage.stagedResponses().single { it.url == OLD_ASSET_URL }
+        assertEquals(OLD_ASSET_BYTES.toList(), reused.contentFile.readBytes().toList())
+        stage.close()
+    }
+
     private suspend fun seedPriorSnapshot(): PriorSnapshotFixture {
         val pageId = database.readingListPageDao().insertReadingListPage(
             ReadingListPage(
@@ -251,10 +285,14 @@ class ReadingListPageSnapshotTest {
         assertEquals("old searchable body", database.offlinePageFtsDao().getAll().single().body)
     }
 
-    private fun snapshotClient(failingPath: String? = null): OkHttpClient =
+    private fun snapshotClient(
+        failingPath: String? = null,
+        requestedUrls: MutableList<String>? = null
+    ): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val request = chain.request()
+                requestedUrls?.add(request.url.toString())
                 if (request.url.encodedPath == failingPath) throw IOException("injected late failure")
                 val isApi = request.url.encodedPath == "/api.php"
                 Response.Builder()

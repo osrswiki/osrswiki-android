@@ -124,7 +124,9 @@ class PageHtmlBuilder(private val context: Context) {
         theme: Theme,
         collapseTablesEnabled: Boolean = true,
         readerTextScale: Float = Prefs.readerTextScale,
-        canonicalTitle: String? = null
+        canonicalTitle: String? = null,
+        inlineFirstPaintCss: Boolean = false,
+        bakeChromeInsets: Boolean = true
     ): String {
         var finalHtml: String
         val floorClass = osrsArticleFloorConvention.resolved(deviceLocale()).bodyClass
@@ -151,8 +153,19 @@ class PageHtmlBuilder(private val context: Context) {
                 Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
             }
 
-            val cssLinks = styleSheetAssets.joinToString("\n") { assetPath ->
-                "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
+            val cssLinks = if (inlineFirstPaintCss) {
+                styleSheetAssets.joinToString("\n") { assetPath ->
+                    val css = loadAssetText(assetPath)
+                    if (css.isNullOrEmpty()) {
+                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
+                    } else {
+                        "<style data-osrs-inline-css=\"$assetPath\">$css</style>"
+                    }
+                }
+            } else {
+                styleSheetAssets.joinToString("\n") { assetPath ->
+                    "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
+                }
             }
 
             Log.d(logTag, "Using natural MediaWiki ResourceLoader with network-level caching")
@@ -237,7 +250,7 @@ class PageHtmlBuilder(private val context: Context) {
             val isCalculatorPage = cleanedBodyContent.contains("jcConfig") ||
                 osrsWikiWebViewUrl.isCalculatorNamespaceTitle(canonicalTitle ?: cleanedTitle)
             val firstPaintStyle = articleFirstPaintStyle(
-                bottomChromePx = if (isCalculatorPage) 96 else 0
+                bottomChromePx = if (bakeChromeInsets && isCalculatorPage) 96 else 0
             )
 
             // Body visibility handled by RenderTimeline when JavaScript completes
@@ -283,6 +296,12 @@ class PageHtmlBuilder(private val context: Context) {
         }
         Log.d(logTag, "buildFullHtmlDocument() took ${time}ms")
         return finalHtml
+    }
+
+    fun loadAssetText(assetPath: String): String? {
+        return runCatching {
+            context.assets.open(assetPath).bufferedReader().use { it.readText() }
+        }.getOrNull()
     }
 
     private fun deviceLocale(): Locale {
@@ -365,6 +384,16 @@ class PageHtmlBuilder(private val context: Context) {
                     }
                     html, body, .mw-parser-output, .mw-content-text {
                         line-height: 1.35 !important;
+                    }
+                    html, body {
+                        background-color: var(--body-main, #e2dbc8) !important;
+                        color: var(--text-color, #000000) !important;
+                    }
+                    html.theme-osrs-dark,
+                    html.theme-osrs-dark body,
+                    body.theme-osrs-dark {
+                        background-color: var(--body-main, #28221d) !important;
+                        color: var(--text-color, #f4eaea) !important;
                     }
                     .mw-parser-output p,
                     .mw-parser-output > ul,

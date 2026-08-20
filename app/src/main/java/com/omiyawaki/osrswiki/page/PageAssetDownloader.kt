@@ -45,7 +45,8 @@ data class DownloadResult(
     val processedHtml: String,
     val parseResult: ParseResult,
     val backgroundUrls: List<String>,
-    val source: ArticleContentSource = ArticleContentSource.NETWORK
+    val source: ArticleContentSource = ArticleContentSource.NETWORK,
+    val readyToPaintHtml: String? = null
 )
 
 class PageAssetDownloader(
@@ -171,6 +172,28 @@ class PageAssetDownloader(
             val cachedPage = request.pageId?.let { pageRepository?.getSavedPageContent(it) }
                 ?: request.title?.let { pageRepository?.getSavedPageContentByTitle(it) }
             if (cachedPage != null) {
+                val savedHtml = cachedPage.htmlContent.orEmpty()
+                if (osrsSavedPaintHtml.isFullDocument(savedHtml)) {
+                    val parseResult = ParseResult(
+                        title = cachedPage.plainTextTitle ?: request.title ?: "Page ${request.pageId}",
+                        pageid = cachedPage.pageId ?: request.pageId ?: 0,
+                        revid = cachedPage.revisionId ?: 0,
+                        text = osrsSavedPaintHtml.extractBodyForToc(savedHtml),
+                        displaytitle = cachedPage.title
+                    )
+                    reportHtmlProgress(100)
+                    L.d(
+                        "ArticlePaintOpen: using persisted full document chars=${savedHtml.length} " +
+                            "pageId=${parseResult.pageid}"
+                    )
+                    return DownloadResult(
+                        processedHtml = parseResult.text.orEmpty(),
+                        parseResult = parseResult,
+                        backgroundUrls = emptyList(),
+                        source = ArticleContentSource.SAVED,
+                        readyToPaintHtml = savedHtml
+                    )
+                }
                 val parseResult = ParseResult(
                     title = cachedPage.plainTextTitle ?: request.title ?: "Page ${request.pageId}",
                     pageid = cachedPage.pageId ?: request.pageId ?: 0,

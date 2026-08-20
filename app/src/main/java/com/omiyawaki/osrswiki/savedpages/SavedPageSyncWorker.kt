@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.omiyawaki.osrswiki.OSRSWikiApp
+import com.omiyawaki.osrswiki.page.ArticleContentSource
 import com.omiyawaki.osrswiki.page.osrsCalculatorSaveWarmer
 import com.omiyawaki.osrswiki.database.AppDatabase
 import com.omiyawaki.osrswiki.database.OfflinePageFts
@@ -163,7 +164,10 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
             val snapshotStage = ReadingListPageSnapshotStage(
                 context = applicationContext,
                 client = okHttpClient,
-                readingListPageId = page.id
+                readingListPageId = page.id,
+                priorAssets = AppDatabase.instance.offlineObjectDao()
+                    .getObjectsUsedByPageId(page.id)
+                    .associateBy { it.url }
             )
 
             try {
@@ -182,7 +186,7 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                     val prepared = (applicationContext as OSRSWikiApp).pageAssetDownloader
                         .peekPreparedArticle(title = page.apiTitle, pageId = page.mediaWikiPageId?.takeIf { it > 0 })
                     val articleHtml: String?
-                    if (prepared != null) {
+                    if (prepared != null && prepared.source == ArticleContentSource.NETWORK) {
                         pageSuccessfullyFetched = true
                         updateQueuedSaveProgressOrCancel(page.id, 40)
                         mediaWikiPageId = prepared.parseResult.pageid.takeIf { it > 0 }
@@ -234,7 +238,9 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                                     articleHtml,
                                     Theme.DEFAULT_LIGHT,
                                     Prefs.isCollapseTablesEnabled,
-                                    canonicalTitle = parsedCanonicalTitle
+                                    canonicalTitle = parsedCanonicalTitle,
+                                    inlineFirstPaintCss = true,
+                                    bakeChromeInsets = false
                                 )
                             stagedArticleFile = snapshotStage.stageArticleHtml(
                                 parsedPageId,
@@ -255,11 +261,13 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                                 updateQueuedSaveProgressOrCancel(page.id, spanned.coerceIn(80, 95))
                             }
                         pageAssetsPersisted = assetResult.isComplete
+                        val reuse = snapshotStage.reuseCounts()
                         Log.i(
                             loggerTag,
                             "Staged explicit-save media for page ${page.id}: " +
                                 "${assetResult.persistedCount}/${assetResult.requiredCount}; " +
-                                "failures=${assetResult.failedUrls.size}"
+                                "failures=${assetResult.failedUrls.size}; " +
+                                "reused=${reuse.reused} fetched=${reuse.fetched}"
                         )
                         updateQueuedSaveProgressOrCancel(page.id, 95)
                     }
