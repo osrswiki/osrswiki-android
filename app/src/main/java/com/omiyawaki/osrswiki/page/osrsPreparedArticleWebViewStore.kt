@@ -126,6 +126,12 @@ internal object osrsPreparedArticleWebViewStore {
         wrapTableCells: Boolean,
         readerTextScale: Float
     ) {
+        if (osrsBackgroundWorkGate.isPaused) {
+            mainHandler.postDelayed({
+                preload(request, fullHtml, theme, collapseTables, wrapTableCells, readerTextScale)
+            }, 80)
+            return
+        }
         if (Prefs.disableFirstViewPaintPrewarm) {
             return
         }
@@ -366,6 +372,9 @@ internal object osrsPreparedArticleWebViewStore {
         fun firstViewComplete() {
             mainHandler.post { markPainted(key) }
         }
+
+        @JavascriptInterface
+        fun noteUserInteraction() = Unit
 
         @JavascriptInterface
         fun warmNearViewportAssets(urlsJson: String) = Unit

@@ -155,6 +155,7 @@ class ModuleCacheWarmer private constructor(context: Context) {
             "ext.gadget.tooltips",
             "ext.gadget.calc-core",
             "oojs-ui-core",
+            "oojs-ui-widgets",
             "mediawiki.widgets"
         )
         

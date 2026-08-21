@@ -16,8 +16,8 @@ internal class osrsLiveArticleAssetWarmer(
         osrsArticleViewAssetStore.fetchAndCache(url)
         Unit
     },
-    private val highConcurrency: Int = 4,
-    private val lowConcurrency: Int = 2
+    private val highConcurrency: Int = 2,
+    private val lowConcurrency: Int = 1
 ) {
     val queue = osrsLiveArticleAssetQueue(isCached)
 
@@ -53,6 +53,8 @@ internal class osrsLiveArticleAssetWarmer(
     private suspend fun drain(preferHigh: Boolean) {
         while (currentCoroutineContext().isActive) {
             currentCoroutineContext().ensureActive()
+            osrsBackgroundWorkGate.waitWhilePaused()
+            currentCoroutineContext().ensureActive()
             val url = if (preferHigh) {
                 queue.takeHigh() ?: queue.takeLow()
             } else {
@@ -66,6 +68,8 @@ internal class osrsLiveArticleAssetWarmer(
                 continue
             }
             try {
+                currentCoroutineContext().ensureActive()
+                osrsBackgroundWorkGate.waitWhilePaused()
                 currentCoroutineContext().ensureActive()
                 fetch(url)
             } finally {

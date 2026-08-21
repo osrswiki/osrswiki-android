@@ -9,8 +9,8 @@
 :root,
 html,
 body {
-    --osrs-disclosure-control-padding-block: 6px !important;
-    --osrs-disclosure-control-padding-inline: 10px !important;
+    --osrs-disclosure-control-padding-block: 12px !important;
+    --osrs-disclosure-control-padding-inline: 12px !important;
 }
 
 html,
@@ -371,19 +371,27 @@ table.infobox-bonuses :is(th, td).infobox-nested {
     }
 }
 
-/* MathML formulae can be wider than the article column. */
-.mwe-math-element,
-math.mwe-math-element {
+/* MathML formulae can be wider than the article column, but inline
+   equations must stay in the sentence like iOS. Overflow scrolling is
+   reserved for display math; overflow-x:auto on inline math makes
+   Chromium stretch the formula to the full paragraph width. */
+.mwe-math-fallback-image-display,
+.mwe-math-element:has(.mwe-math-fallback-image-display),
+math.mwe-math-element[display="block"] {
     max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
 }
 
 p > math.mwe-math-element,
-p > .mwe-math-element {
-    display: block;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
+p > .mwe-math-element,
+.mwe-math-element-inline,
+math.mwe-math-element-inline {
+    display: inline;
+    max-width: none;
+    overflow: visible;
+    vertical-align: middle;
+    width: auto;
 }
 
 /* Inline MediaWiki audio controls should not dominate dense article tables. */
@@ -576,23 +584,17 @@ table.osrs-map-table > :is(thead, tbody, tfoot) > tr > :is(th, td):has(.mw-karto
     white-space: normal !important;
 }
 
-/* Match iOS collapsible_tables.css: header padding 6px 10px, close 12px,
-   no 64px min-height floor. One rule here; do not also apply via inline CSS or JS. */
-.collapsible-header {
-    background-color: var(--osrs-disclosure-chrome-bg, var(--body-mid, #d0bd97)) !important;
-    box-sizing: border-box !important;
-    flex-shrink: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    padding: 6px 10px !important;
-}
-
+/* Header and Close share one control height. Keep min-height: 0 so an old
+   64px floor cannot return; padding comes from the shared disclosure tokens. */
+.collapsible-header,
 .collapsible-close-button {
     background-color: var(--osrs-disclosure-chrome-bg, var(--body-mid, #d0bd97)) !important;
     box-sizing: border-box !important;
     flex-shrink: 0 !important;
     height: auto !important;
     min-height: 0 !important;
-    padding: 12px !important;
+    padding: var(--osrs-disclosure-control-padding-block, 12px)
+        var(--osrs-disclosure-control-padding-inline, 12px) !important;
+    text-align: start !important;
 }
 

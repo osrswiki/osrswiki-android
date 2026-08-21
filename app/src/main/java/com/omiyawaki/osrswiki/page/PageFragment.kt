@@ -123,6 +123,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private val scrollCaptureListener = ObservableWebView.OnScrollChangeListener { _, scrollY, _ ->
         lastObservedScrollY = maxOf(lastObservedScrollY, scrollY)
     }
+    private val backgroundWorkInteractionListener = ObservableWebView.OnDownMotionEventListener {
+        osrsBackgroundWorkGate.noteUserInteraction()
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -1243,6 +1246,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val webView = _binding?.pageWebView ?: return
         webView.removeOnScrollChangeListener(scrollCaptureListener)
         webView.addOnScrollChangeListener(scrollCaptureListener)
+        webView.removeOnDownMotionEventListener(backgroundWorkInteractionListener)
+        webView.addOnDownMotionEventListener(backgroundWorkInteractionListener)
         lastObservedScrollY = maxOf(lastObservedScrollY, webView.scrollY)
     }
 

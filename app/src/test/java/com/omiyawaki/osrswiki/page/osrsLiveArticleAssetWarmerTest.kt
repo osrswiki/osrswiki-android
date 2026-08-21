@@ -188,6 +188,10 @@ class osrsLiveArticleAssetWarmerTest {
         assertTrue(shared.contains("osrsLiveAssetWarm"))
         assertTrue(shared.contains("rootMargin: '100% 0px'"))
         assertTrue(shared.contains("data-osrs-deferred-src"))
+        assertTrue(shared.contains("noteUserInteraction"))
+        assertTrue(shared.contains("pointerdown"))
+        assertTrue(shared.contains("touchmove"))
+        assertTrue(shared.contains("interactionHoldMs = 750"))
         assertFalse(shared.contains(".src ="))
         assertFalse(shared.contains("setAttribute('src'"))
     }

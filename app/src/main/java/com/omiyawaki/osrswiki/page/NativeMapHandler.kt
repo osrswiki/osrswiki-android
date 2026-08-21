@@ -167,6 +167,14 @@ class NativeMapHandler(
         }
         
         @JavascriptInterface
+        fun noteUserInteraction() {
+            if (isCleanedUp) {
+                return
+            }
+            osrsBackgroundWorkGate.noteUserInteraction()
+        }
+
+        @JavascriptInterface
         fun warmNearViewportAssets(urlsJson: String) {
             if (isCleanedUp) {
                 return

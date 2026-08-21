@@ -34,7 +34,7 @@ object WikiModuleRegistry {
             priority = Priority.HIGH
         ),
         "ext.gadget.calc-core" to ModuleConfig(
-            dependencies = listOf("ext.gadget.rsw-util", "oojs-ui-core", "mediawiki.widgets"),
+            dependencies = listOf("ext.gadget.rsw-util", "oojs-ui-core", "oojs-ui-widgets", "mediawiki.widgets"),
             priority = Priority.HIGH
         ),
         
@@ -95,6 +95,7 @@ object WikiModuleRegistry {
             pageTitle?.startsWith("Calculator:") == true
         ) {
             detectedModules.add("oojs-ui-core")
+            detectedModules.add("oojs-ui-widgets")
             detectedModules.add("mediawiki.widgets")
             detectedModules.add("ext.gadget.rsw-util")
         }

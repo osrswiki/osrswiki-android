@@ -198,6 +198,7 @@ class PageHtmlBuilderTest {
         )
 
         assertTrue(html.contains("\"oojs-ui-core\""))
+        assertTrue(html.contains("\"oojs-ui-widgets\""))
         assertTrue(html.contains("\"mediawiki.widgets\""))
         assertTrue(html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116"))
         assertTrue(html.contains("mediawiki/gadget_calc_core.js"))

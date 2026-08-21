@@ -66,6 +66,7 @@ class osrsCalculatorParityTest {
                 canonicalTitle = entry.title
             )
             assertTrue(entry.title, html.contains("\"oojs-ui-core\""))
+            assertTrue(entry.title, html.contains("\"oojs-ui-widgets\""))
             assertTrue(
                 entry.title,
                 html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116")
@@ -192,6 +193,17 @@ class osrsCalculatorParityTest {
         assertTrue(runtime.contains("setTimeout(patchAjax, 25)"))
         assertTrue(runtime.contains("oojs-ui-widgets"))
         assertTrue(runtime.contains("ButtonOptionWidget"))
+        assertTrue(runtime.contains("ToggleSwitchWidget"))
+        assertTrue(runtime.contains("data-osrs-ooui-loader"))
+        assertTrue(runtime.contains("/load.php?modules=oojs-ui-core"))
+        assertTrue(runtime.contains("osrsHideCalculatorJsPlaceholder"))
+        assertTrue(runtime.contains("dynamic calculator requires JavaScript"))
+        assertTrue(calcCore.contains("already implemented"))
+        assertTrue(calcCore.contains("osrsRunModuleScript"))
+        assertTrue(calcCore.contains("osrsMakeModuleRequire"))
+        assertTrue(calcCore.contains("setupCalc:"))
+        assertTrue(calcCore.contains("ToggleSwitchWidget"))
+        assertTrue(calcCore.contains("__osrsRebuildCalcs"))
         assertTrue(runtime.contains("osrsArmSmokeSubmit"))
         assertTrue(runtime.contains("aria-live"))
         assertTrue(runtime.contains("MutationObserver"))
