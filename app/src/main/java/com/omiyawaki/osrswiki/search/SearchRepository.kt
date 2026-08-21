@@ -71,8 +71,11 @@ class SearchRepository(
         }.getOrDefault(emptyList())
     }
 
-    fun getOnlineSearchResultStream(query: String): Flow<PagingData<SearchResult>> {
-        Log.d(TAG, "getOnlineSearchResultStream called with query: $query")
+    fun getOnlineSearchResultStream(
+        query: String,
+        scope: osrsSearchScope = osrsSearchScope.ALL
+    ): Flow<PagingData<SearchResult>> {
+        Log.d(TAG, "getOnlineSearchResultStream called with query: $query scope=$scope")
         return Pager(
             config = PagingConfig(
                 pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
@@ -80,11 +83,20 @@ class SearchRepository(
                 enablePlaceholders = false
             ),
             pagingSourceFactory = {
-                SearchPagingSource(
-                    apiService = apiService,
-                    query = query,
-                    articleMetaDao = articleMetaDao
-                )
+                if (scope.restrictsNamespace) {
+                    osrsScopedSearchPagingSource(
+                        apiService = apiService,
+                        query = query,
+                        scope = scope,
+                        articleMetaDao = articleMetaDao
+                    )
+                } else {
+                    SearchPagingSource(
+                        apiService = apiService,
+                        query = query,
+                        articleMetaDao = articleMetaDao
+                    )
+                }
             }
         ).flow
     }

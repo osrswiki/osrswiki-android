@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:clipChildren="false"
     android:clipToPadding="false"
+    android:background="@android:color/transparent"
     tools:context=".page.PageActivity">
 
     <FrameLayout
@@ -14,7 +15,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipChildren="false"
-        android:clipToPadding="false">
+        android:clipToPadding="false"
+        android:background="@android:color/transparent">
 
         <FrameLayout
             android:id="@+id/page_live_underlay"
@@ -34,7 +36,8 @@
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/nav_menu_trigger_layout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:background="?attr/paper_color">
 
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/page_appbar_layout"

@@ -50,6 +50,8 @@ class SearchActivity : BaseActivity() {
         setupClearButton()
         setupThemeChangeReceiver()
 
+        binding.searchEditText.setHint(searchScope().hintResId)
+
         val initialQuery = savedInstanceState?.getString(KEY_SEARCH_QUERY)
             ?: intent.getStringExtra(EXTRA_QUERY)
         if (!initialQuery.isNullOrBlank()) {
@@ -179,6 +181,8 @@ class SearchActivity : BaseActivity() {
         super.onSaveInstanceState(outState)
     }
 
+    fun searchScope(): osrsSearchScope = osrsSearchScope.fromIntent(intent)
+
     companion object {
         const val EXTRA_QUERY = "query"
         const val EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM = "osrs_disable_first_view_paint_prewarm"
@@ -187,7 +191,8 @@ class SearchActivity : BaseActivity() {
         fun newIntent(
             context: Context,
             query: String? = null,
-            disableFirstViewPaintPrewarm: Boolean? = null
+            disableFirstViewPaintPrewarm: Boolean? = null,
+            scope: osrsSearchScope = osrsSearchScope.ALL
         ): Intent {
             return Intent(context, SearchActivity::class.java).apply {
                 if (!query.isNullOrBlank()) {
@@ -195,6 +200,9 @@ class SearchActivity : BaseActivity() {
                 }
                 if (disableFirstViewPaintPrewarm != null) {
                     putExtra(EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM, disableFirstViewPaintPrewarm)
+                }
+                if (scope != osrsSearchScope.ALL) {
+                    scope.putExtras(this)
                 }
             }
         }

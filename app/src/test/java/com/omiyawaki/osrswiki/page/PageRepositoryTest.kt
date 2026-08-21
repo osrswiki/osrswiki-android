@@ -651,6 +651,21 @@ class PageRepositoryTest {
             thumbSize: Int
         ): GeneratedSearchApiResponse = error("Not used")
 
+        override suspend fun generatedNamespacedSearch(
+            query: String,
+            namespace: Int,
+            limit: Int,
+            offset: Int,
+            thumbSize: Int
+        ): GeneratedSearchApiResponse = error("Not used")
+
+        override suspend fun generatedRecentChanges(
+            namespace: Int,
+            limit: Int,
+            continueToken: String?,
+            thumbSize: Int
+        ): GeneratedSearchApiResponse = error("Not used")
+
         override suspend fun searchPages(query: String, limit: Int, offset: Int): SearchApiResponse {
             error("Not used")
         }

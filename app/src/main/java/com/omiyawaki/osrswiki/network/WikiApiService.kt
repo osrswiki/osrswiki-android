@@ -46,6 +46,41 @@ interface WikiApiService {
     ): GeneratedSearchApiResponse
 
     /**
+     * Fulltext search restricted to one MediaWiki namespace (Home "View more" uses 112).
+     */
+    @GET("api.php?action=query&format=json&formatversion=2" +
+            "&generator=search" +
+            "&gsrprop=snippet|size|wordcount|timestamp" +
+            "&gsrsort=relevance" +
+            "&prop=pageimages|extracts" +
+            "&exintro=true&explaintext=true&exchars=160&exlimit=max" +
+            "&piprop=thumbnail&pilicense=any")
+    suspend fun generatedNamespacedSearch(
+        @Query("gsrsearch") query: String,
+        @Query("gsrnamespace") namespace: Int,
+        @Query("gsrlimit") limit: Int,
+        @Query("gsroffset") offset: Int,
+        @Query("pithumbsize") thumbSize: Int
+    ): GeneratedSearchApiResponse
+
+    /**
+     * Newest-first browse of new pages in a namespace when the Search query is empty.
+     */
+    @GET("api.php?action=query&format=json&formatversion=2" +
+            "&generator=recentchanges" +
+            "&grctype=new" +
+            "&grcdir=older" +
+            "&prop=pageimages|extracts" +
+            "&exintro=true&explaintext=true&exchars=160&exlimit=max" +
+            "&piprop=thumbnail&pilicense=any")
+    suspend fun generatedRecentChanges(
+        @Query("grcnamespace") namespace: Int,
+        @Query("grclimit") limit: Int,
+        @Query("grccontinue") continueToken: String? = null,
+        @Query("pithumbsize") thumbSize: Int
+    ): GeneratedSearchApiResponse
+
+    /**
      * MediaWiki Search API for intelligent search results with proper relevance ranking.
      * This replaces the generator=prefixsearch approach to provide superior user experience
      * with guaranteed snippet coverage and better result ordering.

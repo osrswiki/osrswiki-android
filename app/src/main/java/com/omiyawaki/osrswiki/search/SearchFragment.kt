@@ -57,8 +57,8 @@ class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
                 
                 if (recentSearchesFragment != null && searchResultsFragment != null) {
                     val query = searchEditText.text?.toString().orEmpty()
-                    showPanel(isResultsPanel = query.isNotEmpty())
-                    if (query.isNotEmpty()) {
+                    showPanel(isResultsPanel = shouldShowResults(query))
+                    if (shouldShowResults(query)) {
                         searchResultsFragment?.search(query)
                     }
                 } else {
@@ -85,7 +85,7 @@ class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
     private fun setupSearchInput() {
         searchEditText.doOnTextChanged { text, _, _, _ ->
             val query = text?.toString().orEmpty()
-            showPanel(isResultsPanel = query.isNotEmpty())
+            showPanel(isResultsPanel = shouldShowResults(query))
             searchResultsFragment?.search(query)
         }
 
@@ -113,6 +113,14 @@ class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
                 }
             }
         }
+    }
+
+    private fun shouldShowResults(query: String): Boolean {
+        return query.isNotEmpty() || searchScope().emptyQueryBrowsesNewest
+    }
+
+    private fun searchScope(): osrsSearchScope {
+        return (activity as? SearchActivity)?.searchScope() ?: osrsSearchScope.ALL
     }
 
     private fun setupOnBackPressed() {

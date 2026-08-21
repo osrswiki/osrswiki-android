@@ -31,7 +31,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
 
     private val viewModel: SearchViewModel by viewModels {
         val application = requireActivity().application as OSRSWikiApp
-        SearchViewModelFactory(application, application.currentNetworkStatus)
+        val scope = (requireActivity() as? SearchActivity)?.searchScope() ?: osrsSearchScope.ALL
+        SearchViewModelFactory(application, application.currentNetworkStatus, scope)
     }
     private var _binding: FragmentSearchResultsBinding? = null
     private val binding get() = _binding!!
@@ -78,11 +79,16 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
 
             if (refreshState is LoadState.NotLoading) {
                 val hasResults = onlineSearchAdapter.itemCount > 0
+                val expectingResults = !currentQuery.isNullOrBlank() || viewModel.scope.emptyQueryBrowsesNewest
                 binding.recyclerViewSearchResults.isVisible = hasResults
-                binding.textViewNoResults.isVisible = !hasResults && !currentQuery.isNullOrBlank()
+                binding.textViewNoResults.isVisible = !hasResults && expectingResults
 
-                if (!hasResults && !currentQuery.isNullOrBlank()) {
-                    binding.textViewNoResults.text = getString(R.string.search_no_results_for_query, currentQuery)
+                if (!hasResults && expectingResults) {
+                    binding.textViewNoResults.text = if (currentQuery.isNullOrBlank()) {
+                        getString(R.string.search_no_results)
+                    } else {
+                        getString(R.string.search_no_results_for_query, currentQuery)
+                    }
                 }
                 maybeAnchorSearchResultsToTop(currentQuery)
             } else if (refreshState is LoadState.Error) {

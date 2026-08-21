@@ -62,6 +62,121 @@ class SearchPagingSourceTest {
         assertEquals(2, page.nextKey)
     }
 
+    @Test
+    fun scopedEmptyQueryBrowsesNewestUpdatePages() = runTest {
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedRecentChanges(112, 2, null, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = GeneratedSearchContinuation(grccontinue = "next-token"),
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Varlamore",
+                            pageid = 7,
+                            snippet = "latest"
+                        )
+                    )
+                )
+            )
+        )
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao()
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 2,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Update:Varlamore"), page.data.map { it.title })
+        assertEquals("next-token", page.nextKey)
+    }
+
+    @Test
+    fun scopedTypedQueryUsesNamespacedSearch() = runTest {
+        val apiQuery = SearchQueryPolicy.networkQuery("varlamore")
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedNamespacedSearch(apiQuery, 112, 2, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = GeneratedSearchContinuation(gsroffset = 2),
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Varlamore: The Rising Darkness",
+                            pageid = 9,
+                            snippet = "quest"
+                        )
+                    )
+                )
+            )
+        )
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "varlamore",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao()
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 2,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Update:Varlamore: The Rising Darkness"), page.data.map { it.title })
+        assertEquals("2", page.nextKey)
+    }
+
+    @Test
+    fun scopedTypedQueryDropsRedirectedMainNamespaceHits() = runTest {
+        val apiQuery = SearchQueryPolicy.networkQuery("sailing")
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedNamespacedSearch(apiQuery, 112, 2, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(
+                            ns = 0,
+                            title = "Lunar Diplomacy",
+                            pageid = 1,
+                            snippet = "sailing on a boat"
+                        ),
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:The new Sailing skill is out today",
+                            pageid = 2,
+                            snippet = "brand new Sailing skill"
+                        )
+                    )
+                )
+            )
+        )
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "sailing",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao()
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 2,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Update:The new Sailing skill is out today"), page.data.map { it.title })
+    }
+
     private class FakeArticleMetaDao : ArticleMetaDao {
         override suspend fun getMetaByExactTitle(title: String): ArticleMetaEntity? = null
         override suspend fun insert(meta: ArticleMetaEntity) = Unit

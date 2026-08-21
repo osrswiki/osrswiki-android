@@ -109,7 +109,8 @@ sealed class FeedItem {
 class NewsFeedAdapter(
     private val imageLoader: ImageLoader,
     private val onUpdateItemClicked: (UpdateItem) -> Unit,
-    private val onLinkClicked: (url: String) -> Unit
+    private val onLinkClicked: (url: String) -> Unit,
+    private val onViewMoreUpdatesClicked: (() -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val items = mutableListOf<FeedItem>()
@@ -242,7 +243,11 @@ class NewsFeedAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = items[position]) {
-            is FeedItem.Updates -> (holder as UpdatesViewHolder).bind(item.items, onUpdateItemClicked)
+            is FeedItem.Updates -> (holder as UpdatesViewHolder).bind(
+                item.items,
+                onUpdateItemClicked,
+                onViewMoreUpdatesClicked
+            )
             is FeedItem.Announcement -> (holder as AnnouncementViewHolder).bind(item.item, onLinkClicked)
             is FeedItem.OnThisDay -> (holder as OnThisDayViewHolder).bind(item.item, onLinkClicked)
             is FeedItem.Popular -> (holder as PopularViewHolder).bind(item.items, onLinkClicked)
@@ -255,6 +260,7 @@ class NewsFeedAdapter(
         private val sectionTitle: TextView = itemView.findViewById(R.id.updates_section_title)
         private val lastUpdatedText: TextView = itemView.findViewById(R.id.last_updated_text)
         private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.updates_recycler_view)
+        private val viewMore: TextView = itemView.findViewById(R.id.home_updates_view_more)
         private val childBounds = Rect()
         private var accessibilityListenersAttached = false
         
@@ -264,8 +270,16 @@ class NewsFeedAdapter(
             sectionTitle.applyAlegreyaSmallCaps()
         }
         
-        fun bind(items: List<UpdateItem>, listener: (UpdateItem) -> Unit) {
+        fun bind(
+            items: List<UpdateItem>,
+            listener: (UpdateItem) -> Unit,
+            onViewMore: (() -> Unit)?
+        ) {
             nestedRecyclerView.adapter = UpdatesAdapter(items, imageLoader, listener)
+            viewMore.visibility = if (onViewMore != null) View.VISIBLE else View.GONE
+            viewMore.setOnClickListener {
+                onViewMore?.invoke()
+            }
             attachAccessibilityListenersOnce()
             nestedRecyclerView.post {
                 updateCarouselChildAccessibility()

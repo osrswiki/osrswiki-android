@@ -591,7 +591,8 @@ object ThemePreviewRenderer {
                     val adapter = NewsFeedAdapter(
                         imageLoader = SynchronousImageLoader(root.context),
                         onUpdateItemClicked = { /* No-op for preview */ },
-                        onLinkClicked = { /* No-op for preview */ }
+                        onLinkClicked = { /* No-op for preview */ },
+                        onViewMoreUpdatesClicked = { /* No-op for preview */ }
                     )
                     
                     // Configure RecyclerView

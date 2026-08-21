@@ -53,7 +53,10 @@ class osrsMoreSettingsThemeFeedbackContractTest {
         assertTrue(progress.contains("revealLivePreviousActivity"))
         assertTrue(page.contains("setTranslucent(reveal)"))
         assertFalse(progress.contains("osrsUnderlyingActivityPreview"))
-        assertTrue(overlay.contains("sliding.translationX = progress.coerceIn(0f, 1f) * width"))
+        assertTrue(overlay.contains("binding.navMenuTriggerLayout"))
+        assertTrue(overlay.contains("fun slidingChrome(): View? = _binding?.navMenuTriggerLayout"))
+        assertTrue(overlay.contains("applyOpaqueArticleChrome"))
+        assertFalse(overlay.contains("val sliding = binding.root"))
     }
 
     @Test

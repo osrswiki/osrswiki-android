@@ -21,20 +21,25 @@ import kotlinx.coroutines.launch
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class SearchViewModel(
     private val searchRepository: SearchRepository,
-    val isOnline: StateFlow<Boolean>
+    val isOnline: StateFlow<Boolean>,
+    val scope: osrsSearchScope = osrsSearchScope.ALL
 ) : ViewModel() {
 
-    private val _currentQuery = MutableStateFlow<String?>(null)
+    private val _currentQuery = MutableStateFlow<String?>(
+        if (scope.emptyQueryBrowsesNewest) "" else null
+    )
     val currentQuery: StateFlow<String?> = _currentQuery.asStateFlow()
 
     val onlineSearchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
         .debounce(80L)
         .distinctUntilChanged()
         .flatMapLatest { query ->
-            if (query.isNullOrBlank() || !isOnline.value) {
+            val trimmed = query?.trim().orEmpty()
+            val shouldBrowseEmpty = trimmed.isEmpty() && scope.emptyQueryBrowsesNewest
+            if (!isOnline.value || (trimmed.isEmpty() && !shouldBrowseEmpty)) {
                 flowOf(PagingData.empty())
             } else {
-                searchRepository.getOnlineSearchResultStream(query)
+                searchRepository.getOnlineSearchResultStream(trimmed, scope)
                     .map { pagingData ->
                         pagingData.map { networkResult ->
                             mapNetworkResultToCleanedItem(networkResult)
@@ -69,7 +74,7 @@ class SearchViewModel(
 
     fun saveCurrentQuery() {
         val queryToSave = _currentQuery.value
-        if (!queryToSave.isNullOrBlank()) {
+        if (!queryToSave.isNullOrBlank() && !scope.restrictsNamespace) {
             viewModelScope.launch {
                 searchRepository.insertRecentSearch(queryToSave)
             }
@@ -130,14 +135,16 @@ class SearchViewModel(
 @Suppress("UNCHECKED_CAST")
 class SearchViewModelFactory(
     private val application: Application,
-    private val isOnlineFlow: StateFlow<Boolean>
+    private val isOnlineFlow: StateFlow<Boolean>,
+    private val scope: osrsSearchScope = osrsSearchScope.ALL
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SearchViewModel::class.java)) {
             val osrsWikiApplication = application as? OSRSWikiApp ?: throw IllegalStateException("Application context must be OSRSWikiApplication")
             return SearchViewModel(
                 osrsWikiApplication.searchRepository,
-                isOnlineFlow
+                isOnlineFlow,
+                scope
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

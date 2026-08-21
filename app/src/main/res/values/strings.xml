@@ -230,6 +230,9 @@
     <string name="osrs_settings_theme_title">Theme</string>
     <string name="osrs_settings_theme_summary_placeholder">Select application theme</string>
     <string name="search_hint_wiki">Search OSRS Wiki</string>
+    <string name="search_updates_hint">Search updates</string>
+    <string name="home_updates_view_more">View more</string>
+    <string name="home_updates_view_more_content_description">View more updates</string>
     <string name="search_hint_saved_pages">Search saved pages</string>
     <string name="search_hint">Search…</string>
     <string name="search_hint_voice_search">Voice search</string>

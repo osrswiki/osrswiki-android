@@ -17,7 +17,8 @@ data class GeneratedSearchApiResponse(
 
 @Serializable
 data class GeneratedSearchContinuation(
-    val gsroffset: Int? = null
+    val gsroffset: Int? = null,
+    val grccontinue: String? = null
 )
 
 @Serializable

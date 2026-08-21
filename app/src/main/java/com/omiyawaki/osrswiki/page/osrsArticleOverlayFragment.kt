@@ -60,6 +60,7 @@ class osrsArticleOverlayFragment : Fragment(), PageFragment.Callback, osrsArticl
         binding.pageContentHost.clipChildren = false
         binding.pageContentHost.clipToPadding = false
         applyWindowInsets()
+        applyOpaqueArticleChrome()
         if (savedInstanceState == null) {
             childFragmentManager.beginTransaction()
                 .replace(R.id.page_fragment_container, newArticleFragment(), FRAGMENT_TAG)
@@ -77,7 +78,16 @@ class osrsArticleOverlayFragment : Fragment(), PageFragment.Callback, osrsArticl
         super.onDestroyView()
     }
 
-    fun slidingChrome(): View? = _binding?.root
+    fun slidingChrome(): View? = _binding?.navMenuTriggerLayout
+
+    private fun applyOpaqueArticleChrome() {
+        val typed = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(R.attr.paper_color, typed, true)
+        binding.pageDrawerLayout.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        binding.pageContentHost.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        binding.pageLiveUnderlay.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        binding.navMenuTriggerLayout.setBackgroundColor(typed.data)
+    }
 
     private fun newArticleFragment(): PageFragment {
         return PageFragment.newInstance(
@@ -331,14 +341,14 @@ class osrsArticleOverlayFragment : Fragment(), PageFragment.Callback, osrsArticl
     }
 
     private fun applyInteractiveBackProgress(progress: Float) {
-        val sliding = binding.root
+        val sliding = binding.navMenuTriggerLayout
         val width = sliding.width.toFloat().coerceAtLeast(1f)
         sliding.animate().cancel()
         sliding.translationX = progress.coerceIn(0f, 1f) * width
     }
 
     private fun commitInteractiveBack(velocityX: Float) {
-        val sliding = binding.root
+        val sliding = binding.navMenuTriggerLayout
         val width = sliding.width.toFloat().coerceAtLeast(1f)
         val progress = (sliding.translationX / width).coerceIn(0f, 1f)
         val remaining = osrsArticleInteractiveSwipe.remainingPx(progress, width)
@@ -451,7 +461,7 @@ class osrsArticleOverlayFragment : Fragment(), PageFragment.Callback, osrsArticl
     }
 
     private fun cancelInteractiveSwipeChrome() {
-        val sliding = binding.root
+        val sliding = binding.navMenuTriggerLayout
         val width = sliding.width.toFloat().coerceAtLeast(1f)
         val progress = (sliding.translationX / width).coerceIn(0f, 1f)
         val remaining = progress * width
