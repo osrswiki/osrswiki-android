@@ -4,5 +4,7 @@
     <item type="id" name="page_action_find_in_article" />
     <item type="id" name="page_action_theme" />
     <item type="id" name="page_action_contents" />
+    <item type="id" name="osrs_article_overlay_host" />
+    <item type="id" name="page_live_underlay" />
 
     </resources>

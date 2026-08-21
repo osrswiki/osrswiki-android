@@ -49,9 +49,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class PageActivity : BaseActivity(), PageFragment.Callback {
+class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHost {
 
     internal lateinit var binding: ActivityPageBinding
+    override val articleChromeBinding: ActivityPageBinding
+        get() = binding
     private var pageTitleArg: String? = null
     private var pageIdArg: String? = null
     private var navigationSourceArg: Int = HistoryEntry.SOURCE_INTERNAL_LINK
@@ -284,12 +286,14 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
     }
 
     private fun replaceArticleFragment() {
+        val transaction = supportFragmentManager.beginTransaction()
+        hiddenArticleFragmentTags.forEach { tag ->
+            supportFragmentManager.findFragmentByTag(tag)?.let { transaction.remove(it) }
+        }
         hiddenArticleFragmentTags.clear()
         currentArticleFragmentTag = FRAGMENT_TAG
-        val fragment = newArticleFragment()
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.page_fragment_container, fragment, FRAGMENT_TAG)
-            .commitNowAllowingStateLoss()
+        transaction.replace(R.id.page_fragment_container, newArticleFragment(), FRAGMENT_TAG)
+        transaction.commitNowAllowingStateLoss()
     }
 
     private fun pushCoveringArticleFragment() {
@@ -298,7 +302,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         val nextTag = "PageFragmentTag-${hiddenArticleFragmentTags.size + 1}-${System.nanoTime()}"
         val transaction = supportFragmentManager.beginTransaction()
         if (current != null) {
-            transaction.hide(current)
+            transaction.remove(current)
+            transaction.add(R.id.page_live_underlay, current, currentArticleFragmentTag)
             hiddenArticleFragmentTags.addLast(currentArticleFragmentTag)
         }
         transaction.add(R.id.page_fragment_container, next, nextTag)
@@ -315,7 +320,8 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         if (current != null) {
             transaction.remove(current)
         }
-        transaction.show(previous)
+        transaction.remove(previous)
+        transaction.add(R.id.page_fragment_container, previous, previousTag)
         transaction.commitNowAllowingStateLoss()
         currentArticleFragmentTag = previousTag
         return true
@@ -555,11 +561,16 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
 
     override fun isContentsDrawerOpen(): Boolean = isContentsOpen
 
-    fun openContents() {
+    override fun openContents() {
         openDrawer(GravityCompat.END)
     }
 
-    fun closeContents(animate: Boolean = true, velocityX: Float = 0f) {
+    override fun closeContents(animate: Boolean) {
+        setContentsRevealProgress(0f, animate = animate)
+        isContentsOpen = false
+    }
+
+    fun closeContents(animate: Boolean, velocityX: Float) {
         setContentsRevealProgress(0f, animate = animate, velocityX = velocityX)
         isContentsOpen = false
     }
@@ -643,20 +654,13 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         val clamped = progress.coerceIn(0f, 1f)
         val width = binding.navMenuTriggerLayout.width.toFloat().coerceAtLeast(1f)
         binding.navMenuTriggerLayout.animate().cancel()
-        binding.pageBackPreview.animate().cancel()
-        val preview = backPreviewStack.lastOrNull() ?: osrsUnderlyingActivityPreview.peek()
-        if (clamped > 0f && preview != null) {
-            binding.pageBackPreview.setImageBitmap(preview)
-            binding.pageBackPreview.visibility = View.VISIBLE
-        }
+        binding.pageBackPreview.visibility = View.GONE
+        binding.pageLiveUnderlay.visibility = View.VISIBLE
         binding.navMenuTriggerLayout.translationX = clamped * width
-        binding.pageBackPreview.translationX =
-            (clamped - 1f) * width * osrsArticleInteractiveSwipe.BACK_PREVIEW_PARALLAX
     }
 
     private fun commitInteractiveBack(velocityX: Float = 0f) {
         val sliding = binding.navMenuTriggerLayout
-        val preview = binding.pageBackPreview
         val width = sliding.width.toFloat().coerceAtLeast(1f)
         val progress = (sliding.translationX / width).coerceIn(0f, 1f)
         val remaining = osrsArticleInteractiveSwipe.remainingPx(progress, width)
@@ -672,14 +676,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             duration
         )
         sliding.animate().cancel()
-        preview.animate().cancel()
-        val previewBitmap = backPreviewStack.lastOrNull() ?: osrsUnderlyingActivityPreview.peek()
-        if (previewBitmap != null) {
-            preview.setImageBitmap(previewBitmap)
-            preview.visibility = View.VISIBLE
-            preview.alpha = 1f
-            preview.translationX = 0f
-        }
+        binding.pageBackPreview.visibility = View.GONE
         sliding.bringToFront()
         deferCapturedBackPreviewPop = true
         sliding.animate()
@@ -1525,6 +1522,29 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         private const val STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS = "com.omiyawaki.osrswiki.page.STATE_HIDDEN_ARTICLE_FRAGMENT_TAGS"
         private const val STATE_CURRENT_ARTICLE_FRAGMENT_TAG = "com.omiyawaki.osrswiki.page.STATE_CURRENT_ARTICLE_FRAGMENT_TAG"
 
+        fun open(
+            context: Context,
+            pageTitle: String?,
+            pageId: String?,
+            source: Int,
+            snippet: String? = null,
+            thumbnailUrl: String? = null
+        ) {
+            val intent = newIntent(context, pageTitle, pageId, source, snippet, thumbnailUrl)
+            if (osrsArticleOverlayPresenter.present(context, intent)) {
+                return
+            }
+            context.startActivity(intent)
+        }
+
+        fun open(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int) {
+            val intent = newIntent(context, updateItem, source)
+            if (osrsArticleOverlayPresenter.present(context, intent)) {
+                return
+            }
+            context.startActivity(intent)
+        }
+
         fun newIntent(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int): Intent {
             L.d("PageActivity: Creating intent for UpdateItem")
             L.d("  UpdateItem.title: '${updateItem.title}'")
@@ -1606,7 +1626,6 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
             thumbnailUrl: String? = null
         ): Intent {
             L.d("PageActivity: Creating intent with - pageTitle: '$pageTitle', pageId: '$pageId', source: $source")
-            osrsUnderlyingActivityPreview.captureFromCaller(context)
             runCatching {
                 (context.applicationContext as? com.omiyawaki.osrswiki.OSRSWikiApp)
                     ?.pageAssetDownloader

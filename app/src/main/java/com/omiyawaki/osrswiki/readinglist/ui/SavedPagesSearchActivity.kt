@@ -192,7 +192,7 @@ class SavedPagesSearchActivity : BaseActivity() {
         val pageTitle = savedPage.apiTitle
         val pageId = savedPage.mediaWikiPageId?.toString()
 
-        val intent = PageActivity.newIntent(
+        PageActivity.open(
             context = this,
             pageTitle = pageTitle,
             pageId = pageId,
@@ -200,8 +200,6 @@ class SavedPagesSearchActivity : BaseActivity() {
             snippet = savedPage.description,
             thumbnailUrl = savedPage.thumbUrl
         )
-        
-        startActivity(intent)
     }
 
     private fun updateSavedPage(page: ReadingListPage) {

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="osrs_map_control_surface">#EE1B1510</color>
+    <color name="osrs_map_control_surface_pressed">#FF30251A</color>
+    <color name="osrs_map_control_selected">#1FE7D5A8</color>
+    <color name="osrs_map_control_divider">#594E3D2D</color>
+    <color name="osrs_map_control_disabled">#CCE7D5A8</color>
+    <color name="osrs_map_control_field_border">#BFC4A66D</color>
+    <color name="osrs_map_control_ink">#E7D5A8</color>
+</resources>

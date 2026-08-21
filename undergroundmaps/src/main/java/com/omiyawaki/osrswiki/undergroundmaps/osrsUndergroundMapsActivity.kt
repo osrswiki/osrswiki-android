@@ -362,7 +362,7 @@ class osrsUndergroundMapsFragment : Fragment() {
                 R.drawable.osrs_ic_search
             )
             iconTint = android.content.res.ColorStateList.valueOf(
-                ContextCompat.getColor(context, R.color.osrs_parchment)
+                ContextCompat.getColor(context, R.color.osrs_map_control_ink)
             )
             iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
             isAllCaps = false
@@ -392,7 +392,7 @@ class osrsUndergroundMapsFragment : Fragment() {
             id = R.id.osrs_map_status
             text = getString(R.string.reading_manifest)
             textSize = 11f
-            setTextColor(ContextCompat.getColor(context, R.color.osrs_parchment))
+            setTextColor(ContextCompat.getColor(context, R.color.osrs_map_control_ink))
             maxLines = 2
             ellipsize = TextUtils.TruncateAt.END
             setPadding(dp(12), dp(8), dp(12), dp(8))
@@ -431,7 +431,7 @@ class osrsUndergroundMapsFragment : Fragment() {
             id = R.id.osrs_floor_current
             gravity = Gravity.CENTER
             textSize = 17f
-            setTextColor(ContextCompat.getColor(context, R.color.osrs_parchment))
+            setTextColor(ContextCompat.getColor(context, R.color.osrs_map_control_ink))
             setPadding(0, dp(4), 0, dp(4))
             minWidth = dp(OSRS_MINIMUM_TOUCH_TARGET_DP)
         }

@@ -317,7 +317,7 @@ class osrsRealmSelector(
         isSingleLine = true
         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         imeOptions = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI
-        setTextColor(context.getColor(R.color.osrs_parchment))
+        setTextColor(context.getColor(R.color.osrs_map_control_ink))
         setHintTextColor(context.getColor(R.color.osrs_map_control_disabled))
         background = ContextCompat.getDrawable(context, R.drawable.osrs_selector_search_background)
         setCompoundDrawablesRelativeWithIntrinsicBounds(
@@ -366,10 +366,10 @@ class osrsRealmSelector(
         textSize = 17f
         gravity = Gravity.CENTER_VERTICAL or Gravity.START
         icon = ContextCompat.getDrawable(context, R.drawable.osrs_ic_globe)
-        iconTint = ColorStateList.valueOf(context.getColor(R.color.osrs_parchment))
+        iconTint = ColorStateList.valueOf(context.getColor(R.color.osrs_map_control_ink))
         iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
         iconPadding = dp(12)
-        setTextColor(context.getColor(R.color.osrs_parchment))
+        setTextColor(context.getColor(R.color.osrs_map_control_ink))
         backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
         insetTop = 0
         insetBottom = 0
@@ -952,7 +952,7 @@ private class osrsRealmSelectorAdapter(
             setPadding(dp(18), dp(10), dp(18), dp(10))
             textSize = 16f
             osrsApplyRealmIdentityLayout()
-            setTextColor(context.getColor(R.color.osrs_parchment))
+            setTextColor(context.getColor(R.color.osrs_map_control_ink))
             isClickable = true
             isFocusable = true
         }

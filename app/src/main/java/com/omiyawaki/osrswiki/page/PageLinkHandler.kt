@@ -44,12 +44,12 @@ class PageLinkHandler(
 
                 if (offlineTargetUiState?.htmlContent != null) {
                     Log.i(TAG, "Target '$targetPageTitleWithSpaces' (ID: ${offlineTargetUiState.pageId}) found in local content while offline. Navigating offline.")
-                    context.startActivity(PageActivity.newIntent(
+                    PageActivity.open(
                         context,
                         offlineTargetUiState.plainTextTitle,
                         offlineTargetUiState.pageId?.toString(),
                         HistoryEntry.SOURCE_INTERNAL_LINK
-                    ))
+                    )
                 } else {
                     Log.w(TAG, "Target '$targetPageTitleWithSpaces' is unavailable locally and there is no network connection.")
                     showOfflineTargetUnavailable(targetPageTitleWithSpaces)
@@ -70,23 +70,23 @@ class PageLinkHandler(
                             val loadedTargetUiState = result.data
                             if (loadedTargetUiState.isCurrentlyOffline && loadedTargetUiState.htmlContent != null) {
                                 Log.i(TAG, "Target '$targetPageTitleWithSpaces' (ID: ${loadedTargetUiState.pageId}) found OFFLINE with content. Navigating offline.")
-                                context.startActivity(PageActivity.newIntent(
+                                PageActivity.open(
                                     context,
                                     loadedTargetUiState.plainTextTitle,
                                     loadedTargetUiState.pageId?.toString(),
                                     HistoryEntry.SOURCE_INTERNAL_LINK
-                                ))
+                                )
                                 navigationAttempted = true
                             } else {
                                 Log.i(TAG, "Target '$targetPageTitleWithSpaces' not found as usable offline content. Checking network for online navigation.")
                                 if (isNetworkAvailable()) {
                                     Log.i(TAG, "Network is available. Navigating ONLINE to '$targetPageTitleWithSpaces'.")
-                                    context.startActivity(PageActivity.newIntent(
+                                    PageActivity.open(
                                         context,
                                         targetPageTitleWithSpaces,
                                         null,
                                         HistoryEntry.SOURCE_INTERNAL_LINK
-                                    ))
+                                    )
                                 } else {
                                     Log.w(TAG, "Target '$targetPageTitleWithSpaces' not available offline and NO network connection.")
                                     withContext(Dispatchers.Main) {
@@ -100,12 +100,12 @@ class PageLinkHandler(
                             Log.w(TAG, "Error initially fetching target '$targetPageTitleWithSpaces' from repository (forceNetwork=false): ${result.message}")
                             if (isNetworkAvailable()) {
                                 Log.i(TAG, "Network is available. Attempting ONLINE navigation to '$targetPageTitleWithSpaces' due to previous error loading from cache.")
-                                context.startActivity(PageActivity.newIntent(
+                                PageActivity.open(
                                     context,
                                     targetPageTitleWithSpaces,
                                     null,
                                     HistoryEntry.SOURCE_INTERNAL_LINK
-                                ))
+                                )
                             } else {
                                 Log.w(TAG, "Error fetching '$targetPageTitleWithSpaces' and NO network connection.")
                                 withContext(Dispatchers.Main) {

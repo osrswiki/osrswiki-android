@@ -224,7 +224,7 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
 
     override fun onItemClick(item: CleanedSearchResultItem) {
         viewModel.saveCurrentQuery() // Save the query when an item is clicked.
-        val intent = PageActivity.newIntent(
+        PageActivity.open(
             context = requireContext(),
             pageTitle = item.title,
             pageId = item.id.toIntOrNull()?.toString(),
@@ -232,7 +232,6 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
             snippet = item.snippet,
             thumbnailUrl = item.thumbnailUrl
         )
-        startActivity(intent)
     }
 
     override fun onDestroyView() {

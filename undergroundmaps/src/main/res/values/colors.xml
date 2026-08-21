@@ -4,10 +4,11 @@
     <color name="osrs_parchment">#E7D5A8</color>
     <color name="osrs_underground_parchment_dark">#C4A66D</color>
     <color name="osrs_map_background">#000000</color>
-    <color name="osrs_map_control_surface">#EE1B1510</color>
-    <color name="osrs_map_control_surface_pressed">#FF30251A</color>
-    <color name="osrs_map_control_selected">#1FE7D5A8</color>
-    <color name="osrs_map_control_divider">#594E3D2D</color>
-    <color name="osrs_map_control_disabled">#CCE7D5A8</color>
-    <color name="osrs_map_control_field_border">#BFC4A66D</color>
+    <color name="osrs_map_control_surface">#F2D8CCB4</color>
+    <color name="osrs_map_control_surface_pressed">#FFC9B99A</color>
+    <color name="osrs_map_control_selected">#1F21170E</color>
+    <color name="osrs_map_control_divider">#5921170E</color>
+    <color name="osrs_map_control_disabled">#CC21170E</color>
+    <color name="osrs_map_control_field_border">#E65C5040</color>
+    <color name="osrs_map_control_ink">#21170E</color>
 </resources>

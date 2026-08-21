@@ -427,13 +427,31 @@ class ArticleWebViewRecoveryTest {
             .substringBefore("private fun replaceArticleFragmentIfFixtureProbeAllows()")
 
         assertTrue(source.contains("hiddenArticleFragmentTags"))
-        assertTrue(pushMethod.contains(".hide("))
+        assertTrue(pushMethod.contains(".remove("))
+        assertTrue(pushMethod.contains("R.id.page_live_underlay"))
         assertTrue(pushMethod.contains(".add(R.id.page_fragment_container"))
-        assertTrue(popMethod.contains(".show("))
         assertTrue(popMethod.contains(".remove("))
-        assertTrue(source.contains("osrsUnderlyingActivityPreview"))
+        assertTrue(popMethod.contains("R.id.page_fragment_container"))
+        assertTrue(source.contains("osrsArticleOverlayPresenter"))
+        assertTrue(source.contains("pageLiveUnderlay"))
         assertTrue(source.substringAfter("private fun popArticleBackStack()").contains("revealPreviousArticleFragment()"))
         assertTrue(source.substringAfter("private fun commitPushedArticle").contains("pushCoveringArticleFragment()"))
+    }
+
+    @Test
+    fun contentsHandlerResolvesArticleChromeFromParentHostNotPageActivity() {
+        val source = sourceFile("ContentsHandler.kt").readText()
+        val overlay = File("src/main/java/com/omiyawaki/osrswiki/page/osrsArticleOverlayFragment.kt").readText()
+        val presenter = File("src/main/java/com/omiyawaki/osrswiki/page/osrsArticleOverlayPresenter.kt").readText()
+        val pageActivity = sourceFile("PageActivity.kt").readText()
+
+        assertFalse(source.contains("as PageActivity"))
+        assertTrue(source.contains("osrsArticleChromeHost"))
+        assertTrue(source.contains("parentFragment"))
+        assertTrue(overlay.contains("osrsArticleChromeHost"))
+        assertTrue(pageActivity.contains("osrsArticleChromeHost"))
+        assertTrue(presenter.contains("overlay present failed"))
+        assertTrue(presenter.contains("isClickable = true"))
     }
 
     @Test
@@ -442,15 +460,14 @@ class ArticleWebViewRecoveryTest {
         val progressMethod = source.substringAfter("private fun applyInteractiveBackProgress")
             .substringBefore("private fun applyInteractiveContentsProgress")
 
-        assertTrue(progressMethod.contains("osrsUnderlyingActivityPreview"))
-        assertTrue(progressMethod.contains("backPreviewStack.lastOrNull()"))
+        assertTrue(progressMethod.contains("pageLiveUnderlay"))
+        assertTrue(progressMethod.contains("pageBackPreview.visibility = View.GONE"))
+        assertTrue(progressMethod.contains("navMenuTriggerLayout.translationX"))
         assertTrue(source.contains("overridePendingTransition(0, 0)"))
-        val baseActivity = File("src/main/java/com/omiyawaki/osrswiki/activity/BaseActivity.kt").readText()
-        assertTrue(baseActivity.contains("osrsUnderlyingActivityPreview.captureFromCaller(this)"))
-        assertFalse(
-            progressMethod.contains("if (clamped > 0f && preview != null)") &&
-                !progressMethod.contains("osrsUnderlyingActivityPreview")
-        )
+        val overlay = File("src/main/java/com/omiyawaki/osrswiki/page/osrsArticleOverlayPresenter.kt").readText()
+        assertTrue(overlay.contains("osrsArticleOverlayFragment"))
+        assertTrue(source.contains("osrsArticleOverlayPresenter.present"))
+        assertFalse(progressMethod.contains("osrsUnderlyingActivityPreview"))
     }
 
     @Test

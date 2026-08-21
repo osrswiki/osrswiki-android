@@ -126,7 +126,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        callback = context as? Callback ?: throw RuntimeException("$context must implement PageFragment.Callback")
+        callback = generateSequence(parentFragment) { it.parentFragment }
+            .filterIsInstance<Callback>()
+            .firstOrNull()
+            ?: (context as? Callback)
+            ?: throw RuntimeException("$context must implement PageFragment.Callback")
         // Proactively warm up the database on a background thread.
         // This triggers the potentially slow, one-time database creation/migration
         // so it doesn't block the main thread later when it's first accessed.

@@ -297,7 +297,10 @@ class osrsRealmSelectorControllerTest {
     @Test
     fun `search hint boundary and target meet accessibility thresholds`() {
         val context = themedContext()
-        val sampledSelectorSurface = Color.rgb(28, 24, 15)
+        val sampledSelectorSurface = ColorUtils.compositeColors(
+            context.getColor(R.color.osrs_map_control_surface),
+            Color.BLACK
+        )
         val hint = ColorUtils.compositeColors(
             context.getColor(R.color.osrs_map_control_disabled),
             sampledSelectorSurface

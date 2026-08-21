@@ -3,16 +3,15 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ImageView
-import android.widget.ListView
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
+import androidx.fragment.app.Fragment
 import com.google.android.material.color.MaterialColors
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.page.model.Section
@@ -25,13 +24,13 @@ import com.omiyawaki.osrswiki.views.ObservableWebView
 class ContentsHandler(private val fragment: PageFragment) :
     ObservableWebView.OnScrollChangeListener {
 
-    private val activity = fragment.requireActivity() as PageActivity
-    private val binding = activity.binding
+    private val chrome = resolveChrome(fragment)
+    private val binding = chrome.articleChromeBinding
     private val webView = fragment.binding.pageWebView
     private val scrollerView = binding.pageScrollerView
     private val tocListView = binding.tocListView
     private val drawerHost = binding.pageDrawerLayout
-    private val tocAdapter = TocAdapter(activity)
+    private val tocAdapter = TocAdapter(fragment.requireContext())
     private var isInitialized = false
 
     init {
@@ -55,17 +54,17 @@ class ContentsHandler(private val fragment: PageFragment) :
 
     fun show() {
         if (!isInitialized) return
-        activity.openContents()
+        chrome.openContents()
     }
 
     fun hide() {
         if (!isInitialized) return
-        activity.closeContents(animate = true)
+        chrome.closeContents(animate = true)
     }
 
     fun isVisible(): Boolean {
         if (!isInitialized) return false
-        return activity.isContentsDrawerOpen()
+        return chrome.isContentsDrawerOpen()
     }
 
     private fun scrollToSection(section: Section) {
@@ -181,6 +180,16 @@ class ContentsHandler(private val fragment: PageFragment) :
             bullet.imageTintList = ColorStateList.valueOf(resolvedColor)
 
             return view
+        }
+    }
+
+    companion object {
+        internal fun resolveChrome(fragment: PageFragment): osrsArticleChromeHost {
+            return generateSequence(fragment.parentFragment as Fragment?) { it.parentFragment }
+                .filterIsInstance<osrsArticleChromeHost>()
+                .firstOrNull()
+                ?: (fragment.requireActivity() as? osrsArticleChromeHost)
+                ?: error("${fragment.requireActivity()} must host article chrome")
         }
     }
 }

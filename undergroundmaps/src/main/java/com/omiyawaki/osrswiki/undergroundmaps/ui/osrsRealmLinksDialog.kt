@@ -100,7 +100,7 @@ class osrsRealmLinksDialog(
         val builtTitle = TextView(context).apply {
             text = context.getString(R.string.realm_links_dialog_title)
             textSize = 22f
-            setTextColor(context.getColor(R.color.osrs_parchment))
+            setTextColor(context.getColor(R.color.osrs_map_control_ink))
             contentDescription = text
         }
         builtRoot.addView(builtTitle, matchWrap())
@@ -136,7 +136,7 @@ class osrsRealmLinksDialog(
             imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_EXTRACT_UI
             minHeight = dp(OSRS_LINK_MINIMUM_TOUCH_TARGET_DP)
             minimumHeight = dp(OSRS_LINK_MINIMUM_TOUCH_TARGET_DP)
-            setTextColor(context.getColor(R.color.osrs_parchment))
+            setTextColor(context.getColor(R.color.osrs_map_control_ink))
             setHintTextColor(context.getColor(R.color.osrs_underground_parchment_dark))
             background = ContextCompat.getDrawable(
                 context,
@@ -426,7 +426,7 @@ private class osrsRealmLinksAdapter(
                 gravity = Gravity.CENTER
                 text = context.getString(R.string.no_link_search_results)
                 textSize = 16f
-                setTextColor(context.getColor(R.color.osrs_parchment))
+                setTextColor(context.getColor(R.color.osrs_map_control_ink))
                 background = ContextCompat.getDrawable(
                     context,
                     R.drawable.osrs_link_row_background
@@ -448,7 +448,7 @@ private class osrsRealmLinksAdapter(
                     tag = OSRS_PRIMARY_TEXT_TAG
                     textSize = 16f
                     maxLines = 2
-                    setTextColor(context.getColor(R.color.osrs_parchment))
+                    setTextColor(context.getColor(R.color.osrs_map_control_ink))
                 }, matchWrap())
                 addView(TextView(context).apply {
                     tag = OSRS_SECONDARY_TEXT_TAG

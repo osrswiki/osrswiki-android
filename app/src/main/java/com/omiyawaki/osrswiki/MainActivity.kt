@@ -26,6 +26,7 @@ import com.omiyawaki.osrswiki.readinglist.ui.SavedPagesFragment
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.page.osrsArticleOverlayPresenter
 import android.net.Uri
 import com.omiyawaki.osrswiki.ui.main.MainFragment
 import com.omiyawaki.osrswiki.ui.main.MainNavigationInsetPolicy
@@ -324,6 +325,7 @@ class MainActivity : BaseActivity() {
             }
             
             Log.d("MainActivity", "Bottom nav item selected: $itemId")
+            osrsArticleOverlayPresenter.popAll(this)
             val selectedFragment = when (itemId) {
                 R.id.nav_news -> {
                     Log.d("MainActivity", "Navigating to Home (MainFragment)")
@@ -391,14 +393,12 @@ class MainActivity : BaseActivity() {
                 val raw = data.pathSegments?.lastOrNull() ?: data.lastPathSegment
                 val title = raw?.let { Uri.decode(it).replace('_', ' ') }
                 if (!title.isNullOrBlank()) {
-                    startActivity(
-                        PageActivity.newIntent(
+                    PageActivity.open(
                             this,
                             title,
                             null,
                             HistoryEntry.SOURCE_INTERNAL_LINK
                         )
-                    )
                 }
                 intent.action = null
                 intent.data = null

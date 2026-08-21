@@ -208,7 +208,7 @@ class SavedPagesFragment : Fragment(), ThemeAware {
 
         Log.d("SavedPagesFragment", "Opening PageActivity for saved page: '$pageTitle', pageId: '$pageId', source: SOURCE_SAVED_PAGE")
 
-        val intent = PageActivity.newIntent(
+        PageActivity.open(
             context = requireContext(),
             pageTitle = pageTitle,
             pageId = pageId,
@@ -216,8 +216,6 @@ class SavedPagesFragment : Fragment(), ThemeAware {
             snippet = savedPage.description,
             thumbnailUrl = savedPage.thumbUrl
         )
-        
-        startActivity(intent)
     }
 
     private fun updateSavedPage(page: ReadingListPage) {

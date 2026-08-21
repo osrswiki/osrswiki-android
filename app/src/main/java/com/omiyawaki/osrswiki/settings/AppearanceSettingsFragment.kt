@@ -195,6 +195,7 @@ class AppearanceSettingsFragment : osrsSettingsPreferenceFragment(), ThemeAware 
     override fun onThemeChanged() {
         if (isAdded && view != null) {
             listView.adapter?.notifyDataSetChanged()
+            listView.post { tintSettingsTypography() }
         }
     }
 

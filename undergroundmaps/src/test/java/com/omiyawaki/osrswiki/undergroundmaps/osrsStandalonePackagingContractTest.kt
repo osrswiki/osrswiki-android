@@ -87,7 +87,7 @@ class osrsStandalonePackagingContractTest {
         val downIcon = File(project, "src/main/res/drawable/osrs_ic_arrow_down.xml").readText()
 
         assertTrue(activity.contains("orientation = LinearLayout.VERTICAL"))
-        assertTrue(activity.contains("ContextCompat.getColor(context, R.color.osrs_parchment)"))
+        assertTrue(activity.contains("ContextCompat.getColor(context, R.color.osrs_map_control_ink)"))
         assertTrue(
             activity.contains(
                 "setCardBackgroundColor(ContextCompat.getColor(context, R.color.osrs_map_control_surface))"
@@ -98,8 +98,8 @@ class osrsStandalonePackagingContractTest {
                 "strokeColor = ContextCompat.getColor(context, R.color.osrs_underground_parchment_dark)"
             )
         )
-        assertTrue(upIcon.contains("android:fillColor=\"@color/osrs_parchment\""))
-        assertTrue(downIcon.contains("android:fillColor=\"@color/osrs_parchment\""))
+        assertTrue(upIcon.contains("android:fillColor=\"@color/osrs_map_control_ink\""))
+        assertTrue(downIcon.contains("android:fillColor=\"@color/osrs_map_control_ink\""))
         assertTrue(activity.contains("catch (cancellation: CancellationException)"))
         assertFalse(activity.contains("runCatching { repository.loadCatalog() }"))
     }
@@ -111,11 +111,11 @@ class osrsStandalonePackagingContractTest {
             "src/main/res/drawable/osrs_ic_globe.xml"
         ).readText()
 
-        assertTrue(icon.contains("android:strokeColor=\"@color/osrs_parchment\""))
+        assertTrue(icon.contains("android:strokeColor=\"@color/osrs_map_control_ink\""))
         assertTrue(icon.contains("android:fillColor=\"@android:color/transparent\""))
         assertTrue(icon.contains("C8.7,5.1"))
         assertTrue(icon.contains("M3.2,8.3"))
-        assertFalse(icon.contains("android:fillColor=\"@color/osrs_parchment\""))
+        assertFalse(icon.contains("android:fillColor=\"@color/osrs_map_control_ink\""))
     }
 
     @Test

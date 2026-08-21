@@ -12,7 +12,16 @@
     <FrameLayout
         android:id="@+id/page_content_host"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <FrameLayout
+            android:id="@+id/page_live_underlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true" />
 
         <ImageView
             android:id="@+id/page_back_preview"

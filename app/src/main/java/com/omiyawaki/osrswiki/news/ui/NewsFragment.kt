@@ -188,9 +188,7 @@ class NewsFragment : Fragment(), ThemeAware {
             // Internal link, open in PageActivity
             try {
                 val title = getPageTitleFromUrl(absoluteUrl)
-                startActivity(
-                    PageActivity.newIntent(requireContext(), title, null, HistoryEntry.SOURCE_NEWS)
-                )
+                PageActivity.open(requireContext(), title, null, HistoryEntry.SOURCE_NEWS)
             } catch (e: Exception) {
                 L.e("Could not parse page title from internal URL: $absoluteUrl", e)
                 Toast.makeText(requireContext(), "Error opening internal link.", Toast.LENGTH_SHORT).show()
@@ -264,11 +262,7 @@ class NewsFragment : Fragment(), ThemeAware {
                 L.d("NewsFragment: About to call PageActivity.newIntent()")
                 
                 try {
-                    val intent = PageActivity.newIntent(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
-                    L.d("NewsFragment: PageActivity intent created successfully")
-                    L.d("NewsFragment: Starting PageActivity...")
-                    startActivity(intent)
-                    L.d("NewsFragment: PageActivity started successfully")
+                    PageActivity.open(requireContext(), updateItem, HistoryEntry.SOURCE_NEWS)
                 } catch (e: Exception) {
                     L.e("NewsFragment: Exception when starting PageActivity", e)
                 }
@@ -346,13 +340,12 @@ class NewsFragment : Fragment(), ThemeAware {
         cachedRandomPageTitle?.let { pageTitle ->
             L.d("NewsFragment: Using pre-cached random page: $pageTitle")
             
-            val intent = PageActivity.newIntent(
+            PageActivity.open(
                 context = requireContext(),
                 pageTitle = pageTitle,
                 pageId = null,
                 source = HistoryEntry.SOURCE_RANDOM
             )
-            startActivity(intent)
             
             // Pre-load next random page for future taps
             preloadNextRandomPage()
