@@ -11,7 +11,8 @@ class AppearanceScreenContractTest {
     fun appearanceUsesConventionalNativePreferencesForEveryRequestedControl() {
         val xml = resource("xml/preferences_appearance.xml")
 
-        assertTrue(xml.contains("<DropDownPreference"))
+        assertTrue(xml.contains("<com.omiyawaki.osrswiki.settings.osrsChoicePreference"))
+        assertFalse(xml.contains("<DropDownPreference"))
         assertFalse(xml.contains("<ListPreference"))
         assertTrue(xml.contains("<SeekBarPreference"))
         assertTrue(xml.contains("app:min=\"85\""))
@@ -54,8 +55,9 @@ class AppearanceScreenContractTest {
         val thumb = resource("color/switch_thumb_tint.xml")
         val track = resource("color/switch_track_tint.xml")
 
-        assertTrue(themes.contains("<item name=\"switchStyle\">@style/Widget.OSRSWiki.SwitchCompat</item>"))
-        assertTrue(themes.contains("<style name=\"Widget.OSRSWiki.SwitchCompat\""))
+        assertTrue(themes.contains("<item name=\"switchPreferenceCompatStyle\">@style/Preference.OSRS.SwitchPreferenceCompat</item>"))
+        assertTrue(themes.contains("<style name=\"Widget.OSRSWiki.MaterialSwitch\""))
+        assertTrue(themes.contains("preference_widget_osrs_material_switch"))
         assertTrue(track.contains("@color/osrs_gold_muted"))
         assertTrue(track.contains("android:alpha=\"0.36\""))
         assertTrue(thumb.contains("@color/osrs_brown_deep"))

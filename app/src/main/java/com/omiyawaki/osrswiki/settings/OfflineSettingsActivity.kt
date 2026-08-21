@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.settings
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import com.google.android.material.appbar.MaterialToolbar
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
 
@@ -25,14 +26,15 @@ class OfflineSettingsActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_offline_settings)
+        setContentView(R.layout.activity_osrs_settings)
+        applyEdgeToEdgeInsets(findViewById(android.R.id.content))
 
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
                 .replace(
-                    R.id.offline_settings_container, 
-                    OfflineSettingsFragment.newInstance(), 
+                    R.id.osrs_settings_container,
+                    OfflineSettingsFragment.newInstance(),
                     OfflineSettingsFragment.TAG
                 )
                 .commit()
@@ -42,10 +44,15 @@ class OfflineSettingsActivity : BaseActivity() {
     }
 
     private fun setupToolbar() {
+        val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
         supportActionBar?.apply {
             title = getString(R.string.settings_category_offline_storage)
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
+        }
+        toolbar.setNavigationOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
         }
     }
 

@@ -3,7 +3,7 @@
 
     <PreferenceCategory app:title="@string/settings_display_section">
 
-        <DropDownPreference
+        <com.omiyawaki.osrswiki.settings.osrsChoicePreference
             app:key="app_theme_mode"
             app:title="@string/settings_theme_title"
             app:summary="@string/settings_theme_follow_system"
@@ -46,7 +46,7 @@
             app:iconSpaceReserved="true"
             app:persistent="false" />
 
-        <DropDownPreference
+        <com.omiyawaki.osrswiki.settings.osrsChoicePreference
             app:key="floor_numbering"
             app:title="@string/settings_floor_numbering_title"
             app:summary="@string/settings_floor_numbering_auto"

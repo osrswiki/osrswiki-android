@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/osrs_choice_value"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_vertical|end"
+    android:ellipsize="end"
+    android:gravity="end|center_vertical"
+    android:maxLines="1"
+    android:paddingStart="8dp"
+    android:paddingEnd="4dp"
+    android:textAppearance="@style/AppTextAppearance.PreferenceSummary"
+    android:textColor="?attr/colorOnSurfaceVariant"
+    tools:text="Follow system" />

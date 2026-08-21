@@ -39,14 +39,14 @@ class AppearanceSettingsActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_appearance_settings)
+        setContentView(R.layout.activity_osrs_settings)
         applyEdgeToEdgeInsets(findViewById(android.R.id.content))
 
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
                 .replace(
-                    R.id.appearance_settings_container,
+                    R.id.osrs_settings_container,
                     AppearanceSettingsFragment.newInstance(),
                     AppearanceSettingsFragment.TAG
                 )
@@ -140,7 +140,7 @@ class AppearanceSettingsActivity : BaseActivity() {
             }
             
             // Refresh any other UI elements specific to this activity
-            val containerView = findViewById<android.view.View>(R.id.appearance_settings_container)
+            val containerView = findViewById<android.view.View>(R.id.osrs_settings_container)
             containerView?.let { container ->
                 refreshViewBackground(container)
             }

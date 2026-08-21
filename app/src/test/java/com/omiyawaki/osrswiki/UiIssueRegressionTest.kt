@@ -101,7 +101,7 @@ class UiIssueRegressionTest {
     @Test
     fun moreLaunchedActivitiesDeclareToolbarNavigation() {
         listOf(
-            "res/layout/activity_appearance_settings.xml",
+            "res/layout/activity_osrs_settings.xml",
             "res/layout/activity_donate.xml",
             "res/layout/activity_about.xml",
             "res/layout/activity_feedback.xml",
