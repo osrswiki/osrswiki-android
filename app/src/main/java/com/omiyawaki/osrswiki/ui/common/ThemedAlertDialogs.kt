@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.ui.common
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.widget.TextView
@@ -25,6 +26,7 @@ object ThemedAlertDialogs {
         return dialog
     }
 
+    @SuppressLint("ResourceType")
     fun applyChrome(dialog: AlertDialog) {
         val context = dialog.context
         val typed = context.obtainStyledAttributes(
@@ -35,7 +37,8 @@ object ThemedAlertDialogs {
             )
         )
         val onSurface = typed.getColor(0, 0xFF111111.toInt())
-        val paper = typed.getColor(1, typed.getColor(2, onSurface))
+        val surface = typed.getColor(2, onSurface)
+        val paper = typed.getColor(1, surface)
         typed.recycle()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(onSurface)
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(onSurface)

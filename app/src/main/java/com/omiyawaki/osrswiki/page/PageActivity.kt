@@ -656,6 +656,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         binding.navMenuTriggerLayout.animate().cancel()
         binding.pageBackPreview.visibility = View.GONE
         binding.pageLiveUnderlay.visibility = View.VISIBLE
+        revealLivePreviousActivity(hiddenArticleFragmentTags.isEmpty())
         binding.navMenuTriggerLayout.translationX = clamped * width
     }
 
@@ -848,6 +849,20 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         binding.navMenuTriggerLayout.translationX = 0f
         binding.pageBackPreview.translationX = 0f
         binding.pageBackPreview.visibility = View.GONE
+        revealLivePreviousActivity(false)
+    }
+
+    private fun revealLivePreviousActivity(reveal: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return
+        }
+        try {
+            setTranslucent(reveal)
+            if (reveal) {
+                window.setBackgroundDrawableResource(android.R.color.transparent)
+            }
+        } catch (_: Throwable) {
+        }
     }
 
     private fun hideContentsScrim() {

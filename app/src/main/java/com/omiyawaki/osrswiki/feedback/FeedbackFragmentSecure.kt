@@ -46,23 +46,14 @@ class FeedbackFragmentSecure : Fragment() {
     }
     
     private fun setupClickListeners() {
-        binding.rateAppCard.setOnClickListener { 
-            handleRateApp()
-        }
         binding.rateAppButton.setOnClickListener { 
             handleRateApp()
         }
         
-        binding.reportIssueCard.setOnClickListener { 
-            showReportIssueDialog()
-        }
         binding.reportIssueButton.setOnClickListener { 
             showReportIssueDialog()
         }
         
-        binding.requestFeatureCard.setOnClickListener { 
-            showRequestFeatureDialog()
-        }
         binding.requestFeatureButton.setOnClickListener { 
             showRequestFeatureDialog()
         }

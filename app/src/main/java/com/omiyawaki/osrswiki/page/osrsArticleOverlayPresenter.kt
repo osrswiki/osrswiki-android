@@ -25,6 +25,9 @@ object osrsArticleOverlayPresenter {
             return false
         }
         val host = ensureHost(activity)
+        host.translationX = 0f
+        host.alpha = 1f
+        host.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         val tag = TAG_PREFIX + System.nanoTime()
         val fragment = osrsArticleOverlayFragment.newInstance(intent)
         return try {
@@ -56,7 +59,7 @@ object osrsArticleOverlayPresenter {
             .remove(top)
             .commitNowAllowingStateLoss()
         if (topFragment(activity) == null) {
-            activity.findViewById<View>(HOST_VIEW_ID)?.visibility = View.GONE
+            detachHost(activity)
         }
         return true
     }
@@ -66,13 +69,13 @@ object osrsArticleOverlayPresenter {
             .filterIsInstance<osrsArticleOverlayFragment>()
             .filter { it.isAdded && !it.isRemoving }
         if (overlays.isEmpty()) {
-            activity.findViewById<View>(HOST_VIEW_ID)?.visibility = View.GONE
+            detachHost(activity)
             return
         }
         val transaction = activity.supportFragmentManager.beginTransaction()
         overlays.forEach { transaction.remove(it) }
         transaction.commitNowAllowingStateLoss()
-        activity.findViewById<View>(HOST_VIEW_ID)?.visibility = View.GONE
+        detachHost(activity)
     }
 
     fun topFragment(activity: FragmentActivity): osrsArticleOverlayFragment? {
@@ -93,7 +96,8 @@ object osrsArticleOverlayPresenter {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-            elevation = 48f * activity.resources.displayMetrics.density
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            elevation = 0f
             isClickable = true
             isFocusable = true
             clipChildren = false
@@ -102,6 +106,36 @@ object osrsArticleOverlayPresenter {
         }
         content.addView(host)
         return host
+    }
+
+    fun resetChrome(activity: FragmentActivity) {
+        activity.supportFragmentManager.fragments
+            .filterIsInstance<osrsArticleOverlayFragment>()
+            .forEach { fragment ->
+                fragment.slidingChrome()?.let { sliding ->
+                    sliding.animate().cancel()
+                    sliding.translationX = 0f
+                    sliding.alpha = 1f
+                }
+            }
+        val host = activity.findViewById<View>(HOST_VIEW_ID) ?: return
+        host.animate().cancel()
+        host.translationX = 0f
+        host.alpha = 1f
+        if (topFragment(activity) == null) {
+            detachHost(activity)
+        }
+    }
+
+    fun detachHost(activity: FragmentActivity) {
+        val host = activity.findViewById<ViewGroup>(HOST_VIEW_ID) ?: return
+        host.animate().cancel()
+        host.translationX = 0f
+        host.alpha = 1f
+        host.visibility = View.GONE
+        host.isClickable = false
+        host.isFocusable = false
+        (host.parent as? ViewGroup)?.removeView(host)
     }
 
     private fun activityFrom(context: Context): Activity? {

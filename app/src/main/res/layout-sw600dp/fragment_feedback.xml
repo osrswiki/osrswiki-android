@@ -22,22 +22,13 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintWidth_max="@dimen/tablet_content_max_width">
 
-            <TextView
-                android:id="@+id/feedback_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:text="@string/feedback_title"
-                android:textAlignment="center"
-                android:textAppearance="?attr/textAppearanceHeadline5" />
-
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/rate_app_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true"
+                android:clickable="false"
+                android:focusable="false"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
                 app:strokeWidth="0dp">
@@ -67,11 +58,10 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/rate_app_button"
+                        style="@style/Widget.OSRSWiki.OutboundLinkButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/feedback_rate_app_button"
-                        app:icon="@drawable/ic_open_in_new_24"
-                        app:iconGravity="textEnd" />
+                        android:text="@string/feedback_rate_app_button" />
 
                 </LinearLayout>
 
@@ -82,8 +72,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true"
+                android:clickable="false"
+                android:focusable="false"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
                 app:strokeWidth="0dp">
@@ -113,6 +103,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/report_issue_button"
+                        style="@style/Widget.OSRSWiki.OutboundLinkButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/feedback_report_issue_button" />
@@ -126,8 +117,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true"
+                android:clickable="false"
+                android:focusable="false"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp"
                 app:strokeWidth="0dp">
@@ -157,6 +148,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/request_feature_button"
+                        style="@style/Widget.OSRSWiki.OutboundLinkButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/feedback_request_feature_button" />

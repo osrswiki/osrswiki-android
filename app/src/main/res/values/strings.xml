@@ -43,8 +43,10 @@
     <string name="menu_title_privacy">Privacy Policy</string>
     
     <!-- Donation screen -->
-    <string name="donate_title">Support OSRS Wiki App</string>
-    <string name="donate_description">Help support the development and maintenance of this app. Your donation enables future improvements.</string>
+    <string name="donate_title">Donate</string>
+    <string name="donate_description">This app is free. Nothing is locked behind a donation.\n\nIf you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working.</string>
+    <string name="donate_app_blurb_free">This app is free. Nothing is locked behind a donation.</string>
+    <string name="donate_app_blurb_help">If you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working.</string>
     <string name="donate_amount_1">$1</string>
     <string name="donate_amount_5">$5</string>
     <string name="donate_amount_10">$10</string>
@@ -59,9 +61,9 @@
     <string name="donate_error_title">Payment Error</string>
     <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
     <string name="donate_processing">Processing payment…</string>
-    <string name="donate_wiki_title">Support OSRS Wiki Website</string>
-    <string name="donate_wiki_description">The app relies on the OSRS Wiki for all its content. Consider supporting the wiki team who maintain the website and infrastructure.</string>
-    <string name="donate_wiki_button">Donate to Wiki on Patreon</string>
+    <string name="donate_wiki_title">Donate to Wiki</string>
+    <string name="donate_wiki_description">The Old School RuneScape Wiki is run by volunteers. Support them too if you can.</string>
+    <string name="donate_wiki_button">Donate to Wiki</string>
     
     <!-- About screen -->
     <string name="about_title">OSRS Wiki App</string>
@@ -101,19 +103,20 @@
     <string name="privacy_policy_content">OSRS Wiki App Privacy Policy\n\nThe OSRS Wiki App is designed to respect your privacy. We collect minimal information necessary to provide our services.\n\n1. INFORMATION WE COLLECT\n\nAudio Data (Voice Search):\n• Voice recordings when you use voice search\n• Processed locally and sent to Google\'s speech recognition service\n• Not stored permanently - processed in real-time only\n• Used only to convert speech to text for search queries\n\nUsage Data:\n• Search queries to find OSRS Wiki content\n• Page views for offline access and recommendations\n• App performance metrics and crash reports\n\n2. HOW WE USE YOUR INFORMATION\n\n• Provide wiki content and search functionality\n• Voice search: convert speech to text for hands-free searching\n• Enable offline access by caching frequently accessed content\n• Improve app performance and fix bugs\n\n3. INFORMATION SHARING\n\nWe do not sell or transfer your personal information to third parties, except:\n• Google Speech Recognition: processes voice data for speech-to-text\n• OSRS Wiki API: search queries sent to retrieve content\n• Google Play Services: in-app purchases processed through Google Play\n• Legal requirements: when required by law\n\n4. DATA SECURITY\n\n• Voice recordings transmitted securely using HTTPS\n• No persistent storage of voice data\n• Search queries transmitted over secure connections\n• Cached content stored locally on your device\n\n5. YOUR RIGHTS AND CHOICES\n\n• Voice search: optional feature you can choose not to use\n• Microphone permission: can be revoked in device settings\n• Cached data: can be cleared through app settings\n• App deletion: removes all locally stored data\n\n6. CHILDREN\'S PRIVACY\n\nOur app does not knowingly collect personal information from children under 13. If you believe your child has provided personal information, please contact us.\n\n7. THIRD-PARTY SERVICES\n\nThis app integrates with:\n• OSRS Wiki: content retrieval\n• Google Play Services: app distribution and in-app purchases\n• Google Speech Recognition: voice search functionality\n\nEach service has its own privacy policy.\n\n8. DATA RETENTION\n\n• Voice recordings: not retained - processed in real-time only\n• Search history: stored locally until app uninstalled or data cleared\n• Offline content: stored until manually cleared\n• Crash reports: retained for up to 90 days\n\n9. CHANGES TO THIS POLICY\n\nWe may update this privacy policy from time to time. Significant changes will be communicated through app updates.\n\n10. CONTACT US\n\nFor privacy questions or concerns, please contact us through the app\'s feedback system.\n\nNote: This app is not affiliated with Jagex Ltd. Old School RuneScape is a trademark of Jagex Ltd.</string>
     
     <!-- Help & Feedback screen -->
-    <string name="menu_title_feedback">Help &amp; Feedback</string>
-    <string name="feedback_title">Help &amp; Feedback</string>
+    <string name="menu_title_feedback">Feedback</string>
+    <string name="feedback_nav_title">Send Feedback</string>
+    <string name="feedback_title">Send Feedback</string>
     
-    <string name="feedback_rate_app_title">Enjoying the app?</string>
-    <string name="feedback_rate_app_description">Your rating helps others discover OSRS Wiki App</string>
-    <string name="feedback_rate_app_button">Rate on Google Play</string>
+    <string name="feedback_rate_app_title">Rate This App</string>
+    <string name="feedback_rate_app_description">Love our app? Rate it on the Play Store to help others discover it!</string>
+    <string name="feedback_rate_app_button">Rate App</string>
     
-    <string name="feedback_report_issue_title">Found a bug?</string>
-    <string name="feedback_report_issue_description">Help us fix issues to improve your experience</string>
+    <string name="feedback_report_issue_title">Report an Issue</string>
+    <string name="feedback_report_issue_description">Found a bug or something not working correctly? Let us know!</string>
     <string name="feedback_report_issue_button">Report Issue</string>
     
-    <string name="feedback_request_feature_title">Have an idea?</string>
-    <string name="feedback_request_feature_description">Suggest new features to make the app better</string>
+    <string name="feedback_request_feature_title">Request a Feature</string>
+    <string name="feedback_request_feature_description">Have an idea for a new feature or improvement? Share it with us!</string>
     <string name="feedback_request_feature_button">Request Feature</string>
     
     <string name="feedback_issue_title_hint">Brief description of the issue</string>
@@ -139,7 +142,7 @@
     <string name="settings_category_appearance">Appearance</string>
     <string name="settings_category_appearance_description">Themes, colors, and display options</string>
     <string name="settings_display_section">Display</string>
-    <string name="settings_navigation_gestures_section">Navigation gestures</string>
+    <string name="settings_navigation_gestures_section">Navigation</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>

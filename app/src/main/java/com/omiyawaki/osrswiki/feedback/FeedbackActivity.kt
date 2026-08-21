@@ -47,7 +47,7 @@ class FeedbackActivity : BaseActivity() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.apply {
-            title = getString(R.string.menu_title_feedback)
+            title = getString(R.string.feedback_nav_title)
             setDisplayHomeAsUpEnabled(true)
             setDisplayShowHomeEnabled(true)
         }

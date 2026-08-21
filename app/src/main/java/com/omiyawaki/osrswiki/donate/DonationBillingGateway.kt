@@ -24,6 +24,7 @@ data class DonationBillingLaunchResult(
 
 interface DonationBillingListener {
     fun onBillingReady(productIds: Set<String>)
+    fun onProductPrices(prices: Map<String, String>) {}
     fun onBillingSetupFailed(message: String)
     fun onBillingDisconnected()
     fun onPurchaseSuccess(productId: String?)
@@ -210,7 +211,12 @@ private class PlayDonationBillingGateway(
                         )
                     }
                 } else {
-                    notifyListener { onBillingReady(availableProducts.keys) }
+                    notifyListener {
+                        onBillingReady(availableProducts.keys)
+                        onProductPrices(availableProducts.mapValues { (_, details) ->
+                            details.osrsFormattedPrice().orEmpty()
+                        })
+                    }
                 }
             } else {
                 notifyListener { onBillingSetupFailed(billingResult.debugMessage) }
@@ -275,4 +281,14 @@ private class PlayDonationBillingGateway(
             listener.action()
         }
     }
+}
+
+internal fun ProductDetails.osrsFormattedPrice(): String? {
+    oneTimePurchaseOfferDetailsList
+        ?.firstOrNull()
+        ?.formattedPrice
+        ?.takeIf { it.isNotBlank() }
+        ?.let { return it }
+    @Suppress("DEPRECATION")
+    return oneTimePurchaseOfferDetails?.formattedPrice?.takeIf { it.isNotBlank() }
 }

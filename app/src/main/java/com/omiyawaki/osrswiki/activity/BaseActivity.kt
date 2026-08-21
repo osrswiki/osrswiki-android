@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.omiyawaki.osrswiki.OSRSWikiApp
 import com.omiyawaki.osrswiki.R
+import com.omiyawaki.osrswiki.page.osrsArticleOverlayPresenter
 import com.omiyawaki.osrswiki.page.osrsUnderlyingActivityPreview
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.ThemePreviewRenderer
@@ -145,10 +146,8 @@ abstract class BaseActivity : AppCompatActivity() {
         // Only recreate if theme actually changed
         if (currentThemeId != newThemeId) {
             android.util.Log.d("BaseActivity", "Forcing activity recreation for theme change from ${currentThemeId} to ${newThemeId}")
-            
-            // NUCLEAR OPTION: Force complete activity recreation
-            // This creates a fresh window surface and completely new themed context
-            // Fixes MapLibre + floor controls corruption that live switching can't resolve
+            osrsArticleOverlayPresenter.popAll(this)
+            osrsArticleOverlayPresenter.detachHost(this)
             recreate()
         }
     }

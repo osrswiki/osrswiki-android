@@ -24,6 +24,7 @@ class DonateFragment : Fragment() {
     private var isConnected = false
     private var selectedProductId: String? = null
     private var availableProductIds = emptySet<String>()
+    private var productPrices = emptyMap<String, String>()
     private var acceptsBillingCallbacks = false
 
     companion object {
@@ -120,7 +121,12 @@ class DonateFragment : Fragment() {
         setControlActionable(binding.donateButton, isDonationEnabled)
         
         if (hasValidAmount) {
-            binding.donateButton.text = getString(R.string.donate_button_text) + " ($$selectedAmount)"
+            val price = selectedProductId?.let { productPrices[it] }?.takeIf { it.isNotBlank() }
+            binding.donateButton.text = if (price != null) {
+                getString(R.string.donate_button_text) + " ($price)"
+            } else {
+                getString(R.string.donate_button_text) + " ($$selectedAmount)"
+            }
         } else {
             binding.donateButton.text = getString(R.string.donate_button_text)
         }
@@ -137,6 +143,18 @@ class DonateFragment : Fragment() {
         setControlActionable(binding.chipAmount5, isDonationProductAvailable(DonationProductIds.DONATE_5))
         setControlActionable(binding.chipAmount10, isDonationProductAvailable(DonationProductIds.DONATE_10))
         setControlActionable(binding.chipAmount25, isDonationProductAvailable(DonationProductIds.DONATE_25))
+        bindLocalizedPrices()
+    }
+
+    private fun bindLocalizedPrices() {
+        binding.chipAmount1.text = localizedPrice(DonationProductIds.DONATE_1, R.string.donate_amount_1)
+        binding.chipAmount5.text = localizedPrice(DonationProductIds.DONATE_5, R.string.donate_amount_5)
+        binding.chipAmount10.text = localizedPrice(DonationProductIds.DONATE_10, R.string.donate_amount_10)
+        binding.chipAmount25.text = localizedPrice(DonationProductIds.DONATE_25, R.string.donate_amount_25)
+    }
+
+    private fun localizedPrice(productId: String, fallbackRes: Int): String {
+        return productPrices[productId]?.takeIf { it.isNotBlank() } ?: getString(fallbackRes)
     }
 
     private fun isDonationProductAvailable(productId: String): Boolean {
@@ -205,6 +223,14 @@ class DonateFragment : Fragment() {
                             hideStatusText()
                         }
                         updateAmountButtonAvailability()
+                        updateDonateButtonState()
+                    }
+                }
+
+                override fun onProductPrices(prices: Map<String, String>) {
+                    withActiveDonationView {
+                        productPrices = prices
+                        bindLocalizedPrices()
                         updateDonateButtonState()
                     }
                 }
