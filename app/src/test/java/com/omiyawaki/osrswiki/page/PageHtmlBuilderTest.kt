@@ -51,6 +51,7 @@ class PageHtmlBuilderTest {
         val document = Jsoup.parse(html)
 
         assertTrue(document.body().hasClass("theme-osrs-dark"))
+        assertTrue(document.selectFirst("html")!!.hasClass("theme-osrs-dark"))
         assertTrue(document.body().hasClass(osrsArticleFloorConvention.current().bodyClass))
         assertFalse(document.body().hasClass("osrs-table-cells-wrap"))
         assertFalse(document.body().hasAttr("style"))
@@ -104,6 +105,7 @@ class PageHtmlBuilderTest {
         val style = PageHtmlBuilder.articleFirstPaintStyle()
         assertTrue(style.contains("background-color: var(--body-main, #e2dbc8)"))
         assertTrue(style.contains("color: var(--text-color, #000000)"))
+        assertTrue(style.contains("html.theme-osrs-dark"))
         assertTrue(style.contains("body.theme-osrs-dark"))
         assertTrue(style.contains("#28221d"))
     }
@@ -150,10 +152,9 @@ class PageHtmlBuilderTest {
             "Android article aesthetic overrides must load after shared fixes",
             androidArticleIndex > fixesIndex
         )
-        assertTrue(html.contains("osrs-android-disclosure-chrome"))
-        assertTrue(html.contains("min-height: 64px !important"))
-        assertTrue(html.contains("height: auto !important"))
-        assertTrue(html.contains("OSRS_ANDROID_DISCLOSURE_CHROME"))
+        assertFalse(html.contains("osrs-android-disclosure-chrome"))
+        assertFalse(html.contains("min-height: 64px !important"))
+        assertFalse(html.contains("OSRS_ANDROID_DISCLOSURE_CHROME"))
     }
 
     @Test

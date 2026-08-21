@@ -87,11 +87,11 @@ class osrsArticleInteractiveSwipeTest {
         val flicked = osrsArticleInteractiveSwipe.remainingCommitDurationMs(0.35f, 1800f, 1080f)
         val almostDone = osrsArticleInteractiveSwipe.remainingCommitDurationMs(0.92f, 200f, 1080f)
         assertTrue(
-            "A slow release still has most of the travel left, so it must not jump to a 320ms snap. slow=$slow",
-            slow > 320L
+            "A slow release must still finish in the short native settle window. slow=$slow",
+            slow <= osrsArticleInteractiveSwipe.SETTLE_MAX_DURATION_MS
         )
-        assertTrue(slow <= osrsArticleInteractiveSwipe.SETTLE_MAX_DURATION_MS)
-        assertTrue(flicked < slow)
+        assertTrue(slow >= osrsArticleInteractiveSwipe.SETTLE_MIN_DURATION_MS)
+        assertTrue(flicked <= slow)
         assertTrue(almostDone < slow)
         assertTrue(almostDone >= osrsArticleInteractiveSwipe.SETTLE_MIN_DURATION_MS)
     }

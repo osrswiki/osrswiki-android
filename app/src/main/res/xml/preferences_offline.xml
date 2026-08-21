@@ -1,7 +1,7 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <ListPreference
+    <DropDownPreference
         app:key="osrsSavedPageUpdatePolicy"
         app:title="@string/settings_saved_page_update_policy_title"
         app:summary="%s"
@@ -11,7 +11,7 @@
         app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
 
-    <ListPreference
+    <DropDownPreference
         app:key="osrsSavedPageDownloadNetwork"
         app:title="@string/settings_saved_page_network_title"
         app:summary="%s"
@@ -21,7 +21,7 @@
         app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
 
-    <ListPreference
+    <DropDownPreference
         app:key="offlineCacheSizeLimit"
         app:title="Cache size limit"
         app:summary="%s"

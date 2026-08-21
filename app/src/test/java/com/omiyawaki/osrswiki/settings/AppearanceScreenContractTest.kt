@@ -11,7 +11,8 @@ class AppearanceScreenContractTest {
     fun appearanceUsesConventionalNativePreferencesForEveryRequestedControl() {
         val xml = resource("xml/preferences_appearance.xml")
 
-        assertTrue(xml.contains("<ListPreference"))
+        assertTrue(xml.contains("<DropDownPreference"))
+        assertFalse(xml.contains("<ListPreference"))
         assertTrue(xml.contains("<SeekBarPreference"))
         assertTrue(xml.contains("app:min=\"85\""))
         assertTrue(xml.contains("android:max=\"140\""))

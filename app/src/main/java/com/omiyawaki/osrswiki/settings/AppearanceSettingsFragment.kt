@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.preference.ListPreference
+import androidx.preference.DropDownPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SeekBarPreference
@@ -22,13 +22,13 @@ import kotlinx.coroutines.launch
 /** Conventional native Appearance screen backed by the same typed repository used by readers. */
 class AppearanceSettingsFragment : PreferenceFragmentCompat(), ThemeAware {
     private lateinit var viewModel: SettingsViewModel
-    private lateinit var themePreference: ListPreference
+    private lateinit var themePreference: DropDownPreference
     private lateinit var collapseTablesPreference: SwitchPreferenceCompat
     private lateinit var wrapTableCellsPreference: SwitchPreferenceCompat
     private lateinit var textScalePreference: SeekBarPreference
     private lateinit var swipeRightBackPreference: SwitchPreferenceCompat
     private lateinit var swipeLeftContentsPreference: SwitchPreferenceCompat
-    private lateinit var floorNumberingPreference: ListPreference
+    private lateinit var floorNumberingPreference: DropDownPreference
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         val repository = SettingsRepository(preferenceManager.sharedPreferences!!)

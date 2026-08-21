@@ -181,6 +181,7 @@ class osrsCalculatorParityTest {
         val calcCore = calcCoreCandidates.first { it.exists() }.readText()
         assertTrue(calcCore.contains("document.getElementById('bodyContent') || document.body"))
         assertTrue(calcCore.contains("osrsEnsureOOUITheme"))
+        assertTrue(calcCore.contains("OO.ui.ButtonOptionWidget"))
         assertTrue(calcCore.contains("__osrsCalculatorPatched"))
         assertFalse(calcCore.contains("\$('#bodyContent')"))
         val runtimeCandidates = listOf(
@@ -189,6 +190,8 @@ class osrsCalculatorParityTest {
         )
         val runtime = runtimeCandidates.first { it.exists() }.readText()
         assertTrue(runtime.contains("setTimeout(patchAjax, 25)"))
+        assertTrue(runtime.contains("oojs-ui-widgets"))
+        assertTrue(runtime.contains("ButtonOptionWidget"))
         assertTrue(runtime.contains("osrsArmSmokeSubmit"))
         assertTrue(runtime.contains("aria-live"))
         assertTrue(runtime.contains("MutationObserver"))

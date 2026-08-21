@@ -86,9 +86,9 @@ internal class osrsArticleInteractiveSwipe(
         const val CONTENTS_DRAWER_WIDTH_DP = 280f
         const val BACK_PREVIEW_PARALLAX = 0f
 
-        const val SETTLE_COAST_DP_PER_SEC = 280f
+        const val SETTLE_COAST_DP_PER_SEC = 1100f
         const val SETTLE_MIN_DURATION_MS = 120L
-        const val SETTLE_MAX_DURATION_MS = 800L
+        const val SETTLE_MAX_DURATION_MS = 320L
         const val CONTENTS_PROGRAMMATIC_DURATION_MS = 240L
         const val CONTENTS_PROGRAMMATIC_VELOCITY_DP_PER_SEC = 40f
 
