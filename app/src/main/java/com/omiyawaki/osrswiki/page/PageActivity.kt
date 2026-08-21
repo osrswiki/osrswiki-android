@@ -88,6 +88,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         if (intent.getBooleanExtra("osrs_disable_article_prewarm", false)) {
             Prefs.disableArticlePrewarm = true
         }
+        if (intent.hasExtra("osrs_disable_first_view_paint_prewarm")) {
+            Prefs.disableFirstViewPaintPrewarm =
+                intent.getBooleanExtra("osrs_disable_first_view_paint_prewarm", false)
+        }
         L.d("PageActivity.onCreate() called")
         binding = ActivityPageBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -1603,6 +1607,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback {
         ): Intent {
             L.d("PageActivity: Creating intent with - pageTitle: '$pageTitle', pageId: '$pageId', source: $source")
             osrsUnderlyingActivityPreview.captureFromCaller(context)
+            runCatching {
+                (context.applicationContext as? com.omiyawaki.osrswiki.OSRSWikiApp)
+                    ?.pageAssetDownloader
+                    ?.pinFirstView(pageId?.toIntOrNull(), pageTitle)
+            }
             return Intent(context, PageActivity::class.java).apply {
                 putExtra(EXTRA_PAGE_TITLE, pageTitle)
                 putExtra(EXTRA_PAGE_ID, pageId)

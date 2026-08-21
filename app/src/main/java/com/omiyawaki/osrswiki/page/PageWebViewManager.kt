@@ -669,6 +669,18 @@ class PageWebViewManager(
         Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL().")
     }
 
+    fun markAdoptedDocumentReady() {
+        if (isDisposed || pageLoaded) {
+            return
+        }
+        pageLoaded = true
+        renderAborted = false
+        renderStartTime = System.currentTimeMillis()
+        Log.d(logTag, "Adopted prepared WebView; skipping loadDataWithBaseURL.")
+        renderCallback.onWebViewLoadFinished()
+        renderCallback.onPageReadyForDisplay()
+    }
+
     private fun logRenderReadyBudget(reason: String) {
         val elapsed = System.currentTimeMillis() - renderStartTime
         val status = if (elapsed <= RENDER_READY_BUDGET_MS) "met" else "missed"

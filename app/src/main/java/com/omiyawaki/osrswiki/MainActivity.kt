@@ -75,6 +75,10 @@ class MainActivity : BaseActivity() {
         if (intent.getBooleanExtra("osrs_disable_article_prewarm", false)) {
             Prefs.disableArticlePrewarm = true
         }
+        if (intent.hasExtra("osrs_disable_first_view_paint_prewarm")) {
+            Prefs.disableFirstViewPaintPrewarm =
+                intent.getBooleanExtra("osrs_disable_first_view_paint_prewarm", false)
+        }
         
         // Enable edge-to-edge but respect the theme's status bar settings
         enableEdgeToEdge()

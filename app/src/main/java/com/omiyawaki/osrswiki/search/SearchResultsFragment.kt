@@ -19,6 +19,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchResultsBinding
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.page.PageActivity
+import com.omiyawaki.osrswiki.page.osrsPreparedArticleWebViewStore
 import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
 import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import kotlinx.coroutines.flow.collectLatest
@@ -112,8 +113,20 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                     ArticlePrewarmRequest(pageId = it.id.toIntOrNull(), title = it.title)
                 })
             },
-            onDwell = app.pageAssetDownloader::prewarmArticle,
-            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener
+            onDwell = { request ->
+                if (isExactQueryTitle(request.title)) {
+                    osrsPreparedArticleWebViewStore.markPreferred(request)
+                }
+                app.pageAssetDownloader.prewarmArticle(request)
+            },
+            observeEnvironmentChanges = app.pageAssetDownloader::addPrewarmEnvironmentListener,
+            additionalCandidates = {
+                runCatching {
+                    exactQueryPrewarmCandidate()?.let {
+                        ArticlePrewarmRequest(pageId = it.id.toIntOrNull(), title = it.title)
+                    }
+                }.getOrNull()?.let { setOf(it) } ?: emptySet()
+            }
         )
     }
 
@@ -175,6 +188,28 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                 }
             }
         }
+    }
+
+    private fun isExactQueryTitle(title: String?): Boolean {
+        val query = viewModel.currentQuery.value?.trim().orEmpty()
+        return query.isNotEmpty() && title.equals(query, ignoreCase = true)
+    }
+
+    private fun exactQueryPrewarmCandidate(): CleanedSearchResultItem? {
+        val query = viewModel.currentQuery.value?.trim().orEmpty()
+        val items = when (binding.recyclerViewSearchResults.adapter) {
+            onlineSearchAdapter -> {
+                if (onlineSearchAdapter.itemCount <= 0) emptyList()
+                else (0 until minOf(onlineSearchAdapter.itemCount, 8)).mapNotNull { position ->
+                    runCatching { onlineSearchAdapter.peek(position) }.getOrNull()
+                }
+            }
+            offlineSearchAdapter -> offlineSearchAdapter.currentList.take(8)
+            else -> emptyList()
+        }
+        return items.firstOrNull { item ->
+            query.isNotEmpty() && item.title.equals(query, ignoreCase = true)
+        } ?: items.firstOrNull()
     }
 
     private fun maybeAnchorSearchResultsToTop(currentQuery: String?) {

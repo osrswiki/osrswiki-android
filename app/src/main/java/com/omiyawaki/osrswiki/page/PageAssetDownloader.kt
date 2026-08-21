@@ -81,6 +81,7 @@ class PageAssetDownloader(
         prepare = ::prepareArticle
     )
     private val firstViewJobs = ConcurrentHashMap<String, Job>()
+    private val firstViewPaintJobs = ConcurrentHashMap<String, Job>()
     private val firstViewPinned = ConcurrentHashMap<String, Boolean>()
 
     internal fun configurePrewarmEnvironment(provider: ArticlePrewarmEnvironmentProvider) {
@@ -100,12 +101,21 @@ class PageAssetDownloader(
         return ArticlePrewarmEnvironmentSubscription { prewarmEnvironmentListeners -= listener }
     }
 
+    internal fun pinFirstView(pageId: Int?, title: String?) {
+        val request = runCatching { ArticlePrewarmRequest(pageId = pageId, title = title) }.getOrNull()
+            ?: return
+        firstViewPinned[request.key.logValue()] = true
+        osrsPreparedArticleWebViewStore.pin(request, foreground = true)
+    }
+
     internal fun prewarmArticle(request: ArticlePrewarmRequest): ArticlePrewarmLease {
         val key = request.key.logValue()
+        osrsPreparedArticleWebViewStore.pin(request)
         preparationCoordinator.peekPrepared(request)?.processedHtml?.takeIf { it.isNotBlank() }?.let { html ->
             val job = startFirstViewWarm(request, html)
+            val paintJob = startFirstViewPaint(request, html)
             return ArticlePrewarmLease {
-                cancelFirstViewIfUnpinned(key, job)
+                cancelFirstViewIfUnpinned(request, job, paintJob)
             }
         }
         val htmlLease = preparationCoordinator.requestPrewarm(request)
@@ -114,6 +124,7 @@ class PageAssetDownloader(
                 val html = preparationCoordinator.peekPrepared(request)?.processedHtml
                 if (!html.isNullOrBlank()) {
                     startFirstViewWarm(request, html)
+                    startFirstViewPaint(request, html)
                     return@launch
                 }
                 delay(50)
@@ -126,6 +137,9 @@ class PageAssetDownloader(
             }
             waitJob.cancel()
             firstViewJobs[key]?.cancel()
+            firstViewPaintJobs[key]?.cancel()
+            osrsPreparedArticleWebViewStore.unpin(request)
+            osrsPreparedArticleWebViewStore.cancel(request)
         }
     }
 
@@ -144,12 +158,60 @@ class PageAssetDownloader(
         return job
     }
 
-    private fun cancelFirstViewIfUnpinned(key: String, job: Job) {
+    private fun startFirstViewPaint(request: ArticlePrewarmRequest, html: String): Job {
+        val key = request.key.logValue()
+        if (com.omiyawaki.osrswiki.settings.Prefs.disableFirstViewPaintPrewarm) {
+            return processScope.launch { }
+        }
+        firstViewPaintJobs[key]?.let { existing ->
+            if (existing.isActive) {
+                return existing
+            }
+        }
+        val job = processScope.launch {
+            val app = runCatching { com.omiyawaki.osrswiki.OSRSWikiApp.instance }.getOrNull() ?: return@launch
+            val htmlBuilder = runCatching { app.pageHtmlBuilder }.getOrNull() ?: return@launch
+            withContext(Dispatchers.Main) {
+                val theme = app.getCurrentTheme()
+                val collapseTables = com.omiyawaki.osrswiki.settings.Prefs.isCollapseTablesEnabled
+                val wrapTableCells = com.omiyawaki.osrswiki.settings.Prefs.wrapTableCells
+                val readerTextScale = com.omiyawaki.osrswiki.settings.Prefs.readerTextScale
+                val title = request.key.normalizedTitle ?: request.title.orEmpty()
+                val fullHtml = withContext(Dispatchers.Default) {
+                    htmlBuilder.buildFullHtmlDocument(
+                        title,
+                        html,
+                        theme,
+                        collapseTables,
+                        canonicalTitle = request.key.normalizedTitle
+                    )
+                }
+                osrsPreparedArticleWebViewStore.preload(
+                    request = request,
+                    fullHtml = fullHtml,
+                    theme = theme,
+                    collapseTables = collapseTables,
+                    wrapTableCells = wrapTableCells,
+                    readerTextScale = readerTextScale
+                )
+            }
+        }
+        firstViewPaintJobs[key] = job
+        job.invokeOnCompletion { firstViewPaintJobs.remove(key, job) }
+        return job
+    }
+
+    private fun cancelFirstViewIfUnpinned(request: ArticlePrewarmRequest, job: Job, paintJob: Job) {
+        val key = request.key.logValue()
         if (firstViewPinned[key] == true) {
             return
         }
         job.cancel()
+        paintJob.cancel()
         firstViewJobs.remove(key, job)
+        firstViewPaintJobs.remove(key, paintJob)
+        osrsPreparedArticleWebViewStore.unpin(request)
+        osrsPreparedArticleWebViewStore.cancel(request)
     }
 
     fun peekPreparedArticle(title: String?, pageId: Int? = null): DownloadResult? {
@@ -194,6 +256,7 @@ class PageAssetDownloader(
     ): Flow<DownloadProgress> = channelFlow {
         val foregroundStart = System.nanoTime()
         firstViewPinned[request.key.logValue()] = true
+        osrsPreparedArticleWebViewStore.pin(request, foreground = true)
         send(DownloadProgress.FetchingHtml(0))
         try {
             val result = preparationCoordinator.awaitForeground(request, forceNetwork) { progress ->

@@ -77,6 +77,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private lateinit var pageRepository: PageRepository
     private lateinit var readingListPageDao: ReadingListPageDao
     private var contentsHandler: ContentsHandler? = null
+    private var adoptedPreparedWebView = false
     private lateinit var pageContentLoader: PageContentLoader
     private lateinit var pageLinkHandler: PageLinkHandler
     private var pageWebViewManager: PageWebViewManager? = null
@@ -162,6 +163,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        adoptedPreparedWebView = adoptPreparedArticleWebViewIfReady()
         callback?.onWebViewReady(binding.pageWebView)
         setupGestureDetector()
         trackWebViewScrollPosition()
@@ -199,7 +201,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             { snippetArg },
             { thumbnailUrlArg }
         )
-        val uiUpdater = PageUiUpdater(binding, pageViewModel, webViewManager) { this }
+        val uiUpdater = PageUiUpdater(
+            binding,
+            pageViewModel,
+            webViewManager,
+            skipInitialRender = adoptedPreparedWebView
+        ) { this }
         pageUiUpdater = uiUpdater
         val pageHtmlBuilder = PageHtmlBuilder(requireContext().applicationContext)
         // A single process-owned downloader lets list dwell work and article foreground work share
@@ -222,6 +229,13 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
         pageLoadCoordinator = PageLoadCoordinator(pageViewModel, pageContentLoader, uiUpdater) { this }
         pageLoadCoordinator?.initiatePageLoad(currentTheme, forceNetwork = false)
+        if (adoptedPreparedWebView) {
+            markFirstViewComplete()
+            binding.pageWebView.evaluateJavascript(
+                "window.osrsNotifyFirstViewComplete && window.osrsNotifyFirstViewComplete()",
+                null
+            )
+        }
         binding.errorTextView.setOnClickListener {
             reloadCurrentPage()
         }
@@ -231,6 +245,42 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
         // Setup the bottom action bar
         setupBottomActionBar()
+    }
+
+    private fun adoptPreparedArticleWebViewIfReady(): Boolean {
+        val activity = activity ?: return false
+        val app = activity.application as? OSRSWikiApp ?: return false
+        val prepared = osrsPreparedArticleWebViewStore.take(
+            pageId = pageIdArg?.toIntOrNull(),
+            title = pageTitleArg,
+            theme = app.getCurrentTheme(),
+            collapseTables = Prefs.isCollapseTablesEnabled,
+            wrapTableCells = Prefs.wrapTableCells,
+            readerTextScale = Prefs.readerTextScale,
+            hostActivity = activity
+        ) ?: return false
+        val swipe = binding.articleSwipeRefresh
+        val oldWebView = binding.pageWebView
+        swipe.removeView(oldWebView)
+        oldWebView.stopLoading()
+        oldWebView.webChromeClient = null
+        oldWebView.webViewClient = android.webkit.WebViewClient()
+        oldWebView.destroy()
+        prepared.id = R.id.page_web_view
+        prepared.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        prepared.visibility = View.INVISIBLE
+        prepared.clipToPadding = false
+        swipe.addView(prepared)
+        _binding = FragmentPageBinding.bind(binding.root)
+        L.d("PageFragment: adopted prepared article WebView")
+        return true
+    }
+
+    fun revealAdoptedPreparedArticle() {
+        pageWebViewManager?.markAdoptedDocumentReady()
     }
 
     private fun createPageWebViewManager(): PageWebViewManager {

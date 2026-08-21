@@ -87,10 +87,15 @@ internal class VisibleArticlePrewarmBinder(
     private val candidatesAt: (adapterPosition: Int, rowView: View) -> Set<ArticlePrewarmRequest>,
     onDwell: (ArticlePrewarmRequest) -> ArticlePrewarmLease,
     observeEnvironmentChanges: (((() -> Unit) -> ArticlePrewarmEnvironmentSubscription))? = null,
-    dwellMillis: Long = DEFAULT_DWELL_MILLIS
+    dwellMillis: Long = DEFAULT_DWELL_MILLIS,
+    private val additionalCandidates: () -> Set<ArticlePrewarmRequest> = { emptySet() }
 ) : DefaultLifecycleObserver {
     private val lifecycle = lifecycleOwner.lifecycle
-    private val dwellTracker = VisibleRowDwellTracker(scope, dwellMillis, onDwell)
+    private val hostedOnDwell: (ArticlePrewarmRequest) -> ArticlePrewarmLease = { request ->
+        com.omiyawaki.osrswiki.page.osrsPreparedArticleWebViewStore.rememberHost(recyclerView.context)
+        onDwell(request)
+    }
+    private val dwellTracker = VisibleRowDwellTracker(scope, dwellMillis, hostedOnDwell)
     private var started = false
     private var observedAdapter: RecyclerView.Adapter<*>? = null
     private val environmentSubscription = observeEnvironmentChanges?.invoke {
@@ -164,7 +169,7 @@ internal class VisibleArticlePrewarmBinder(
             val position = recyclerView.getChildAdapterPosition(child)
             if (position == RecyclerView.NO_POSITION) emptyList() else candidatesAt(position, child)
         }.toSet()
-        dwellTracker.updateVisible(visible)
+        dwellTracker.updateVisible(visible + additionalCandidates())
     }
 
     fun clear() = dwellTracker.clear()

@@ -31,13 +31,22 @@ class PageContentLoader(
     private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
     @Volatile
     private var firstViewOpenAtElapsed: Long? = null
+    @Volatile
+    private var pendingFirstViewComplete = false
+    @Volatile
+    private var firstViewCompletePosted = false
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
         val mobileUrl = WikiSite.OSRS_WIKI.mobileUrl(articleQueryTitle)
         L.d("PageContentLoader: Generated mobile URL: $mobileUrl")
         cancelActivePageWork()
+        firstViewCompletePosted = false
         firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        if (pendingFirstViewComplete) {
+            pendingFirstViewComplete = false
+            markFirstViewComplete()
+        }
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
             pageAssetDownloader.downloadPriorityAssetsByTitle(
@@ -56,7 +65,12 @@ class PageContentLoader(
         val pageUrl = "https://oldschool.runescape.wiki/?curid=$pageId"
         L.d("PageContentLoader: Generated page URL: $pageUrl")
         cancelActivePageWork()
+        firstViewCompletePosted = false
         firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        if (pendingFirstViewComplete) {
+            pendingFirstViewComplete = false
+            markFirstViewComplete()
+        }
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
             pageAssetDownloader.downloadPriorityAssets(
@@ -262,7 +276,16 @@ class PageContentLoader(
     }
 
     fun markFirstViewComplete() {
-        val started = firstViewOpenAtElapsed ?: return
+        if (firstViewCompletePosted) {
+            return
+        }
+        val started = firstViewOpenAtElapsed
+        if (started == null) {
+            pendingFirstViewComplete = true
+            return
+        }
+        firstViewCompletePosted = true
+        pendingFirstViewComplete = false
         firstViewOpenAtElapsed = null
         val elapsed = android.os.SystemClock.elapsedRealtime() - started
         L.d("osrsFirstViewComplete elapsedMs=$elapsed")

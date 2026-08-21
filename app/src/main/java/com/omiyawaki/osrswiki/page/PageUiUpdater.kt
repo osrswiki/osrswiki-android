@@ -9,9 +9,11 @@ class PageUiUpdater(
     private val binding: FragmentPageBinding?,
     private val pageViewModel: PageViewModel,
     private val webViewManager: PageWebViewManager,
+    private val skipInitialRender: Boolean = false,
     private val fragmentContextProvider: () -> PageFragment?
 ) {
     private var isRenderInitiated = false
+    private var adoptedRevealStarted = false
 
     fun updateUi() {
         val state = pageViewModel.uiState
@@ -46,7 +48,14 @@ class PageUiUpdater(
                 errorTextView.visibility = View.GONE
                 pageWebView.visibility = if (state.htmlContent != null) View.VISIBLE else View.GONE
                 state.htmlContent?.let {
-                    if (!isRenderInitiated) {
+                    if (skipInitialRender) {
+                        isRenderInitiated = true
+                        if (!adoptedRevealStarted) {
+                            adoptedRevealStarted = true
+                            L.d("HTML is ready; skipping loadDataWithBaseURL for adopted prepared WebView.")
+                            fragment?.revealAdoptedPreparedArticle()
+                        }
+                    } else if (!isRenderInitiated) {
                         L.d("HTML is ready and render has not been initiated. Calling render().")
                         isRenderInitiated = true
                         webViewManager.render(it)

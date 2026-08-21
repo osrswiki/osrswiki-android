@@ -30,6 +30,10 @@ class SearchActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.hasExtra(EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM)) {
+            com.omiyawaki.osrswiki.settings.Prefs.disableFirstViewPaintPrewarm =
+                intent.getBooleanExtra(EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM, false)
+        }
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -176,11 +180,23 @@ class SearchActivity : BaseActivity() {
     }
 
     companion object {
-        private const val EXTRA_QUERY = "query"
+        const val EXTRA_QUERY = "query"
+        const val EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM = "osrs_disable_first_view_paint_prewarm"
         private const val KEY_SEARCH_QUERY = "search_query"
 
-        fun newIntent(context: Context): Intent {
-            return Intent(context, SearchActivity::class.java)
+        fun newIntent(
+            context: Context,
+            query: String? = null,
+            disableFirstViewPaintPrewarm: Boolean? = null
+        ): Intent {
+            return Intent(context, SearchActivity::class.java).apply {
+                if (!query.isNullOrBlank()) {
+                    putExtra(EXTRA_QUERY, query)
+                }
+                if (disableFirstViewPaintPrewarm != null) {
+                    putExtra(EXTRA_DISABLE_FIRST_VIEW_PAINT_PREWARM, disableFirstViewPaintPrewarm)
+                }
+            }
         }
     }
 }
