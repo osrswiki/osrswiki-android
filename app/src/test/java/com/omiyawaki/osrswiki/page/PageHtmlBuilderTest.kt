@@ -13,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -98,6 +99,10 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("id=\"osrs-article-first-paint\""))
         assertTrue(html.contains("background-color: #e2dbc8"))
         assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/wiki-integration.css\""))
+        assertTrue(html.contains("osrsActivateDeferredStylesheet"))
+        assertFalse(html.contains("data-osrs-css-href=\"styles/wiki-integration.css\""))
+        assertFalse(html.contains("media=\"print\""))
     }
 
     @Test
@@ -311,5 +316,113 @@ class PageHtmlBuilderTest {
         )
         markInlineIcons.isAccessible = true
         markInlineIcons.invoke(downloader, document)
+    }
+
+    @Test
+    fun liveHtmlKeepsCriticalThemeCssBlockingAndDefersWikiIntegration() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Varrock",
+            bodyContent = """<table class="infobox"><tr><td>Capital</td></tr></table>""",
+            theme = Theme.OSRS_LIGHT,
+            bakeChromeInsets = false
+        )
+        val document = Jsoup.parse(html)
+
+        assertCriticalStylesheet(document, "styles/themes.css")
+        assertCriticalStylesheet(document, "styles/base.css")
+        assertCriticalStylesheet(document, "web/collapsible_tables.css")
+        assertCriticalStylesheet(document, "web/switch_infobox_styles.css")
+        assertDeferredStylesheet(document, "styles/wiki-integration.css")
+        assertDeferredStylesheet(document, "styles/fixes.css")
+        assertDeferredStylesheet(document, "styles/android-article-aesthetics.css")
+
+        assertTrue(html.contains("id=\"osrs-article-first-paint\""))
+        assertTrue(html.contains("background-color: #e2dbc8"))
+        assertTrue(html.contains("background-color: #28221d"))
+        assertTrue(html.contains("osrsActivateDeferredStylesheet"))
+        assertTrue(html.contains("Event: ParseReady"))
+        assertTrue(html.contains("Event: FirstPaint"))
+        assertTrue(html.contains("Event: DeferredCssApplied:"))
+        assertTrue(asset("styles/wiki-integration.css").contains("infobox"))
+        assertTrue(asset("styles/fixes.css").contains("table.infobox"))
+    }
+
+    @Test
+    fun sourcePriorityAndLoaderStayInLockstepAcrossPlatforms() {
+        val root = repositoryRoot()
+        val json = File(root, "shared/css/article-css-priority.json").readText()
+        val androidBuilder = File(
+            root,
+            "platforms/android/app/src/main/java/com/omiyawaki/osrswiki/page/PageHtmlBuilder.kt"
+        ).readText()
+        val iosBuilder = File(
+            root,
+            "platforms/ios/osrswiki/Services/osrsPageHtmlBuilder.swift"
+        ).readText()
+        val androidLoader = File(
+            root,
+            "platforms/android/app/src/main/java/com/omiyawaki/osrswiki/page/PageContentLoader.kt"
+        ).readText()
+
+        assertTrue(json.contains("\"wiki-integration.css\""))
+        assertTrue(json.contains("\"fixes.css\""))
+        assertTrue(json.contains("\"themes.css\""))
+        assertTrue(androidBuilder.contains("osrsActivateDeferredStylesheet"))
+        assertTrue(iosBuilder.contains("osrsActivateDeferredStylesheet"))
+        assertTrue(androidBuilder.contains("data-osrs-css=\"deferred\""))
+        assertTrue(iosBuilder.contains("data-osrs-css=\"deferred\""))
+        assertTrue(androidBuilder.contains("LOAD-MINMAX html_ready"))
+        assertTrue(iosBuilder.contains("LOAD-MINMAX html_ready"))
+        assertTrue(androidLoader.contains("LOAD-MINMAX open"))
+        assertTrue(androidLoader.contains("LOAD-MINMAX ttfb"))
+        assertTrue(androidLoader.contains("LOAD-MINMAX first_viewport"))
+        assertTrue(androidBuilder.contains("Event: ParseReady"))
+        assertTrue(iosBuilder.contains("Event: ParseReady"))
+        assertFalse(androidBuilder.contains("Event: StylingScriptsComplete"))
+        assertFalse(iosBuilder.contains("Event: StylingScriptsComplete"))
+    }
+
+    private fun assertCriticalStylesheet(document: Document, asset: String) {
+        val links = stylesheetLinks(document, asset)
+        assertTrue("expected blocking $asset", links.any {
+            it.attr("rel") == "stylesheet" && it.attr("data-osrs-css") == "critical"
+        })
+        assertFalse("critical $asset must not use media=print", links.any { it.attr("media") == "print" })
+    }
+
+    private fun assertDeferredStylesheet(document: Document, asset: String) {
+        val links = stylesheetLinks(document, asset)
+        assertTrue("expected preload for $asset", links.any {
+            it.attr("rel") == "preload" && it.attr("as") == "style"
+        })
+        assertTrue("expected deferred stylesheet for $asset", links.any {
+            it.attr("rel") == "stylesheet" &&
+                it.attr("media") == "print" &&
+                it.attr("data-osrs-css") == "deferred"
+        })
+        assertFalse(
+            "deferred $asset must not be a blocking stylesheet",
+            links.any { it.attr("rel") == "stylesheet" && it.attr("media") != "print" }
+        )
+    }
+
+    private fun stylesheetLinks(document: Document, asset: String) =
+        document.select("link").filter { it.attr("href").contains(asset) }
+
+    private fun repositoryRoot(): File {
+        var dir = File(".").canonicalFile
+        repeat(8) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "platforms/android").isDirectory) {
+                return dir
+            }
+            dir = dir.parentFile ?: error("Could not locate repository root")
+        }
+        error("Could not locate repository root from ${File(".").canonicalFile}")
+    }
+
+    private fun asset(path: String): String {
+        val file = File("src/main/assets/$path").takeIf { it.exists() }
+            ?: File("app/src/main/assets/$path")
+        return file.readText()
     }
 }

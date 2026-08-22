@@ -6,8 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.io.File
-import java.net.URL
 import java.security.MessageDigest
 
 /**
@@ -34,6 +34,37 @@ class NetworkModuleCache private constructor(context: Context) {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: NetworkModuleCache(context.applicationContext).also { INSTANCE = it }
             }
+        }
+
+        /**
+         * Stable load.php query identity: drop empty values and MediaWiki's
+         * `version=` cache-buster, then sort remaining params. Warmer URLs
+         * without `version` then HIT live ResourceLoader URLs that add it.
+         * Different `modules=` / `only=` sets stay distinct (batched warmer
+         * URLs do not collide with per-module calculator requests).
+         */
+        internal fun canonicalQuery(url: String): String {
+            val httpUrl = url.toHttpUrlOrNull() ?: return url.substringAfter('?', missingDelimiterValue = "")
+            return httpUrl.queryParameterNames
+                .sorted()
+                .mapNotNull { name ->
+                    if (name.equals("version", ignoreCase = true)) {
+                        return@mapNotNull null
+                    }
+                    val value = httpUrl.queryParameter(name) ?: return@mapNotNull null
+                    if (value.isEmpty()) {
+                        return@mapNotNull null
+                    }
+                    "$name=$value"
+                }
+                .joinToString("&")
+        }
+
+        internal fun cacheFileName(url: String): String {
+            val query = canonicalQuery(url)
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hashBytes = digest.digest(query.toByteArray())
+            return hashBytes.joinToString("") { "%02x".format(it) } + ".js"
         }
     }
     
@@ -99,24 +130,29 @@ class NetworkModuleCache private constructor(context: Context) {
     }
     
     /**
-     * Cache a response for the given URL.
+     * Cache a response for the given URL. The file is written before return so
+     * a subsequent intercept on the same process can HIT immediately.
      */
     fun cacheResponse(url: String, response: String) {
+        putResponseSync(url, response)
         scope.launch {
-            try {
-                val cacheKey = generateCacheKey(url)
-                val cacheFile = File(cacheDir, cacheKey)
-                
-                cacheFile.writeText(response)
-                Log.d(TAG, "Cached response for: ${getModulesFromUrl(url)} (${response.length} bytes)")
-                
-                // Clean up old cache entries if needed
-                cleanupCacheIfNeeded()
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Error writing to cache: ${e.message}")
-            }
+            cleanupCacheIfNeeded()
         }
+    }
+
+    fun putResponseSync(url: String, response: String) {
+        try {
+            val cacheFile = File(cacheDir, generateCacheKey(url))
+            cacheFile.writeText(response)
+            Log.d(TAG, "Cached response for: ${getModulesFromUrl(url)} (${response.length} bytes)")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error writing to cache: ${e.message}")
+        }
+    }
+
+    fun clearCacheSync() {
+        cacheDir.deleteRecursively()
+        cacheDir.mkdirs()
     }
     
     /**
@@ -134,17 +170,8 @@ class NetworkModuleCache private constructor(context: Context) {
      */
     private fun generateCacheKey(url: String): String {
         return try {
-            val urlObj = URL(url)
-            val query = urlObj.query ?: ""
-            
-            // Create hash of the query parameters
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hashBytes = digest.digest(query.toByteArray())
-            
-            // Convert to hex string
-            hashBytes.joinToString("") { "%02x".format(it) } + ".js"
+            cacheFileName(url)
         } catch (e: Exception) {
-            // Fallback: simple hash of the entire URL
             url.hashCode().toString() + ".js"
         }
     }

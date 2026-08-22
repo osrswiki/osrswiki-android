@@ -54,4 +54,30 @@ class osrsSavedPaintHtmlTest {
         assertTrue(live.contains("osrs-article-live-chrome"))
         assertTrue(live.contains("--osrs-article-bottom-chrome: 96px"))
     }
+
+    @Test
+    fun inlinesDeferredStylesheetLinksAndIgnoresStylePreloads() {
+        val html = """
+            <html><head>
+            <link rel="preload" as="style" href="https://appassets.androidplatform.net/assets/styles/wiki-integration.css">
+            <link rel="stylesheet" href="https://appassets.androidplatform.net/assets/styles/wiki-integration.css" media="print" onload="osrsActivateDeferredStylesheet(this)" data-osrs-css="deferred" data-osrs-css-href="styles/wiki-integration.css">
+            <link rel="stylesheet" href="https://appassets.androidplatform.net/assets/styles/themes.css" data-osrs-css="critical">
+            <link rel="preload" href="https://appassets.androidplatform.net/res/font/alegreya_bold.ttf" as="font" type="font/ttf" crossorigin="anonymous">
+            </head><body></body></html>
+        """.trimIndent()
+        val loaded = mutableListOf<String>()
+        val inlined = osrsSavedPaintHtml.inlineLinkedFirstPaintCss(html) { path ->
+            loaded += path
+            if (path == "styles/wiki-integration.css") "table.infobox{color:red}" else "body{background:#e2dbc8}"
+        }
+        assertEquals(setOf("styles/wiki-integration.css", "styles/themes.css"), loaded.toSet())
+        assertTrue(inlined.contains("data-osrs-inline-css=\"styles/wiki-integration.css\""))
+        assertTrue(inlined.contains("table.infobox{color:red}"))
+        assertTrue(inlined.contains("data-osrs-inline-css=\"styles/themes.css\""))
+        assertTrue(inlined.contains("body{background:#e2dbc8}"))
+        assertFalse(inlined.contains("rel=\"stylesheet\""))
+        assertFalse(inlined.contains("as=\"style\""))
+        assertTrue(inlined.contains("as=\"font\""))
+        assertTrue(inlined.contains("alegreya_bold.ttf"))
+    }
 }

@@ -15,30 +15,39 @@ class PageRenderReadinessTrackerTest {
     }
 
     @Test
-    fun stylingCompleteAloneDoesNotMarkPageReadyForDisplay() {
+    fun firstViewAloneDoesNotMarkPageReadyForDisplay() {
         val tracker = PageRenderReadinessTracker()
 
-        assertFalse(tracker.onStylingScriptsComplete())
+        assertFalse(tracker.onFirstViewComplete())
         assertFalse(tracker.isReadyForDisplay)
     }
 
     @Test
-    fun readySignalFiresOnceAfterLoadAndStylingAreBothComplete() {
+    fun readySignalFiresOnceAfterLoadAndFirstViewAreBothComplete() {
         val tracker = PageRenderReadinessTracker()
 
         assertFalse(tracker.onMainFrameLoadFinished())
-        assertTrue(tracker.onStylingScriptsComplete())
+        assertTrue(tracker.onFirstViewComplete())
         assertTrue(tracker.isReadyForDisplay)
-        assertFalse(tracker.onStylingScriptsComplete())
+        assertFalse(tracker.onFirstViewComplete())
         assertFalse(tracker.onMainFrameLoadFinished())
     }
 
     @Test
-    fun readySignalCanArriveWhenStylingCompletesBeforeMainFrameLoad() {
+    fun readySignalCanArriveWhenFirstViewCompletesBeforeMainFrameLoad() {
         val tracker = PageRenderReadinessTracker()
 
-        assertFalse(tracker.onStylingScriptsComplete())
+        assertFalse(tracker.onFirstViewComplete())
         assertTrue(tracker.onMainFrameLoadFinished())
+        assertTrue(tracker.isReadyForDisplay)
+    }
+
+    @Test
+    fun stylingCompleteRemainsALateFallbackForFirstView() {
+        val tracker = PageRenderReadinessTracker()
+
+        assertFalse(tracker.onMainFrameLoadFinished())
+        assertTrue(tracker.onStylingScriptsComplete())
         assertTrue(tracker.isReadyForDisplay)
     }
 
@@ -47,13 +56,13 @@ class PageRenderReadinessTrackerTest {
         val tracker = PageRenderReadinessTracker()
 
         tracker.onMainFrameLoadFinished()
-        tracker.onStylingScriptsComplete()
+        tracker.onFirstViewComplete()
 
         tracker.reset()
 
         assertFalse(tracker.isReadyForDisplay)
         assertFalse(tracker.onMainFrameLoadFinished())
-        assertTrue(tracker.onStylingScriptsComplete())
+        assertTrue(tracker.onFirstViewComplete())
     }
 
     @Test
@@ -63,6 +72,7 @@ class PageRenderReadinessTrackerTest {
         assertTrue(tracker.forceReadyForDisplay())
         assertFalse(tracker.forceReadyForDisplay())
         assertFalse(tracker.onMainFrameLoadFinished())
+        assertFalse(tracker.onFirstViewComplete())
         assertFalse(tracker.onStylingScriptsComplete())
     }
 }

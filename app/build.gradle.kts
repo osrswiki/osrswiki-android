@@ -445,6 +445,7 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
     testImplementation(libs.robolectric)
+    testImplementation(libs.okhttp.mockwebserver)
     // The prototype unit test parses its generated payload directly. The map
     // library intentionally keeps this implementation dependency private.
     add("testMapPrototypeImplementation", "org.maplibre.gl:android-sdk-geojson:6.0.1")

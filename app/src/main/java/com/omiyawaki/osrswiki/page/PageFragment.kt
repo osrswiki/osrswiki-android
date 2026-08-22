@@ -840,6 +840,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         if (::pageContentLoader.isInitialized) {
             pageContentLoader.markFirstViewComplete()
         }
+        pageWebViewManager?.notifyFirstViewPainted("firstViewComplete")
     }
 
     override fun onPageReadyForDisplay() {

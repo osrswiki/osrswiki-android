@@ -14,22 +14,30 @@ class PageHtmlBuilder(private val context: Context) {
 
     private val logTag = "PageLoadTrace"
 
-    // App-specific stylesheets (preserved from working version)
-    private val styleSheetAssets = listOf(
+    // Render-blocking first-paint CSS: theme tokens, typography, above-fold chrome.
+    // See shared/css/article-css-priority.json.
+    private val criticalStyleSheetAssets = listOf(
         "styles/themes.css",
         "styles/base.css",
         "styles/fonts.css",
         "styles/layout.css",
         "styles/components.css",
+        JavaScriptActionHandler.getCollapsibleTableCssPath(),
+        "web/collapsible_sections.css",
+        JavaScriptActionHandler.getInfoboxSwitcherCssPath()
+    )
+
+    // Heavy wiki fidelity sheets. Downloaded immediately but applied after first paint.
+    private val deferredStyleSheetAssets = listOf(
         "styles/wiki-integration.css",
-        "styles/navbox_styles.css",                         // Restored: Navbox styling
-        JavaScriptActionHandler.getCollapsibleTableCssPath(), // Restored: Collapsible tables CSS
-        "web/collapsible_sections.css",                 // Restored: Collapsible sections CSS
-        JavaScriptActionHandler.getInfoboxSwitcherCssPath(), // Restored: Infobox switcher CSS
+        "styles/navbox_styles.css",
         "styles/fixes.css",
         "styles/gadget_calc.css",
         "styles/android-article-aesthetics.css"
     )
+
+    private val styleSheetAssets: List<String>
+        get() = criticalStyleSheetAssets + deferredStyleSheetAssets
 
     // Simple MediaWiki ResourceLoader - let it work naturally
     private val mediawikiArtifacts = listOf(
@@ -154,20 +162,7 @@ class PageHtmlBuilder(private val context: Context) {
                 Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
             }
 
-            val cssLinks = if (inlineFirstPaintCss) {
-                styleSheetAssets.joinToString("\n") { assetPath ->
-                    val css = loadAssetText(assetPath)
-                    if (css.isNullOrEmpty()) {
-                        "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
-                    } else {
-                        "<style data-osrs-inline-css=\"$assetPath\">$css</style>"
-                    }
-                }
-            } else {
-                styleSheetAssets.joinToString("\n") { assetPath ->
-                    "<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/$assetPath\">"
-                }
-            }
+            val cssLinks = stylesheetMarkup(inlineFirstPaintCss)
 
             Log.d(logTag, "Using natural MediaWiki ResourceLoader with network-level caching")
 
@@ -265,7 +260,33 @@ class PageHtmlBuilder(private val context: Context) {
                 .toString()
         }
         Log.d(logTag, "buildFullHtmlDocument() took ${time}ms")
+        Log.d(
+            logTag,
+            "LOAD-MINMAX html_ready buildMs=$time htmlChars=${finalHtml.length} " +
+                "inlineFirstPaintCss=$inlineFirstPaintCss"
+        )
         return finalHtml
+    }
+
+    private fun stylesheetMarkup(inlineFirstPaintCss: Boolean): String {
+        if (inlineFirstPaintCss) {
+            val inlined = styleSheetAssets.joinToString("\n") { assetPath ->
+                val css = loadAssetText(assetPath)
+                if (css.isNullOrEmpty()) {
+                    blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
+                } else {
+                    """<style data-osrs-inline-css="$assetPath">$css</style>"""
+                }
+            }
+            return "$inlined\n$ARTICLE_CSS_LOADER_SCRIPT"
+        }
+        val critical = criticalStyleSheetAssets.joinToString("\n") { assetPath ->
+            blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
+        }
+        val deferred = deferredStyleSheetAssets.joinToString("\n") { assetPath ->
+            deferredStylesheetLinks(assetPath, ANDROID_ASSET_HREF_PREFIX)
+        }
+        return "$critical\n$ARTICLE_CSS_LOADER_SCRIPT\n$deferred"
     }
 
     fun loadAssetText(assetPath: String): String? {
@@ -307,6 +328,61 @@ class PageHtmlBuilder(private val context: Context) {
     companion object {
         private const val READER_STYLE_ID = "osrs-reader-text-scale-style"
         private const val READER_SCALE_VARIABLE = "--osrs-article-user-text-scale"
+        internal const val ANDROID_ASSET_HREF_PREFIX = "https://appassets.androidplatform.net/assets/"
+
+        /**
+         * Shared head loader for deferred CSS activation and load-minmax timeline events.
+         * Keep in lockstep with osrsPageHtmlBuilder.articleCssLoaderScript on iOS.
+         */
+        internal val ARTICLE_CSS_LOADER_SCRIPT = """
+<script id="osrs-article-css-loader">
+(function() {
+  window.osrsActivateDeferredStylesheet = function(link) {
+    if (!link || link.getAttribute('data-osrs-css-activated') === '1') { return; }
+    link.media = 'all';
+    link.onload = null;
+    link.setAttribute('data-osrs-css-activated', '1');
+    var href = link.getAttribute('data-osrs-css-href') || link.getAttribute('href') || '';
+    if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+      window.RenderTimeline.log('Event: DeferredCssApplied:' + href);
+    }
+  };
+  function osrsActivatePendingDeferredStylesheets() {
+    var nodes = document.querySelectorAll('link[data-osrs-css="deferred"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].media !== 'all') {
+        window.osrsActivateDeferredStylesheet(nodes[i]);
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    osrsActivatePendingDeferredStylesheets();
+    if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+      window.RenderTimeline.log('Event: ParseReady');
+    }
+  });
+  if (window.requestAnimationFrame) {
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
+          window.RenderTimeline.log('Event: FirstPaint');
+        }
+      });
+    });
+  }
+})();
+</script>
+        """.trimIndent()
+
+        internal fun blockingStylesheetLink(asset: String, hrefPrefix: String): String {
+            return """<link rel="stylesheet" href="$hrefPrefix$asset" data-osrs-css="critical">"""
+        }
+
+        internal fun deferredStylesheetLinks(asset: String, hrefPrefix: String): String {
+            val href = "$hrefPrefix$asset"
+            return """<link rel="preload" as="style" href="$href">
+<link rel="stylesheet" href="$href" media="print" onload="osrsActivateDeferredStylesheet(this)" data-osrs-css="deferred" data-osrs-css-href="$asset">"""
+        }
 
         internal fun articleFirstPaintStyle(
             chromeClearancePx: Int = 0,

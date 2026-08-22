@@ -67,16 +67,13 @@ class PageWebViewManager(
             val elapsed = System.currentTimeMillis() - renderStartTime
             Log.d(logTag, "JS TIMELINE [${elapsed}ms]: $message")
 
-            if (message == "Event: StylingScriptsComplete") {
-                val callbackGeneration = renderGeneration
-                webView.post {
-                    if (isDisposed || callbackGeneration != renderGeneration) {
-                        return@post
-                    }
-                    if (readinessTracker.onStylingScriptsComplete()) {
-                        logRenderReadyBudget("stylingScriptsComplete")
-                        renderCallback.onPageReadyForDisplay()
-                    }
+            when {
+                isTimelineEvent(message, "Event: FirstViewPainted") -> {
+                    notifyFirstViewPainted("firstViewComplete")
+                }
+                isTimelineEvent(message, "Event: StylingScriptsComplete") -> {
+                    // Late fallback: collapse/map finished without a first-viewport signal.
+                    notifyFirstViewPainted("stylingScriptsCompleteFallback")
                 }
             }
         }
@@ -669,6 +666,22 @@ class PageWebViewManager(
         Log.d(logTag, "<<< Returned from webView.loadDataWithBaseURL().")
     }
 
+    fun notifyFirstViewPainted(reason: String = "firstViewComplete") {
+        if (isDisposed) {
+            return
+        }
+        val callbackGeneration = renderGeneration
+        webView.post {
+            if (isDisposed || callbackGeneration != renderGeneration) {
+                return@post
+            }
+            if (readinessTracker.onFirstViewComplete()) {
+                logRenderReadyBudget(reason)
+                renderCallback.onPageReadyForDisplay()
+            }
+        }
+    }
+
     fun markAdoptedDocumentReady() {
         if (isDisposed || pageLoaded) {
             return
@@ -706,6 +719,10 @@ class PageWebViewManager(
     companion object {
         private const val RENDER_READY_BUDGET_MS = 8_000L
         private const val RENDER_READY_TIMEOUT_MS = RENDER_READY_BUDGET_MS
+
+        private fun isTimelineEvent(message: String, name: String): Boolean {
+            return message == name || message.startsWith("$name:")
+        }
 
         fun handleRenderProcessGoneForRecovery(
             didCrash: Boolean,

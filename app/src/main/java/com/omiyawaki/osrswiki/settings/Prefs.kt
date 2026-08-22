@@ -56,10 +56,10 @@ object Prefs {
         get() = appearancePreferences.floorNumberingMode
 
     @Volatile
-    var disableFirstViewPaintPrewarm: Boolean = false
+    var disableFirstViewPaintPrewarm: Boolean = true
 
     @Volatile
-    var disableArticlePrewarm: Boolean = false
+    var disableArticlePrewarm: Boolean = true
 
 
     /**

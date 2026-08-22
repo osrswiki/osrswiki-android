@@ -120,6 +120,15 @@ class ArticleAestheticCssContractTest {
             "Location labels are th[colspan=2]; excluding colspan from nowrap wraps Inhabitants.",
             fixes.contains("table.infobox th:not(.infobox-header):not([colspan])")
         )
+        assertTrue(fixes.contains("max-width: max-content !important;"))
+        assertFalse(
+            "An 8em min-content floor stretches compact infoboxes on WebKit.",
+            fixes.contains("max(8em, min-content)")
+        )
+        val tableNormalize = assetFile("web/table_column_normalize.js").readText()
+        assertTrue(tableNormalize.contains("lockInfoboxValueCellFloors"))
+        assertTrue(tableNormalize.contains("probeInfoboxValueIntrinsicWidth"))
+        assertTrue(tableNormalize.contains("osrsValueFloor"))
         val themes = assetFile("styles/themes.css").readText()
         assertTrue(themes.contains("html.theme-osrs-dark"))
         assertTrue(themes.contains("--osrs-disclosure-chrome-bg: var(--body-light);"))
@@ -152,6 +161,8 @@ class ArticleAestheticCssContractTest {
         assertTrue(source.contains("topLevelPrimaryInfobox"))
         assertTrue(source.contains("shouldStartCollapsed(isPrimary)"))
         assertTrue(source.contains("restoreDeferredImages"))
+        assertTrue(source.contains("scheduleCollapseAndMapWork"))
+        assertTrue(source.contains("osrs-first-view-complete"))
         assertTrue(source.contains("Array.from(content.querySelectorAll('.mw-kartographer-map'))"))
         assertTrue(source.contains("mapPlaceholders.forEach"))
         assertTrue(source.contains("directRecipeTables"))

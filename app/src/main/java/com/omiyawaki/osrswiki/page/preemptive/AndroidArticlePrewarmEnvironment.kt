@@ -129,7 +129,8 @@ internal class AndroidArticlePrewarmEnvironmentProvider(
                 networkConstrained = connectivityManager.isActiveNetworkMetered || dataSaverConstrained,
                 powerSave = powerManager.isPowerSaveMode,
                 thermallyConstrained = thermalConstrained,
-                debugDisabled = Prefs.disableArticlePrewarm
+                debugDisabled = Prefs.disableArticlePrewarm ||
+                    !com.omiyawaki.osrswiki.page.osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled
             )
         )
     }

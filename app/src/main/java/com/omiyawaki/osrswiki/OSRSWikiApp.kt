@@ -13,6 +13,7 @@ import android.util.Log
 import android.webkit.WebView
 import androidx.collection.LruCache
 import com.omiyawaki.osrswiki.database.AppDatabase
+import com.omiyawaki.osrswiki.network.ModuleCacheWarmer
 import com.omiyawaki.osrswiki.network.OkHttpClientFactory
 import com.omiyawaki.osrswiki.network.RetrofitClient
 import com.omiyawaki.osrswiki.page.PageAssetDownloader
@@ -205,6 +206,7 @@ class OSRSWikiApp : Application() {
             Log.d("StartupTiming", "Network callback initialized in ${System.currentTimeMillis() - networkCallbackStartTime}ms")
             
             Log.i("StartupTiming", "Dependencies initialized")
+            ModuleCacheWarmer.getInstance(this).warmCacheWithEssentials()
             
         } catch (e: Exception) {
             logCrashManually(e, "Failed to initialize dependencies")

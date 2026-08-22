@@ -2,13 +2,13 @@ package com.omiyawaki.osrswiki.page
 
 class PageRenderReadinessTracker {
     private var mainFrameLoadFinished = false
-    private var stylingScriptsComplete = false
+    private var firstViewComplete = false
     var isReadyForDisplay: Boolean = false
         private set
 
     fun reset() {
         mainFrameLoadFinished = false
-        stylingScriptsComplete = false
+        firstViewComplete = false
         isReadyForDisplay = false
     }
 
@@ -17,10 +17,13 @@ class PageRenderReadinessTracker {
         return maybeMarkReady()
     }
 
-    fun onStylingScriptsComplete(): Boolean {
-        stylingScriptsComplete = true
+    fun onFirstViewComplete(): Boolean {
+        firstViewComplete = true
         return maybeMarkReady()
     }
+
+    /** Late fallback if first-viewport never arrives; collapse/map still emit this. */
+    fun onStylingScriptsComplete(): Boolean = onFirstViewComplete()
 
     fun forceReadyForDisplay(): Boolean {
         if (isReadyForDisplay) {
@@ -31,7 +34,7 @@ class PageRenderReadinessTracker {
     }
 
     private fun maybeMarkReady(): Boolean {
-        if (isReadyForDisplay || !mainFrameLoadFinished || !stylingScriptsComplete) {
+        if (isReadyForDisplay || !mainFrameLoadFinished || !firstViewComplete) {
             return false
         }
         isReadyForDisplay = true

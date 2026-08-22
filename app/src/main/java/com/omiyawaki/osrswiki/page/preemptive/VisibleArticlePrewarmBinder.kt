@@ -92,8 +92,12 @@ internal class VisibleArticlePrewarmBinder(
 ) : DefaultLifecycleObserver {
     private val lifecycle = lifecycleOwner.lifecycle
     private val hostedOnDwell: (ArticlePrewarmRequest) -> ArticlePrewarmLease = { request ->
-        com.omiyawaki.osrswiki.page.osrsPreparedArticleWebViewStore.rememberHost(recyclerView.context)
-        onDwell(request)
+        if (!com.omiyawaki.osrswiki.page.osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled) {
+            ArticlePrewarmLease { }
+        } else {
+            com.omiyawaki.osrswiki.page.osrsPreparedArticleWebViewStore.rememberHost(recyclerView.context)
+            onDwell(request)
+        }
     }
     private val dwellTracker = VisibleRowDwellTracker(scope, dwellMillis, hostedOnDwell)
     private var started = false
@@ -141,7 +145,9 @@ internal class VisibleArticlePrewarmBinder(
 
     fun refresh() {
         syncAdapterObserver()
-        if (!started) {
+        if (!started ||
+            !com.omiyawaki.osrswiki.page.osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled
+        ) {
             dwellTracker.clear()
             return
         }

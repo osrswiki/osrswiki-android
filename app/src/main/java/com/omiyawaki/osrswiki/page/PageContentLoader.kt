@@ -35,6 +35,8 @@ class PageContentLoader(
     private var pendingFirstViewComplete = false
     @Volatile
     private var firstViewCompletePosted = false
+    @Volatile
+    private var loggedTtfb = false
 
     fun loadPageByTitle(articleQueryTitle: String, theme: Theme, forceNetwork: Boolean = false) {
         L.d("PageContentLoader: Loading page by title: '$articleQueryTitle', theme: $theme, forceNetwork: $forceNetwork")
@@ -42,7 +44,9 @@ class PageContentLoader(
         L.d("PageContentLoader: Generated mobile URL: $mobileUrl")
         cancelActivePageWork()
         firstViewCompletePosted = false
+        loggedTtfb = false
         firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        L.d("LOAD-MINMAX open title='$articleQueryTitle'")
         if (pendingFirstViewComplete) {
             pendingFirstViewComplete = false
             markFirstViewComplete()
@@ -66,7 +70,9 @@ class PageContentLoader(
         L.d("PageContentLoader: Generated page URL: $pageUrl")
         cancelActivePageWork()
         firstViewCompletePosted = false
+        loggedTtfb = false
         firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        L.d("LOAD-MINMAX open pageId=$pageId")
         if (pendingFirstViewComplete) {
             pendingFirstViewComplete = false
             markFirstViewComplete()
@@ -88,6 +94,16 @@ class PageContentLoader(
         when (progress) {
             is DownloadProgress.FetchingHtml -> {
                 withContext(Dispatchers.Main) {
+                    if (!loggedTtfb) {
+                        loggedTtfb = true
+                        val started = firstViewOpenAtElapsed
+                        val elapsed = if (started != null) {
+                            android.os.SystemClock.elapsedRealtime() - started
+                        } else {
+                            -1L
+                        }
+                        L.d("LOAD-MINMAX ttfb elapsedMs=$elapsed")
+                    }
                     if (pageViewModel.uiState.progressText == null) {
                         return@withContext
                     }
@@ -163,6 +179,20 @@ class PageContentLoader(
                         "ArticleRenderPhase: tocExtractionMs=$tocTime documentBuildMs=$documentBuildTime " +
                             "processedChars=${result.processedHtml.length} finalChars=${finalHtml.length} " +
                             "paintSnapshot=${paintSnapshot != null}"
+                    )
+                    val openStarted = firstViewOpenAtElapsed
+                    val openElapsed = if (openStarted != null) {
+                        android.os.SystemClock.elapsedRealtime() - openStarted
+                    } else {
+                        -1L
+                    }
+                    if (!loggedTtfb) {
+                        loggedTtfb = true
+                        L.d("LOAD-MINMAX ttfb elapsedMs=$openElapsed")
+                    }
+                    L.d(
+                        "LOAD-MINMAX html_ready elapsedMs=$openElapsed documentBuildMs=$documentBuildTime " +
+                            "htmlChars=${finalHtml.length} paintSnapshot=${paintSnapshot != null}"
                     )
                     finalHtml to tableOfContentsSections
                 }
@@ -289,6 +319,7 @@ class PageContentLoader(
         firstViewOpenAtElapsed = null
         val elapsed = android.os.SystemClock.elapsedRealtime() - started
         L.d("osrsFirstViewComplete elapsedMs=$elapsed")
+        L.d("LOAD-MINMAX first_viewport elapsedMs=$elapsed")
     }
 
     fun cancelActivePageWork() {

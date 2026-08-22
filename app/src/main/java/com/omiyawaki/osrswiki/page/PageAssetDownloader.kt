@@ -109,6 +109,9 @@ class PageAssetDownloader(
     }
 
     internal fun prewarmArticle(request: ArticlePrewarmRequest): ArticlePrewarmLease {
+        if (!osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled) {
+            return ArticlePrewarmLease { }
+        }
         val key = request.key.logValue()
         osrsPreparedArticleWebViewStore.pin(request)
         preparationCoordinator.peekPrepared(request)?.processedHtml?.takeIf { it.isNotBlank() }?.let { html ->
@@ -160,7 +163,9 @@ class PageAssetDownloader(
 
     private fun startFirstViewPaint(request: ArticlePrewarmRequest, html: String): Job {
         val key = request.key.logValue()
-        if (com.omiyawaki.osrswiki.settings.Prefs.disableFirstViewPaintPrewarm) {
+        if (!osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled
+            || com.omiyawaki.osrswiki.settings.Prefs.disableFirstViewPaintPrewarm
+        ) {
             return processScope.launch { }
         }
         firstViewPaintJobs[key]?.let { existing ->

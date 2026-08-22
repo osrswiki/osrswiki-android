@@ -13,6 +13,9 @@ import com.omiyawaki.osrswiki.savedpages.ReadingListAssetValidationException
 import com.omiyawaki.osrswiki.savedpages.OkHttpReadingListAssetFetcher
 import com.omiyawaki.osrswiki.savedpages.ReadingListSnapshotNetworkRequestMarker
 import com.omiyawaki.osrswiki.savedpages.SavedPageSaveCompletionPolicy
+import com.omiyawaki.osrswiki.network.WikiHttpCachePolicy
+import com.omiyawaki.osrswiki.network.WikiHttpCachePolicyInterceptor
+import okhttp3.Cache
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Protocol
 import okhttp3.OkHttpClient
@@ -76,6 +79,41 @@ class OfflineCacheInterceptorTest {
             assertEquals("text/html; charset=utf-8", response.body?.contentType().toString())
             assertEquals("<html>cached varrock</html>", response.body?.string())
         }
+    }
+
+    @Test
+    fun interceptServesCachedReadingListWhenHttpDiskCacheMissesAndNetworkThrowsIOException() {
+        val url = "https://oldschool.runescape.wiki/api.php?action=parse&page=Varrock"
+        seedReadingListCache(
+            url = url,
+            path = "cached-varrock-http-disk",
+            metadata = "Content-Type: text/html; charset=utf-8\nX-Offline-Test: room-hit",
+            content = "<html>room varrock</html>"
+        )
+        val httpCacheDir = File(context.cacheDir, "okhttp_wiki_http_interceptor_test")
+        httpCacheDir.deleteRecursively()
+        val client = OkHttpClient.Builder()
+            .cache(Cache(httpCacheDir, WikiHttpCachePolicy.CACHE_MAX_BYTES))
+            .addInterceptor(WikiHttpCachePolicyInterceptor())
+            .addInterceptor(
+                OfflineCacheInterceptor(
+                    context = context,
+                    offlineObjectDao = database.offlineObjectDao(),
+                    appDatabase = database
+                )
+            )
+            .addInterceptor {
+                throw IOException("simulated network outage")
+            }
+            .build()
+
+        client.newCall(Request.Builder().url(url).build()).execute().use { response ->
+            assertEquals(200, response.code)
+            assertEquals("OK (served from cache)", response.message)
+            assertEquals("room-hit", response.header("X-Offline-Test"))
+            assertEquals("<html>room varrock</html>", response.body?.string())
+        }
+        httpCacheDir.deleteRecursively()
     }
 
     @Test

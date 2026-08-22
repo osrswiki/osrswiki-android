@@ -128,6 +128,9 @@ internal object osrsPreparedArticleWebViewStore {
         wrapTableCells: Boolean,
         readerTextScale: Float
     ) {
+        if (!osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled) {
+            return
+        }
         if (osrsBackgroundWorkGate.isPaused) {
             mainHandler.postDelayed({
                 preload(request, fullHtml, theme, collapseTables, wrapTableCells, readerTextScale)
@@ -214,7 +217,7 @@ internal object osrsPreparedArticleWebViewStore {
         readerTextScale: Float,
         hostActivity: Activity
     ): ObservableWebView? {
-        if (Prefs.disableFirstViewPaintPrewarm) {
+        if (!osrsArticlePreloadPolicy.speculativeLiveArticlePreloadsEnabled || Prefs.disableFirstViewPaintPrewarm) {
             return null
         }
         val request = runCatching {

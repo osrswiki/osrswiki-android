@@ -1,152 +1,54 @@
 package com.omiyawaki.osrswiki.network
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLEncoder
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
 
 /**
- * Cache warming mechanism for MediaWiki modules.
- * 
- * This class proactively fetches and caches modules that will be needed
- * for pages, improving performance by having modules ready before the
- * WebView requests them.
+ * Cache warming for MediaWiki ResourceLoader modules.
+ *
+ * Fetches the same `/load.php` query shapes the article WebView will request
+ * (calculator sequential inject + common RL script-only URLs) and stores them
+ * in [NetworkModuleCache]. ResourceLoader itself is not rewritten; the
+ * intercept path serves a HIT when the canonical query matches.
  */
-class ModuleCacheWarmer private constructor(context: Context) {
-    
+class ModuleCacheWarmer internal constructor(
+    context: Context,
+    private val clientProvider: () -> OkHttpClient
+) {
+
     companion object {
         private const val TAG = "ModuleCacheWarmer"
-        private const val BASE_LOAD_URL = "https://oldschool.runescape.wiki/load.php"
-        
-        @Volatile
-        private var INSTANCE: ModuleCacheWarmer? = null
-        
-        fun getInstance(context: Context): ModuleCacheWarmer {
-            return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: ModuleCacheWarmer(context.applicationContext).also { INSTANCE = it }
-            }
-        }
-    }
-    
-    private val moduleCache = NetworkModuleCache.getInstance(context)
-    private val scope = CoroutineScope(Dispatchers.IO)
-    
-    /**
-     * Warm the cache with modules needed for a page.
-     * 
-     * @param pageModules List of module names from RLPAGEMODULES
-     * @param isMobile Whether this is for mobile skin (affects some parameters)
-     */
-    fun warmCacheForPage(pageModules: List<String>, isMobile: Boolean = true) {
-        if (pageModules.isEmpty()) {
-            Log.d(TAG, "No modules to warm cache for")
-            return
-        }
-        
-        scope.launch {
-            try {
-                Log.d(TAG, "Starting cache warming for ${pageModules.size} modules")
-                
-                // Group modules into batches for efficient loading
-                val batches = createModuleBatches(pageModules)
-                
-                for ((index, batch) in batches.withIndex()) {
-                    val loadUrl = buildLoadUrl(batch, isMobile)
-                    
-                    // Check if already cached
-                    if (moduleCache.isCached(loadUrl)) {
-                        Log.d(TAG, "Batch ${index + 1}/${batches.size} already cached: ${batch.take(3).joinToString(",")}")
-                        continue
-                    }
-                    
-                    Log.d(TAG, "Warming cache for batch ${index + 1}/${batches.size}: ${batch.take(3).joinToString(",")}")
-                    
-                    val response = fetchModuleBatch(loadUrl)
-                    if (response != null) {
-                        moduleCache.cacheResponse(loadUrl, response)
-                        Log.d(TAG, "Successfully cached batch ${index + 1} (${response.length} bytes)")
-                    } else {
-                        Log.w(TAG, "Failed to fetch batch ${index + 1}")
-                    }
-                }
-                
-                Log.d(TAG, "Cache warming completed for ${pageModules.size} modules")
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Error during cache warming: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Group modules into batches for efficient loading.
-     * MediaWiki's ResourceLoader can handle multiple modules in one request.
-     */
-    private fun createModuleBatches(modules: List<String>): List<List<String>> {
-        val batchSize = 10 // Load up to 10 modules per request
-        return modules.chunked(batchSize)
-    }
-    
-    /**
-     * Build a load.php URL for a batch of modules.
-     */
-    private fun buildLoadUrl(modules: List<String>, isMobile: Boolean): String {
-        val modulesParam = modules.joinToString("|") { URLEncoder.encode(it, "UTF-8") }
-        
-        val params = mutableMapOf(
-            "modules" to modulesParam,
-            "only" to "scripts",
-            "skin" to if (isMobile) "minerva" else "vector",
-            "debug" to "false",
-            "lang" to "en-gb",
-            "version" to "" // Let MediaWiki handle versioning
+        const val BASE_LOAD_URL = "https://oldschool.runescape.wiki/load.php"
+
+        /**
+         * Modules the calculator runtime injects as sequential `/load.php`
+         * script tags. `mediawiki.widgets` is requested without `only=scripts`,
+         * matching `osrs_calculator_runtime.js`.
+         */
+        val CALCULATOR_INJECT_MODULES: List<EssentialModule> = listOf(
+            EssentialModule("jquery", onlyScripts = true),
+            EssentialModule("oojs", onlyScripts = true),
+            EssentialModule("oojs-ui-core", onlyScripts = true),
+            EssentialModule("oojs-ui-widgets", onlyScripts = true),
+            EssentialModule("mediawiki.widgets", onlyScripts = false),
+            EssentialModule("ext.gadget.rsw-util", onlyScripts = true)
         )
-        
-        val queryString = params.map { (key, value) -> 
-            "${URLEncoder.encode(key, "UTF-8")}=${URLEncoder.encode(value, "UTF-8")}" 
-        }.joinToString("&")
-        
-        return "$BASE_LOAD_URL?$queryString"
-    }
-    
-    /**
-     * Fetch a batch of modules from the network.
-     */
-    private suspend fun fetchModuleBatch(url: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-            connection.connectTimeout = 15000
-            connection.readTimeout = 15000
-            connection.setRequestProperty("User-Agent", "OSRSWiki-Android")
-            connection.setRequestProperty("Accept", "application/javascript, */*")
-            
-            if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d(TAG, "Successfully fetched module batch (${response.length} bytes)")
-                response
-            } else {
-                Log.w(TAG, "Failed to fetch module batch: HTTP ${connection.responseCode}")
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching module batch: ${e.message}")
-            null
-        }
-    }
-    
-    /**
-     * Warm cache with commonly needed modules.
-     * This can be called on app startup to pre-cache essential modules.
-     */
-    fun warmCacheWithEssentials() {
-        val essentialModules = listOf(
+
+        /**
+         * Cold-start essentials: calculator/OOUI inject list plus common RL
+         * gadgets. `oojs` is required before `oojs-ui-core` on calculator pages.
+         */
+        val ESSENTIAL_MODULES: List<String> = listOf(
             "jquery",
+            "oojs",
             "mediawiki.base",
             "mediawiki.util",
             "mediawiki.page.ready",
@@ -158,11 +60,158 @@ class ModuleCacheWarmer private constructor(context: Context) {
             "oojs-ui-widgets",
             "mediawiki.widgets"
         )
-        
-        Log.d(TAG, "Warming cache with essential modules")
-        warmCacheForPage(essentialModules)
+
+        @Volatile
+        private var INSTANCE: ModuleCacheWarmer? = null
+
+        fun getInstance(context: Context): ModuleCacheWarmer {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: ModuleCacheWarmer(
+                    context.applicationContext,
+                    Companion::defaultClient
+                ).also { INSTANCE = it }
+            }
+        }
+
+        internal fun createForTest(context: Context, client: OkHttpClient): ModuleCacheWarmer {
+            return ModuleCacheWarmer(context.applicationContext) { client }
+        }
+
+        fun calculatorShapedUrl(module: String, onlyScripts: Boolean): String {
+            val builder = BASE_LOAD_URL.toHttpUrl().newBuilder()
+                .addQueryParameter("modules", module)
+            if (onlyScripts) {
+                builder.addQueryParameter("only", "scripts")
+            }
+            return builder.build().toString()
+        }
+
+        fun resourceLoaderShapedUrl(module: String, onlyScripts: Boolean = true): String {
+            val builder = BASE_LOAD_URL.toHttpUrl().newBuilder()
+                .addQueryParameter("modules", module)
+            if (onlyScripts) {
+                builder.addQueryParameter("only", "scripts")
+            }
+            return builder
+                .addQueryParameter("skin", "minerva")
+                .addQueryParameter("debug", "false")
+                .addQueryParameter("lang", "en-gb")
+                .build()
+                .toString()
+        }
+
+        fun essentialLoadUrls(): List<String> {
+            val urls = LinkedHashSet<String>()
+            CALCULATOR_INJECT_MODULES.forEach { spec ->
+                urls.add(calculatorShapedUrl(spec.name, spec.onlyScripts))
+            }
+            ESSENTIAL_MODULES.forEach { name ->
+                urls.add(resourceLoaderShapedUrl(name, onlyScripts = true))
+            }
+            urls.add(resourceLoaderShapedUrl("mediawiki.widgets", onlyScripts = false))
+            urls.add(calculatorShapedUrl("ext.gadget.calc-core", onlyScripts = true))
+            return urls.toList()
+        }
+
+        private fun defaultClient(): OkHttpClient {
+            return try {
+                OkHttpClientFactory.offlineClient
+            } catch (_: Exception) {
+                OkHttpClient()
+            }
+        }
     }
-    
+
+    private val moduleCache = NetworkModuleCache.getInstance(context)
+    private val scope = CoroutineScope(Dispatchers.IO)
+
+    /**
+     * Warm the cache with modules needed for a page.
+     *
+     * @param pageModules List of module names from RLPAGEMODULES
+     * @param isMobile Whether this is for mobile skin (affects some parameters)
+     */
+    fun warmCacheForPage(pageModules: List<String>, isMobile: Boolean = true) {
+        if (pageModules.isEmpty()) {
+            Log.d(TAG, "No modules to warm cache for")
+            return
+        }
+        scope.launch {
+            val urls = pageModules.map { name ->
+                resourceLoaderShapedUrl(name, onlyScripts = true).let { url ->
+                    if (isMobile) {
+                        url
+                    } else {
+                        url.replace("skin=minerva", "skin=vector")
+                    }
+                }
+            }
+            warmUrls(urls)
+        }
+    }
+
+    /**
+     * Fetch each URL and store it in [NetworkModuleCache]. Skips URLs already
+     * present. Used by tests as a completed warm, and by [warmCacheWithEssentials].
+     */
+    internal suspend fun warmUrls(urls: Collection<String>) = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Starting cache warming for ${urls.size} load.php URLs")
+        for (url in urls) {
+            if (moduleCache.isCached(url)) {
+                Log.d(TAG, "Already cached: ${moduleNameForLog(url)}")
+                continue
+            }
+            val response = fetchModule(url)
+            if (response != null) {
+                moduleCache.putResponseSync(url, response)
+                Log.d(TAG, "Cached ${moduleNameForLog(url)} (${response.length} bytes)")
+            } else {
+                Log.w(TAG, "Failed to fetch ${moduleNameForLog(url)}")
+            }
+        }
+        Log.d(TAG, "Cache warming completed")
+    }
+
+    private fun fetchModule(url: String): String? {
+        return try {
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "OSRSWiki-Android")
+                .header("Accept", "application/javascript, */*")
+                .get()
+                .build()
+            clientProvider().newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "Failed to fetch module: HTTP ${response.code}")
+                    return@use null
+                }
+                response.body?.string()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching module: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Warm cache with commonly needed modules.
+     * Called from [com.omiyawaki.osrswiki.OSRSWikiApp] after network init.
+     */
+    fun warmCacheWithEssentials() {
+        if (Build.FINGERPRINT.contains("robolectric", ignoreCase = true)) {
+            Log.d(TAG, "Skipping module cache warm under Robolectric")
+            return
+        }
+        Log.d(TAG, "Warming cache with essential modules")
+        scope.launch {
+            warmEssentialsNow()
+        }
+    }
+
+    internal suspend fun warmEssentialsNow() {
+        warmUrls(essentialLoadUrls())
+    }
+
     /**
      * Get cache warming statistics.
      */
@@ -173,7 +222,16 @@ class ModuleCacheWarmer private constructor(context: Context) {
             totalCacheSize = cacheStats.totalSizeMB
         )
     }
+
+    private fun moduleNameForLog(url: String): String {
+        return url.substringAfter("modules=").substringBefore("&").ifEmpty { url }
+    }
 }
+
+data class EssentialModule(
+    val name: String,
+    val onlyScripts: Boolean
+)
 
 /**
  * Cache warming statistics data class.

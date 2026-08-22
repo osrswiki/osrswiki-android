@@ -10,7 +10,11 @@ object osrsSavedPaintHtml {
         setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
     )
     private val androidStylesheetLinkRegex = Regex(
-        """<link\s+rel=["']stylesheet["']\s+href=["']https://appassets\.androidplatform\.net/assets/([^"']+)["']\s*/?>""",
+        """<link\b(?=[^>]*\brel=["']stylesheet["'])[^>]*\bhref=["']https://appassets\.androidplatform\.net/assets/([^"']+)["'][^>]*>""",
+        RegexOption.IGNORE_CASE
+    )
+    private val androidStylePreloadLinkRegex = Regex(
+        """<link\b(?=[^>]*\brel=["']preload["'])(?=[^>]*\bas=["']style["'])[^>]*>\s*""",
         RegexOption.IGNORE_CASE
     )
     private val htmlClassRegex = Regex("""<html\b([^>]*)>""", RegexOption.IGNORE_CASE)
@@ -86,7 +90,7 @@ object osrsSavedPaintHtml {
     }
 
     fun inlineLinkedFirstPaintCss(html: String, loadCss: (assetPath: String) -> String?): String {
-        return androidStylesheetLinkRegex.replace(html) { match ->
+        val inlined = androidStylesheetLinkRegex.replace(html) { match ->
             val assetPath = match.groupValues[1]
             val css = loadCss(assetPath)
             if (css.isNullOrEmpty()) {
@@ -95,6 +99,7 @@ object osrsSavedPaintHtml {
                 """<style data-osrs-inline-css="$assetPath">$css</style>"""
             }
         }
+        return androidStylePreloadLinkRegex.replace(inlined, "")
     }
 
     fun applyingLivePreferences(
