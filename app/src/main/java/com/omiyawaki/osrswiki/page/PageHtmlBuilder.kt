@@ -220,7 +220,8 @@ class PageHtmlBuilder(private val context: Context) {
             val isCalculatorPage = cleanedBodyContent.contains("jcConfig") ||
                 osrsWikiWebViewUrl.isCalculatorNamespaceTitle(canonicalTitle ?: cleanedTitle)
             val firstPaintStyle = articleFirstPaintStyle(
-                bottomChromePx = if (bakeChromeInsets && isCalculatorPage) 96 else 0
+                bottomChromePx = if (bakeChromeInsets && isCalculatorPage) 96 else 0,
+                usesDarkTheme = theme == Theme.OSRS_DARK
             )
 
             // Body visibility handled by RenderTimeline when JavaScript completes
@@ -309,7 +310,8 @@ class PageHtmlBuilder(private val context: Context) {
 
         internal fun articleFirstPaintStyle(
             chromeClearancePx: Int = 0,
-            bottomChromePx: Int = 0
+            bottomChromePx: Int = 0,
+            usesDarkTheme: Boolean = false
         ): String {
             val chromePadding = buildString {
                 if (chromeClearancePx > 0 || bottomChromePx > 0) {
@@ -336,6 +338,23 @@ class PageHtmlBuilder(private val context: Context) {
                     appendLine("}")
                 }
             }
+            val bodyMain = if (usesDarkTheme) "#28221d" else "#e2dbc8"
+            val bodyLight = if (usesDarkTheme) "#3e362f" else "#d8ccb4"
+            val textColor = if (usesDarkTheme) "#f4eaea" else "#000000"
+            val lightFallback = if (usesDarkTheme) {
+                """
+                    html:not(.theme-osrs-dark),
+                    html:not(.theme-osrs-dark) body {
+                        --body-main: #e2dbc8;
+                        --body-light: #d8ccb4;
+                        --text-color: #000000;
+                        background-color: #e2dbc8 !important;
+                        color: #000000 !important;
+                    }
+                """
+            } else {
+                ""
+            }
             return """
                 <style id="osrs-article-first-paint">
                     $chromePadding
@@ -354,15 +373,31 @@ class PageHtmlBuilder(private val context: Context) {
                     html, body, .mw-parser-output, .mw-content-text {
                         line-height: 1.35 !important;
                     }
+                    html {
+                        --body-main: $bodyMain;
+                        --body-light: $bodyLight;
+                        --text-color: $textColor;
+                    }
                     html, body {
-                        background-color: var(--body-main, #e2dbc8) !important;
-                        color: var(--text-color, #000000) !important;
+                        background-color: $bodyMain !important;
+                        color: $textColor !important;
+                    }
+                    $lightFallback
+                    html.theme-osrs-dark {
+                        --body-main: #28221d;
+                        --body-light: #3e362f;
+                        --text-color: #f4eaea;
                     }
                     html.theme-osrs-dark,
                     html.theme-osrs-dark body,
                     body.theme-osrs-dark {
-                        background-color: var(--body-main, #28221d) !important;
-                        color: var(--text-color, #f4eaea) !important;
+                        background-color: #28221d !important;
+                        color: #f4eaea !important;
+                    }
+                    table.infobox,
+                    .infobox-switch,
+                    .collapsible-primary-infobox {
+                        min-width: min(18.75rem, 100%);
                     }
                     .mw-parser-output p,
                     .mw-parser-output > ul,

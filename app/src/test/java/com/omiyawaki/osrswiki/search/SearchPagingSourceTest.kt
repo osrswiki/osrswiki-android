@@ -177,6 +177,82 @@ class SearchPagingSourceTest {
         assertEquals(listOf("Update:The new Sailing skill is out today"), page.data.map { it.title })
     }
 
+    @Test
+    fun scopedBrowseFillsBlankSnippetsFromFullExtractThenParseHtml() = runTest {
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedRecentChanges(112, 2, null, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, snippet = null, extract = null),
+                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, snippet = "already"),
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Chrome snippet",
+                            pageid = 13,
+                            snippet = "CLICK HERE TO SHOW THIS CONTENT",
+                            extract = "If you can't see the podcast, click here."
+                        )
+                    )
+                )
+            )
+        )
+        whenever(apiService.getPageExtract("11|13")).thenReturn(
+            com.omiyawaki.osrswiki.network.model.FallbackApiResponse(
+                query = com.omiyawaki.osrswiki.network.model.FallbackQueryResult(
+                    pages = listOf(
+                        com.omiyawaki.osrswiki.network.model.FallbackSearchResult(
+                            ns = 112,
+                            title = "Update:Blank intro",
+                            pageid = 11,
+                            snippet = "This official news post is copied verbatim from the website."
+                        )
+                    )
+                )
+            )
+        )
+        whenever(apiService.getArticleParseDataByPageId(13)).thenReturn(
+            com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse(
+                parse = com.omiyawaki.osrswiki.network.model.ParseResult(
+                    title = "Update:Chrome snippet",
+                    pageid = 13,
+                    revid = 1,
+                    text = "<p>CLICK HERE TO SHOW THIS CONTENT</p><p>Regional servers are coming to South Africa.</p>",
+                    displaytitle = "Update:Chrome snippet"
+                )
+            )
+        )
+        whenever(apiService.getArticleParseDataByPageId(11)).thenReturn(
+            com.omiyawaki.osrswiki.network.model.ArticleParseApiResponse(
+                parse = com.omiyawaki.osrswiki.network.model.ParseResult(
+                    title = "Update:Blank intro",
+                    pageid = 11,
+                    revid = 1,
+                    text = "<p>This official news post is copied verbatim.</p><p>Diango is giving out hats in Draynor.</p>",
+                    displaytitle = "Update:Blank intro"
+                )
+            )
+        )
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao()
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 2,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals("Diango is giving out hats in Draynor.", page.data.first { it.pageid == 11 }.snippet)
+        assertEquals("already", page.data.first { it.pageid == 12 }.snippet)
+        assertEquals("Regional servers are coming to South Africa.", page.data.first { it.pageid == 13 }.snippet)
+    }
+
     private class FakeArticleMetaDao : ArticleMetaDao {
         override suspend fun getMetaByExactTitle(title: String): ArticleMetaEntity? = null
         override suspend fun insert(meta: ArticleMetaEntity) = Unit

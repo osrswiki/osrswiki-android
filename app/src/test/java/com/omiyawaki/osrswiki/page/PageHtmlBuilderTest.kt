@@ -96,18 +96,25 @@ class PageHtmlBuilderTest {
         )
         assertTrue(html.contains("<script src=\"https://appassets.androidplatform.net/assets/js/tablesort.min.js\""))
         assertTrue(html.contains("id=\"osrs-article-first-paint\""))
-        assertTrue(html.contains("background-color: var(--body-main"))
+        assertTrue(html.contains("background-color: #e2dbc8"))
         assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
     }
 
     @Test
     fun articleFirstPaintStyleIncludesBodyColorAndBackgroundFallbacks() {
-        val style = PageHtmlBuilder.articleFirstPaintStyle()
-        assertTrue(style.contains("background-color: var(--body-main, #e2dbc8)"))
-        assertTrue(style.contains("color: var(--text-color, #000000)"))
-        assertTrue(style.contains("html.theme-osrs-dark"))
-        assertTrue(style.contains("body.theme-osrs-dark"))
-        assertTrue(style.contains("#28221d"))
+        val light = PageHtmlBuilder.articleFirstPaintStyle()
+        assertTrue(light.contains("background-color: #e2dbc8"))
+        assertTrue(light.contains("color: #000000"))
+        assertTrue(light.contains("html.theme-osrs-dark"))
+        assertTrue(light.contains("body.theme-osrs-dark"))
+        assertTrue(light.contains("background-color: #28221d"))
+        assertTrue(light.contains("--body-main: #28221d"))
+        assertFalse(light.contains("var(--body-main, #e2dbc8)"))
+        val darkUnscoped = PageHtmlBuilder.articleFirstPaintStyle(usesDarkTheme = true)
+            .substringBefore("html.theme-osrs-dark")
+        assertTrue(darkUnscoped.contains("background-color: #28221d"))
+        assertTrue(darkUnscoped.contains("--body-main: #28221d"))
+        assertFalse(darkUnscoped.substringBefore("html:not(.theme-osrs-dark)").contains("background-color: #e2dbc8"))
     }
 
     @Test

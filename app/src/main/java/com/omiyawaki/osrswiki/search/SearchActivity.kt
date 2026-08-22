@@ -59,8 +59,10 @@ class SearchActivity : BaseActivity() {
             binding.searchEditText.setSelection(initialQuery.length)
         }
         
-        // Set focus to the search field
-        binding.searchEditText.requestFocus()
+        // Browse-newest destinations (Home View more) are a list, not a typeahead.
+        if (!searchScope().emptyQueryBrowsesNewest) {
+            binding.searchEditText.requestFocus()
+        }
     }
     
     private fun setupFonts() {

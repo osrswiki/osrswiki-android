@@ -39,7 +39,9 @@ class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
         
         setupSearchInput()
         setupOnBackPressed()
-        showKeyboard()
+        if (!searchScope().emptyQueryBrowsesNewest) {
+            showKeyboard()
+        }
 
         // Initialize child fragments when they become available
         initializeChildFragments()

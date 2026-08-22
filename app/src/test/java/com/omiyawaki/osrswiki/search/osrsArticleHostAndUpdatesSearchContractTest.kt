@@ -42,6 +42,10 @@ class osrsArticleHostAndUpdatesSearchContractTest {
 
         assertTrue(layout.contains("@+id/home_updates_view_more"))
         assertTrue(layout.contains("@string/home_updates_view_more"))
+        assertTrue(layout.contains("?attr/linkColor"))
+        assertTrue(fragment.contains("emptyQueryBrowsesNewest"))
+        assertTrue(activity.contains("emptyQueryBrowsesNewest"))
+        assertTrue(scoped.contains("enrichMissingPreviews"))
         assertTrue(strings.contains("home_updates_view_more\">View more<"))
         assertTrue(strings.contains("search_updates_hint\">Search updates<"))
         assertTrue(adapter.contains("onViewMoreUpdatesClicked"))

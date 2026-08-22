@@ -10,6 +10,9 @@ import com.omiyawaki.osrswiki.network.model.GeneratedSearchApiResponse
 import retrofit2.HttpException
 import java.io.IOException
 import java.util.concurrent.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 private const val THUMBNAIL_SIZE = 240
 
@@ -73,9 +76,9 @@ class osrsScopedSearchPagingSource(
         val searchResults = response.query?.pages.orEmpty()
             .filter { result -> scope.namespace == null || result.ns == scope.namespace }
             .map { result ->
-                val preview = result.snippet?.trim().orEmpty()
-                if (preview.isNotEmpty()) result else result.copy(snippet = result.extract)
+                result.copy(snippet = osrsSearchPreviewText.fromCandidates(result.snippet, result.extract))
             }
+            .let { results -> enrichMissingPreviews(results) }
         if (searchResults.isEmpty()) {
             return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
         }
@@ -93,6 +96,46 @@ class osrsScopedSearchPagingSource(
             prevKey = prevKey,
             nextKey = nextKey
         )
+    }
+
+    private suspend fun enrichMissingPreviews(results: List<SearchResult>): List<SearchResult> {
+        val missing = results.filter { result ->
+            osrsSearchPreviewText.fromCandidates(result.snippet, result.extract) == null
+        }
+        if (missing.isEmpty()) return results
+
+        val extractsById = runCatching {
+            apiService.getPageExtract(missing.joinToString("|") { it.pageid.toString() })
+                .query?.pages.orEmpty()
+                .associate { page ->
+                    page.pageid to osrsSearchPreviewText.fromPlainExtract(page.snippet)
+                }
+        }.getOrDefault(emptyMap())
+
+        val afterExtracts = results.map { result ->
+            val preview = extractsById[result.pageid]
+            if (!preview.isNullOrBlank()) result.copy(snippet = preview) else result
+        }
+        val stillMissing = afterExtracts.filter { result ->
+            osrsSearchPreviewText.fromCandidates(result.snippet, result.extract) == null
+        }
+        if (stillMissing.isEmpty()) return afterExtracts
+
+        val parsedById = coroutineScope {
+            stillMissing.map { result ->
+                async {
+                    result.pageid to runCatching {
+                        osrsSearchPreviewText.fromHtml(
+                            apiService.getArticleParseDataByPageId(result.pageid).parse?.text
+                        )
+                    }.getOrNull()
+                }
+            }.awaitAll().toMap()
+        }
+        return afterExtracts.map { result ->
+            val preview = parsedById[result.pageid]
+            if (!preview.isNullOrBlank()) result.copy(snippet = preview) else result
+        }
     }
 
     override fun getRefreshKey(state: PagingState<String, SearchResult>): String? = null

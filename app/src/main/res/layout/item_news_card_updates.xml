@@ -62,6 +62,6 @@
         android:focusable="true"
         android:text="@string/home_updates_view_more"
         android:textAppearance="@style/AppTextAppearance.Body"
-        android:textColor="?attr/colorPrimary" />
+        android:textColor="?attr/linkColor" />
 
 </LinearLayout>
