@@ -24,6 +24,8 @@ import java.lang.ref.WeakReference
 internal object osrsPreparedArticleWebViewStore {
     private const val maxEntries = 2
     private const val localAssetDomain = "appassets.androidplatform.net"
+    internal const val PREWARM_OFFSCREEN_TRANSLATION_PX = 100_000f
+    internal const val PREWARM_COMPOSITE_ALPHA = 0f
     private val mainHandler = Handler(Looper.getMainLooper())
     private val entries = ArrayDeque<Entry>()
     private var hostRef: WeakReference<Activity>? = null
@@ -160,8 +162,7 @@ internal object osrsPreparedArticleWebViewStore {
             override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean = false
         }.apply {
             layoutParams = FrameLayout.LayoutParams(width, height)
-            alpha = 0.01f
-            translationX = 1f
+            stashOffscreenFromTabUi()
             isClickable = false
             isFocusable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
@@ -175,7 +176,10 @@ internal object osrsPreparedArticleWebViewStore {
         webView.isFocusableInTouchMode = false
         webView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         host.addView(webView)
-        activity.findViewById<ViewGroup>(android.R.id.content)?.addView(host)
+        val content = activity.findViewById<ViewGroup>(android.R.id.content)
+        if (content != null) {
+            content.addView(host, 0)
+        }
         host.measure(
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
@@ -258,6 +262,17 @@ internal object osrsPreparedArticleWebViewStore {
     fun clear() {
         entries.toList().forEach(::destroyEntry)
         entries.clear()
+    }
+
+    private fun FrameLayout.stashOffscreenFromTabUi() {
+        // 0.01 alpha on android.R.id.content composites article HTML through
+        // Home/Saved/Search/Map/More. Keep a hardware layer so Chromium can
+        // still raster, but never draw into the tab UI.
+        alpha = PREWARM_COMPOSITE_ALPHA
+        translationX = PREWARM_OFFSCREEN_TRANSLATION_PX
+        translationY = PREWARM_OFFSCREEN_TRANSLATION_PX
+        elevation = -1000f
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
     }
 
     private fun markPainted(key: osrsPreparedArticleRenderKey) {

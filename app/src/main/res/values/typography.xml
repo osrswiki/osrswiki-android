@@ -243,7 +243,7 @@
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight" tools:targetApi="o">500</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">20sp</item>
     </style>
 
     <style name="AppTextAppearance.SettingsRowTitle" parent="TextAppearance.Material3.TitleMedium">
@@ -282,13 +282,14 @@
     </style>
     
     <!-- Preference Styles - Using AppCompat parents as Expert 2 recommended -->
-    <!-- Preference Title - Normal weight for conventional appearance -->
+    <!-- Preference Title - Compact system sans. Bind-time restyle still enforces this. -->
     <style name="AppTextAppearance.PreferenceTitle" parent="TextAppearance.AppCompat.Body1">
         <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight" tools:targetApi="o">400</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
-        <item name="android:textSize">15sp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 
     <style name="AppTextAppearance.PreferenceCategory" parent="TextAppearance.AppCompat.Caption">
@@ -304,10 +305,11 @@
     <!-- Preference Summary - Normal weight for supporting text -->
     <style name="AppTextAppearance.PreferenceSummary" parent="TextAppearance.AppCompat.Body2">
         <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="android:textStyle">normal</item>
         <item name="android:fontWeight" tools:targetApi="o">400</item>
         <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
-        <item name="android:textSize">13sp</item>
+        <item name="android:textSize">12sp</item>
     </style>
     
 </resources>

@@ -26,7 +26,7 @@ class osrsMoreSettingsThemeFeedbackContractTest {
         assertTrue(layout.contains("@+id/osrs_settings_container"))
         assertTrue(fragment.contains("osrs_settings_row_inset"))
         assertTrue(fragment.contains("applyRowChrome"))
-        assertTrue(typography.contains("<item name=\"android:textSize\">15sp</item>"))
+        assertTrue(typography.contains("<item name=\"android:textSize\">14sp</item>"))
         assertTrue(typography.substringAfter("PreferenceCategory").substringBefore("</style>").contains("600"))
         assertTrue(strings.contains("settings_navigation_gestures_section\">Navigation<"))
     }

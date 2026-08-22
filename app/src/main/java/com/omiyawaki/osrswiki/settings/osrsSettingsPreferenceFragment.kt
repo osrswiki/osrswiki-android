@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceScreen
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.R as MaterialR
 import com.omiyawaki.osrswiki.R
@@ -29,19 +30,29 @@ abstract class osrsSettingsPreferenceFragment : PreferenceFragmentCompat() {
             addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
                 override fun onChildViewAttachedToWindow(child: View) {
                     applyRowChrome(child, rowGap)
+                    osrsSettingsTypography.applyToRow(child, isCategoryRow(child))
                     tintSettingsTypography()
                 }
 
                 override fun onChildViewDetachedFromWindow(child: View) = Unit
             })
+            addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+                restyleSettingsType()
+                for (index in 0 until childCount) {
+                    applyRowChrome(getChildAt(index), rowGap)
+                }
+            }
         }
         view.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.transparent))
-        tintSettingsTypography()
-        listView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            tintSettingsTypography()
-            for (index in 0 until listView.childCount) {
-                applyRowChrome(listView.getChildAt(index), rowGap)
-            }
+        restyleSettingsType()
+    }
+
+    override fun onCreateAdapter(preferenceScreen: PreferenceScreen): RecyclerView.Adapter<*> {
+        @Suppress("UNCHECKED_CAST")
+        val inner = super.onCreateAdapter(preferenceScreen) as RecyclerView.Adapter<RecyclerView.ViewHolder>
+        return osrsSettingsBindAdapter(inner) { holder ->
+            val row = holder.itemView
+            osrsSettingsTypography.applyToRow(row, isCategoryRow(row))
         }
     }
 
@@ -68,6 +79,15 @@ abstract class osrsSettingsPreferenceFragment : PreferenceFragmentCompat() {
         val iconGone = icon == null || icon.visibility == View.GONE
         val summaryGone = summary == null || summary.visibility == View.GONE
         return widgetGone && iconGone && summaryGone
+    }
+
+    protected fun restyleSettingsType() {
+        val list = listView ?: return
+        for (index in 0 until list.childCount) {
+            val child = list.getChildAt(index)
+            osrsSettingsTypography.applyToRow(child, isCategoryRow(child))
+        }
+        tintSettingsTypography()
     }
 
     protected fun tintSettingsTypography() {
@@ -99,4 +119,67 @@ abstract class osrsSettingsPreferenceFragment : PreferenceFragmentCompat() {
         requireContext().theme.resolveAttribute(attr, typed, true)
         return typed.data
     }
+}
+
+/**
+ * Preference bind can run on an already-attached row without a new attach
+ * event, which would otherwise restore Alegreya title roles after restyle.
+ */
+private class osrsSettingsBindAdapter(
+    private val inner: RecyclerView.Adapter<RecyclerView.ViewHolder>,
+    private val restyle: (RecyclerView.ViewHolder) -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    init {
+        setHasStableIds(inner.hasStableIds())
+        inner.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() = notifyDataSetChanged()
+            override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
+                notifyItemRangeChanged(positionStart, itemCount)
+            }
+            override fun onItemRangeChanged(positionStart: Int, itemCount: Int, payload: Any?) {
+                notifyItemRangeChanged(positionStart, itemCount, payload)
+            }
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                notifyItemRangeInserted(positionStart, itemCount)
+            }
+            override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
+                notifyItemRangeRemoved(positionStart, itemCount)
+            }
+            override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
+                notifyItemMoved(fromPosition, toPosition)
+            }
+        })
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+        inner.onCreateViewHolder(parent, viewType)
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        inner.onBindViewHolder(holder, position)
+        restyle(holder)
+    }
+
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        inner.onBindViewHolder(holder, position, payloads)
+        restyle(holder)
+    }
+
+    override fun getItemCount() = inner.itemCount
+    override fun getItemViewType(position: Int) = inner.getItemViewType(position)
+    override fun getItemId(position: Int) = inner.getItemId(position)
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) = inner.onViewRecycled(holder)
+    override fun onFailedToRecycleView(holder: RecyclerView.ViewHolder) =
+        inner.onFailedToRecycleView(holder)
+
+    override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
+        inner.onViewAttachedToWindow(holder)
+        restyle(holder)
+    }
+
+    override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) =
+        inner.onViewDetachedFromWindow(holder)
 }

@@ -4,12 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/paper_color"
     tools:context=".MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:background="?attr/paper_color"
         app:layout_constraintBottom_toTopOf="@+id/bottom_nav_border"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

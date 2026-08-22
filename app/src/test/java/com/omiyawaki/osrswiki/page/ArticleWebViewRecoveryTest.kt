@@ -368,7 +368,12 @@ class ArticleWebViewRecoveryTest {
         assertTrue(setupBody.contains("domSequenceFor(generation)"))
         assertTrue(setupBody.contains("articleHorizontalGestureSnapshotQuery(domSequence)"))
         assertTrue(setupBody.contains("recordFinalClassification(generation, snapshot)"))
-        assertTrue(setupBody.contains("hasDomClassification()"))
+        val moveBlock = setupBody.substringAfter("ACTION_MOVE").substringBefore("ACTION_UP")
+        assertFalse(
+            "live chrome must start before DOM classification; table pages otherwise show no drag feedback",
+            moveBlock.contains("hasDomClassification()")
+        )
+        assertTrue(moveBlock.contains("ownsCurrentPointer()"))
         assertTrue(setupBody.contains("requestDisallowInterceptTouchEvent(true)"))
         assertFalse(setupBody.contains("latestTouchIsOwned"))
         assertFalse(setupBody.contains("postDelayed"))

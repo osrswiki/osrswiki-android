@@ -424,8 +424,7 @@ class NewsFragment : Fragment(), ThemeAware {
             val typedValue = android.util.TypedValue()
             val theme = requireContext().theme
             theme.resolveAttribute(com.omiyawaki.osrswiki.R.attr.paper_color, typedValue, true)
-            
-            // Apply the new background color to the AppBarLayout
+            rootView.setBackgroundColor(typedValue.data)
             val appBarLayout = rootView.findViewById<com.google.android.material.appbar.AppBarLayout>(R.id.news_app_bar)
             appBarLayout?.setBackgroundColor(typedValue.data)
             

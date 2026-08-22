@@ -90,6 +90,7 @@ class AppearanceScreenContractTest {
         assertTrue(settingsCategory.contains("@style/AppTextAppearance.PreferenceSummary"))
         assertTrue(themes.contains("@style/AppTextAppearance.PreferenceTitle"))
         assertTrue(themes.contains("@style/AppTextAppearance.PreferenceSummary"))
+        assertTrue(themes.contains("<item name=\"textAppearanceListItem\">@style/AppTextAppearance.PreferenceTitle</item>"))
         listOf(
             resource("layout/activity_report_issue.xml"),
             resource("layout/activity_request_feature.xml")

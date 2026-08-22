@@ -41,6 +41,7 @@ class OfflineSettingsActivity : BaseActivity() {
         }
 
         setupToolbar()
+        osrsSettingsTypography.bindToolbar(findViewById(R.id.toolbar))
     }
 
     private fun setupToolbar() {
@@ -54,6 +55,7 @@ class OfflineSettingsActivity : BaseActivity() {
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+        toolbar.post { osrsSettingsTypography.bindToolbar(toolbar) }
     }
 
     override fun onSupportNavigateUp(): Boolean {

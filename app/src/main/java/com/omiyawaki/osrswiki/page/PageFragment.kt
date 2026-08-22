@@ -470,8 +470,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             if (event.actionMasked == MotionEvent.ACTION_MOVE &&
                 tracker != null &&
                 !lastPointerDownRawX.isNaN() &&
-                !horizontalGestureOwnership.ownsCurrentPointer() &&
-                horizontalGestureOwnership.hasDomClassification()
+                !horizontalGestureOwnership.ownsCurrentPointer()
             ) {
                 val dx = event.rawX - lastPointerDownRawX
                 val dy = event.rawY - lastPointerDownRawY

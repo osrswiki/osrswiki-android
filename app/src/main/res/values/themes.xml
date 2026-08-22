@@ -223,8 +223,12 @@
         <item name="android:textAppearanceSmall">@style/AppTextAppearance.PreferenceSummary</item>
         <item name="android:textAppearanceListItem">@style/AppTextAppearance.PreferenceTitle</item>
         <item name="android:textAppearanceListItemSecondary">@style/AppTextAppearance.PreferenceSummary</item>
+        <item name="textAppearanceListItem">@style/AppTextAppearance.PreferenceTitle</item>
+        <item name="textAppearanceListItemSecondary">@style/AppTextAppearance.PreferenceSummary</item>
         <item name="preferenceCategoryTitleTextAppearance">@style/AppTextAppearance.PreferenceCategory</item>
         <item name="preferenceStyle">@style/Preference.OSRS</item>
+        <item name="dialogPreferenceStyle">@style/Preference.OSRS</item>
+        <item name="dropdownPreferenceStyle">@style/Preference.OSRS</item>
         <item name="preferenceCategoryStyle">@style/Preference.OSRS.Category</item>
         <item name="seekBarPreferenceStyle">@style/Preference.OSRS.SeekBarPreference</item>
         <item name="switchPreferenceCompatStyle">@style/Preference.OSRS.SwitchPreferenceCompat</item>
@@ -232,6 +236,7 @@
     </style>
 
     <style name="Preference.OSRS" parent="Preference.Material">
+        <item name="android:layout">@layout/osrs_preference_material</item>
         <item name="allowDividerAbove">false</item>
         <item name="allowDividerBelow">false</item>
         <item name="iconSpaceReserved">true</item>
@@ -239,6 +244,7 @@
     </style>
 
     <style name="Preference.OSRS.Category" parent="Preference.Category.Material">
+        <item name="android:layout">@layout/osrs_preference_category_material</item>
         <item name="allowDividerAbove">false</item>
         <item name="allowDividerBelow">false</item>
         <item name="iconSpaceReserved">false</item>
@@ -250,6 +256,7 @@
     </style>
 
     <style name="Preference.OSRS.SwitchPreferenceCompat" parent="Preference.SwitchPreferenceCompat.Material">
+        <item name="android:layout">@layout/osrs_preference_material</item>
         <item name="allowDividerAbove">false</item>
         <item name="allowDividerBelow">false</item>
         <item name="singleLineTitle">false</item>

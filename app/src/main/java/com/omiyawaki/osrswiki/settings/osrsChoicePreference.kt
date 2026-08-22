@@ -34,7 +34,8 @@ class osrsChoicePreference : ListPreference {
     private var valueView: TextView? = null
     private var boundItemView: View? = null
 
-    init {
+        init {
+        layoutResource = R.layout.osrs_preference_material
         widgetLayoutResource = R.layout.preference_osrs_choice_widget
         isSingleLineTitle = false
     }
@@ -43,6 +44,7 @@ class osrsChoicePreference : ListPreference {
         super.onBindViewHolder(holder)
         boundItemView = holder.itemView
         valueView = holder.findViewById(R.id.osrs_choice_value) as? TextView
+        osrsSettingsTypography.applyToRow(holder.itemView, isCategory = false)
         renderTrailingValue()
         // Current value lives on the trailing widget so the row title stays readable
         // while the popup is open. Hide the library summary to avoid duplicating it.

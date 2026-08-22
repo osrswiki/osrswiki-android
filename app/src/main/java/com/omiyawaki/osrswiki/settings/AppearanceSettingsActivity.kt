@@ -54,6 +54,7 @@ class AppearanceSettingsActivity : BaseActivity() {
         }
 
         setupToolbar()
+        osrsSettingsTypography.bindToolbar(findViewById(R.id.toolbar))
         setupThemeChangeReceiver()
     }
 
@@ -68,6 +69,7 @@ class AppearanceSettingsActivity : BaseActivity() {
         toolbar.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
+        toolbar.post { osrsSettingsTypography.bindToolbar(toolbar) }
     }
 
     override fun onSupportNavigateUp(): Boolean {
