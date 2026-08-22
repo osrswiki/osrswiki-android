@@ -38,7 +38,7 @@ object osrsWikiWebViewProxy {
         if (wikiUrl.contains("/load.php") && context != null) {
             val moduleCache = NetworkModuleCache.getInstance(context)
             moduleCache.getCachedResponseIfPresent(wikiUrl)?.let { cached ->
-                return javascriptResponse(cached)
+                return javascriptResponse(osrsResourceLoaderScript.sanitize(cached))
             }
         }
         val cacheable = wikiUrl.contains("/api.php") || wikiUrl.contains("/load.php")
@@ -52,7 +52,9 @@ object osrsWikiWebViewProxy {
             return null
         }
         if (wikiUrl.contains("/load.php") && context != null) {
-            val body = fetched.body.toString(StandardCharsets.UTF_8)
+            val body = osrsResourceLoaderScript.sanitize(
+                fetched.body.toString(StandardCharsets.UTF_8)
+            )
             NetworkModuleCache.getInstance(context).cacheResponse(wikiUrl, body)
             return javascriptResponse(body)
         }
@@ -200,7 +202,11 @@ object osrsWikiWebViewProxy {
     }
 
     private fun javascriptResponse(source: String): WebResourceResponse {
-        return bytesResponse(source.toByteArray(StandardCharsets.UTF_8), "application/javascript; charset=utf-8")
+        val sanitized = osrsResourceLoaderScript.sanitize(source)
+        return bytesResponse(
+            sanitized.toByteArray(StandardCharsets.UTF_8),
+            "application/javascript; charset=utf-8"
+        )
     }
 
     private fun bytesResponse(bytes: ByteArray, contentType: String): WebResourceResponse {

@@ -253,6 +253,22 @@ class osrsCalculatorParityTest {
         assertTrue(coreSkip.contains("ToggleSwitchWidget"))
         assertTrue(coreSkip.contains("CheckboxInputWidget"))
         assertTrue(coreSkip.contains("HorizontalLayout"))
+        assertTrue(runtime.contains("osrsSanitizeResourceLoaderScript"))
+        assertTrue(runtime.contains("window.OO=module.exports"))
+    }
+
+    @Test
+    fun resourceLoaderOojsTrailerDoesNotAssignModuleExportsWhenModuleMissing() {
+        val payload = """
+            (function(global){var OO={initClass:function(){}};global.OO=OO;}(this));
+            window.OO=module.exports;
+            mw.loader.state({"oojs":"ready"});
+        """.trimIndent()
+        val sanitized = osrsResourceLoaderScript.sanitize(payload)
+        assertTrue(payload.contains("window.OO=module.exports;"))
+        assertFalse(sanitized.contains("window.OO=module.exports;"))
+        assertTrue(sanitized.contains("typeof module!=='undefined'&&module.exports"))
+        assertEquals(sanitized, osrsResourceLoaderScript.sanitize(sanitized))
     }
 
     @Test
