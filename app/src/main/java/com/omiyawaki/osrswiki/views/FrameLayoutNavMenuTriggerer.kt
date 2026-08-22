@@ -2,11 +2,11 @@ package com.omiyawaki.osrswiki.views
 
 import android.content.Context
 import android.util.AttributeSet
-import android.view.Gravity
 import android.view.MotionEvent
 import android.widget.FrameLayout
 import com.omiyawaki.osrswiki.util.DimenUtil.roundedDpToPx
 import com.omiyawaki.osrswiki.util.L10nUtil
+import com.omiyawaki.osrswiki.util.osrsArticleSwipeGravity
 import kotlin.math.abs
 
 class FrameLayoutNavMenuTriggerer(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
@@ -46,8 +46,9 @@ class FrameLayoutNavMenuTriggerer(context: Context, attrs: AttributeSet? = null)
                     post { super.dispatchTouchEvent(moveEvent) }
 
                     // and trigger our custom swipe request!
-                    it.onNavMenuSwipeRequest(if (L10nUtil.isDeviceRTL)
-                        if (ev.x > initialX) Gravity.END else Gravity.START else if (ev.x > initialX) Gravity.START else Gravity.END)
+                    it.onNavMenuSwipeRequest(
+                        osrsArticleSwipeGravity(ev.x - initialX, L10nUtil.isDeviceRTL)
+                    )
                 }
             }
         }

@@ -10,9 +10,9 @@
     <string name="realm_search_description">Search all maps</string>
     <string name="floor_up_description">Show the next floor of %1$s</string>
     <string name="floor_down_description">Show the previous floor of %1$s</string>
-    <string name="floor_current_description">Current floor %1$d of %2$s</string>
+    <string name="floor_current_description">Current floor %1$s of %2$s</string>
     <string name="floor_controls_description">Floor controls</string>
-    <string name="floor_number">%1$d</string>
+    <string name="floor_number">%1$s</string>
     <string name="reading_manifest">Reading deterministic realm manifest</string>
     <string name="realm_links_available">Links: %1$d available</string>
     <string name="realm_links_unavailable">Links unavailable</string>

@@ -6,6 +6,8 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.widget.FrameLayout
+import com.omiyawaki.osrswiki.util.L10nUtil
+import com.omiyawaki.osrswiki.util.osrsArticleSwipeGravity
 import com.omiyawaki.osrswiki.util.log.L
 import kotlin.math.abs
 
@@ -54,8 +56,10 @@ class NavMenuTriggerLayout(context: Context, attrs: AttributeSet? = null) : Fram
                 maybeSwiping = false
             } else if (abs(dx) > horizontalSlop) {
                 // It's a qualifying horizontal swipe.
-                val direction = if (dx > 0) "START" else "END"
-                L.d("NavMenu: Horizontal swipe triggered, direction=$direction, canceling children")
+                val rtl = L10nUtil.isDeviceRTL
+                val gravity = osrsArticleSwipeGravity(dx, rtl)
+                val direction = if (gravity == Gravity.START) "START" else "END"
+                L.d("NavMenu: Horizontal swipe triggered, direction=$direction, rtl=$rtl, canceling children")
                 maybeSwiping = false
 
                 // Tell the children to cancel their current gesture (e.g. link highlighting).
@@ -63,8 +67,6 @@ class NavMenuTriggerLayout(context: Context, attrs: AttributeSet? = null) : Fram
                 cancelEvent.action = MotionEvent.ACTION_CANCEL
                 super.dispatchTouchEvent(cancelEvent)
 
-                // Notify the listener of the swipe direction.
-                val gravity = if (dx > 0) Gravity.START else Gravity.END
                 callback?.onNavMenuSwipeRequest(gravity)
             }
         }

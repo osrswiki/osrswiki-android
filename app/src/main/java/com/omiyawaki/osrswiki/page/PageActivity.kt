@@ -41,6 +41,8 @@ import com.omiyawaki.osrswiki.dataclient.WikiSite
 import com.omiyawaki.osrswiki.history.db.HistoryEntry
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.util.L10nUtil
+import com.omiyawaki.osrswiki.util.osrsBackSwipeTranslationX
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
 import com.omiyawaki.osrswiki.util.log.L
@@ -516,11 +518,11 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
                 contentsDismissLastX = event.rawX
                 contentsDismissLastTime = event.eventTime
                 contentsDismissLastDx = dx
-                val axis = tracker.onMove(dx, dy, contentsOpen = true)
+                val axis = tracker.onMove(dx, dy, contentsOpen = true, rtl = L10nUtil.isDeviceRTL)
                 if (tracker.isTracking && axis == osrsArticleInteractiveSwipe.Axis.CONTENTS) {
                     contentsDismissTracking = true
                     binding.sidePanelContainer.parent?.requestDisallowInterceptTouchEvent(true)
-                    applyInteractiveContentsProgress(tracker.progress(dx, drawerWidth))
+                    applyInteractiveContentsProgress(tracker.progress(dx, drawerWidth, rtl = L10nUtil.isDeviceRTL))
                     return true
                 }
                 return consumeUntracked
@@ -534,8 +536,13 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
                     kotlin.math.abs(dx) <= slop &&
                     kotlin.math.abs(dy) <= slop
                 if (wasTracking) {
-                    tracker.onMove(dx, dy, contentsOpen = true)
-                    val commit = tracker.shouldCommit(dx, contentsDismissLastVx, drawerWidth)
+                    tracker.onMove(dx, dy, contentsOpen = true, rtl = L10nUtil.isDeviceRTL)
+                    val commit = tracker.shouldCommit(
+                        dx,
+                        contentsDismissLastVx,
+                        drawerWidth,
+                        rtl = L10nUtil.isDeviceRTL
+                    )
                     tracker.reset()
                     contentsDismissTracking = false
                     contentsDismissDownRawX = Float.NaN
@@ -657,13 +664,18 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         binding.pageBackPreview.visibility = View.GONE
         binding.pageLiveUnderlay.visibility = View.VISIBLE
         revealLivePreviousActivity(hiddenArticleFragmentTags.isEmpty())
-        binding.navMenuTriggerLayout.translationX = clamped * width
+        binding.navMenuTriggerLayout.translationX = osrsBackSwipeTranslationX(
+            clamped,
+            width,
+            L10nUtil.isDeviceRTL
+        )
     }
 
     private fun commitInteractiveBack(velocityX: Float = 0f) {
         val sliding = binding.navMenuTriggerLayout
         val width = sliding.width.toFloat().coerceAtLeast(1f)
-        val progress = (sliding.translationX / width).coerceIn(0f, 1f)
+        val rtl = L10nUtil.isDeviceRTL
+        val progress = (kotlin.math.abs(sliding.translationX) / width).coerceIn(0f, 1f)
         val remaining = osrsArticleInteractiveSwipe.remainingPx(progress, width)
         val duration = osrsArticleInteractiveSwipe.remainingCommitDurationMs(
             progress,
@@ -681,7 +693,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         sliding.bringToFront()
         deferCapturedBackPreviewPop = true
         sliding.animate()
-            .translationX(width)
+            .translationX(osrsBackSwipeTranslationX(1f, width, rtl))
             .setDuration(duration)
             .setInterpolator(interpolator)
             .withEndAction {

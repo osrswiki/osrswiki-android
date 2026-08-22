@@ -40,6 +40,30 @@ class osrsArticleInteractiveSwipeTest {
     }
 
     @Test
+    fun rtlSwipeRightLocksContentsInsteadOfBack() {
+        val swipe = osrsArticleInteractiveSwipe(touchSlop = 16)
+        assertEquals(
+            osrsArticleInteractiveSwipe.Axis.CONTENTS,
+            swipe.onMove(90f, 10f, rtl = true)
+        )
+        assertEquals(Gravity.END, swipe.gravity())
+        assertTrue(swipe.shouldCommit(120f, 0f, 280f, rtl = true))
+        assertEquals(0.4f, swipe.progress(80f, 200f, rtl = true), 0.001f)
+    }
+
+    @Test
+    fun rtlSwipeLeftLocksBack() {
+        val swipe = osrsArticleInteractiveSwipe(touchSlop = 16)
+        assertEquals(
+            osrsArticleInteractiveSwipe.Axis.BACK,
+            swipe.onMove(-80f, 8f, rtl = true)
+        )
+        assertEquals(Gravity.START, swipe.gravity())
+        assertTrue(swipe.shouldCommit(-80f, 0f, 200f, rtl = true))
+        assertEquals(0.4f, swipe.progress(-80f, 200f, rtl = true), 0.001f)
+    }
+
+    @Test
     fun contentsPeekPlacesClosedEndDrawerOntoTheScreen() {
         assertEquals(280f, osrsArticleInteractiveSwipe.contentsPeekTranslationX(280f, 0f), 0.001f)
         assertEquals(0f, osrsArticleInteractiveSwipe.contentsPeekTranslationX(280f, 1f), 0.001f)

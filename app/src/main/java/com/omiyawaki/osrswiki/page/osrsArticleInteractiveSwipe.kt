@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.page
 
 import android.view.Gravity
+import com.omiyawaki.osrswiki.util.osrsLogicalSwipeDelta
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.pow
@@ -36,7 +37,7 @@ internal class osrsArticleInteractiveSwipe(
      * @return the locked axis once the pointer has travelled far enough to
      * decide, or null while still inside slop / after a vertical disqualify.
      */
-    fun onMove(dx: Float, dy: Float, contentsOpen: Boolean = false): Axis? {
+    fun onMove(dx: Float, dy: Float, contentsOpen: Boolean = false, rtl: Boolean = false): Axis? {
         if (locked) {
             return axis
         }
@@ -50,25 +51,28 @@ internal class osrsArticleInteractiveSwipe(
             return null
         }
         contentsOpenAtStart = contentsOpen
-        axis = if (contentsOpen || dx <= 0f) Axis.CONTENTS else Axis.BACK
+        val logicalDx = osrsLogicalSwipeDelta(dx, rtl)
+        axis = if (contentsOpen || logicalDx <= 0f) Axis.CONTENTS else Axis.BACK
         isTracking = true
         return axis
     }
 
-    fun progress(dx: Float, span: Float): Float {
+    fun progress(dx: Float, span: Float, rtl: Boolean = false): Float {
         val width = span.coerceAtLeast(1f)
+        val logicalDx = osrsLogicalSwipeDelta(dx, rtl)
         return when (axis) {
-            Axis.BACK -> (dx / width).coerceIn(0f, 1f)
-            Axis.CONTENTS -> contentsProgress(dx, width, contentsOpenAtStart)
+            Axis.BACK -> (logicalDx / width).coerceIn(0f, 1f)
+            Axis.CONTENTS -> contentsProgress(logicalDx, width, contentsOpenAtStart)
             null -> 0f
         }
     }
 
-    fun shouldCommit(dx: Float, velocityX: Float, span: Float): Boolean {
-        val current = progress(dx, span)
+    fun shouldCommit(dx: Float, velocityX: Float, span: Float, rtl: Boolean = false): Boolean {
+        val current = progress(dx, span, rtl)
+        val logicalVx = osrsLogicalSwipeDelta(velocityX, rtl)
         return when (axis) {
-            Axis.BACK -> current >= COMMIT_PROGRESS || velocityX >= COMMIT_VELOCITY
-            Axis.CONTENTS -> shouldCommitContents(current, velocityX, contentsOpenAtStart)
+            Axis.BACK -> current >= COMMIT_PROGRESS || logicalVx >= COMMIT_VELOCITY
+            Axis.CONTENTS -> shouldCommitContents(current, logicalVx, contentsOpenAtStart)
             null -> false
         }
     }

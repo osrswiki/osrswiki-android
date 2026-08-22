@@ -88,6 +88,8 @@ import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_COMPASS_RESET_DURATION_MIL
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_COMPASS_SIZE_DP
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_SELECTOR_BOTTOM_GAP_DP
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_SELECTOR_HORIZONTAL_MARGIN_DP
+import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapPlaneCurrentDescription
+import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapPlaneLabel
 import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsNorthResetCompassView
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -2377,11 +2379,11 @@ class osrsUndergroundMapsFragment : Fragment() {
             val activeIndex = orderedPlanes.indexOf(current.activePlane)
             val previousPlane = orderedPlanes.getOrNull(activeIndex - 1)
             val nextPlane = orderedPlanes.getOrNull(activeIndex + 1)
-            floorCurrentText.text = getString(R.string.floor_number, current.activePlane)
-            floorCurrentText.contentDescription = getString(
-                R.string.floor_current_description,
+            floorCurrentText.text = osrsMapPlaneLabel(current.activePlane)
+            floorCurrentText.contentDescription = osrsMapPlaneCurrentDescription(
                 current.activePlane,
-                accessibleRealmName
+                accessibleRealmName,
+                getString(R.string.floor_current_description)
             )
             configureFloorButton(
                 button = floorUpButton,

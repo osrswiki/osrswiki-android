@@ -47,6 +47,8 @@ import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.log.L
 import com.omiyawaki.osrswiki.settings.AppearanceSettingsActivity
 import com.omiyawaki.osrswiki.settings.Prefs
+import com.omiyawaki.osrswiki.util.L10nUtil
+import com.omiyawaki.osrswiki.util.osrsArticleSwipeGravity
 import com.omiyawaki.osrswiki.views.ObservableWebView
 import com.omiyawaki.osrswiki.feedback.ReportIssueActivity
 import kotlinx.coroutines.Dispatchers
@@ -395,7 +397,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                         abs(dx) > swipeThreshold &&
                         abs(velocityX) > swipeVelocityThreshold
                     ) {
-                        val gravity = if (dx > 0) Gravity.START else Gravity.END
+                        val gravity = osrsArticleSwipeGravity(dx, L10nUtil.isDeviceRTL)
                         L.d("Gesture: Swipe candidate detected, generation=$generation")
                         when (horizontalGestureOwnership.registerNavigationCandidate(generation)) {
                             ArticleHorizontalGestureOwnership.NavigationDecision.WAITING_FOR_CLASSIFICATION ->
@@ -480,7 +482,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 lastInteractiveEventTime = event.eventTime
                 lastInteractiveDx = dx
                 val contentsOpen = callback?.isContentsDrawerOpen() == true
-                val axis = tracker.onMove(dx, dy, contentsOpen = contentsOpen)
+                val rtl = L10nUtil.isDeviceRTL
+                val axis = tracker.onMove(dx, dy, contentsOpen = contentsOpen, rtl = rtl)
                 if (tracker.isTracking && axis != null) {
                     if (!consumedInteractiveSwipe) {
                         consumedInteractiveSwipe = true
@@ -511,7 +514,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                             else -> null
                         }
                         if (action != null && ReaderGesturePolicy.isEnabled(action, Prefs.readerPreferences)) {
-                            callback?.onPageSwipeProgress(gravity, tracker.progress(dx, span))
+                            callback?.onPageSwipeProgress(gravity, tracker.progress(dx, span, rtl = rtl))
                         }
                     }
                 }
@@ -536,7 +539,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                             tracker.onMove(
                                 lastInteractiveDx,
                                 event.rawY - lastPointerDownRawY,
-                                contentsOpen = callback?.isContentsDrawerOpen() == true
+                                contentsOpen = callback?.isContentsDrawerOpen() == true,
+                                rtl = L10nUtil.isDeviceRTL
                             )
                             if (tracker.isTracking) {
                                 consumedInteractiveSwipe = true
@@ -578,7 +582,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             tracker.shouldCommit(
                 lastInteractiveDx,
                 lastInteractiveVx,
-                interactiveSpanPx(view, axis)
+                interactiveSpanPx(view, axis),
+                rtl = L10nUtil.isDeviceRTL
             )
         tracker.reset()
         consumedInteractiveSwipe = false
