@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.activity
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
@@ -33,6 +34,11 @@ abstract class BaseActivity : AppCompatActivity() {
         
         // Store initial configuration for fold/unfold detection
         previousConfiguration = Configuration(resources.configuration)
+    }
+
+    override fun onPostCreate(savedInstanceState: Bundle?) {
+        super.onPostCreate(savedInstanceState)
+        restoreArticleOverlaysAfterThemeRecreate()
     }
 
     /**
@@ -146,10 +152,32 @@ abstract class BaseActivity : AppCompatActivity() {
         // Only recreate if theme actually changed
         if (currentThemeId != newThemeId) {
             android.util.Log.d("BaseActivity", "Forcing activity recreation for theme change from ${currentThemeId} to ${newThemeId}")
+            val snapshots = osrsArticleOverlayPresenter.snapshot(this)
+            if (snapshots.isNotEmpty()) {
+                intent.putParcelableArrayListExtra(
+                    osrsArticleOverlayPresenter.EXTRA_ARTICLE_OVERLAY_RESTORE,
+                    snapshots
+                )
+            }
             osrsArticleOverlayPresenter.popAll(this)
             osrsArticleOverlayPresenter.detachHost(this)
             recreate()
         }
+    }
+
+    private fun restoreArticleOverlaysAfterThemeRecreate() {
+        val key = osrsArticleOverlayPresenter.EXTRA_ARTICLE_OVERLAY_RESTORE
+        val snapshots = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableArrayListExtra(key, Bundle::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableArrayListExtra(key)
+        } ?: return
+        if (snapshots.isEmpty()) {
+            return
+        }
+        intent.removeExtra(key)
+        osrsArticleOverlayPresenter.restore(this, snapshots)
     }
     
     /**

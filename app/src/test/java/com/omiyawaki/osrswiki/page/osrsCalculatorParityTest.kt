@@ -221,6 +221,41 @@ class osrsCalculatorParityTest {
     }
 
     @Test
+    fun barrowsCalcWaitsForToggleSwitchGroupAndResolvesFormOutsideBodyContent() {
+        val runtime = File("src/main/assets/web/osrs_calculator_runtime.js").readText()
+        val calcCore = File("src/main/assets/mediawiki/gadget_calc_core.js").readText()
+        val barrowsConfig = """
+            template=Calculator:Barrows/Template
+            form=BarrowsForm
+            result=BarrowsResult
+            param = Ahrim|Ahrim?|yes|check|yes,no
+            param = toggleUnitKill|Select units killed instead of combat level sum|false|toggleswitch||unitKill
+            param = unitKill|Barrows crypt units||group|bloodworm,cryptRat
+        """.trimIndent()
+
+        assertTrue(barrowsConfig.contains("|check|"))
+        assertTrue(barrowsConfig.contains("|toggleswitch|"))
+        assertTrue(barrowsConfig.contains("|group|"))
+        assertTrue(calcCore.contains("'check'"))
+        assertTrue(calcCore.contains("'toggleswitch'"))
+        assertTrue(calcCore.contains("'group'"))
+        assertTrue(calcCore.contains("typeof OO.ui.CheckboxInputWidget === 'function'"))
+        assertTrue(calcCore.contains("OO.ui.ToggleSwitchWidget"))
+        assertTrue(calcCore.contains("/\\|\\s*group\\s*\\|/i"))
+        assertTrue(calcCore.contains("document.getElementById(self.form)"))
+        val oouiReady = runtime.substringAfter("function osrsCalcOOUIReady()").substringBefore("function osrsLoadModuleScript")
+        assertTrue(oouiReady.contains("CheckboxInputWidget"))
+        assertTrue(oouiReady.contains("ToggleSwitchWidget"))
+        assertTrue(oouiReady.contains("HorizontalLayout"))
+        val coreSkip = runtime.substringAfter("modules=oojs-ui-core")
+            .substringAfter("skip: function()")
+            .substringBefore("src:")
+        assertTrue(coreSkip.contains("ToggleSwitchWidget"))
+        assertTrue(coreSkip.contains("CheckboxInputWidget"))
+        assertTrue(coreSkip.contains("HorizontalLayout"))
+    }
+
+    @Test
     fun parseCacheIsServedOfflineByCalculatorProxy() {
         val context = RuntimeEnvironment.getApplication()
         val url = "https://oldschool.runescape.wiki/api.php?action=parse&text=%7B%7BCalculator:Combat+level/Template%7Cattack%3D1%7D%7D"

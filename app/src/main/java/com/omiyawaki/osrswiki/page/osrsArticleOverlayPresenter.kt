@@ -18,6 +18,7 @@ import com.omiyawaki.osrswiki.util.log.L
 object osrsArticleOverlayPresenter {
     const val HOST_VIEW_ID = R.id.osrs_article_overlay_host
     const val TAG_PREFIX = "osrs-article-overlay-"
+    const val EXTRA_ARTICLE_OVERLAY_RESTORE = "osrs_article_overlay_restore"
 
     fun present(context: Context, intent: Intent): Boolean {
         val activity = activityFrom(context) as? FragmentActivity ?: return false
@@ -76,6 +77,23 @@ object osrsArticleOverlayPresenter {
         overlays.forEach { transaction.remove(it) }
         transaction.commitNowAllowingStateLoss()
         detachHost(activity)
+    }
+
+    fun snapshot(activity: FragmentActivity): ArrayList<android.os.Bundle> {
+        val snapshots = ArrayList<android.os.Bundle>()
+        activity.supportFragmentManager.fragments
+            .filterIsInstance<osrsArticleOverlayFragment>()
+            .filter { it.isAdded && !it.isRemoving }
+            .forEach { fragment ->
+                fragment.arguments?.let { snapshots.add(android.os.Bundle(it)) }
+            }
+        return snapshots
+    }
+
+    fun restore(activity: FragmentActivity, snapshots: List<android.os.Bundle>) {
+        snapshots.forEach { extras ->
+            present(activity, Intent().putExtras(extras))
+        }
     }
 
     fun topFragment(activity: FragmentActivity): osrsArticleOverlayFragment? {
