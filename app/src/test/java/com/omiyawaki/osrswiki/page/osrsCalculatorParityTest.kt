@@ -200,6 +200,7 @@ class osrsCalculatorParityTest {
         assertTrue(runtime.contains("/load.php?modules=jquery&only=scripts"))
         assertTrue(runtime.contains("osrsHideCalculatorJsPlaceholder"))
         assertTrue(runtime.contains("osrsReassertCalculatorThemeSheets"))
+        assertTrue(runtime.contains(".osrs-article-scroll-region, .osrs-local-scroll-surface"))
         assertTrue(runtime.contains("dynamic calculator requires JavaScript"))
         assertTrue(calcCore.contains("already implemented"))
         assertTrue(calcCore.contains("osrsRunModuleScript"))

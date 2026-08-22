@@ -426,10 +426,19 @@ class ArticleAestheticCssContractTest {
             panelHeading.contains("font-family: sans-serif")
         )
         assertTrue(fixes.contains("Calculator article-theme chrome"))
+        assertTrue(fixes.contains("Calculator infobox language"))
         assertTrue(fixes.contains("jsCalc-field-check"))
         assertTrue(
-            "Checkbox rows must beat the generic align-right column stack",
-            fixes.contains("align-right.jsCalc-field-check > .oo-ui-fieldLayout-body")
+            "Calculator fields must use an infobox-like label|control grid",
+            fixes.contains("grid-template-columns: minmax(6em, 38%) minmax(0, 1fr)")
+        )
+        assertTrue(fixes.contains("osrs-calculator-templates > tbody"))
+        assertTrue(fixes.contains("oo-ui-numberInputWidget-buttoned"))
+        assertTrue(fixes.contains("grid-row: 1"))
+        assertTrue(fixes.contains("table.osrs-calculator-panel"))
+        assertTrue(
+            "Calculator layout must add tab-bar clearance on top of baked article chrome",
+            fixes.contains("96px) + 12px")
         )
         assertTrue(fixes.contains("osrs-calculator-panel .oo-ui-buttonElement"))
         assertTrue(runtime.contains("osrsReassertCalculatorThemeSheets"))
