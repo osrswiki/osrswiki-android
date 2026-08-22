@@ -391,6 +391,53 @@ class ArticleAestheticCssContractTest {
         )
     }
 
+    @Test
+    fun calculatorThemeUsesParchmentTokensNotWikipediaGrey() {
+        val themes = assetFile("styles/themes.css").readText()
+        val fixes = assetFile("styles/fixes.css").readText()
+        val runtimeCandidates = listOf(
+            File("src/main/assets/web/osrs_calculator_runtime.js"),
+            File("../../../shared/js/osrs_calculator_runtime.js")
+        )
+        val runtime = runtimeCandidates.first { it.exists() }.readText()
+
+        assertFalse(
+            "Light OOUI surfaces must use parchment, not Vector grey #f8f9fa.",
+            themes.contains("--ooui-normal: #f8f9fa")
+        )
+        assertFalse(
+            "Progressive actions must not keep Wikipedia blue #0645ad.",
+            themes.contains("--ooui-progressive: #0645ad")
+        )
+        assertFalse(
+            "Calculator inputs must not default to raw #fff on parchment.",
+            themes.contains("--ooui-input: #fff")
+        )
+        assertTrue(themes.contains("--osrsw-brown: #605443"))
+        assertTrue(themes.contains("--background-color-base: var(--body-main)"))
+        assertTrue(themes.contains("--background-color-progressive: var(--ooui-progressive)"))
+
+        val panelHeading = fixes.substringAfter(".osrs-calculator-panel h2")
+            .substringBefore(".osrs-calculator-templates", missingDelimiterValue = "")
+        assertTrue(panelHeading.contains("Alegreya"))
+        assertTrue(panelHeading.contains("oo-ui-fieldsetLayout-header"))
+        assertFalse(
+            "Calculator headings must match article serif chrome, not generic sans-serif.",
+            panelHeading.contains("font-family: sans-serif")
+        )
+        assertTrue(fixes.contains("Calculator article-theme chrome"))
+        assertTrue(fixes.contains("jsCalc-field-check"))
+        assertTrue(
+            "Checkbox rows must beat the generic align-right column stack",
+            fixes.contains("align-right.jsCalc-field-check > .oo-ui-fieldLayout-body")
+        )
+        assertTrue(fixes.contains("osrs-calculator-panel .oo-ui-buttonElement"))
+        assertTrue(runtime.contains("osrsReassertCalculatorThemeSheets"))
+        val gadgetIdx = runtime.indexOf("'gadget_calc.css'")
+        val fixesIdx = runtime.indexOf("'fixes.css'")
+        assertTrue(gadgetIdx >= 0 && fixesIdx >= 0 && gadgetIdx < fixesIdx)
+    }
+
     private fun assetFile(path: String): File {
         return listOf(
             File("src/main/assets", path),
