@@ -16,8 +16,8 @@ val osrsMapLibreSanitizationSource by configurations.creating {
 val osrsSanitizedMapLibreAar = layout.buildDirectory.file(
     "generated/sanitizedDependencies/maplibre-android-sdk-11.12.1.aar"
 )
-val osrsMapLibreSanitizer = rootProject.projectDir.resolve(
-    "../../tools/map/sanitize_osrs_maplibre_aar.py"
+val osrsMapLibreSanitizer = projectDir.resolve(
+    "sanitize_osrs_maplibre_aar.py"
 )
 val osrsSanitizeMapLibreAar by tasks.registering(Exec::class) {
     description =
