@@ -848,6 +848,17 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         pageWebViewManager?.notifyFirstViewPainted("firstViewComplete")
     }
 
+    fun markFirstViewportSettled() {
+        if (::pageContentLoader.isInitialized) {
+            pageContentLoader.markFirstViewportSettled()
+        }
+        // Stopwatch only — do not notifyFirstViewPainted / revealBody / readinessTracker.
+    }
+
+    override fun onFirstViewportSettled() {
+        markFirstViewportSettled()
+    }
+
     override fun onPageReadyForDisplay() {
         val webViewManager = pageWebViewManager ?: return
         if (isAdded && _binding != null && !webViewReleasedWhileStopped) {

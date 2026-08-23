@@ -61,6 +61,23 @@ object Prefs {
     @Volatile
     var disableArticlePrewarm: Boolean = true
 
+    /**
+     * Live article HTML builds inline critical (+ deferred) first-paint CSS,
+     * matching the saved-path `inlineFirstPaintCss = true` behavior.
+     * Flip to false for one-commit rollback of Phase B Task 7.
+     */
+    @Volatile
+    var inlineLiveFirstPaintCss: Boolean = true
+
+    /**
+     * When true, live/saved HTML uses one minified critical bundle
+     * (`styles/critical-article.min.css`) instead of ten separate critical sheets.
+     * Default false: Task 7 per-file inline path remains production until measured.
+     * Flip after Task 9 warm p50 accepts the bundle (Phase B Task 7b).
+     */
+    @Volatile
+    var useCriticalArticleBundle: Boolean = false
+
 
     /**
      * Gets the cache size limit in megabytes.

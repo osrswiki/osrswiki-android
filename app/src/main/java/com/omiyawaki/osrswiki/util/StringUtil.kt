@@ -38,11 +38,12 @@ object StringUtil {
     }
 
     /**
-     * Extracts the main title from a MediaWiki displayTitle, removing namespace prefixes.
-     * Handles both HTML-formatted titles (with mw-page-title-main spans) and plain text titles.
+     * Extracts a human-readable title from a MediaWiki displayTitle.
+     * Handles HTML-formatted titles (mw-page-title-* spans) and plain text.
      *
-     * @param displayTitle The display title which may contain HTML or plain text
-     * @return The cleaned main title without namespace prefix
+     * Preserves non-main namespaces (e.g. Calculator:) so Calculator subpages
+     * like Calculator:Agility/Agility arena tickets remain loadable when this
+     * string is reused for navigation/API. Still strips the Update: feed prefix.
      */
     fun extractMainTitle(displayTitle: String): String {
         fun cleanTitle(value: String): String {
@@ -57,17 +58,17 @@ object StringUtil {
             }
         }
 
-        // Check if it contains MediaWiki title HTML structure
         if (displayTitle.contains("mw-page-title-main")) {
-            // Extract content between <span class="mw-page-title-main"> and </span>
-            val regex = Regex("""<span[^>]*class="mw-page-title-main"[^>]*>([^<]+)</span>""")
-            val match = regex.find(displayTitle)
-            if (match != null) {
-                return cleanTitle(match.groupValues[1])
+            val mainRegex = Regex("""<span[^>]*class="mw-page-title-main"[^>]*>([^<]+)</span>""")
+            val nsRegex = Regex("""<span[^>]*class="mw-page-title-namespace"[^>]*>([^<]+)</span>""")
+            val mainMatch = mainRegex.find(displayTitle)
+            if (mainMatch != null) {
+                val main = cleanTitle(mainMatch.groupValues[1])
+                val ns = nsRegex.find(displayTitle)?.let { cleanTitle(it.groupValues[1]) }
+                return if (!ns.isNullOrBlank()) "$ns:$main" else main
             }
         }
-        
-        // Fallback to regular HTML cleaning and Update: prefix removal
+
         return cleanTitle(displayTitle)
     }
 

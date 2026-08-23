@@ -29,6 +29,8 @@ import com.omiyawaki.osrswiki.settings.Prefs
 interface RenderCallback {
     fun onWebViewLoadFinished()
     fun onPageReadyForDisplay()
+    /** Stopwatch-only; must not reveal body or touch readiness. */
+    fun onFirstViewportSettled() {}
 }
 
 class PageWebViewManager(
@@ -70,6 +72,15 @@ class PageWebViewManager(
             when {
                 isTimelineEvent(message, "Event: FirstViewPainted") -> {
                     notifyFirstViewPainted("firstViewComplete")
+                }
+                isTimelineEvent(message, "Event: FirstViewportSettled") -> {
+                    // Stopwatch only — must not reveal body or touch readiness.
+                    val callbackGeneration = renderGeneration
+                    webView.post {
+                        if (!isDisposed && callbackGeneration == renderGeneration) {
+                            renderCallback.onFirstViewportSettled()
+                        }
+                    }
                 }
                 isTimelineEvent(message, "Event: StylingScriptsComplete") -> {
                     // Late fallback: collapse/map finished without a first-viewport signal.

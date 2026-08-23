@@ -30,11 +30,17 @@ class PageContentLoader(
     @Volatile
     private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
     @Volatile
-    private var firstViewOpenAtElapsed: Long? = null
+    private var articleOpenAtElapsed: Long? = null // tap/open clock; not cleared by painted
+    @Volatile
+    private var firstViewOpenAtElapsed: Long? = null // painted helper; cleared after first_viewport
     @Volatile
     private var pendingFirstViewComplete = false
     @Volatile
     private var firstViewCompletePosted = false
+    @Volatile
+    private var pendingFirstViewportSettled = false
+    @Volatile
+    private var firstViewportSettledPosted = false
     @Volatile
     private var loggedTtfb = false
 
@@ -44,12 +50,19 @@ class PageContentLoader(
         L.d("PageContentLoader: Generated mobile URL: $mobileUrl")
         cancelActivePageWork()
         firstViewCompletePosted = false
+        firstViewportSettledPosted = false
         loggedTtfb = false
-        firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        val openAt = android.os.SystemClock.elapsedRealtime()
+        articleOpenAtElapsed = openAt
+        firstViewOpenAtElapsed = openAt
         L.d("LOAD-MINMAX open title='$articleQueryTitle'")
         if (pendingFirstViewComplete) {
             pendingFirstViewComplete = false
             markFirstViewComplete()
+        }
+        if (pendingFirstViewportSettled) {
+            pendingFirstViewportSettled = false
+            markFirstViewportSettled()
         }
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
@@ -70,12 +83,19 @@ class PageContentLoader(
         L.d("PageContentLoader: Generated page URL: $pageUrl")
         cancelActivePageWork()
         firstViewCompletePosted = false
+        firstViewportSettledPosted = false
         loggedTtfb = false
-        firstViewOpenAtElapsed = android.os.SystemClock.elapsedRealtime()
+        val openAt = android.os.SystemClock.elapsedRealtime()
+        articleOpenAtElapsed = openAt
+        firstViewOpenAtElapsed = openAt
         L.d("LOAD-MINMAX open pageId=$pageId")
         if (pendingFirstViewComplete) {
             pendingFirstViewComplete = false
             markFirstViewComplete()
+        }
+        if (pendingFirstViewportSettled) {
+            pendingFirstViewportSettled = false
+            markFirstViewportSettled()
         }
         pageLoadJob = coroutineScope.launch {
             L.d("PageContentLoader: Collecting download progress flow.")
@@ -170,7 +190,8 @@ class PageContentLoader(
                                 result.processedHtml,
                                 theme,
                                 collapseTablesEnabled,
-                                canonicalTitle = result.parseResult.title
+                                canonicalTitle = result.parseResult.title,
+                                inlineFirstPaintCss = Prefs.inlineLiveFirstPaintCss
                             )
                         }
                     }
@@ -320,6 +341,22 @@ class PageContentLoader(
         val elapsed = android.os.SystemClock.elapsedRealtime() - started
         L.d("osrsFirstViewComplete elapsedMs=$elapsed")
         L.d("LOAD-MINMAX first_viewport elapsedMs=$elapsed")
+    }
+
+    fun markFirstViewportSettled() {
+        if (firstViewportSettledPosted) {
+            return
+        }
+        val started = articleOpenAtElapsed
+        if (started == null) {
+            pendingFirstViewportSettled = true
+            return
+        }
+        firstViewportSettledPosted = true
+        pendingFirstViewportSettled = false
+        val elapsed = android.os.SystemClock.elapsedRealtime() - started
+        L.d("osrsFirstViewportSettled elapsedMs=$elapsed")
+        L.d("LOAD-MINMAX first_viewport_settled elapsedMs=$elapsed")
     }
 
     fun cancelActivePageWork() {

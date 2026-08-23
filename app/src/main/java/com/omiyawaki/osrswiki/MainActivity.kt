@@ -390,7 +390,13 @@ class MainActivity : BaseActivity() {
         if (intent.action == Intent.ACTION_VIEW) {
             val data = intent.data
             if (data != null && data.scheme == "osrswiki" && data.host == "page") {
-                val raw = data.pathSegments?.lastOrNull() ?: data.lastPathSegment
+                // Join all path segments: Calculator subpages contain "/"
+                // (e.g. Calculator:Agility/Agility_arena_tickets). lastOrNull()
+                // previously opened only the final segment → Failed to Load.
+                val raw = data.pathSegments
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.joinToString("/")
+                    ?: data.lastPathSegment
                 val title = raw?.let { Uri.decode(it).replace('_', ' ') }
                 if (!title.isNullOrBlank()) {
                     PageActivity.open(

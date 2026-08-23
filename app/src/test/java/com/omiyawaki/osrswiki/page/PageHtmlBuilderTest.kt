@@ -103,6 +103,15 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("osrsActivateDeferredStylesheet"))
         assertFalse(html.contains("data-osrs-css-href=\"styles/wiki-integration.css\""))
         assertFalse(html.contains("media=\"print\""))
+        // Phase B: critical polish sheets must be inlined (same look as linked critical path)
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/fixes.css\""))
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/gadget_calc.css\""))
+        assertFalse(
+            html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/fixes.css\" data-osrs-css=\"critical\">")
+        )
+        assertFalse(
+            html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/gadget_calc.css\" data-osrs-css=\"critical\">")
+        )
     }
 
     @Test

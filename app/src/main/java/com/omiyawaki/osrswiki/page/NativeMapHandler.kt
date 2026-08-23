@@ -208,6 +208,18 @@ class NativeMapHandler(
         }
 
         @JavascriptInterface
+        fun firstViewportSettled(payload: String) {
+            if (isCleanedUp) {
+                return
+            }
+            fragment.view?.post {
+                if (!isCleanedUp) {
+                    fragment.markFirstViewportSettled()
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun log(message: String) {
             L.d("JS: $message")
         }

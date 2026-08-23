@@ -40,4 +40,25 @@ class StringUtilTest {
             StringUtil.decodeHtmlToFixedPoint("Wyrmscraig &amp;amp; <b>Sailing Changes</b>")
         )
     }
+
+    @Test
+    fun extractMainTitlePreservesCalculatorNamespaceFromMediaWikiMarkup() {
+        assertEquals(
+            "Calculator:Agility/Agility arena tickets",
+            StringUtil.extractMainTitle(
+                """<span class="mw-page-title-namespace">Calculator</span>""" +
+                    """<span class="mw-page-title-separator">:</span>""" +
+                    """<span class="mw-page-title-main">Agility/Agility arena tickets</span>"""
+            )
+        )
+    }
+
+    @Test
+    fun extractMainTitleKeepsPlainCalculatorTitle() {
+        assertEquals(
+            "Calculator:Agility/Agility arena tickets",
+            StringUtil.extractMainTitle("Calculator:Agility/Agility arena tickets")
+        )
+    }
 }
+

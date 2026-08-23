@@ -147,7 +147,10 @@ class PageHtmlBuilder(private val context: Context) {
             // Preserved title logic from working version
             val cleanedTitle = StringUtil.extractMainTitle(title)
             val documentTitle = if (cleanedTitle.isBlank()) "OSRS Wiki" else cleanedTitle
-            val titleHeaderHtml = "<h1 class=\"page-header\">${documentTitle}</h1>"
+            // Wave2c residual: short Calculator:Token titles (Sailing) are one CSS
+            // word and mid-wrap under overflow-wrap:break-word. Prefer a break
+            // after the namespace colon; Genie-style spaced titles still wrap on spaces.
+            val titleHeaderHtml = "<h1 class=\"page-header\">${softWrapNamespaceTitle(documentTitle)}</h1>"
             
             // Clean any existing page-header titles from bodyContent to prevent duplication
             val cleanedBodyContent = removeDuplicatePageHeaders(bodyContent)
@@ -272,24 +275,52 @@ class PageHtmlBuilder(private val context: Context) {
     }
 
     private fun stylesheetMarkup(inlineFirstPaintCss: Boolean): String {
+        val useBundle = Prefs.useCriticalArticleBundle
         if (inlineFirstPaintCss) {
-            val inlined = styleSheetAssets.joinToString("\n") { assetPath ->
-                val css = loadAssetText(assetPath)
-                if (css.isNullOrEmpty()) {
-                    blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
-                } else {
-                    """<style data-osrs-inline-css="$assetPath">$css</style>"""
+            val criticalPart = if (useBundle) {
+                inlineCriticalBundleOrFallback()
+            } else {
+                criticalStyleSheetAssets.joinToString("\n") { assetPath ->
+                    inlineStylesheetOrLink(assetPath)
                 }
             }
-            return "$inlined\n$ARTICLE_CSS_LOADER_SCRIPT"
+            val deferredPart = deferredStyleSheetAssets.joinToString("\n") { assetPath ->
+                inlineStylesheetOrLink(assetPath)
+            }
+            return "$criticalPart\n$deferredPart\n$ARTICLE_CSS_LOADER_SCRIPT"
         }
-        val critical = criticalStyleSheetAssets.joinToString("\n") { assetPath ->
-            blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
+        val critical = if (useBundle) {
+            blockingStylesheetLink(CRITICAL_ARTICLE_BUNDLE_ASSET, ANDROID_ASSET_HREF_PREFIX)
+        } else {
+            criticalStyleSheetAssets.joinToString("\n") { assetPath ->
+                blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
+            }
         }
         val deferred = deferredStyleSheetAssets.joinToString("\n") { assetPath ->
             deferredStylesheetLinks(assetPath, ANDROID_ASSET_HREF_PREFIX)
         }
         return "$critical\n$ARTICLE_CSS_LOADER_SCRIPT\n$deferred"
+    }
+
+    private fun inlineStylesheetOrLink(assetPath: String): String {
+        val css = loadAssetText(assetPath)
+        return if (css.isNullOrEmpty()) {
+            blockingStylesheetLink(assetPath, ANDROID_ASSET_HREF_PREFIX)
+        } else {
+            """<style data-osrs-inline-css="$assetPath">$css</style>"""
+        }
+    }
+
+    private fun inlineCriticalBundleOrFallback(): String {
+        val css = loadAssetText(CRITICAL_ARTICLE_BUNDLE_ASSET)
+        return if (css.isNullOrEmpty()) {
+            // Bundle missing from assets — fall back to per-file critical so paint stays correct.
+            criticalStyleSheetAssets.joinToString("\n") { assetPath ->
+                inlineStylesheetOrLink(assetPath)
+            }
+        } else {
+            """<style data-osrs-inline-css="$CRITICAL_ARTICLE_BUNDLE_ASSET">$css</style>"""
+        }
     }
 
     fun loadAssetText(assetPath: String): String? {
@@ -303,6 +334,18 @@ class PageHtmlBuilder(private val context: Context) {
         return if (locales.size() > 0) locales[0] else Locale.getDefault()
     }
     
+    /**
+     * Insert <wbr> after wiki namespace colons when the following char is
+     * non-space so long unbroken tokens (Calculator:Sailing) wrap after the
+     * colon instead of mid-word. Safe for plain extractMainTitle output.
+     */
+    private fun softWrapNamespaceTitle(title: String): String {
+        return NAMESPACE_COLON_WBR.replace(title, "$1<wbr>")
+    }
+
+    private val NAMESPACE_COLON_WBR =
+        Regex("""\b([A-Za-z][A-Za-z ]{0,40}:)(?=\S)""")
+
     /**
      * Removes any existing page-header titles from HTML content to prevent duplication.
      * This is useful for cleaning content that may have been processed multiple times.
@@ -329,6 +372,7 @@ class PageHtmlBuilder(private val context: Context) {
     }
 
     companion object {
+        const val CRITICAL_ARTICLE_BUNDLE_ASSET = "styles/critical-article.min.css"
         private const val READER_STYLE_ID = "osrs-reader-text-scale-style"
         private const val READER_SCALE_VARIABLE = "--osrs-article-user-text-scale"
         internal const val ANDROID_ASSET_HREF_PREFIX = "https://appassets.androidplatform.net/assets/"
@@ -445,7 +489,12 @@ class PageHtmlBuilder(private val context: Context) {
                         margin-top: 0 !important;
                         margin-bottom: 0.6em !important;
                         padding-bottom: 0.2em !important;
-                        min-height: 1.3em;
+                        min-height: 0;
+                        max-width: 100% !important;
+                        white-space: normal !important;
+                        overflow-wrap: break-word !important;
+                        word-break: normal !important;
+                        overflow: visible !important;
                         border-bottom: 1px solid var(--sidebar-color, currentColor);
                         box-sizing: border-box;
                     }

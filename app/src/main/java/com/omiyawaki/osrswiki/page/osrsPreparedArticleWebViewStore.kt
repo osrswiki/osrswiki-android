@@ -392,6 +392,9 @@ internal object osrsPreparedArticleWebViewStore {
         }
 
         @JavascriptInterface
+        fun firstViewportSettled(payload: String) = Unit
+
+        @JavascriptInterface
         fun noteUserInteraction() = Unit
 
         @JavascriptInterface
