@@ -54,7 +54,8 @@ class PageHtmlBuilder(private val context: Context) {
         "web/first_viewport_assets.js",
         "web/live_article_asset_warm.js",
         "web/mobile_article_polish.js",
-        "web/horizontal_scroll_interceptor.js"
+        "web/horizontal_scroll_interceptor.js",
+        "web/image_area_cap.js"
     )
 
     // Base JavaScript assets (before conditional GE charts addition)
