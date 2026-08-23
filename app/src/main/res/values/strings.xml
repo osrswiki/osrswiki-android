@@ -62,6 +62,8 @@
     <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
     <string name="donate_processing">Processing payment…</string>
     <string name="donate_tips_coming_soon">Tips for the app are coming soon.</string>
+    <string name="donate_sponsors_button">GitHub Sponsors</string>
+    <string name="donate_sponsors_status">Opens GitHub Sponsors in your browser. Tips are optional.</string>
     <string name="donate_wiki_title">Donate to Wiki</string>
     <string name="donate_wiki_description">The Old School RuneScape Wiki is run by volunteers. Support them too if you can.</string>
     <string name="donate_wiki_button">Donate to Wiki</string>

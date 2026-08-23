@@ -36,6 +36,9 @@ class DonateFragment : Fragment() {
         
         // Wiki donation URL (wiki support — not app IAP)
         private const val WIKI_PATREON_URL = "https://www.patreon.com/runescapewiki"
+
+        // App tips for FOSS (matches docs/public-landing/manifest.yaml sponsors_url)
+        private const val GITHUB_SPONSORS_URL = "https://github.com/sponsors/omiyawaki"
     }
 
     override fun onCreateView(
@@ -67,14 +70,29 @@ class DonateFragment : Fragment() {
     }
 
     /**
-     * FOSS: no Play Billing. Sponsors still pending per public landing manifest —
-     * show tips-coming-soon copy without mailto and without pretending IAP exists.
-     * Wiki Patreon remains as clearly labeled wiki support.
+     * FOSS: no Play Billing. Open GitHub Sponsors in the browser for optional tips.
+     * No mailto. No fake IAP. Wiki Patreon remains as clearly labeled wiki support.
      */
     private fun setupFossNonIapUi() {
         binding.amountChipGroup.visibility = View.GONE
-        binding.donateButton.visibility = View.GONE
-        setStatusText(getString(R.string.donate_tips_coming_soon))
+        binding.donateButton.visibility = View.VISIBLE
+        binding.donateButton.text = getString(R.string.donate_sponsors_button)
+        setControlActionable(binding.donateButton, true)
+        binding.donateButton.setOnClickListener {
+            L.d("DonateFragment: FOSS Sponsors button clicked")
+            openExternalUrl(GITHUB_SPONSORS_URL)
+        }
+        setStatusText(getString(R.string.donate_sponsors_status))
+    }
+
+    private fun openExternalUrl(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            L.e("DonateFragment: Error opening URL: $url", e)
+            setStatusText("Unable to open browser")
+        }
     }
     
     private fun setupAmountSelection() {
@@ -375,13 +393,7 @@ class DonateFragment : Fragment() {
     private fun setupWikiDonateButton() {
         binding.wikiDonateButton.setOnClickListener {
             L.d("DonateFragment: Wiki donate button clicked")
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WIKI_PATREON_URL))
-            try {
-                startActivity(intent)
-            } catch (e: Exception) {
-                L.e("DonateFragment: Error opening Patreon URL", e)
-                setStatusText("Unable to open browser")
-            }
+            openExternalUrl(WIKI_PATREON_URL)
         }
     }
     

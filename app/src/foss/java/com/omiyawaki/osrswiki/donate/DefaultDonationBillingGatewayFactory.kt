@@ -5,8 +5,9 @@ import android.content.Context
 
 /**
  * FOSS distribution has no Play Billing on the classpath.
- * GitHub Sponsors is still pending (docs/public-landing/manifest.yaml);
- * tips CTA stays non-IAP copy only — never pretend IAP exists.
+ * DonateFragment opens GitHub Sponsors in the browser for optional tips;
+ * this gateway exists only to satisfy the play/foss factory split and must
+ * never pretend IAP exists.
  */
 object DefaultDonationBillingGatewayFactory : DonationBillingGatewayFactory {
     override fun create(
@@ -26,10 +27,10 @@ private class FossDonationBillingGateway(
 
     override fun start() {
         if (disconnectRequested) return
-        // Sponsors pending: surface tips-coming-soon via setup-failed path (no products).
+        // FOSS UI does not use billing; report no products if ever started.
         callbackDispatcher.dispatch {
             if (!disconnectRequested) {
-                listener.onBillingSetupFailed("tips_coming_soon")
+                listener.onBillingSetupFailed("foss_no_iap")
             }
         }
     }
