@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.preference.ktx)
     implementation(libs.material)
     api(osrsSanitizedMapLibreFiles)
     // Explicit upstream runtime dependencies retained when the pinned AAR is sanitized locally.

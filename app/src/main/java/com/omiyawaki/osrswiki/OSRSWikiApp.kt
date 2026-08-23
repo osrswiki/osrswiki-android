@@ -21,6 +21,7 @@ import com.omiyawaki.osrswiki.page.PageHtmlBuilder
 import com.omiyawaki.osrswiki.page.PageLocalDataSource
 import com.omiyawaki.osrswiki.page.PageRemoteDataSource
 import com.omiyawaki.osrswiki.page.PageRepository
+import com.omiyawaki.osrswiki.page.osrsArticleFloorConvention
 import com.omiyawaki.osrswiki.page.preemptive.AndroidArticlePrewarmEnvironmentProvider
 import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
 import com.omiyawaki.osrswiki.page.preemptive.AppForegroundTracker
@@ -31,6 +32,7 @@ import com.omiyawaki.osrswiki.settings.osrsDownloadSettings
 import com.omiyawaki.osrswiki.settings.osrsSavedPageUpdatePolicy
 import com.omiyawaki.osrswiki.settings.ActivityContextPool
 import com.omiyawaki.osrswiki.theme.Theme
+import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapFloorNumberingHost
 import com.omiyawaki.osrswiki.util.AppNetworkStatusEvaluator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +42,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class OSRSWikiApp : Application() {
+class OSRSWikiApp : Application(), osrsMapFloorNumberingHost {
 
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -86,6 +88,9 @@ class OSRSWikiApp : Application() {
             Log.e("OSRSWikiApp_CrashLog", "Manual crash log: $logMessage", throwable)
         }
     }
+
+    override fun osrsMapFloorUsEntranceIsFirstFloor(): Boolean =
+        osrsArticleFloorConvention.resolved().usEntranceIsFirstFloor
 
     override fun onCreate() {
         val startupStartTime = System.currentTimeMillis()

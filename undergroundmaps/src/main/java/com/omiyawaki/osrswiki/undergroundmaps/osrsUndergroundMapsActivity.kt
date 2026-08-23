@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.undergroundmaps
 
+import android.content.SharedPreferences
 import android.graphics.PointF
 import android.graphics.Point
 import android.os.Bundle
@@ -88,6 +89,9 @@ import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_COMPASS_RESET_DURATION_MIL
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_COMPASS_SIZE_DP
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_SELECTOR_BOTTOM_GAP_DP
 import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_SELECTOR_HORIZONTAL_MARGIN_DP
+import com.omiyawaki.osrswiki.undergroundmaps.ui.OSRS_MAP_FLOOR_NUMBERING_PREFERENCE_KEY
+import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapFloorNumberingPreferences
+import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapFloorUsEntranceIsFirstFloor
 import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapPlaneCurrentDescription
 import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsMapPlaneLabel
 import com.omiyawaki.osrswiki.undergroundmaps.ui.osrsNorthResetCompassView
@@ -287,6 +291,12 @@ class osrsUndergroundMapsFragment : Fragment() {
     private val simpleControlDurationsNanos = ArrayDeque<Long>()
     private val repeatedLinkDialogDurationsNanos = ArrayDeque<Long>()
     private val cameraClampDurationsNanos = ArrayDeque<Long>()
+    private val floorNumberingPreferenceListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == OSRS_MAP_FLOOR_NUMBERING_PREFERENCE_KEY) {
+                updateControls()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -2379,11 +2389,16 @@ class osrsUndergroundMapsFragment : Fragment() {
             val activeIndex = orderedPlanes.indexOf(current.activePlane)
             val previousPlane = orderedPlanes.getOrNull(activeIndex - 1)
             val nextPlane = orderedPlanes.getOrNull(activeIndex + 1)
-            floorCurrentText.text = osrsMapPlaneLabel(current.activePlane)
+            val usEntranceIsFirstFloor = osrsMapFloorUsEntranceIsFirstFloor(requireContext())
+            floorCurrentText.text = osrsMapPlaneLabel(
+                current.activePlane,
+                usEntranceIsFirstFloor = usEntranceIsFirstFloor
+            )
             floorCurrentText.contentDescription = osrsMapPlaneCurrentDescription(
                 current.activePlane,
                 accessibleRealmName,
-                getString(R.string.floor_current_description)
+                usEntranceIsFirstFloor = usEntranceIsFirstFloor,
+                template = getString(R.string.floor_current_description)
             )
             configureFloorButton(
                 button = floorUpButton,
@@ -2962,11 +2977,21 @@ class osrsUndergroundMapsFragment : Fragment() {
     override fun onStart() {
         super.onStart()
         mapView.onStart()
+        osrsMapFloorNumberingPreferences(requireContext())
+            .registerOnSharedPreferenceChangeListener(floorNumberingPreferenceListener)
     }
 
     override fun onResume() {
         super.onResume()
         mapView.onResume()
+        updateControls()
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden) {
+            updateControls()
+        }
     }
 
     override fun onPause() {
@@ -2978,6 +3003,8 @@ class osrsUndergroundMapsFragment : Fragment() {
     }
 
     override fun onStop() {
+        osrsMapFloorNumberingPreferences(requireContext())
+            .unregisterOnSharedPreferenceChangeListener(floorNumberingPreferenceListener)
         mapView.onStop()
         super.onStop()
     }

@@ -42,6 +42,22 @@ enum class osrsArticleFloorConvention {
             US -> ".floornumber-gb, .floornumber-help"
         }
 
+    /**
+     * Numeric map chrome analog of wiki Template:FloorNumber.
+     *
+     * Articles pair GB/US words for the same game plane (UK "1st floor" vs
+     * US "2nd floor" one level above the entrance). Entrance is UK
+     * "Ground floor" / US "1st floor", so GB shows game index `p` and US
+     * shows `p + 1`. Tile selection still uses `p`.
+     */
+    fun displayPlane(gamePlane: Int): Int = when (this) {
+        GB -> gamePlane
+        US -> gamePlane + 1
+    }
+
+    val usEntranceIsFirstFloor: Boolean
+        get() = this == US
+
     companion object {
         private val US_ENTRANCE_IS_FIRST_FLOOR = setOf(
             "US", "AS", "GU", "MP", "PR", "VI", "UM",
