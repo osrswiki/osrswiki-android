@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentDonateBinding
 import com.omiyawaki.osrswiki.util.log.L
@@ -26,12 +27,14 @@ class DonateFragment : Fragment() {
     private var availableProductIds = emptySet<String>()
     private var productPrices = emptyMap<String, String>()
     private var acceptsBillingCallbacks = false
+    private val isFossBuild: Boolean
+        get() = BuildConfig.FLAVOR == "foss"
 
     companion object {
         fun newInstance() = DonateFragment()
         const val TAG = "DonateFragment"
         
-        // Wiki donation URL
+        // Wiki donation URL (wiki support — not app IAP)
         private const val WIKI_PATREON_URL = "https://www.patreon.com/runescapewiki"
     }
 
@@ -47,15 +50,31 @@ class DonateFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        L.d("DonateFragment: onViewCreated called.")
-        
+        L.d("DonateFragment: onViewCreated called. flavor=${BuildConfig.FLAVOR}")
+
+        setupWikiDonateButton()
+        if (isFossBuild) {
+            setupFossNonIapUi()
+            return
+        }
+
         setupAmountSelection()
         setupDonateButton()
-        setupWikiDonateButton()
         updateAmountButtonAvailability()
         updateDonateButtonState()
         acceptsBillingCallbacks = true
         initializeBilling()
+    }
+
+    /**
+     * FOSS: no Play Billing. Sponsors still pending per public landing manifest —
+     * show tips-coming-soon copy without mailto and without pretending IAP exists.
+     * Wiki Patreon remains as clearly labeled wiki support.
+     */
+    private fun setupFossNonIapUi() {
+        binding.amountChipGroup.visibility = View.GONE
+        binding.donateButton.visibility = View.GONE
+        setStatusText(getString(R.string.donate_tips_coming_soon))
     }
     
     private fun setupAmountSelection() {
@@ -240,7 +259,13 @@ class DonateFragment : Fragment() {
                         L.d("DonateFragment: Billing setup failed: $message")
                         isConnected = false
                         availableProductIds = emptySet()
-                        setStatusText("Unable to connect to billing service")
+                        setStatusText(
+                            when {
+                                message == "tips_coming_soon" ->
+                                    getString(R.string.donate_tips_coming_soon)
+                                else -> "Unable to connect to billing service"
+                            }
+                        )
                         updateAmountButtonAvailability()
                         updateDonateButtonState()
                     }

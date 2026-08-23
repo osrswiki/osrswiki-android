@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- FOSS: no Play Store fees / IAP copy. Sponsors still pending — tips CTA is coming-soon only. -->
+    <string name="donate_description">This app is free. Nothing is locked behind a donation.\n\nApp tips are coming soon (no in-app purchases in this build).</string>
+    <string name="donate_app_blurb_help">App tips are coming soon. This FOSS build has no in-app purchases.</string>
+    <string name="feedback_rate_app_description">Thanks for using the app. Rate links for this distribution are not available yet.</string>
+</resources>

@@ -7,12 +7,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.omiyawaki.osrswiki.BuildConfig
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentFeedbackBinding
 import com.omiyawaki.osrswiki.util.log.L
 
 /**
- * Secure version of FeedbackFragment that uses Cloud Function for GitHub integration.
+ * Secure version of FeedbackFragment that uses the Cloudflare feedback Worker for GitHub integration.
  * This version doesn't expose any GitHub tokens in the app.
  */
 class FeedbackFragmentSecure : Fragment() {
@@ -46,10 +47,15 @@ class FeedbackFragmentSecure : Fragment() {
     }
     
     private fun setupClickListeners() {
-        binding.rateAppButton.setOnClickListener { 
-            handleRateApp()
+        // Foss omits Play Store rate-app; Play keeps the Play Store link.
+        if (BuildConfig.FLAVOR == "foss") {
+            binding.rateAppCard.visibility = View.GONE
+        } else {
+            binding.rateAppButton.setOnClickListener {
+                handleRateApp()
+            }
         }
-        
+
         binding.reportIssueButton.setOnClickListener { 
             showReportIssueDialog()
         }

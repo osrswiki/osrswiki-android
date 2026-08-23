@@ -71,6 +71,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // distribution: play (default, Play Billing tips) vs foss (F-Droid / no Billing on classpath).
+    // Same applicationId for both. Instrumentation default variant is playMapPrototype
+    // (play isDefault + existing testBuildType = mapPrototype).
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+            isDefault = true
+        }
+        create("foss") {
+            dimension = "distribution"
+        }
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
@@ -248,7 +262,7 @@ tasks.register<Copy>("organizeAssets") {
             include("*.js")
             exclude("collapsible_content.js", "horizontal_scroll_interceptor.js", "responsive_videos.js",
                     "clipboard_bridge.js", "infobox_switcher_bootstrap.js", "switch_infobox.js",
-                    "mobile_article_polish.js", "ge_charts_init.js", "highcharts-stock.js",
+                    "mobile_article_polish.js", "ge_charts_init.js", "chart.umd.min.js",
                     "live_article_asset_warm.js", "first_viewport_assets.js")
             exclude("osrs_calculator_runtime.js")
             exclude("mediawiki/*.js")
@@ -259,7 +273,7 @@ tasks.register<Copy>("organizeAssets") {
         from(sharedJsDir) {
             include("collapsible_content.js", "horizontal_scroll_interceptor.js", "responsive_videos.js",
                     "clipboard_bridge.js", "infobox_switcher_bootstrap.js", "switch_infobox.js",
-                    "mobile_article_polish.js", "ge_charts_init.js", "highcharts-stock.js",
+                    "mobile_article_polish.js", "ge_charts_init.js", "chart.umd.min.js",
                     "tabber_init.js", "table_column_normalize.js", "osrs_calculator_runtime.js",
                     "live_article_asset_warm.js", "first_viewport_assets.js")
             into("web")
@@ -372,8 +386,8 @@ tasks.register("validateReleaseGuardrails") {
     dependsOn(
         "validateReleaseAssets",
         "validateReleaseNetworkPolicy",
-        "lintRelease",
-        "assembleRelease"
+        "lintPlayRelease",
+        "assemblePlayRelease"
     )
 }
 
@@ -389,7 +403,10 @@ tasks.configureEach {
     if (isLintTask) {
         dependsOn("organizeAssets")
     }
-    if (taskName == "preReleaseBuild" || taskName == "preBenchmarkBuild" || (isReleaseLikeTask && isLintTask)) {
+    val isPreReleaseOrBenchmark = taskName.startsWith("pre") && (
+        taskName.endsWith("ReleaseBuild") || taskName.endsWith("BenchmarkBuild")
+    )
+    if (isPreReleaseOrBenchmark || (isReleaseLikeTask && isLintTask)) {
         dependsOn("validateReleaseAssets", "validateReleaseNetworkPolicy")
     }
 }
@@ -433,8 +450,8 @@ dependencies {
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converterKotlinxSerialization)
     implementation(libs.apacheCommonsLang3)
-    implementation(libs.play.billing)
-    implementation(libs.play.billing.ktx)
+    "playImplementation"(libs.play.billing)
+    "playImplementation"(libs.play.billing.ktx)
     implementation(libs.androidx.profileinstaller)
 
     testImplementation(libs.junit)
@@ -448,8 +465,7 @@ dependencies {
     testImplementation(libs.okhttp.mockwebserver)
     // The prototype unit test parses its generated payload directly. The map
     // library intentionally keeps this implementation dependency private.
-    add("testMapPrototypeImplementation", "org.maplibre.gl:android-sdk-geojson:6.0.1")
-    
+    // Flavor × mapPrototype configs are created late by AGP; wire afterEvaluate.
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -460,4 +476,15 @@ dependencies {
     androidTestImplementation(libs.androidx.uiautomator)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+}
+
+
+// mapPrototype unit tests need MapLibre geojson; AGP creates flavor×buildType
+// configurations only after the android block is evaluated.
+afterEvaluate {
+    listOf("testPlayMapPrototypeImplementation", "testFossMapPrototypeImplementation").forEach { configName ->
+        configurations.findByName(configName)?.let { config ->
+            dependencies.add(config.name, "org.maplibre.gl:android-sdk-geojson:6.0.1")
+        } ?: logger.warn("Skipping missing configuration {}", configName)
+    }
 }

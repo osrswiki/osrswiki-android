@@ -1,0 +1,220 @@
+package com.omiyawaki.osrswiki.donate
+
+import android.app.Activity
+import android.content.Context
+import android.util.Log
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchasesParams
+
+object DefaultDonationBillingGatewayFactory : DonationBillingGatewayFactory {
+    override fun create(
+        context: Context,
+        listener: DonationBillingListener
+    ): DonationBillingGateway {
+        return PlayDonationBillingGateway(context, listener)
+    }
+}
+
+private class PlayDonationBillingGateway(
+    context: Context,
+    private val listener: DonationBillingListener
+) : DonationBillingGateway, PurchasesUpdatedListener, BillingClientStateListener {
+
+    private val callbackDispatcher = DonationBillingCallbackDispatcher()
+
+    private val billingClient: BillingClient = BillingClient.newBuilder(context)
+        .setListener(this)
+        .enablePendingPurchases(
+            PendingPurchasesParams.newBuilder()
+                .enableOneTimeProducts()
+                .build()
+        )
+        .enableAutoServiceReconnection()
+        .build()
+
+    private var availableProducts = mapOf<String, ProductDetails>()
+    private var disconnectRequested = false
+
+    override fun start() {
+        if (disconnectRequested) return
+        billingClient.startConnection(this)
+    }
+
+    override fun launchPurchase(activity: Activity, productId: String): DonationBillingLaunchResult {
+        val productDetails = availableProducts[productId]
+            ?: return DonationBillingLaunchResult(false, "Product not available")
+
+        val productDetailsParamsBuilder = BillingFlowParams.ProductDetailsParams.newBuilder()
+            .setProductDetails(productDetails)
+
+        // PBL 8+ one-time products may expose multiple purchase options; prefer an explicit offer token.
+        val offerToken = productDetails.oneTimePurchaseOfferDetailsList
+            ?.firstOrNull()
+            ?.offerToken
+            ?: productDetails.oneTimePurchaseOfferDetails?.offerToken
+        if (!offerToken.isNullOrEmpty()) {
+            productDetailsParamsBuilder.setOfferToken(offerToken)
+        }
+
+        val purchaseParams = BillingFlowParams.newBuilder()
+            .setProductDetailsParamsList(listOf(productDetailsParamsBuilder.build()))
+            .build()
+
+        val billingResult = billingClient.launchBillingFlow(activity, purchaseParams)
+        return DonationBillingLaunchResult(
+            isSuccess = billingResult.responseCode == BillingClient.BillingResponseCode.OK,
+            message = billingResult.debugMessage
+        )
+    }
+
+    override fun disconnect() {
+        if (disconnectRequested) return
+        disconnectRequested = true
+        callbackDispatcher.dispose()
+
+        if (billingClient.isReady) {
+            try {
+                billingClient.endConnection()
+            } catch (exception: IllegalArgumentException) {
+                Log.d("DonationBillingGateway", "Ignoring BillingClient disconnect after unavailable service: ${exception.message}")
+            } catch (exception: IllegalStateException) {
+                Log.d("DonationBillingGateway", "Ignoring BillingClient disconnect after state change: ${exception.message}")
+            }
+        }
+    }
+
+    override fun onBillingSetupFinished(billingResult: BillingResult) {
+        if (disconnectRequested) return
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            queryProducts()
+            queryPendingPurchases()
+        } else {
+            notifyListener { onBillingSetupFailed(billingResult.debugMessage) }
+        }
+    }
+
+    override fun onBillingServiceDisconnected() {
+        if (disconnectRequested) return
+        notifyListener { onBillingDisconnected() }
+    }
+
+    private fun queryProducts() {
+        val productList = DonationProductIds.all.map { productId ->
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(productId)
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        }
+
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(productList)
+            .build()
+
+        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsResult ->
+            if (disconnectRequested) return@queryProductDetailsAsync
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                // PBL 8+ returns QueryProductDetailsResult (fetched + unfetched product lists).
+                availableProducts = productDetailsResult.productDetailsList.associateBy { it.productId }
+                if (availableProducts.isEmpty()) {
+                    val unfetched = productDetailsResult.unfetchedProductList
+                        .joinToString { "${it.productId}(${it.statusCode})" }
+                    notifyListener {
+                        onBillingSetupFailed(
+                            if (unfetched.isNotEmpty()) {
+                                "No donation products available: $unfetched"
+                            } else {
+                                "No donation products available"
+                            }
+                        )
+                    }
+                } else {
+                    notifyListener {
+                        onBillingReady(availableProducts.keys)
+                        onProductPrices(availableProducts.mapValues { (_, details) ->
+                            details.osrsFormattedPrice().orEmpty()
+                        })
+                    }
+                }
+            } else {
+                notifyListener { onBillingSetupFailed(billingResult.debugMessage) }
+            }
+        }
+    }
+
+    private fun queryPendingPurchases() {
+        billingClient.queryPurchasesAsync(
+            QueryPurchasesParams.newBuilder()
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        ) { billingResult, purchases ->
+            if (disconnectRequested) return@queryPurchasesAsync
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                purchases.forEach { purchase ->
+                    handlePurchase(purchase)
+                }
+            }
+        }
+    }
+
+    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: MutableList<Purchase>?) {
+        if (disconnectRequested) return
+        when (billingResult.responseCode) {
+            BillingClient.BillingResponseCode.OK -> purchases?.forEach { handlePurchase(it) }
+            BillingClient.BillingResponseCode.USER_CANCELED -> notifyListener { onPurchaseCancelled() }
+            else -> notifyListener {
+                onPurchaseError(billingResult.debugMessage.ifBlank { "Purchase failed" })
+            }
+        }
+    }
+
+    private fun handlePurchase(purchase: Purchase) {
+        if (disconnectRequested) return
+        when (purchase.purchaseState) {
+            Purchase.PurchaseState.PURCHASED -> acknowledgeOrReportSuccess(purchase)
+            Purchase.PurchaseState.PENDING -> notifyListener { onPurchasePending() }
+        }
+    }
+
+    private fun acknowledgeOrReportSuccess(purchase: Purchase) {
+        if (!purchase.isAcknowledged) {
+            val params = AcknowledgePurchaseParams.newBuilder()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
+            billingClient.acknowledgePurchase(params) { ackResult ->
+                if (disconnectRequested) return@acknowledgePurchase
+                if (ackResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    notifyListener { onPurchaseSuccess(purchase.products.firstOrNull()) }
+                } else {
+                    notifyListener { onPurchaseError("Failed to complete purchase") }
+                }
+            }
+        } else {
+            notifyListener { onPurchaseSuccess(purchase.products.firstOrNull()) }
+        }
+    }
+
+    private fun notifyListener(action: DonationBillingListener.() -> Unit) {
+        callbackDispatcher.dispatch {
+            listener.action()
+        }
+    }
+}
+
+internal fun ProductDetails.osrsFormattedPrice(): String? {
+    oneTimePurchaseOfferDetailsList
+        ?.firstOrNull()
+        ?.formattedPrice
+        ?.takeIf { it.isNotBlank() }
+        ?.let { return it }
+    @Suppress("DEPRECATION")
+    return oneTimePurchaseOfferDetails?.formattedPrice?.takeIf { it.isNotBlank() }
+}

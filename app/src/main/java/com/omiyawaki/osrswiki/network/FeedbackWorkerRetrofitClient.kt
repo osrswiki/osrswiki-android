@@ -10,17 +10,17 @@ import okhttp3.Response
 import retrofit2.Retrofit
 import java.io.IOException
 
-object CloudFunctionRetrofitClient {
+object FeedbackWorkerRetrofitClient {
 
-    // Cloud Function deployed URL from deployment output
-    private const val CLOUD_FUNCTION_URL = "https://us-central1-osrs-459713.cloudfunctions.net/"
+    // Cloudflare Worker base URL (path: createGithubIssue)
+    private const val FEEDBACK_WORKER_URL = "https://osrswiki-feedback.omiyawaki.workers.dev/"
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
     }
 
-    private class CloudFunctionInterceptor : Interceptor {
+    private class FeedbackWorkerInterceptor : Interceptor {
         @Throws(IOException::class)
         override fun intercept(chain: Interceptor.Chain): Response {
             val originalRequest = chain.request()
@@ -34,19 +34,19 @@ object CloudFunctionRetrofitClient {
 
     private val httpClient by lazy {
         OkHttpClientFactory.offlineClient.newBuilder()
-            .addInterceptor(CloudFunctionInterceptor())
+            .addInterceptor(FeedbackWorkerInterceptor())
             .build()
     }
 
     private val retrofitInstance: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(CLOUD_FUNCTION_URL)
+            .baseUrl(FEEDBACK_WORKER_URL)
             .client(httpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }
 
-    val apiService: CloudFunctionApiService by lazy {
-        retrofitInstance.create(CloudFunctionApiService::class.java)
+    val apiService: FeedbackWorkerApiService by lazy {
+        retrofitInstance.create(FeedbackWorkerApiService::class.java)
     }
 }

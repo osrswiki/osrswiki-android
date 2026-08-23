@@ -26,8 +26,8 @@ import java.io.IOException
  * - Search / typeahead: `list=search`, `list=prefixsearch`, `action=opensearch`
  * - Search generators: `generator=search`, `generator=prefixsearch`,
  *   `generator=recentchanges`
- * - Non-wiki hosts, including Cloud Functions (the shared client is reused
- *   by [CloudFunctionRetrofitClient])
+ * - Non-wiki hosts, including the feedback Worker (the shared client is reused
+ *   by [FeedbackWorkerRetrofitClient])
  *
  * ## Explicit saves
  * Requests with `X-Offline-Save` use [CacheControl.FORCE_NETWORK] so a live

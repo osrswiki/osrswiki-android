@@ -15,6 +15,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] =
             "EMULATOR,LOW-BATTERY"
+        // App now has distribution flavors; default macrobenchmarks to play.
+        missingDimensionStrategy("distribution", "play")
     }
 
     targetProjectPath = ":app"

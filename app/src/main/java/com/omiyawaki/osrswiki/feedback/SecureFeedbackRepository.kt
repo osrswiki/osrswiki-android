@@ -3,18 +3,18 @@ package com.omiyawaki.osrswiki.feedback
 import android.content.Context
 import android.os.Build
 import com.omiyawaki.osrswiki.BuildConfig
-import com.omiyawaki.osrswiki.network.CloudFunctionApiService
-import com.omiyawaki.osrswiki.network.CloudFunctionIssueRequest
-import com.omiyawaki.osrswiki.network.CloudFunctionRetrofitClient
+import com.omiyawaki.osrswiki.network.FeedbackWorkerApiService
+import com.omiyawaki.osrswiki.network.FeedbackWorkerIssueRequest
+import com.omiyawaki.osrswiki.network.FeedbackWorkerRetrofitClient
 import com.omiyawaki.osrswiki.util.log.L
 
 /**
- * Repository for securely submitting feedback via Google Cloud Function.
+ * Repository for securely submitting feedback via the Cloudflare feedback Worker.
  * This approach keeps the GitHub API token secure on the server side.
  */
 class SecureFeedbackRepository : FeedbackSubmissionGateway {
 
-    private val cloudFunctionApi: CloudFunctionApiService = CloudFunctionRetrofitClient.apiService
+    private val feedbackWorkerApi: FeedbackWorkerApiService = FeedbackWorkerRetrofitClient.apiService
     
     companion object {
         private const val LABEL_BUG = "bug"
@@ -22,7 +22,7 @@ class SecureFeedbackRepository : FeedbackSubmissionGateway {
     }
 
     /**
-     * Creates a bug report issue via secure Cloud Function
+     * Creates a bug report issue via the feedback Worker
      */
     override suspend fun reportIssue(
         context: Context,
@@ -33,7 +33,7 @@ class SecureFeedbackRepository : FeedbackSubmissionGateway {
     }
 
     /**
-     * Creates a feature request issue via secure Cloud Function
+     * Creates a feature request issue via the feedback Worker
      */
     override suspend fun requestFeature(
         context: Context,
@@ -58,17 +58,20 @@ class SecureFeedbackRepository : FeedbackSubmissionGateway {
                 appendLine(deviceInfo)
             }
             
-            val request = CloudFunctionIssueRequest(
+            val request = FeedbackWorkerIssueRequest(
                 title = title,
                 body = fullBody,
-                labels = listOf(label)
+                labels = listOf(label),
+                platform = "android",
+                appVersion = BuildConfig.VERSION_NAME,
+                distribution = BuildConfig.FLAVOR,
             )
             
-            L.d("SecureFeedbackRepository: Submitting feedback via Cloud Function")
-            val response = cloudFunctionApi.createGithubIssue(request)
+            L.d("SecureFeedbackRepository: Submitting feedback via feedback Worker")
+            val response = feedbackWorkerApi.createGithubIssue(request)
             L.d("SecureFeedbackRepository: Feedback submitted successfully: ${response.message}")
             
-            // Return a success message since we don't get the issue URL from Cloud Function
+            // Return a success message since we don't get the issue URL from the Worker
             Result.success("Your feedback has been submitted successfully!")
         } catch (e: Exception) {
             L.e("SecureFeedbackRepository: Error submitting feedback", e)
@@ -90,6 +93,7 @@ class SecureFeedbackRepository : FeedbackSubmissionGateway {
     private fun getDeviceInfo(): String {
         return buildString {
             appendLine("- App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+            appendLine("- Distribution: ${BuildConfig.FLAVOR}")
             appendLine("- Android Version: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLine("- Device: ${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("- Device Brand: ${Build.BRAND}")

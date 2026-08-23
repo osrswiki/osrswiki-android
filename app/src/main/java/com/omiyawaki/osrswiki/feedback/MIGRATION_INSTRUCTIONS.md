@@ -1,38 +1,26 @@
-# Migrating to Secure Cloud Function Feedback
+# Secure Feedback via Cloudflare Worker
 
 ## Overview
-The feedback system has been updated to use a secure Google Cloud Function instead of embedding GitHub tokens in the app. This prevents security vulnerabilities from token exposure.
+In-app feedback submits to a Cloudflare Worker (`osrswiki-feedback`) that creates
+GitHub issues server-side. The GitHub token never ships in the app.
 
-## Migration Steps
+## Client wiring
 
-### 1. Deploy the Cloud Function
+- Retrofit client: `FeedbackWorkerRetrofitClient.kt`
+- Base URL: `https://osrswiki-feedback.omiyawaki.workers.dev/`
+- Endpoint: `POST createGithubIssue`
+- Repository: `SecureFeedbackRepository` (hosted by `FeedbackFragmentSecure`)
 
-From the `cloud-function/feedback-function` directory:
+Request JSON shape: `{ title, body, labels?, platform?, appVersion?, distribution? }`.
+Android sends `platform: "android"` and `appVersion`. `distribution` is reserved
+for Task 4 flavor work (Play vs F-Droid).
 
-```bash
-# Install dependencies
-npm install
+Worker routing: `platform=ios` → `osrswiki/osrswiki-ios`; otherwise →
+`osrswiki/osrswiki-android`.
 
-# Deploy to Google Cloud
-gcloud functions deploy createGithubIssue \
-  --runtime nodejs20 \
-  --trigger-http \
-  --allow-unauthenticated \
-  --set-secrets "GITHUB_PAT=projects/329675289789/secrets/github-pat-android:latest" \
-  --region us-central1 \
-  --project 329675289789
-```
+Worker source/deploy: `tools/feedback-worker/` (wrangler).
 
-### 2. Update the Cloud Function URL
-
-After deployment, update the URL in `CloudFunctionRetrofitClient.kt`:
-
-```kotlin
-// Replace this line with your actual Cloud Function URL
-private const val CLOUD_FUNCTION_URL = "https://us-central1-329675289789.cloudfunctions.net/"
-```
-
-### 3. Secure Implementation Is Required
+## Required host
 
 `FeedbackActivity.kt` must host the secure fragment:
 
@@ -40,25 +28,16 @@ private const val CLOUD_FUNCTION_URL = "https://us-central1-329675289789.cloudfu
 FeedbackFragmentSecure.newInstance()
 ```
 
-The old direct-GitHub fragment, repository, Retrofit client, API service, and
-GitHub issue models have been removed from production sources. Do not restore
-them; feedback submissions must go through the Cloud Function boundary.
+Do not restore direct-GitHub clients or embed a GitHub token in the app.
 
 ## Testing
 
 1. Submit a test bug report
 2. Submit a test feature request
-3. Verify issues appear in: https://github.com/omiyawaki/osrswiki-android/issues
+3. Verify issues appear under the routed repo on GitHub
 
 ## Benefits
 
-✅ **Secure**: GitHub token never exposed in app code
-✅ **Reliable**: Server-side error handling
-✅ **Maintainable**: Easy to update token without app release
-✅ **Scalable**: Can add rate limiting, validation, etc.
-
-## Rollback
-
-Rollback should disable in-app submission or point the Cloud Function client at
-a known-good deployment. Do not roll back to direct GitHub API submission in the
-Android app.
+- Secure: GitHub token never exposed in app code
+- Reliable: Server-side error handling and rate limiting
+- Maintainable: Rotate token without an app release

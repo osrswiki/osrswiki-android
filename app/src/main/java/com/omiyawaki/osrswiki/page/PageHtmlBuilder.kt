@@ -159,7 +159,7 @@ class PageHtmlBuilder(private val context: Context) {
                     cleanedBodyContent.contains("GEdatachart") ||
                     cleanedBodyContent.contains("GEdataprices")
             if (needsGECharts) {
-                Log.d(logTag, "Detected GE chart markers in content; will include highcharts widget script.")
+                Log.d(logTag, "Detected GE chart markers in content; will include Chart.js widget script.")
             }
 
             val cssLinks = stylesheetMarkup(inlineFirstPaintCss)
@@ -176,16 +176,16 @@ class PageHtmlBuilder(private val context: Context) {
             // Build the JS list, conditionally appending the GE charts widget
             val dynamicJsAssets = if (needsGECharts) {
                 jsAssetPaths + listOf(
-                    "web/highcharts-stock.js",
+                    "web/chart.umd.min.js",
                     "web/ge_charts_init.js"
                 )
             } else jsAssetPaths
 
             val jsScripts = dynamicJsAssets.joinToString("\n") { assetPath ->
                 val tag = "<script src=\"https://appassets.androidplatform.net/assets/$assetPath\"></script>"
-                if (assetPath.endsWith("highcharts-stock.js")) {
-                    // Highcharts' UMD build prefers AMD. MediaWiki defines `define`, so
-                    // window.Highcharts never appears and the chart stays on "Loading...".
+                if (assetPath.endsWith("chart.umd.min.js")) {
+                    // Chart.js UMD prefers AMD when present. MediaWiki defines `define`, so
+                    // window.Chart never appears unless we temporarily clear it.
                     "<script>window.__osrsAmdDefine=window.define;try{window.define=undefined;}catch(e){}</script>\n$tag\n<script>if(typeof window.__osrsAmdDefine!=='undefined'){window.define=window.__osrsAmdDefine;}</script>"
                 } else {
                     tag

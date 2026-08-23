@@ -9,7 +9,7 @@ import com.omiyawaki.osrswiki.activity.BaseActivity
 
 /**
  * Activity to host the FeedbackFragmentSecure for secure Help & Feedback functionality.
- * Uses Google Cloud Function to securely submit feedback without exposing GitHub tokens.
+ * Uses the Cloudflare feedback Worker to securely submit feedback without exposing GitHub tokens.
  */
 class FeedbackActivity : BaseActivity() {
 

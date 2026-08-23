@@ -8,7 +8,7 @@ import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.activity.BaseActivity
 
 /**
- * Activity to host the DonateFragment for Google Play In-App Billing donation functionality.
+ * Activity to host the DonateFragment (Play IAP tips on play flavor; non-IAP copy on foss).
  */
 class DonateActivity : BaseActivity() {
 
