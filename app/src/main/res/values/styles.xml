@@ -123,13 +123,28 @@
         <item name="android:textAllCaps">false</item>
     </style>
 
-    <!-- Colored text-and-arrow is the hit target for outbound More links. -->
+    <!-- Colored text-and-arrow is the hit target for outbound More links.
+         Uses linkColor so dark parchment keeps readable contrast; colorPrimary
+         is the deep brown brand token (~1.5:1 on dark paper). -->
     <style name="Widget.OSRSWiki.OutboundLinkButton" parent="Widget.Material3.Button.TextButton">
-        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:textColor">?attr/linkColor</item>
         <item name="android:textAllCaps">false</item>
         <item name="icon">@drawable/ic_open_in_new_24</item>
         <item name="iconGravity">textEnd</item>
-        <item name="iconTint">?attr/colorPrimary</item>
+        <item name="iconTint">?attr/linkColor</item>
+    </style>
+
+    <!-- Shared selected/unselected amount chip. Donate and any later picker
+         inherit distinct fill + stroke instead of relying on Material defaults. -->
+    <style name="Widget.OSRSWiki.SelectableChip" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:checkable">true</item>
+        <item name="android:minWidth">72dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/osrs_selectable_chip_text</item>
+        <item name="backgroundTint">@color/osrs_selectable_chip_background</item>
+        <item name="strokeColor">@color/osrs_selectable_chip_stroke</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="rippleColor">?attr/colorControlHighlight</item>
     </style>
     
     <style name="ShapeAppearance.OSRSWiki.Dialog" parent="">

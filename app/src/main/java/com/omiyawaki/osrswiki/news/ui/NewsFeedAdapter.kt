@@ -260,7 +260,6 @@ class NewsFeedAdapter(
         private val sectionTitle: TextView = itemView.findViewById(R.id.updates_section_title)
         private val lastUpdatedText: TextView = itemView.findViewById(R.id.last_updated_text)
         private val nestedRecyclerView: RecyclerView = itemView.findViewById(R.id.updates_recycler_view)
-        private val viewMore: TextView = itemView.findViewById(R.id.home_updates_view_more)
         private val childBounds = Rect()
         private var accessibilityListenersAttached = false
         
@@ -275,11 +274,12 @@ class NewsFeedAdapter(
             listener: (UpdateItem) -> Unit,
             onViewMore: (() -> Unit)?
         ) {
-            nestedRecyclerView.adapter = UpdatesAdapter(items, imageLoader, listener)
-            viewMore.visibility = if (onViewMore != null) View.VISIBLE else View.GONE
-            viewMore.setOnClickListener {
-                onViewMore?.invoke()
-            }
+            nestedRecyclerView.adapter = UpdatesAdapter(
+                items,
+                imageLoader,
+                listener,
+                onViewMoreClicked = onViewMore
+            )
             attachAccessibilityListenersOnce()
             nestedRecyclerView.post {
                 updateCarouselChildAccessibility()

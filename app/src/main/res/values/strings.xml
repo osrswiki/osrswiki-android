@@ -44,9 +44,12 @@
     
     <!-- Donation screen -->
     <string name="donate_title">Donate</string>
-    <string name="donate_description">This app is free. Nothing is locked behind a donation.\n\nIf you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working.</string>
-    <string name="donate_app_blurb_free">This app is free. Nothing is locked behind a donation.</string>
-    <string name="donate_app_blurb_help">If you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working.</string>
+    <string name="donate_header">Support the OSRS Wiki App</string>
+    <string name="donate_description">This app is free. Nothing is locked behind a donation. If you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working. The Old School RuneScape Wiki (the web version) is run by separate volunteers. Support them too if you can.</string>
+    <string name="donate_app_blurb_free">Support the OSRS Wiki App</string>
+    <string name="donate_app_blurb_help">This app is free. Nothing is locked behind a donation. If you want to help, it goes to fees I pay to put this app in the Play Store and the time it takes to keep the app working. The Old School RuneScape Wiki (the web version) is run by separate volunteers. Support them too if you can.</string>
+    <string name="donate_pending">Donation is pending…</string>
+    <string name="donate_cancelled">Donation cancelled</string>
     <string name="donate_amount_1">$1</string>
     <string name="donate_amount_5">$5</string>
     <string name="donate_amount_10">$10</string>
@@ -60,7 +63,7 @@
     <string name="donate_success_amount_format">Donation: %s</string>
     <string name="donate_error_title">Payment Error</string>
     <string name="donate_error_message">There was an issue processing your payment. Please try again.</string>
-    <string name="donate_processing">Processing payment…</string>
+    <string name="donate_processing">Processing donation…</string>
     <string name="donate_tips_coming_soon">Tips for the app are coming soon.</string>
     <string name="donate_sponsors_button">GitHub Sponsors</string>
     <string name="donate_sponsors_status">Opens GitHub Sponsors in your browser. Tips are optional.</string>

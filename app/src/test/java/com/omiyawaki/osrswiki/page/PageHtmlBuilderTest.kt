@@ -115,9 +115,10 @@ class PageHtmlBuilderTest {
         assertTrue(light.contains("background-color: #28221d"))
         assertTrue(light.contains("--body-main: #28221d"))
         assertFalse(light.contains("var(--body-main, #e2dbc8)"))
-        assertFalse(light.contains("min-width: min(18.75rem, 100%)"))
+        assertTrue(light.contains("min-width: min(18.75rem, 100%)"))
         assertTrue(light.contains("table.infobox-bonuses"))
-        assertTrue(light.contains("table-layout: fixed"))
+        // table-layout:fixed belongs in critical fixes.css, not bootstrap alone
+        assertFalse(light.contains("table-layout: fixed"))
         val darkUnscoped = PageHtmlBuilder.articleFirstPaintStyle(usesDarkTheme = true)
             .substringBefore("html.theme-osrs-dark")
         assertTrue(darkUnscoped.contains("background-color: #28221d"))
@@ -336,7 +337,8 @@ class PageHtmlBuilderTest {
         assertCriticalStylesheet(document, "web/collapsible_tables.css")
         assertCriticalStylesheet(document, "web/switch_infobox_styles.css")
         assertDeferredStylesheet(document, "styles/wiki-integration.css")
-        assertDeferredStylesheet(document, "styles/fixes.css")
+        assertCriticalStylesheet(document, "styles/fixes.css")
+        assertCriticalStylesheet(document, "styles/gadget_calc.css")
         assertDeferredStylesheet(document, "styles/android-article-aesthetics.css")
 
         assertTrue(html.contains("id=\"osrs-article-first-paint\""))

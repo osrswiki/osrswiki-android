@@ -123,22 +123,26 @@ class DonateFragment : Fragment() {
         // Clear all button selections first
         clearAllButtonSelections()
         
-        // Set selected state based on current selection
         selectedAmount?.let { amount ->
             when (amount) {
-                BigDecimal("1.00") -> binding.chipAmount1.isSelected = true
-                BigDecimal("5.00") -> binding.chipAmount5.isSelected = true
-                BigDecimal("10.00") -> binding.chipAmount10.isSelected = true
-                BigDecimal("25.00") -> binding.chipAmount25.isSelected = true
+                BigDecimal("1.00") -> setChipSelected(binding.chipAmount1, true)
+                BigDecimal("5.00") -> setChipSelected(binding.chipAmount5, true)
+                BigDecimal("10.00") -> setChipSelected(binding.chipAmount10, true)
+                BigDecimal("25.00") -> setChipSelected(binding.chipAmount25, true)
             }
         }
     }
+
+    private fun setChipSelected(chip: com.google.android.material.button.MaterialButton, selected: Boolean) {
+        chip.isSelected = selected
+        chip.isChecked = selected
+    }
     
     private fun clearAllButtonSelections() {
-        binding.chipAmount1.isSelected = false
-        binding.chipAmount5.isSelected = false
-        binding.chipAmount10.isSelected = false
-        binding.chipAmount25.isSelected = false
+        setChipSelected(binding.chipAmount1, false)
+        setChipSelected(binding.chipAmount5, false)
+        setChipSelected(binding.chipAmount10, false)
+        setChipSelected(binding.chipAmount25, false)
     }
     
     
@@ -308,13 +312,13 @@ class DonateFragment : Fragment() {
                 override fun onPurchasePending() {
                     withActiveDonationView {
                         L.d("DonateFragment: Purchase is pending")
-                        setStatusText("Purchase is pending...")
+                        setStatusText(getString(R.string.donate_pending))
                     }
                 }
 
                 override fun onPurchaseCancelled() {
                     withActiveDonationView {
-                        L.d("DonateFragment: Purchase cancelled by user")
+                        L.d("DonateFragment: Donation cancelled by user")
                         this@DonateFragment.onPurchaseCancelled()
                     }
                 }
@@ -373,7 +377,8 @@ class DonateFragment : Fragment() {
     }
     
     private fun onPurchaseCancelled() {
-        hideStatusText()
+        setStatusText(getString(R.string.donate_cancelled))
+        updateButtonSelectionStates()
         updateDonateButtonState()
     }
     

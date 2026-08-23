@@ -1,0 +1,9 @@
+OSRS Wiki is an unofficial companion app for the Old School RuneScape Wiki.
+
+Browse articles, search the wiki, save pages for offline reading, and explore the game map from your phone.
+
+This F-Droid package is the foss distribution flavor: no Google Play Billing, and Grand Exchange charts use Chart.js (MIT) rather than Highcharts.
+
+Optional tips via GitHub Sponsors help cover store fees and ongoing maintenance: https://github.com/sponsors/omiyawaki
+
+The Old School RuneScape Wiki on the web is run by separate volunteers — support them too if you can.

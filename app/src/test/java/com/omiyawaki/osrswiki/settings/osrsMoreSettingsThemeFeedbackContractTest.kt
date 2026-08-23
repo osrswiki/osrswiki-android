@@ -90,12 +90,15 @@ class osrsMoreSettingsThemeFeedbackContractTest {
         assertTrue(fragment.contains("onProductPrices"))
         assertTrue(fragment.contains("localizedPrice"))
         assertFalse(fragment.contains("currency picker") || fragment.contains("Currency"))
-        assertTrue(strings.contains("donate_app_blurb_free\">This app is free. Nothing is locked behind a donation."))
+        assertTrue(strings.contains("donate_header\">Support the OSRS Wiki App"))
+        assertTrue(strings.contains("donate_app_blurb_free\">Support the OSRS Wiki App"))
+        assertTrue(strings.contains("Old School RuneScape Wiki (the web version)"))
         assertTrue(strings.contains("Play Store and the time it takes to keep the app working."))
         assertTrue(strings.contains("donate_sponsors_button\">GitHub Sponsors<"))
-        assertTrue(strings.contains("The Old School RuneScape Wiki is run by volunteers. Support them too if you can."))
-        assertTrue(layout.contains("@string/donate_app_blurb_free"))
-        assertTrue(layout.contains("@string/donate_app_blurb_help"))
+        assertTrue(strings.contains("separate volunteers. Support them too if you can."))
+        assertTrue(strings.contains("donate_wiki_description"))
+        assertTrue(layout.contains("@string/donate_header"))
+        assertTrue(layout.contains("@string/donate_description"))
         assertTrue(layout.contains("wiki_support_title"))
         assertTrue(layout.contains("android:visibility=\"gone\""))
         assertTrue(layout.contains("@style/Widget.OSRSWiki.OutboundLinkButton"))
@@ -123,6 +126,8 @@ class osrsMoreSettingsThemeFeedbackContractTest {
         assertTrue(fragment.contains("rateAppCard.visibility = View.GONE"))
         assertFalse(fragment.contains("rateAppCard.setOnClickListener"))
         assertTrue(styles.contains("Widget.OSRSWiki.OutboundLinkButton"))
+        assertTrue(styles.contains("?attr/linkColor"))
+        assertTrue(styles.contains("Widget.OSRSWiki.SelectableChip"))
         assertTrue(feedback.contains("@style/Widget.OSRSWiki.OutboundLinkButton"))
         assertTrue(about.contains("@style/Widget.OSRSWiki.OutboundLinkButton"))
     }
@@ -132,4 +137,16 @@ class osrsMoreSettingsThemeFeedbackContractTest {
 
     private fun resource(relativePath: String): String =
         File("src/main/res/$relativePath").readText()
+
+    @Test
+    fun moreListOrdersFeedbackBetweenDownloadsAndDonate() {
+        val more = source("ui/more/MoreFragment.kt")
+        val downloads = more.indexOf("MoreAction.DOWNLOADS")
+        val feedback = more.indexOf("MoreAction.FEEDBACK")
+        val donate = more.indexOf("MoreAction.DONATE")
+        assertTrue(downloads >= 0 && feedback >= 0 && donate >= 0)
+        assertTrue(downloads < feedback)
+        assertTrue(feedback < donate)
+    }
+
 }

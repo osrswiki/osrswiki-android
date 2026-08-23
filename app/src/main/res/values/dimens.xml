@@ -26,4 +26,5 @@
 
     <!-- Tablet / large-screen content guardrails -->
     <dimen name="tablet_content_max_width">720dp</dimen>
+    <dimen name="osrs_donate_wiki_block_spacing">40dp</dimen>
 </resources>

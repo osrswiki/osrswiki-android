@@ -15,28 +15,43 @@ import com.omiyawaki.osrswiki.util.StringUtil
 class UpdatesAdapter(
     private val items: List<UpdateItem>,
     private val imageLoader: ImageLoader,
-    private val onItemClicked: (UpdateItem) -> Unit
-) : RecyclerView.Adapter<UpdatesAdapter.ViewHolder>() {
+    private val onItemClicked: (UpdateItem) -> Unit,
+    private val onViewMoreClicked: (() -> Unit)? = null
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_news_update, parent, false)
-        return ViewHolder(view)
+    companion object {
+        private const val TYPE_UPDATE = 0
+        private const val TYPE_VIEW_MORE = 1
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(items[position], onItemClicked)
+    override fun getItemViewType(position: Int): Int {
+        return if (onViewMoreClicked != null && position == items.size) TYPE_VIEW_MORE else TYPE_UPDATE
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == TYPE_VIEW_MORE) {
+            ViewMoreViewHolder(inflater.inflate(R.layout.item_news_updates_view_more, parent, false))
+        } else {
+            UpdateViewHolder(inflater.inflate(R.layout.item_news_update, parent, false))
+        }
+    }
 
-    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (holder) {
+            is UpdateViewHolder -> holder.bind(items[position], onItemClicked)
+            is ViewMoreViewHolder -> holder.bind(onViewMoreClicked)
+        }
+    }
+
+    override fun getItemCount(): Int = items.size + if (onViewMoreClicked != null) 1 else 0
+
+    inner class UpdateViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val imageView: ImageView = itemView.findViewById(R.id.news_item_image)
         private val titleView: TextView = itemView.findViewById(R.id.news_item_title)
         private val snippetView: TextView = itemView.findViewById(R.id.news_item_snippet)
 
         init {
-            // Apply fonts on ViewHolder creation
             titleView.applyAlegreyaTitle()
         }
 
@@ -52,14 +67,16 @@ class UpdatesAdapter(
             imageView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             titleView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             snippetView.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-
-            // Use injected ImageLoader instead of direct Glide calls
-            // This enables dependency injection for preview vs production contexts
             imageLoader.load(imageView, item.imageUrl)
+            itemView.setOnClickListener { onItemClicked(item) }
+        }
+    }
 
-            itemView.setOnClickListener {
-                onItemClicked(item)
-            }
+    inner class ViewMoreViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val viewMore: TextView = itemView.findViewById(R.id.home_updates_view_more)
+
+        fun bind(onViewMore: (() -> Unit)?) {
+            viewMore.setOnClickListener { onViewMore?.invoke() }
         }
     }
 }

@@ -57,6 +57,11 @@ class MoreFragment : Fragment(), ThemeAware {
                 action = MoreAction.DOWNLOADS
             ),
             MoreItem(
+                titleRes = R.string.menu_title_feedback,
+                iconRes = R.drawable.ic_feedback_24,
+                action = MoreAction.FEEDBACK
+            ),
+            MoreItem(
                 titleRes = R.string.menu_title_donate,
                 iconRes = R.drawable.ic_donate_24,
                 action = MoreAction.DONATE
@@ -65,11 +70,6 @@ class MoreFragment : Fragment(), ThemeAware {
                 titleRes = R.string.menu_title_about,
                 iconRes = R.drawable.ic_about_24,
                 action = MoreAction.ABOUT
-            ),
-            MoreItem(
-                titleRes = R.string.menu_title_feedback,
-                iconRes = R.drawable.ic_feedback_24,
-                action = MoreAction.FEEDBACK
             )
         )
         
