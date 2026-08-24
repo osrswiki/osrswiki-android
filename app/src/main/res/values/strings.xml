@@ -25,6 +25,7 @@
 
     <string name="label_loading">Loading…</string>
     <string name="label_error_loading_page">Error Loading Article</string>
+    <string name="native_calc_agility_host">Agility calculator</string>
     <string name="error_webview_renderer_recovery">Article rendering stopped. Tap to retry.</string>
     <string name="label_title_unavailable">Title Unavailable</string>
 

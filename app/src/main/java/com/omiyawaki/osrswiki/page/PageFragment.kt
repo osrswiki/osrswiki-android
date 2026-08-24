@@ -87,6 +87,8 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private lateinit var pageHistoryManager: PageHistoryManager
     private lateinit var pageReadingListManager: PageReadingListManager
     private var pageUiUpdater: PageUiUpdater? = null
+    private var nativeCalcSession: osrsNativeCalcSession? = null
+    private var nativeCalcView: osrsNativeCalcView? = null
     private lateinit var gestureDetector: GestureDetector
     private var nativeMapHandler: NativeMapHandler? = null
     private val horizontalGestureOwnership = ArticleHorizontalGestureOwnership()
@@ -245,6 +247,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 null
             )
         }
+        maybeStartNativeCalculator()
         binding.errorTextView.setOnClickListener {
             reloadCurrentPage()
         }
@@ -1297,6 +1300,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         }
         // Clean up any maps created in this page to prevent bleed-through
         nativeMapHandler?.cleanup()
+        nativeCalcSession?.release()
+        nativeCalcSession = null
+        nativeCalcView = null
         _binding?.pageWebView?.run {
             destroyReleasedWebView(this)
         }
@@ -1343,6 +1349,40 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
     fun getPageIdArg(): String? = pageIdArg
     fun getPageTitleArg(): String? = pageTitleArg
+
+    private fun maybeStartNativeCalculator() {
+        val title = pageTitleArg ?: return
+        if (title !in osrsNativeCalcDefinition.spikeNativeTitles) return
+        if (nativeCalcSession != null) return
+        val app = requireActivity().application as OSRSWikiApp
+        val dark = app.getCurrentTheme() == Theme.OSRS_DARK
+        val forceFallback = requireActivity().intent.getBooleanExtra(EXTRA_FORCE_NATIVE_CALC_FALLBACK, false) ||
+            System.getProperty("debug.osrs.forceNativeCalcFallback") == "true"
+        val host = binding.nativeCalcHost
+        val view = osrsNativeCalcView(requireContext())
+        nativeCalcView = view
+        host.removeAllViews()
+        host.addView(
+            view,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+        nativeCalcSession = osrsNativeCalcSession(requireContext().applicationContext) {
+            renderNativeCalculator()
+        }.also { it.start(title, dark, forceFallback) }
+    }
+
+    private fun renderNativeCalculator() {
+        val session = nativeCalcSession ?: return
+        val host = _binding?.nativeCalcHost ?: return
+        val showNative = session.phase == osrsNativeCalcSession.Phase.LOADING ||
+            session.phase == osrsNativeCalcSession.Phase.NATIVE ||
+            session.phase == osrsNativeCalcSession.Phase.SUBMITTING
+        host.visibility = if (showNative) View.VISIBLE else View.GONE
+        binding.articleSwipeRefresh.visibility = if (showNative) View.INVISIBLE else View.VISIBLE
+        if (showNative) {
+            nativeCalcView?.bind(session)
+        }
+    }
     fun getNavigationSource(): Int = navigationSource
     fun provideBinding(): FragmentPageBinding? = _binding
 
@@ -1384,6 +1424,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         const val ARG_PAGE_SNIPPET = "pageSnippet"
         const val ARG_PAGE_THUMBNAIL = "pageThumbnail"
         const val ARG_PAGE_SCROLL_Y = "pageScrollY"
+        const val EXTRA_FORCE_NATIVE_CALC_FALLBACK = "osrsForceNativeCalcFallback"
         private const val WEBVIEW_RELEASES_PER_HEAP_TRIM = 8
         private var webViewReleaseCount = 0
         @JvmStatic

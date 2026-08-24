@@ -26,6 +26,17 @@
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <FrameLayout
+        android:id="@+id/native_calc_host"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:contentDescription="@string/native_calc_agility_host"
+        app:layout_constraintTop_toTopOf="@id/article_swipe_refresh"
+        app:layout_constraintBottom_toBottomOf="@id/article_swipe_refresh"
+        app:layout_constraintStart_toStartOf="@id/article_swipe_refresh"
+        app:layout_constraintEnd_toEndOf="@id/article_swipe_refresh" />
+
+    <FrameLayout
         android:id="@+id/progress_container"
         android:layout_width="305dp"
         android:layout_height="35dp"
