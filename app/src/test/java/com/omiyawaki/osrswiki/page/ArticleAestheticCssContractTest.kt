@@ -8,6 +8,25 @@ import java.io.File
 class ArticleAestheticCssContractTest {
 
     @Test
+    fun inlineCitationSuperscriptsDoNotRaiseIntoPreviousLine() {
+        val css = assetFile("styles/wiki-integration.css").readText()
+        val supRule = css.substringAfter(".mw-body-content sup {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertTrue("Missing .mw-body-content sup rule in wiki-integration.css", supRule.isNotBlank())
+        assertFalse(
+            "line-height:0 collapses the cite line box so a negative top climbs into descenders above.",
+            supRule.contains("line-height: 0"),
+        )
+        assertFalse(
+            "top: -0.5em plus vertical-align:super double-raises inline cites into the previous line.",
+            supRule.contains("top: -0.5em"),
+        )
+        assertTrue(supRule.contains("vertical-align: super"))
+        assertTrue(supRule.contains("top: 0"))
+        assertTrue(supRule.contains("line-height: 1"))
+    }
+
+    @Test
     fun androidOnlyAestheticStylesheetContainsArticlePolishContracts() {
         val css = assetFile("styles/android-article-aesthetics.css").readText()
 

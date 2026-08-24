@@ -38,6 +38,9 @@ app/src/main/assets/img-[0-9]*.png
 *.tmp
 *.log
 
+# Playwright/node layout-test output when evidence dir is unset
+tests/output/
+
 # Test artifacts in root directory (screenshots, UI dumps, etc.)
 /android-*.png
 /api*.png
