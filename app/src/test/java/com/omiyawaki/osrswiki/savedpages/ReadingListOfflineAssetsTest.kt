@@ -46,12 +46,18 @@ class ReadingListOfflineAssetsTest {
             <iframe src="/ignored/frame.html"></iframe>
             <embed src="/ignored/embed.bin">
             <audio src="/ignored/audio.ogg"><source src="/ignored/audio-source.ogg"></audio>
+            <audio controls>
+              <source src="/images/Sea_Shanty_2.ogg?8e3b9" type="audio/ogg">
+              <source src="/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67" type="audio/mpeg">
+            </audio>
+            <audio src="/images/Jingle.ogg"></audio>
             <track src="/ignored/captions.vtt">
             <source src="/ignored/orphan-source.png">
             <object type="application/pdf" data="/ignored/document.pdf"></object>
         """.trimIndent()
 
         val urls = ReadingListAssetUrlExtractor.extract(html)
+        val saveAudio = ReadingListAssetUrlExtractor.wikiAudioUrls(html)
 
         assertEquals(1_117, urls.size)
         assertTrue("https://oldschool.runescape.wiki/images/animated.gif" in urls)
@@ -63,10 +69,53 @@ class ReadingListOfflineAssetsTest {
         assertTrue("https://oldschool.runescape.wiki/css/article-art.css" in urls)
         assertTrue("https://oldschool.runescape.wiki/images/vector.svg" in urls)
         assertTrue("https://oldschool.runescape.wiki/images/object-art.svg" in urls)
+        assertFalse(urls.any { it.contains("Sea_Shanty_2") || it.contains("Jingle.ogg") })
         assertFalse(urls.any { it.startsWith("data:") })
         assertFalse(urls.any { "/ignored/" in it })
         assertFalse(urls.any { "navigation-is-not-an-asset" in it })
         assertFalse(urls.any { "comment-only" in it })
+
+        assertTrue(
+            "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67" in saveAudio
+        )
+        assertTrue("https://oldschool.runescape.wiki/images/Jingle.ogg" in saveAudio)
+        assertFalse(saveAudio.any { it.contains("Sea_Shanty_2.ogg") && !it.contains("transcoded") })
+        assertFalse(saveAudio.any { "/ignored/audio" in it })
+        assertEquals(0, ReadingListAssetUrlExtractor.extractFirstViewSlot(html).count {
+            it.endsWith(".mp3") || it.endsWith(".ogg")
+        })
+    }
+
+    @Test
+    fun persistAllUnionsArtworkExtractWithPreferredWikiAudio() = runTest {
+        val attempted = linkedSetOf<String>()
+        val saver = ReadingListOfflineAssetSaver(
+            fetcher = object : ReadingListAssetFetcher {
+                override suspend fun fetchAndPersist(url: String, readingListPageId: Long): Boolean {
+                    attempted += url
+                    return true
+                }
+            }
+        )
+        val html = """
+            <img src="/images/art.png">
+            <audio controls>
+              <source src="/images/Sea_Shanty_2.ogg?8e3b9" type="audio/ogg">
+              <source src="/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67" type="audio/mpeg">
+            </audio>
+            <audio src="/images/Jingle.ogg"></audio>
+        """.trimIndent()
+
+        val result = saver.persistAll(readingListPageId = 42L, html = html)
+
+        assertTrue(result.isComplete)
+        assertEquals(3, result.requiredCount)
+        assertTrue("https://oldschool.runescape.wiki/images/art.png" in attempted)
+        assertTrue(
+            "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67" in attempted
+        )
+        assertTrue("https://oldschool.runescape.wiki/images/Jingle.ogg" in attempted)
+        assertFalse(attempted.any { it.contains("Sea_Shanty_2.ogg") && !it.contains("transcoded") })
     }
 
     @Test
@@ -376,6 +425,58 @@ class ReadingListOfflineAssetsTest {
         assertInvalidAsset("https://cdn.example/animation.gif?token=1", "text/html", html)
         assertInvalidAsset("https://cdn.example/vector.svg", "image/svg+xml", html)
         assertInvalidAsset("https://cdn.example/article.css", "text/css", html)
+    }
+
+    @Test
+    fun responseValidatorAcceptsMpegAudioWithId3OrFrameSyncMagic() {
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67",
+            contentType = "audio/mpeg",
+            bytes = "ID3".toByteArray() + ByteArray(16) { 0 }
+        )
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/Jingle.mp3",
+            contentType = "audio/mpeg",
+            bytes = byteArrayOf(0xFF.toByte(), 0xFB.toByte(), 0x90.toByte(), 0x00) + ByteArray(8) { 0 }
+        )
+        // Mime-identified UNKNOWN path (no extension) must use the same MP3 magic.
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/download",
+            contentType = "audio/mpeg",
+            bytes = "ID3".toByteArray() + ByteArray(16) { 0 }
+        )
+    }
+
+    @Test
+    fun responseValidatorAcceptsOggAudioAndRejectsHtmlDisguisedAsAudio() {
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/Sea_Shanty_2.ogg?8e3b9",
+            contentType = "audio/ogg",
+            bytes = "OggS".toByteArray() + ByteArray(12) { 0 }
+        )
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/clip.oga",
+            contentType = "audio/ogg",
+            bytes = "OggS".toByteArray() + ByteArray(12) { 0 }
+        )
+        assertInvalidAsset(
+            url = "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3",
+            contentType = "audio/mpeg",
+            bytes = "<!DOCTYPE html><html><body>Sign in</body></html>".toByteArray()
+        )
+    }
+
+    @Test
+    fun responseValidatorAcceptsM4AWithFtypMagic() {
+        val body = byteArrayOf(0x00, 0x00, 0x00, 0x18) +
+            "ftyp".toByteArray() +
+            "M4A ".toByteArray() +
+            ByteArray(8) { 0 }
+        assertValidAsset(
+            url = "https://oldschool.runescape.wiki/images/Sample.m4a",
+            contentType = "audio/mp4",
+            bytes = body
+        )
     }
 
     private fun guardedCssFetcher(

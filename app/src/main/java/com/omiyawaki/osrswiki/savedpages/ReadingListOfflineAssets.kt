@@ -68,6 +68,9 @@ internal object ReadingListAssetResponseValidator {
             ExpectedKind.WEBP -> requireKind(mimeType == "image/webp" && isWebp(prefix), "WebP")
             ExpectedKind.SVG -> requireKind(isSvgMime(mimeType) && isSvg(prefix), "SVG")
             ExpectedKind.CSS -> requireKind(mimeType == "text/css", "CSS")
+            ExpectedKind.MP3 -> requireKind(isMp3Mime(mimeType) && isMp3(prefix), "MP3")
+            ExpectedKind.OGG -> requireKind(isOggMime(mimeType) && isOgg(prefix), "OGG")
+            ExpectedKind.M4A -> requireKind(isM4aMime(mimeType) && isM4a(prefix), "M4A")
             ExpectedKind.OTHER_IMAGE -> requireKind(
                 mimeType.startsWith("image/") && prefix.isNotEmpty(),
                 "image"
@@ -91,6 +94,9 @@ internal object ReadingListAssetResponseValidator {
         mimeType == "image/webp" -> requireKind(isWebp(prefix), "WebP")
         isSvgMime(mimeType) -> requireKind(isSvg(prefix), "SVG")
         mimeType == "text/css" -> null
+        isMp3Mime(mimeType) -> requireKind(isMp3(prefix), "MP3")
+        isOggMime(mimeType) -> requireKind(isOgg(prefix), "OGG")
+        isM4aMime(mimeType) -> requireKind(isM4a(prefix), "M4A")
         mimeType.startsWith("image/") && prefix.isNotEmpty() -> null
         else -> "unsupported asset Content-Type '$mimeType'"
     }
@@ -104,6 +110,9 @@ internal object ReadingListAssetResponseValidator {
             path.endsWith(".webp") -> ExpectedKind.WEBP
             path.endsWith(".svg") || path.endsWith(".svgz") -> ExpectedKind.SVG
             path.endsWith(".css") -> ExpectedKind.CSS
+            path.endsWith(".mp3") -> ExpectedKind.MP3
+            path.endsWith(".ogg") || path.endsWith(".oga") -> ExpectedKind.OGG
+            path.endsWith(".m4a") -> ExpectedKind.M4A
             path.endsWith(".bmp") || path.endsWith(".ico") || path.endsWith(".avif") ||
                 path.endsWith(".tif") || path.endsWith(".tiff") -> ExpectedKind.OTHER_IMAGE
             else -> ExpectedKind.UNKNOWN
@@ -143,19 +152,53 @@ internal object ReadingListAssetResponseValidator {
         "text/xml"
     )
 
+    private fun isMp3Mime(mimeType: String): Boolean =
+        mimeType == "audio/mpeg" || mimeType == "audio/mp3"
+
+    private fun isOggMime(mimeType: String): Boolean =
+        mimeType == "audio/ogg" || mimeType == "application/ogg"
+
+    private fun isM4aMime(mimeType: String): Boolean =
+        mimeType == "audio/mp4" || mimeType == "audio/x-m4a" || mimeType == "audio/m4a"
+
+    /** ID3 tag or MPEG frame sync (11 set bits), matching common wiki MP3 bodies. */
+    private fun isMp3(bytes: ByteArray): Boolean {
+        if (bytes.startsWithAscii("ID3")) return true
+        return bytes.size >= 2 &&
+            bytes[0] == 0xff.toByte() &&
+            (bytes[1].toInt() and 0xe0) == 0xe0
+    }
+
+    private fun isOgg(bytes: ByteArray): Boolean = bytes.startsWithAscii("OggS")
+
+    /** ISO BMFF `ftyp` box anywhere in the first 12 bytes. */
+    private fun isM4a(bytes: ByteArray): Boolean {
+        val limit = minOf(bytes.size, 12)
+        if (limit < 4) return false
+        val needle = "ftyp".toByteArray()
+        for (start in 0..(limit - needle.size)) {
+            if (bytes.copyOfRange(start, start + needle.size).contentEquals(needle)) return true
+        }
+        return false
+    }
+
     private fun ByteArray.startsWithAscii(value: String): Boolean =
         size >= value.length && copyOfRange(0, value.length).contentEquals(value.toByteArray())
 
     private fun String.trimBomAndWhitespace(): String =
         trimStart('\uFEFF', ' ', '\t', '\r', '\n')
 
-    private enum class ExpectedKind { GIF, PNG, JPEG, WEBP, SVG, CSS, OTHER_IMAGE, UNKNOWN }
+    private enum class ExpectedKind {
+        GIF, PNG, JPEG, WEBP, SVG, CSS, MP3, OGG, M4A, OTHER_IMAGE, UNKNOWN
+    }
 }
 
 internal object ReadingListAssetUrlExtractor {
     private const val WIKI_BASE_URL = "https://oldschool.runescape.wiki/"
     private val imageSourceAttributes = listOf("src", "data-src", "data-osrs-deferred-src")
     private val imageSetAttributes = listOf("srcset", "data-srcset", "data-osrs-deferred-srcset")
+    private val AUDIO_EXTENSIONS = setOf("mp3", "ogg", "oga", "m4a")
+    private val AUDIO_MIME_PREFIXES = listOf("audio/mpeg", "audio/ogg", "audio/mp4")
     private val cssUrl = Regex("url\\(\\s*(['\"]?)(.*?)\\1\\s*\\)", RegexOption.IGNORE_CASE)
     private val cssImport = Regex(
         "@import\\s+(?:url\\(\\s*)?(['\"])(.*?)\\1\\s*\\)?",
@@ -170,7 +213,8 @@ internal object ReadingListAssetUrlExtractor {
     /**
      * Enumerates rendered article artwork without a count cap. The allowlist deliberately avoids
      * navigation, scripts, frames, and playable/interactive media that an explicit article save
-     * must not mirror merely because those elements expose a `src` attribute.
+     * must not mirror merely because those elements expose a `src` attribute. Wiki audio for
+     * Save is enumerated separately via [wikiAudioUrls] so live remainder warm stays image/CSS-only.
      */
     fun extract(html: String, baseUrl: String = WIKI_BASE_URL): List<String> {
         val document = Jsoup.parse(html, baseUrl)
@@ -199,6 +243,19 @@ internal object ReadingListAssetUrlExtractor {
             }
             document.select("style").forEach { style ->
                 addAll(extractCss(style.data(), baseUrl))
+            }
+        }.toList()
+    }
+
+    /**
+     * Preferred wiki-local audio for explicit Save only. Live warmers must not call this.
+     * Per `<audio>`: wiki host, `/images/` path, audio extension or MIME; prefer MP3/mpeg.
+     */
+    fun wikiAudioUrls(html: String, baseUrl: String = WIKI_BASE_URL): List<String> {
+        val document = Jsoup.parse(html, baseUrl)
+        return linkedSetOf<String>().apply {
+            document.select("audio").forEach { audio ->
+                preferredWikiAudioUrl(audio, baseUrl)?.let(::add)
             }
         }.toList()
     }
@@ -397,6 +454,57 @@ internal object ReadingListAssetUrlExtractor {
         }
     }
 
+    private data class WikiAudioCandidate(val url: String, val type: String?)
+
+    /**
+     * One preferred source per `<audio>`: wiki-host `/images/` media with an audio path or
+     * audio MIME, preferring MP3/mpeg when both ogg and mp3 are listed.
+     */
+    private fun preferredWikiAudioUrl(audio: org.jsoup.nodes.Element, baseUrl: String): String? {
+        val candidates = ArrayList<WikiAudioCandidate>()
+        val audioSrc = audio.absUrl("src").ifBlank { audio.attr("src") }
+        wikiAudioCandidate(audioSrc, audio.attr("type"), baseUrl)?.let(candidates::add)
+        audio.select("source").forEach { source ->
+            val src = source.absUrl("src").ifBlank { source.attr("src") }
+            wikiAudioCandidate(src, source.attr("type"), baseUrl)?.let(candidates::add)
+        }
+        if (candidates.isEmpty()) return null
+        return candidates.firstOrNull(::isMpegPreferred)?.url ?: candidates.first().url
+    }
+
+    private fun wikiAudioCandidate(rawUrl: String, type: String?, baseUrl: String): WikiAudioCandidate? {
+        val normalized = normalize(rawUrl, baseUrl) ?: return null
+        val uri = runCatching { URI(normalized) }.getOrNull() ?: return null
+        if (!isAllowedWikiHost(uri.host)) return null
+        // MediaWiki file URLs live under /images/; keeps /ignored/ and non-file paths out.
+        val path = uri.path.orEmpty()
+        if (!path.startsWith("/images/")) return null
+        val extension = path.substringAfterLast('.', missingDelimiterValue = "")
+            .lowercase(Locale.ROOT)
+        val typeNorm = type?.trim()?.takeIf(String::isNotEmpty)?.lowercase(Locale.ROOT)
+        val audioPath = extension in AUDIO_EXTENSIONS
+        val audioMime = typeNorm != null && AUDIO_MIME_PREFIXES.any { typeNorm.startsWith(it) }
+        if (!audioPath && !audioMime) return null
+        return WikiAudioCandidate(normalized, typeNorm)
+    }
+
+    private fun isAllowedWikiHost(host: String?): Boolean {
+        if (host.isNullOrBlank()) return false
+        val bare = host.lowercase(Locale.ROOT).removePrefix("www.")
+        return bare == "oldschool.runescape.wiki" || bare == "runescape.wiki"
+    }
+
+    private fun isMpegPreferred(candidate: WikiAudioCandidate): Boolean {
+        val path = runCatching { URI(candidate.url).path }.getOrNull().orEmpty()
+        if (path.substringAfterLast('.', missingDelimiterValue = "")
+                .equals("mp3", ignoreCase = true)
+        ) {
+            return true
+        }
+        val type = candidate.type ?: return false
+        return type.startsWith("audio/mpeg")
+    }
+
     private fun normalize(rawUrl: String, baseUrl: String): String? {
         val trimmed = rawUrl.trim().trim('"', '\'')
         if (trimmed.isEmpty()) return null
@@ -481,6 +589,7 @@ internal class ReadingListOfflineAssetSaver(
         onProgress: (suspend (persisted: Int, required: Int) -> Unit)? = null
     ): ReadingListAssetPersistenceResult = coroutineScope {
         val discovered = ReadingListAssetUrlExtractor.extract(html).toCollection(linkedSetOf())
+        discovered += ReadingListAssetUrlExtractor.wikiAudioUrls(html)
         var pending = discovered.map { url -> url to 0 }
         val permits = Semaphore(maxConcurrent)
         val persisted = linkedSetOf<String>()

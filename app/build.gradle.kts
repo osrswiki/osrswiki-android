@@ -66,7 +66,7 @@ android {
         applicationId = "com.omiyawaki.osrswiki"
         minSdk = 24
         targetSdk = 36
-        versionCode = 43
+        versionCode = 44
         versionName = "2.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
