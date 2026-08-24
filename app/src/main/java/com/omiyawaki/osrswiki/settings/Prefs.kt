@@ -98,6 +98,15 @@ object Prefs {
     @Volatile
     var narrowFirstViewportPaintedSet: Boolean = true
 
+    /**
+     * When true, live HTML inlines the critical bundle (+ platform aesthetics)
+     * and restores `wiki-integration.css` / `navbox_styles.css` to the existing
+     * `media=print` onload deferred-link path. Saved/offline stays fully inlined.
+     * Flip to false to roll back thousand-cuts slice 2.
+     */
+    @Volatile
+    var deferLiveWikiFidelityCss: Boolean = true
+
 
     /**
      * Gets the cache size limit in megabytes.

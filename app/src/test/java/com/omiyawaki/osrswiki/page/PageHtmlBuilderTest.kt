@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.page
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.theme.Theme
 import okhttp3.OkHttpClient
 import org.jsoup.Jsoup
@@ -112,6 +113,35 @@ class PageHtmlBuilderTest {
         assertFalse(
             html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/gadget_calc.css\" data-osrs-css=\"critical\">")
         )
+    }
+
+    @Test
+    fun liveInlineCriticalDefersWikiIntegrationAndKeepsAestheticsInline() {
+        Prefs.useCriticalArticleBundle = true
+        Prefs.deferLiveWikiFidelityCss = true
+        val html = builder.buildFullHtmlDocument(
+            title = "Abyssal whip",
+            bodyContent = """<table class="infobox infobox-bonuses"></table>""",
+            theme = Theme.OSRS_LIGHT,
+            inlineFirstPaintCss = true,
+            deferWikiFidelityCss = true,
+            bakeChromeInsets = false
+        )
+        val document = Jsoup.parse(html)
+
+        assertDeferredStylesheet(document, "styles/wiki-integration.css")
+        assertDeferredStylesheet(document, "styles/navbox_styles.css")
+        assertTrue(html.contains("data-osrs-defer-until=\"first-view\""))
+        assertTrue(html.contains("osrs-first-view-complete"))
+        assertFalse(html.contains("data-osrs-inline-css=\"styles/wiki-integration.css\""))
+        assertFalse(html.contains("data-osrs-inline-css=\"styles/navbox_styles.css\""))
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/android-article-aesthetics.css\""))
+        assertFalse(html.contains("data-osrs-css-href=\"styles/android-article-aesthetics.css\""))
+        assertTrue(
+            html.contains("data-osrs-inline-css=\"styles/critical-article.min.css\"") ||
+                html.contains("data-osrs-inline-css=\"styles/fixes.css\"")
+        )
+        assertTrue(html.contains("osrsActivateDeferredStylesheet"))
     }
 
     @Test

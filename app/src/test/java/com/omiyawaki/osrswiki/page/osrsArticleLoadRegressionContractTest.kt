@@ -81,6 +81,29 @@ class osrsArticleLoadRegressionContractTest {
     }
 
     @Test
+    fun slice2DeferLiveWikiFidelityCssDefaultOnAndWired() {
+        val prefs = source("settings/Prefs.kt")
+        assertTrue(prefs.contains("var deferLiveWikiFidelityCss: Boolean = true"))
+        val loader = source("page/PageContentLoader.kt")
+        assertTrue(loader.contains("deferWikiFidelityCss = Prefs.deferLiveWikiFidelityCss"))
+        val builder = source("page/PageHtmlBuilder.kt")
+        assertTrue(builder.contains("wikiFidelityDeferredStyleSheetAssets"))
+        assertTrue(builder.contains("paintedPlatformAestheticsAsset"))
+        assertTrue(builder.contains("styles/wiki-integration.css"))
+        assertTrue(builder.contains("styles/navbox_styles.css"))
+        assertTrue(builder.contains("styles/android-article-aesthetics.css"))
+        assertTrue(builder.contains("data-osrs-defer-until"))
+        assertTrue(builder.contains("osrs-first-view-complete"))
+        val saved = source("savedpages/SavedPageSyncWorker.kt")
+        assertFalse(
+            "saved path must not opt into live wiki-integration deferral",
+            saved.contains("deferLiveWikiFidelityCss")
+        )
+        val repository = source("page/PageRepository.kt")
+        assertFalse(repository.contains("deferLiveWikiFidelityCss"))
+    }
+
+    @Test
     fun task10EarlyFirstViewSlotWarmWiredBeforeDocumentCommit() {
         val prefs = source("settings/Prefs.kt")
         assertTrue(prefs.contains("var warmFirstViewportImagesEarly: Boolean = true"))

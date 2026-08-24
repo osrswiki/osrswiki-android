@@ -31,12 +31,20 @@ class PageHtmlBuilder(private val context: Context) {
         "styles/fixes.css"
     )
 
-    // Heavy wiki fidelity sheets. Downloaded immediately but applied after first paint.
-    private val deferredStyleSheetAssets = listOf(
+    // Heavy wiki fidelity sheets. Downloaded immediately but applied after first paint
+    // on the live path (media=print onload). Saved still inlines them.
+    private val wikiFidelityDeferredStyleSheetAssets = listOf(
         "styles/wiki-integration.css",
-        "styles/navbox_styles.css",
-        "styles/android-article-aesthetics.css"
+        "styles/navbox_styles.css"
     )
+
+    // First-viewport polish (line-height, bonuses padding, switcher chips). Stay
+    // on the painted path even when wiki-integration is deferred.
+    private val paintedPlatformAestheticsAsset = "styles/android-article-aesthetics.css"
+
+    // Heavy wiki fidelity sheets. Downloaded immediately but applied after first paint.
+    private val deferredStyleSheetAssets: List<String>
+        get() = wikiFidelityDeferredStyleSheetAssets + paintedPlatformAestheticsAsset
 
     private val styleSheetAssets: List<String>
         get() = criticalStyleSheetAssets + deferredStyleSheetAssets
@@ -139,6 +147,7 @@ class PageHtmlBuilder(private val context: Context) {
         readerTextScale: Float = Prefs.readerTextScale,
         canonicalTitle: String? = null,
         inlineFirstPaintCss: Boolean = false,
+        deferWikiFidelityCss: Boolean = false,
         bakeChromeInsets: Boolean = true
     ): String {
         var finalHtml: String
@@ -170,7 +179,10 @@ class PageHtmlBuilder(private val context: Context) {
                 Log.d(logTag, "Detected GE chart markers in content; will include Chart.js widget script.")
             }
 
-            val cssLinks = stylesheetMarkup(inlineFirstPaintCss)
+            val cssLinks = stylesheetMarkup(
+                inlineFirstPaintCss = inlineFirstPaintCss,
+                deferWikiFidelityCss = deferWikiFidelityCss
+            )
 
             Log.d(logTag, "Using natural MediaWiki ResourceLoader with network-level caching")
 
@@ -271,12 +283,15 @@ class PageHtmlBuilder(private val context: Context) {
         Log.d(
             logTag,
             "LOAD-MINMAX html_ready buildMs=$time htmlChars=${finalHtml.length} " +
-                "inlineFirstPaintCss=$inlineFirstPaintCss"
+                "inlineFirstPaintCss=$inlineFirstPaintCss deferWikiFidelityCss=$deferWikiFidelityCss"
         )
         return finalHtml
     }
 
-    private fun stylesheetMarkup(inlineFirstPaintCss: Boolean): String {
+    private fun stylesheetMarkup(
+        inlineFirstPaintCss: Boolean,
+        deferWikiFidelityCss: Boolean
+    ): String {
         val useBundle = Prefs.useCriticalArticleBundle
         if (inlineFirstPaintCss) {
             val criticalPart = if (useBundle) {
@@ -285,6 +300,17 @@ class PageHtmlBuilder(private val context: Context) {
                 criticalStyleSheetAssets.joinToString("\n") { assetPath ->
                     inlineStylesheetOrLink(assetPath)
                 }
+            }
+            if (deferWikiFidelityCss) {
+                val aestheticsPart = inlineStylesheetOrLink(paintedPlatformAestheticsAsset)
+                val fidelityPart = wikiFidelityDeferredStyleSheetAssets.joinToString("\n") { assetPath ->
+                    deferredStylesheetLinks(
+                        assetPath,
+                        ANDROID_ASSET_HREF_PREFIX,
+                        deferUntilFirstView = true
+                    )
+                }
+                return "$criticalPart\n$aestheticsPart\n$ARTICLE_CSS_LOADER_SCRIPT\n$fidelityPart"
             }
             val deferredPart = deferredStyleSheetAssets.joinToString("\n") { assetPath ->
                 inlineStylesheetOrLink(assetPath)
@@ -403,20 +429,28 @@ class PageHtmlBuilder(private val context: Context) {
       window.RenderTimeline.log('Event: DeferredCssApplied:' + href);
     }
   };
-  function osrsActivatePendingDeferredStylesheets() {
+  function osrsActivatePendingDeferredStylesheets(includeFirstView) {
     var nodes = document.querySelectorAll('link[data-osrs-css="deferred"]');
     for (var i = 0; i < nodes.length; i++) {
+      var until = nodes[i].getAttribute('data-osrs-defer-until');
+      if (!includeFirstView && until === 'first-view') {
+        continue;
+      }
       if (nodes[i].media !== 'all') {
         window.osrsActivateDeferredStylesheet(nodes[i]);
       }
     }
   }
   document.addEventListener('DOMContentLoaded', function() {
-    osrsActivatePendingDeferredStylesheets();
+    osrsActivatePendingDeferredStylesheets(false);
     if (window.RenderTimeline && typeof window.RenderTimeline.log === 'function') {
       window.RenderTimeline.log('Event: ParseReady');
     }
   });
+  window.addEventListener('osrs-first-view-complete', function() {
+    setTimeout(function() { osrsActivatePendingDeferredStylesheets(true); }, 0);
+  });
+  setTimeout(function() { osrsActivatePendingDeferredStylesheets(true); }, 2000);
   if (window.requestAnimationFrame) {
     requestAnimationFrame(function() {
       requestAnimationFrame(function() {
@@ -434,10 +468,24 @@ class PageHtmlBuilder(private val context: Context) {
             return """<link rel="stylesheet" href="$hrefPrefix$asset" data-osrs-css="critical">"""
         }
 
-        internal fun deferredStylesheetLinks(asset: String, hrefPrefix: String): String {
+        internal fun deferredStylesheetLinks(
+            asset: String,
+            hrefPrefix: String,
+            deferUntilFirstView: Boolean = false
+        ): String {
             val href = "$hrefPrefix$asset"
+            val untilAttr = if (deferUntilFirstView) {
+                """ data-osrs-defer-until="first-view""""
+            } else {
+                ""
+            }
+            val onloadAttr = if (deferUntilFirstView) {
+                ""
+            } else {
+                """ onload="osrsActivateDeferredStylesheet(this)""""
+            }
             return """<link rel="preload" as="style" href="$href">
-<link rel="stylesheet" href="$href" media="print" onload="osrsActivateDeferredStylesheet(this)" data-osrs-css="deferred" data-osrs-css-href="$asset">"""
+<link rel="stylesheet" href="$href" media="print"$onloadAttr data-osrs-css="deferred" data-osrs-css-href="$asset"$untilAttr>"""
         }
 
         internal fun articleFirstPaintStyle(

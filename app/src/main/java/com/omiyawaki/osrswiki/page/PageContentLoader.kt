@@ -196,7 +196,8 @@ class PageContentLoader(
                                 theme,
                                 collapseTablesEnabled,
                                 canonicalTitle = result.parseResult.title,
-                                inlineFirstPaintCss = Prefs.inlineLiveFirstPaintCss
+                                inlineFirstPaintCss = Prefs.inlineLiveFirstPaintCss,
+                                deferWikiFidelityCss = Prefs.deferLiveWikiFidelityCss
                             )
                         }
                     }
@@ -218,7 +219,8 @@ class PageContentLoader(
                     }
                     L.d(
                         "LOAD-MINMAX html_ready elapsedMs=$openElapsed documentBuildMs=$documentBuildTime " +
-                            "htmlChars=${finalHtml.length} paintSnapshot=${paintSnapshot != null}"
+                            "htmlChars=${finalHtml.length} paintSnapshot=${paintSnapshot != null} " +
+                            "deferWikiFidelityCss=${Prefs.deferLiveWikiFidelityCss}"
                     )
                     finalHtml to tableOfContentsSections
                 }
