@@ -224,6 +224,7 @@ class osrsLiveArticleAssetWarmerTest {
     fun firstViewWarmerDoesNotWalkFullDocumentOnEarlyPath() = runTest {
         val fetched = CopyOnWriteArrayList<String>()
         osrsFirstViewAssetWarmer(
+            isCached = { false },
             fetch = { url -> fetched.add(url) },
             concurrency = 1
         ).warm(gloryHtml)
@@ -235,6 +236,7 @@ class osrsLiveArticleAssetWarmerTest {
 
         val remainder = CopyOnWriteArrayList<String>()
         osrsLiveArticleAssetWarmer(
+            isCached = { false },
             fetch = { url -> remainder.add(url) },
             highConcurrency = 1,
             lowConcurrency = 1
