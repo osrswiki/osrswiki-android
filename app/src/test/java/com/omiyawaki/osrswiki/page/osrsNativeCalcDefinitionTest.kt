@@ -322,6 +322,32 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(runtime.contains("osrsInstallNativeCalcSlot"))
         assertTrue(runtime.contains("osrs-native-calc-slot"))
         assertTrue(runtime.contains("osrsNativeCalcSetResult"))
+        assertTrue(runtime.contains("osrs-native-calc-slot-active"))
+        assertTrue(runtime.contains("osrs-native-calc-slot-style"))
+        assertTrue(runtime.contains(".osrs-calculator-panel"))
+        assertTrue(runtime.contains(".oo-ui-textInputWidget"))
+    }
+
+    @Test
+    fun nativeCalcInstallSlotHidesLeftoverGadgetChrome() {
+        val runtimeCandidates = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        )
+        val runtime = runtimeCandidates.first { it.exists() }.readText()
+        val install = runtime.substringAfter("window.osrsInstallNativeCalcSlot = function")
+            .substringBefore("window.osrsNativeCalcSetSlotHeight")
+        assertTrue(install.contains("osrs-native-calc-slot-active"))
+        assertTrue(install.contains("osrs-native-calc-slot-style"))
+        assertTrue(install.contains(".osrs-calculator-panel"))
+        assertTrue(install.contains(".oo-ui-textInputWidget"))
+        assertTrue(install.contains(".jsCalc-field"))
+        assertTrue(runtime.contains("html.osrs-native-calc-slot-active"))
+        val uninstall = runtime.substringAfter("window.osrsUninstallNativeCalcSlot = function")
+            .substringBefore("function osrsInstallCalculatorKeyboardGuards")
+        assertTrue(uninstall.contains("osrs-native-calc-slot-active"))
+        assertTrue(uninstall.contains("osrs-native-calc-slot-style"))
     }
 
     @Test
