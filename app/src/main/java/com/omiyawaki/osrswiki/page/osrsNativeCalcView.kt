@@ -1,17 +1,14 @@
 package com.omiyawaki.osrswiki.page
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Build
 import android.text.InputType
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
-import android.webkit.WebView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
@@ -24,24 +21,26 @@ import com.omiyawaki.osrswiki.R
 class osrsNativeCalcView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : ScrollView(context, attrs) {
-    private val column = LinearLayout(context).apply {
-        orientation = LinearLayout.VERTICAL
-        val pad = dp(16)
-        setPadding(pad, pad, pad, dp(96))
-    }
-    private var resultWeb: WebView? = null
+) : LinearLayout(context, attrs) {
     private val fieldEditors = mutableMapOf<String, EditText>()
+    private val errorBanner = TextView(context).apply {
+        id = R.id.native_calc_error
+        visibility = GONE
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        setPadding(0, dp(8), 0, dp(8))
+        minHeight = dp(24)
+    }
 
     init {
-        addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        isFillViewport = true
+        orientation = VERTICAL
+        val pad = dp(16)
+        setPadding(pad, pad, pad, dp(24))
+        addView(errorBanner, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         contentDescription = "Native calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
     }
 
     fun bind(session: osrsNativeCalcSession) {
-        contentDescription = session.chromeTitle
         val paper = themeColor(R.attr.paper_color, ContextCompat.getColor(context, R.color.osrs_parchment_light))
         val onPaper = themeColor(com.google.android.material.R.attr.colorOnSurface, ContextCompat.getColor(context, R.color.osrs_text_dark))
         val secondary = ContextCompat.getColor(
@@ -49,35 +48,16 @@ class osrsNativeCalcView @JvmOverloads constructor(
             if (session.usesDarkTheme) R.color.osrs_text_secondary_dark else R.color.osrs_text_secondary_light
         )
         setBackgroundColor(paper)
-        column.setBackgroundColor(paper)
-        column.removeAllViews()
+        bindError(session)
+        while (childCount > 1) {
+            removeViewAt(1)
+        }
         fieldEditors.clear()
-
-        column.addView(text(session.chromeTitle, onPaper, 20f, true).apply {
-            id = View.generateViewId()
-            setTextAppearance(R.style.AppTextAppearance_TitleBold)
-            setTextColor(onPaper)
-            contentDescription = session.chromeTitle
-        })
-        bannerText(session.hiscoresError, session.formError)?.let { message ->
-            column.addView(text(message, ContextCompat.getColor(context, R.color.color_error), 14f, false).apply {
-                setPadding(0, dp(12), 0, dp(8))
-                contentDescription = message
-                importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-            })
-        }
-        if (session.introCopy.isNotBlank()) {
-            column.addView(text(session.introCopy, secondary, 15f, false).apply {
-                setTextAppearance(R.style.AppTextAppearance_Body)
-                setTextColor(secondary)
-                setPadding(0, dp(8), 0, dp(8))
-            })
-        }
         session.visibleInputs().forEach { input ->
-            column.addView(text(input.label, onPaper, 14f, true).apply {
+            addView(text(input.label, onPaper, 14f, true).apply {
                 setPadding(0, dp(12), 0, dp(4))
             })
-            column.addView(control(session, input, onPaper))
+            addView(control(session, input, onPaper))
         }
         val submit = MaterialButton(context).apply {
             text = "Submit"
@@ -91,32 +71,25 @@ class osrsNativeCalcView @JvmOverloads constructor(
             }
             contentDescription = "Submit calculator"
         }
-        column.addView(submit, linear())
+        addView(submit, linear())
         if (session.statusMessage.isNotBlank()) {
-            column.addView(text(session.statusMessage, secondary, 13f, false))
+            addView(text(session.statusMessage, secondary, 13f, false))
         }
-        if (session.resultHtml.isNotBlank()) {
-            val web = resultWeb ?: WebView(context).apply {
-                settings.javaScriptEnabled = false
-                setBackgroundColor(Color.TRANSPARENT)
-                contentDescription = "Calculator results"
-            }
-            resultWeb = web
-            if (web.parent != null) {
-                (web.parent as? android.view.ViewGroup)?.removeView(web)
-            }
-            web.layoutParams = LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(420))
-            column.addView(web)
-            web.loadDataWithBaseURL(
-                osrsWikiWebViewUrl.WIKI_ORIGIN + "/",
-                session.resultDocument,
-                "text/html",
-                "utf-8",
-                null
-            )
-        }
-        if (bannerText(session.hiscoresError, session.formError) != null) {
-            post { scrollTo(0, 0) }
+    }
+
+    private fun bindError(session: osrsNativeCalcSession) {
+        val message = bannerText(session.hiscoresError, session.formError)
+        if (message.isNullOrBlank()) {
+            errorBanner.visibility = GONE
+            errorBanner.text = ""
+            errorBanner.contentDescription = null
+        } else {
+            errorBanner.setTextColor(ContextCompat.getColor(context, R.color.color_error))
+            errorBanner.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            errorBanner.text = message
+            errorBanner.contentDescription = message
+            errorBanner.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            errorBanner.visibility = VISIBLE
         }
     }
 

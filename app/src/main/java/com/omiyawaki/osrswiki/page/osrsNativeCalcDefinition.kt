@@ -271,6 +271,26 @@ object osrsNativeCalcDefinition {
         }
     }
 
+    fun installSlotJavaScript(formId: String, resultId: String, height: Int): String {
+        val payload = org.json.JSONObject()
+            .put("formId", formId)
+            .put("resultId", resultId)
+            .put("height", maxOf(1, height))
+        return "window.osrsInstallNativeCalcSlot && window.osrsInstallNativeCalcSlot($payload)"
+    }
+
+    fun setSlotHeightJavaScript(height: Int): String {
+        return "window.osrsNativeCalcSetSlotHeight && window.osrsNativeCalcSetSlotHeight(${maxOf(1, height)})"
+    }
+
+    fun setResultJavaScript(resultId: String, html: String): String {
+        return "window.osrsNativeCalcSetResult && window.osrsNativeCalcSetResult(${org.json.JSONObject.quote(resultId)}, ${org.json.JSONObject.quote(html)})"
+    }
+
+    fun uninstallSlotJavaScript(): String {
+        return "window.osrsUninstallNativeCalcSlot && window.osrsUninstallNativeCalcSlot()"
+    }
+
     sealed class HiscoresLookup {
         data class Applied(val values: Map<String, String>) : HiscoresLookup()
         data class Failed(val message: String) : HiscoresLookup()

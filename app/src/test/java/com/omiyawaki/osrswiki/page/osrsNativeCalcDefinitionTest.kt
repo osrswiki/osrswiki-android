@@ -300,6 +300,31 @@ class osrsNativeCalcDefinitionTest {
     }
 
     @Test
+    fun nativeCalcKeepsArticleWebViewAsPageShell() {
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.IDLE))
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.LOADING))
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.NATIVE))
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.SUBMITTING))
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.FALLBACK))
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        assertTrue(source.contains("osrsNativeCalcSession.hidesArticleShell"))
+        assertFalse(
+            source.contains("binding.articleSwipeRefresh.visibility = if (showNative) View.INVISIBLE else View.VISIBLE")
+        )
+        val runtimeCandidates = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        )
+        val runtime = runtimeCandidates.first { it.exists() }.readText()
+        assertTrue(runtime.contains("osrsInstallNativeCalcSlot"))
+        assertTrue(runtime.contains("osrs-native-calc-slot"))
+        assertTrue(runtime.contains("osrsNativeCalcSetResult"))
+    }
+
+    @Test
     fun nativeCalcSelectUsesExposedDropdownMenu() {
         val candidates = listOf(
             java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt"),

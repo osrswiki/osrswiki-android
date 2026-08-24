@@ -89,6 +89,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var pageUiUpdater: PageUiUpdater? = null
     private var nativeCalcSession: osrsNativeCalcSession? = null
     private var nativeCalcView: osrsNativeCalcView? = null
+    private var nativeCalcSlotTopPx: Int? = null
+    private var nativeCalcScrollListenerInstalled = false
+    private var nativeCalcSlotRetries = 0
     private lateinit var gestureDetector: GestureDetector
     private var nativeMapHandler: NativeMapHandler? = null
     private val horizontalGestureOwnership = ArticleHorizontalGestureOwnership()
@@ -1368,8 +1371,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         host.removeAllViews()
         host.addView(
             view,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
+        installNativeCalcScrollListener()
         nativeCalcSession = osrsNativeCalcSession(requireContext().applicationContext) {
             renderNativeCalculator()
         }.also { it.start(title, dark, forceFallback) }
@@ -1378,14 +1382,110 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private fun renderNativeCalculator() {
         val session = nativeCalcSession ?: return
         val host = _binding?.nativeCalcHost ?: return
-        val showNative = session.phase == osrsNativeCalcSession.Phase.LOADING ||
-            session.phase == osrsNativeCalcSession.Phase.NATIVE ||
+        val showNativeForm = session.phase == osrsNativeCalcSession.Phase.NATIVE ||
             session.phase == osrsNativeCalcSession.Phase.SUBMITTING
-        host.visibility = if (showNative) View.VISIBLE else View.GONE
-        binding.articleSwipeRefresh.visibility = if (showNative) View.INVISIBLE else View.VISIBLE
-        if (showNative) {
-            nativeCalcView?.bind(session)
+        binding.articleSwipeRefresh.visibility = if (osrsNativeCalcSession.hidesArticleShell(session.phase)) {
+            View.INVISIBLE
+        } else {
+            View.VISIBLE
         }
+        host.visibility = if (showNativeForm) View.VISIBLE else View.GONE
+        host.elevation = if (showNativeForm) 24f else 0f
+        host.bringToFront()
+        if (showNativeForm) {
+            nativeCalcView?.bind(session)
+            nativeCalcView?.post {
+                installNativeCalcSlot()
+                injectNativeCalcResult()
+            }
+        } else {
+            nativeCalcSlotTopPx = null
+            nativeCalcSlotRetries = 0
+            host.translationY = 0f
+            binding.pageWebView.evaluateJavascript(
+                osrsNativeCalcDefinition.uninstallSlotJavaScript(),
+                null
+            )
+        }
+    }
+
+    private fun installNativeCalcScrollListener() {
+        if (nativeCalcScrollListenerInstalled) return
+        nativeCalcScrollListenerInstalled = true
+        binding.pageWebView.addOnScrollChangeListener { _, scrollY, _ ->
+            positionNativeCalcHost(scrollY)
+        }
+    }
+
+    private fun positionNativeCalcHost(scrollY: Int = binding.pageWebView.scrollY) {
+        val host = _binding?.nativeCalcHost ?: return
+        val top = nativeCalcSlotTopPx ?: return
+        host.translationY = (top - scrollY).toFloat()
+    }
+
+    private fun installNativeCalcSlot() {
+        val session = nativeCalcSession ?: return
+        val formId = session.definition?.ui?.formId.orEmpty()
+        val resultId = session.definition?.ui?.resultId.orEmpty()
+        val height = nativeCalcView?.takeIf { it.height > 0 }?.height
+            ?: nativeCalcView?.measuredHeight?.takeIf { it > 0 }
+            ?: (420 * resources.displayMetrics.density).toInt()
+        val cssHeight = (height / binding.pageWebView.scale).toInt().coerceAtLeast(1)
+        binding.pageWebView.evaluateJavascript(
+            osrsNativeCalcDefinition.installSlotJavaScript(formId, resultId, cssHeight)
+        ) { raw ->
+            val installedTop = parseNativeCalcSlotTop(raw)
+            val topProbe =
+                "(function(){var s=document.getElementById('osrs-native-calc-slot');if(!s)return 0;return Math.round(s.getBoundingClientRect().top+(window.scrollY||0));})()"
+            binding.pageWebView.evaluateJavascript(topProbe) { probeRaw ->
+                val top = parseNativeCalcSlotTop(probeRaw).takeIf { it > 0 }
+                    ?: installedTop
+            if (top > 0) {
+                nativeCalcSlotTopPx = top
+                nativeCalcSlotRetries = 0
+                positionNativeCalcHost()
+            } else if (nativeCalcSlotRetries < 12) {
+                nativeCalcSlotRetries += 1
+                binding.pageWebView.postDelayed({ installNativeCalcSlot() }, 350)
+            } else if (nativeCalcSlotTopPx == null) {
+                nativeCalcSlotTopPx = 220
+                positionNativeCalcHost()
+            }
+            }
+        }
+    }
+
+    private fun parseNativeCalcSlotTop(raw: String?): Int {
+        if (raw.isNullOrBlank() || raw == "null") return 0
+        return try {
+            val value = org.json.JSONTokener(raw).nextValue()
+            when (value) {
+                is org.json.JSONObject -> value.optInt("top", 0)
+                is String -> {
+                    val inner = org.json.JSONTokener(value).nextValue()
+                    when (inner) {
+                        is org.json.JSONObject -> inner.optInt("top", 0)
+                        is Number -> inner.toInt()
+                        else -> value.toIntOrNull() ?: 0
+                    }
+                }
+                is Number -> value.toInt()
+                else -> 0
+            }
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    private fun injectNativeCalcResult() {
+        val session = nativeCalcSession ?: return
+        val html = session.resultHtml
+        if (html.isBlank()) return
+        val resultId = session.definition?.ui?.resultId.orEmpty()
+        binding.pageWebView.evaluateJavascript(
+            osrsNativeCalcDefinition.setResultJavaScript(resultId, html),
+            null
+        )
     }
     fun getNavigationSource(): Int = navigationSource
     fun provideBinding(): FragmentPageBinding? = _binding

@@ -140,22 +140,43 @@ class osrsNativeCalcSession(
             val ok = result.optBoolean("ok")
             val body = result.optString("body")
             main.post {
-                when (val lookup = osrsNativeCalcDefinition.interpretHiscoresLookup(ok, body, rawName, hs.range)) {
-                    is osrsNativeCalcDefinition.HiscoresLookup.Failed -> {
-                        hiscoresError = lookup.message
-                        statusMessage = ""
-                        onChange()
-                    }
-                    is osrsNativeCalcDefinition.HiscoresLookup.Applied -> {
-                        lookup.values.forEach { (key, value) -> values[key] = value }
-                        hiscoresError = null
-                        statusMessage = ""
-                        onChange()
-                        scheduleSubmit()
-                    }
-                }
+                applyLookupResult(ok, body, rawName, hs.range)
             }
         }
+    }
+
+    fun applyLookupResult(ok: Boolean, body: String, player: String, mapping: String) {
+        when (val lookup = osrsNativeCalcDefinition.interpretHiscoresLookup(ok, body, player, mapping)) {
+            is osrsNativeCalcDefinition.HiscoresLookup.Failed -> {
+                hiscoresError = lookup.message
+                statusMessage = ""
+                onChange()
+            }
+            is osrsNativeCalcDefinition.HiscoresLookup.Applied -> {
+                lookup.values.forEach { (key, value) -> values[key] = value }
+                hiscoresError = null
+                statusMessage = ""
+                onChange()
+                scheduleSubmit()
+            }
+        }
+    }
+
+    fun seedNativeStateForTesting(
+        definition: osrsNativeCalcDefinition.Model,
+        values: Map<String, String>,
+        resultHtml: String = "Plank"
+    ) {
+        this.definition = definition
+        this.values = values.toMutableMap()
+        this.resultHtml = resultHtml
+        this.resultDocument = resultHtml
+        phase = Phase.NATIVE
+        statusMessage = ""
+        hiscoresError = null
+        formError = null
+        fallbackReason = null
+        pageTitle = definition.id
     }
 
     fun submitNow() {
@@ -307,6 +328,9 @@ class osrsNativeCalcSession(
     }
 
     companion object {
+        @JvmStatic
+        fun hidesArticleShell(phase: Phase): Boolean = false
+
         fun introCopy(wikitext: String, title: String = ""): String {
             val lead = when (title) {
                 "Calculator:Combat level" ->

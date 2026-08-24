@@ -1,0 +1,118 @@
+package com.omiyawaki.osrswiki.page
+
+import android.content.Context
+import android.view.ContextThemeWrapper
+import android.view.View
+import android.widget.TextView
+import androidx.test.core.app.ApplicationProvider
+import com.omiyawaki.osrswiki.R
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
+class osrsNativeCalcViewTest {
+    private val agilityConfig = """
+        <pre class="jcConfig">
+        template=Calculator:Skill calc/Template
+        form=AgilityCalc
+        result=AgilityResults
+        name =
+        param = name|Name||hs|XPInput,17,2;lvlInput,17,1
+        param = currentToggle|Current: Level or Experience|Level|select|Level,Experience|Level=lvlInput;Experience=XPInput
+        param = lvlInput|Current (per choice above)|1|int|1-126|
+        param = XPInput|Current (per choice above)|1|int|1-200000000|
+        param = goalToggle|Goal: Level or Experience?|Level|select|Level,Experience
+        param = goal|Goal (per choice above)|0|int|0-200000000
+        param = method|Method|All|select|All,Agility Course,Brimhaven Agility Arena,Rooftop Agility Course,Hallowed Sepulchre,Barbarian Fishing
+        param = dataCriteria|Hide inaccessible methods|Show All|buttonselect|Show All,Hide,Greyed out
+        param = leagueGroup|League multiplier?||toggleswitch|false|leagueMultiplier
+        param = leagueMultiplier|League multiplier value?|5|int|5-32
+        param = skill|Skill|Agility|hidden
+        autosubmit = enabled
+        </pre>
+    """.trimIndent()
+
+    @Test
+    fun failedOsamosisLookupBindsWikiSentenceOntoVisibleBanner() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext<Context>(),
+            R.style.Theme_OSRSWiki_OSRSLight
+        )
+        val view = osrsNativeCalcView(context)
+        lateinit var session: osrsNativeCalcSession
+        session = osrsNativeCalcSession(context) {
+            view.bind(session)
+        }
+        val definition = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")
+        assertNotNull(definition)
+        session.seedNativeStateForTesting(
+            definition!!,
+            definition.inputs.associate { it.name to it.defaultValue },
+            "Plank"
+        )
+        view.bind(session)
+        session.setValue("name", "osamosis", submit = false)
+        assertEquals("osamosis", session.values["name"])
+        assertEquals(osrsNativeCalcSession.Phase.NATIVE, session.phase)
+        assertEquals("Plank", session.resultHtml)
+        session.applyLookupResult(
+            ok = false,
+            body = "",
+            player = "osamosis",
+            mapping = "XPInput,17,2;lvlInput,17,1"
+        )
+        val banner = view.findViewById<TextView>(R.id.native_calc_error)
+        assertNotNull(banner)
+        assertEquals(View.VISIBLE, banner.visibility)
+        val text = banner.text.toString()
+        assertTrue(text.contains("osamosis"))
+        assertTrue(text.contains("does not exist, is banned or unranked"))
+        assertEquals(
+            osrsNativeCalcDefinition.hiscoresUnavailableMessage("osamosis"),
+            text
+        )
+        assertEquals(text, banner.contentDescription)
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_YES, banner.importantForAccessibility)
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        view.layout(0, 0, 1080, view.measuredHeight)
+        assertTrue("error banner must have on-screen height", banner.height > 0)
+        val visible = android.graphics.Rect()
+        assertTrue(banner.getGlobalVisibleRect(visible))
+        assertTrue(visible.height() > 0)
+        assertFalse(osrsNativeCalcSession.hidesArticleShell(session.phase))
+    }
+
+    @Test
+    fun nameEditsDoNotNotifyOrClearParseBackedResult() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext<Context>(),
+            R.style.Theme_OSRSWiki_OSRSLight
+        )
+        var changes = 0
+        val session = osrsNativeCalcSession(context) { changes++ }
+        val definition = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")
+        assertNotNull(definition)
+        session.seedNativeStateForTesting(
+            definition!!,
+            definition.inputs.associate { it.name to it.defaultValue },
+            "Plank"
+        )
+        changes = 0
+        session.setValue("name", "osa", submit = false)
+        session.setValue("name", "osamo", submit = false)
+        assertEquals(0, changes)
+        assertEquals(osrsNativeCalcSession.Phase.NATIVE, session.phase)
+        assertEquals("Plank", session.resultHtml)
+        assertEquals("osamo", session.values["name"])
+    }
+}

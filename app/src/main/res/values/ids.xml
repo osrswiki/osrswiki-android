@@ -6,5 +6,6 @@
     <item type="id" name="page_action_contents" />
     <item type="id" name="osrs_article_overlay_host" />
     <item type="id" name="page_live_underlay" />
+    <item type="id" name="native_calc_error" />
 
     </resources>
