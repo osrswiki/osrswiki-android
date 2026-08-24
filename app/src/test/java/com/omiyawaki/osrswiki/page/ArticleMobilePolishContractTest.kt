@@ -59,12 +59,12 @@ class ArticleMobilePolishContractTest {
         val chart = asset("web/ge_charts_init.js")
 
         assertTrue(chart.contains("overflow:hidden !important"))
-        assertTrue(chart.contains("zoomType: 'x'"))
-        assertTrue(chart.contains("pinchType: 'x'"))
-        assertTrue(chart.contains("panning: { enabled: true, type: 'x' }"))
-        assertTrue(chart.contains("followTouchMove: true"))
+        assertTrue(chart.contains("type: 'line'"))
+        assertTrue(chart.contains("type: 'linear'"))
+        assertTrue(chart.contains("role', 'application'"))
         assertTrue(chart.contains("ResizeObserver"))
         assertTrue(chart.contains("Interactive Grand Exchange price chart"))
+        assertTrue(chart.contains("Price history unavailable"))
     }
 
     @Test

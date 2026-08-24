@@ -279,13 +279,17 @@ class ArticleAestheticCssContractTest {
     fun geChartInitDoesNotMarkRenderedBeforeSuccess() {
         val source = assetFile("web/ge_charts_init.js").readText()
         assertTrue(source.contains("osrsChartPending"))
+        assertTrue(source.contains("osrsChartPendingAt"))
         assertTrue(source.contains("Price history unavailable"))
         assertTrue(source.contains("cache: 'no-cache'"))
         assertFalse(source.contains("cache: 'force-cache'"))
         assertTrue(source.contains("chartEl.dataset.rendered = '1'"))
-        assertTrue(source.contains("resolveHighcharts"))
+        assertTrue(source.contains("resolveChart"))
         assertTrue(source.contains("AbortController"))
-        assertTrue(source.contains("Highcharts never became available"))
+        assertTrue(source.contains("Chart.js never became available"))
+        assertTrue(source.contains("pageshow"))
+        assertFalse(source.contains("resolveHighcharts"))
+        assertFalse(source.contains("Highcharts.stockChart"))
         val renderedBeforeFetch = Regex(
             """dataset\.rendered = '1';[\s\S]{0,200}fetchSeries"""
         )
