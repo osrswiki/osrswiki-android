@@ -27,8 +27,8 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(),
         // Table/infobox/bonuses + calculator chrome must apply before first layout.
         // Early-paint table-layout:fixed without these rules crushes bonus columns.
-        "styles/fixes.css",
-        "styles/gadget_calc.css"
+        "styles/gadget_calc.css",
+        "styles/fixes.css"
     )
 
     // Heavy wiki fidelity sheets. Downloaded immediately but applied after first paint.

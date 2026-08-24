@@ -473,6 +473,8 @@ class ArticleWebViewRecoveryTest {
         val overlay = File("src/main/java/com/omiyawaki/osrswiki/page/osrsArticleOverlayPresenter.kt").readText()
         assertTrue(overlay.contains("osrsArticleOverlayFragment"))
         assertTrue(source.contains("osrsArticleOverlayPresenter.present"))
+        assertTrue(source.contains("skipping duplicate article push"))
+        assertTrue(source.contains("wikiTitleIdentity"))
         assertFalse(progressMethod.contains("osrsUnderlyingActivityPreview"))
     }
 

@@ -188,13 +188,22 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
     }
 
     private fun showArticleFromIntent(intent: Intent, pushCurrent: Boolean) {
-        if (pushCurrent) {
-            pushArticleFromIntent(readArticleArgs(intent), intent)
+        val args = readArticleArgs(intent)
+        if (pushCurrent && wikiTitleIdentity(args.pageTitle) == wikiTitleIdentity(pageTitleArg)) {
+            L.d("PageActivity: skipping duplicate article push for ${args.pageTitle}")
             return
         }
-        replaceCurrentArticleArgsForNativeStack(readArticleArgs(intent), intent)
+        if (pushCurrent) {
+            pushArticleFromIntent(args, intent)
+            return
+        }
+        replaceCurrentArticleArgsForNativeStack(args, intent)
         replaceArticleFragmentIfFixtureProbeAllows()
         checkAndShowOfflineBanner()
+    }
+
+    private fun wikiTitleIdentity(title: String?): String {
+        return title.orEmpty().replace('_', ' ').trim().lowercase()
     }
 
     private fun popArticleBackStack(): Boolean {
