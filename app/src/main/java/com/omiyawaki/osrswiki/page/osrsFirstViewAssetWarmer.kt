@@ -32,7 +32,12 @@ internal class osrsFirstViewAssetWarmer(
         if (html.isBlank()) {
             return
         }
-        val firstView = ReadingListAssetUrlExtractor.extractFirstViewSlot(html, baseUrl)
+        val firstView = ReadingListAssetUrlExtractor.extractFirstViewSlot(
+            html,
+            baseUrl,
+            eagerOnly = Prefs.lazyOffscreenArticleImages,
+            devicePixelRatio = 2f
+        )
         val high = if (Prefs.narrowFirstViewportPaintedSet) {
             // Slice 1: slot extract only. Do not Jsoup-extract the full document
             // URL list on the early path; remainder warm still does that after reveal.
@@ -42,7 +47,9 @@ internal class osrsFirstViewAssetWarmer(
             osrsLiveArticleAssetPlan.partition(required, firstView).high
         }
         queue.load(high, emptyList())
-        L.d("osrsFirstViewWarm: start count=${high.size}")
+        L.d(
+            "osrsFirstViewWarm: start count=${high.size} eagerOnly=${Prefs.lazyOffscreenArticleImages}"
+        )
         coroutineScope {
             repeat(concurrency.coerceAtLeast(0)) {
                 launch { drain() }

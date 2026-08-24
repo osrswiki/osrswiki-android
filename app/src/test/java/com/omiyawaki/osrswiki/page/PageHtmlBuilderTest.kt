@@ -328,6 +328,46 @@ class PageHtmlBuilderTest {
         assertFalse(tableImage.hasAttr("data-osrs-deferred-src"))
     }
 
+    @Test
+    fun preprocessingDefersHiddenSwitcherAndBelowFoldAndSetsSrcsetSizes() {
+        val document = Jsoup.parse(
+            """
+                <table class="infobox infobox-switch">
+                  <tr><td>
+                    <div class="infobox-buttons" data-default-version="0"></div>
+                    <img src="/images/thumb/glory.png/140px-glory.png"
+                         srcset="/images/thumb/glory.png/140px-glory.png 1x, /images/thumb/glory.png/280px-glory.png 2x"
+                         width="140" height="140" alt="Glory">
+                  </td></tr>
+                </table>
+                <p>Lead text</p>
+                <h2 id="Combat_stats">Combat stats</h2>
+                <img src="/images/below-fold.png" width="40" height="40" alt="Below">
+                <div class="infobox-resources-glory infobox-switch-resources">
+                  <div data-attr-param="version">
+                    <div data-attr-index="0"><img src="/images/glory-4.png" width="40" height="40"></div>
+                    <div data-attr-index="1"><img src="/images/glory-uncharged.png" width="40" height="40"></div>
+                  </div>
+                </div>
+            """.trimIndent()
+        )
+        val processed = invokeLazyImagePolicy(document)
+        val processedDocument = Jsoup.parse(processed)
+        val defaultImage = processedDocument.selectFirst("table.infobox img")!!
+        assertEquals("https://oldschool.runescape.wiki/images/thumb/glory.png/140px-glory.png", defaultImage.attr("src"))
+        assertEquals("140px", defaultImage.attr("sizes"))
+        assertFalse(defaultImage.hasAttr("data-osrs-deferred-src"))
+
+        val hiddenPool = processedDocument.select("div[data-attr-index=1] img").first()!!
+        assertEquals("https://oldschool.runescape.wiki/images/glory-uncharged.png", hiddenPool.attr("data-osrs-deferred-src"))
+        assertTrue(hiddenPool.attr("src").startsWith("data:image/svg+xml"))
+        assertEquals("lazy", hiddenPool.attr("loading"))
+
+        val below = processedDocument.select("h2 ~ img, img[alt=Below]").first()!!
+        assertEquals("https://oldschool.runescape.wiki/images/below-fold.png", below.attr("data-osrs-deferred-src"))
+        assertTrue(below.attr("src").startsWith("data:image/svg+xml"))
+    }
+
     private fun invokePreprocessHtml(document: Document): String {
         val downloader = PageAssetDownloader(OkHttpClient())
         val normalizeUrls = PageAssetDownloader::class.java.getDeclaredMethod(
@@ -344,6 +384,24 @@ class PageHtmlBuilderTest {
         deferTableImages.isAccessible = true
         normalizeUrls.invoke(downloader, document, "https://oldschool.runescape.wiki")
         deferTableImages.invoke(downloader, document)
+        return document.outerHtml()
+    }
+
+    private fun invokeLazyImagePolicy(document: Document): String {
+        val downloader = PageAssetDownloader(OkHttpClient())
+        val normalizeUrls = PageAssetDownloader::class.java.getDeclaredMethod(
+            "normalizeRelativeUrls",
+            Document::class.java,
+            String::class.java
+        )
+        val applyLazy = PageAssetDownloader::class.java.getDeclaredMethod(
+            "applyLazyOffscreenArticleImages",
+            Document::class.java
+        )
+        normalizeUrls.isAccessible = true
+        applyLazy.isAccessible = true
+        normalizeUrls.invoke(downloader, document, "https://oldschool.runescape.wiki")
+        applyLazy.invoke(downloader, document)
         return document.outerHtml()
     }
 

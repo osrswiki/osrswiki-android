@@ -59,6 +59,7 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherBootstrapJsPath(),
         JavaScriptActionHandler.getInfoboxSwitcherJsPath(),
         "web/collapsible_content.js",
+        "web/article_image_lazy.js",
         "web/first_viewport_assets.js",
         "web/live_article_asset_warm.js",
         "web/mobile_article_polish.js",
@@ -104,6 +105,7 @@ class PageHtmlBuilder(private val context: Context) {
                 window.OSRS_TABLE_COLLAPSED = $collapseTablesEnabled;
                 console.log('PageHtmlBuilder: Set global collapse preference to ' + window.OSRS_TABLE_COLLAPSED);
                 window.__osrsNarrowFirstViewportPaintedSet = ${Prefs.narrowFirstViewportPaintedSet};
+                window.__osrsLazyOffscreenArticleImages = ${Prefs.lazyOffscreenArticleImages};
             </script>
         """.trimIndent()
     }

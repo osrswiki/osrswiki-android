@@ -221,46 +221,112 @@ internal object ReadingListAssetUrlExtractor {
     /**
      * Images that occupy the first-viewport slot: the primary infobox including every switcher
      * state and gender render, plus lead images that appear before the first heading.
+     *
+     * When [eagerOnly] is true (thousand-cuts #7/#14 early warmer): only the authored-default
+     * switcher pane, not hidden charge states; one srcset density URL per img; skip
+     * `data-osrs-deferred-*` placeholders.
      */
-    fun extractFirstViewSlot(html: String, baseUrl: String = WIKI_BASE_URL): List<String> {
+    fun extractFirstViewSlot(
+        html: String,
+        baseUrl: String = WIKI_BASE_URL,
+        eagerOnly: Boolean = false,
+        devicePixelRatio: Float = 2f
+    ): List<String> {
         val document = Jsoup.parse(html, baseUrl)
+        val defaultIndex = authoredDefaultSwitcherIndex(document)
         return linkedSetOf<String>().apply {
             val switcher = document.selectFirst(
                 ".infobox-switch, .collapsible-primary-infobox, .switch-infobox"
             ) ?: document.selectFirst("table.infobox, table.main-infobox, .infobox")
             if (switcher != null) {
-                addClusterImages(switcher, baseUrl)
+                addClusterImages(switcher, baseUrl, eagerOnly, devicePixelRatio)
                 val resourceClass = switcher.attr("data-resource-class").trim()
                 if (resourceClass.isNotEmpty()) {
                     runCatching { document.select(resourceClass) }.getOrNull()?.forEach { pool ->
-                        addClusterImages(pool, baseUrl)
+                        addDefaultOrAllPoolImages(pool, baseUrl, eagerOnly, defaultIndex, devicePixelRatio)
                     }
                 }
             }
             document.select(".infobox-switch-resources, [class*=infobox-resources-]").forEach { pool ->
-                addClusterImages(pool, baseUrl)
+                addDefaultOrAllPoolImages(pool, baseUrl, eagerOnly, defaultIndex, devicePixelRatio)
             }
-            document.select("[data-attr-param] [data-attr-index]").forEach { node ->
-                addClusterImages(node, baseUrl)
-            }
-            document.select(".switch-infobox .item").forEach { pane ->
-                addClusterImages(pane, baseUrl)
+            if (eagerOnly) {
+                document.select("[data-attr-param] [data-attr-index=\"$defaultIndex\"]").forEach { node ->
+                    addClusterImages(node, baseUrl, eagerOnly = true, devicePixelRatio)
+                }
+                var matchedItem = false
+                document.select(".switch-infobox .item").forEach { pane ->
+                    val itemIndex = pane.attr("data-switch-index").ifBlank { pane.attr("data-attr-index") }
+                    if (itemIndex == defaultIndex) {
+                        matchedItem = true
+                        addClusterImages(pane, baseUrl, eagerOnly = true, devicePixelRatio)
+                    }
+                }
+                if (!matchedItem) {
+                    document.selectFirst(".switch-infobox .item")?.let { pane ->
+                        addClusterImages(pane, baseUrl, eagerOnly = true, devicePixelRatio)
+                    }
+                }
+            } else {
+                document.select("[data-attr-param] [data-attr-index]").forEach { node ->
+                    addClusterImages(node, baseUrl)
+                }
+                document.select(".switch-infobox .item").forEach { pane ->
+                    addClusterImages(pane, baseUrl)
+                }
             }
             document.select(
                 ".infobox-bonuses-image.render-m, .infobox-bonuses-image.render-f"
             ).forEach { render ->
-                addClusterImages(render, baseUrl)
+                addClusterImages(render, baseUrl, eagerOnly, devicePixelRatio)
             }
             for (element in document.body().select("img, picture > source, video[poster], h2, .mw-heading")) {
                 if (element.tagName() == "h2" || element.classNames().any { it.contains("mw-heading") }) {
                     break
                 }
                 when (element.tagName()) {
-                    "img", "source" -> addImageElement(element, baseUrl)
+                    "img", "source" -> addImageElement(element, baseUrl, eagerOnly, devicePixelRatio)
                     "video" -> normalize(element.attr("poster"), baseUrl)?.let(::add)
                 }
             }
         }.toList()
+    }
+
+    private fun authoredDefaultSwitcherIndex(document: org.jsoup.nodes.Document): String {
+        val buttons = document.selectFirst(".infobox-buttons")
+        val defaultVersion = buttons?.attr("data-default-version")?.trim().orEmpty()
+        if (defaultVersion.isNotEmpty()) {
+            return defaultVersion
+        }
+        val selected = document.selectFirst(".button-selected")?.attr("data-switch-index")?.trim().orEmpty()
+        if (selected.isNotEmpty()) {
+            return selected
+        }
+        return document.selectFirst("[data-switch-index]")?.attr("data-switch-index")?.trim().orEmpty()
+            .ifEmpty { "0" }
+    }
+
+    private fun MutableSet<String>.addDefaultOrAllPoolImages(
+        pool: org.jsoup.nodes.Element,
+        baseUrl: String,
+        eagerOnly: Boolean,
+        defaultIndex: String,
+        devicePixelRatio: Float
+    ) {
+        if (!eagerOnly) {
+            addClusterImages(pool, baseUrl)
+            return
+        }
+        var matched = false
+        pool.select("[data-attr-index]").forEach { node ->
+            if (node.attr("data-attr-index") == defaultIndex) {
+                matched = true
+                addClusterImages(node, baseUrl, eagerOnly = true, devicePixelRatio)
+            }
+        }
+        if (!matched) {
+            addClusterImages(pool, baseUrl, eagerOnly = true, devicePixelRatio)
+        }
     }
 
     /** Discovers artwork and nested imports in a persisted stylesheet. */
@@ -281,10 +347,12 @@ internal object ReadingListAssetUrlExtractor {
 
     private fun MutableSet<String>.addClusterImages(
         root: org.jsoup.nodes.Element,
-        baseUrl: String
+        baseUrl: String,
+        eagerOnly: Boolean = false,
+        devicePixelRatio: Float = 2f
     ) {
         root.select("img, picture > source").forEach { element ->
-            addImageElement(element, baseUrl)
+            addImageElement(element, baseUrl, eagerOnly, devicePixelRatio)
         }
         root.select("svg image").forEach { image ->
             sequenceOf("href", "xlink:href").forEach { attribute ->
@@ -301,8 +369,24 @@ internal object ReadingListAssetUrlExtractor {
 
     private fun MutableSet<String>.addImageElement(
         element: org.jsoup.nodes.Element,
-        baseUrl: String
+        baseUrl: String,
+        eagerOnly: Boolean = false,
+        devicePixelRatio: Float = 2f
     ) {
+        if (eagerOnly) {
+            val src = element.attr("src")
+            if (src.startsWith("data:", ignoreCase = true) && element.hasAttr("data-osrs-deferred-src")) {
+                return
+            }
+            val chosen = SrcsetParser.choose(
+                src = src.takeIf { it.isNotBlank() && !it.startsWith("data:", ignoreCase = true) },
+                srcset = element.attr("srcset"),
+                widthPx = element.attr("width").toIntOrNull(),
+                devicePixelRatio = devicePixelRatio
+            )
+            chosen?.let { normalize(it, baseUrl)?.let(::add) }
+            return
+        }
         imageSourceAttributes.forEach { attribute ->
             normalize(element.attr(attribute), baseUrl)?.let(::add)
         }

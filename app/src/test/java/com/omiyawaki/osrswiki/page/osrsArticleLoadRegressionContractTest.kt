@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.page
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -257,6 +258,36 @@ class osrsArticleLoadRegressionContractTest {
         val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")
             .substringBefore("fun showFindInPage()")
         assertTrue(readyCallback.contains("fetchTableOfContents()"))
+    }
+
+    @Test
+    fun lazyOffscreenArticleImagesDefaultOnAndWired() {
+        val prefs = source("settings/Prefs.kt")
+        assertTrue(prefs.contains("var lazyOffscreenArticleImages: Boolean = true"))
+        val htmlBuilder = source("page/PageHtmlBuilder.kt")
+        assertTrue(htmlBuilder.contains("web/article_image_lazy.js"))
+        assertTrue(htmlBuilder.contains("Prefs.lazyOffscreenArticleImages"))
+        val downloader = source("page/PageAssetDownloader.kt")
+        assertTrue(downloader.contains("applyLazyOffscreenArticleImages"))
+        assertTrue(downloader.contains("deferHiddenSwitcherPoolImages"))
+        assertTrue(downloader.contains("applySrcsetSizes"))
+        val warmer = source("page/osrsFirstViewAssetWarmer.kt")
+        assertTrue(warmer.contains("eagerOnly = Prefs.lazyOffscreenArticleImages"))
+        val srcset = source("page/SrcsetParser.kt")
+        assertTrue(srcset.contains("fun choose("))
+        val lazyJs = asset("web/article_image_lazy.js")
+        assertTrue(lazyJs.contains("osrsRestoreDeferredImage"))
+        assertTrue(lazyJs.contains("data-osrs-deferred-src"))
+        val switcher = asset("web/switch_infobox.js")
+        assertTrue(switcher.contains("restoreDeferredImage"))
+        val preload = switcher.substringAfter("function preloadSwitcherPool")
+            .substringBefore("function scheduleSwitcherPoolDecode")
+        assertFalse(
+            "post-paint pool preload must not enqueue every srcset candidate",
+            preload.contains("sources.forEach(sourceUrl => imageUrlsToPreload.add(sourceUrl))")
+        )
+        val sharedLazy = File(repositoryRoot(), "shared/js/article_image_lazy.js").readText()
+        assertEquals(sharedLazy, lazyJs)
     }
 
     @Test

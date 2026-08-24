@@ -151,7 +151,8 @@ class osrsLiveArticleAssetWarmerTest {
             fetch = { url -> completed.add(url) },
             concurrency = 1
         ).warm(gloryHtml)
-        assertTrue(completed.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
+        assertFalse(completed.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
+        assertTrue(completed.contains("https://oldschool.runescape.wiki/images/glory-default.png"))
         assertFalse(completed.contains(belowFoldUrl))
     }
 
@@ -230,7 +231,7 @@ class osrsLiveArticleAssetWarmerTest {
         ).warm(gloryHtml)
 
         assertTrue(fetched.contains("https://oldschool.runescape.wiki/images/glory-default.png"))
-        assertTrue(fetched.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
+        assertFalse(fetched.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
         assertFalse(fetched.contains(belowFoldUrl))
         assertFalse(fetched.any { it.contains("row-") })
 
@@ -251,6 +252,38 @@ class osrsLiveArticleAssetWarmerTest {
             .substringBefore("} else {")
         assertFalse(defaultOn.contains("ReadingListAssetUrlExtractor.extract(html"))
         assertTrue(defaultOn.contains("firstView.take"))
+    }
+
+    @Test
+    fun eagerFirstViewSlotSkipsHiddenSwitcherPoolAndPicksOneSrcsetDensity() {
+        val html = """
+            <table class="infobox infobox-switch">
+              <tr><td>
+                <img src="/images/thumb/glory.png/140px-glory.png"
+                     srcset="/images/thumb/glory.png/140px-glory.png 1x, /images/thumb/glory.png/280px-glory.png 2x"
+                     width="140" height="140">
+              </td></tr>
+            </table>
+            <p>Lead</p>
+            <h2>Combat stats</h2>
+            <img src="/images/below-fold.png" width="40" height="40">
+            <div class="infobox-resources-glory infobox-switch-resources">
+              <div data-attr-param="version">
+                <div data-attr-index="0"><img src="/images/glory-4.png" width="40" height="40"></div>
+                <div data-attr-index="1"><img src="/images/glory-uncharged.png" width="40" height="40"></div>
+              </div>
+            </div>
+        """.trimIndent()
+        val eager = ReadingListAssetUrlExtractor.extractFirstViewSlot(
+            html,
+            eagerOnly = true,
+            devicePixelRatio = 2f
+        )
+        assertTrue(eager.contains("https://oldschool.runescape.wiki/images/thumb/glory.png/280px-glory.png"))
+        assertFalse(eager.contains("https://oldschool.runescape.wiki/images/thumb/glory.png/140px-glory.png"))
+        assertTrue(eager.contains("https://oldschool.runescape.wiki/images/glory-4.png"))
+        assertFalse(eager.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
+        assertFalse(eager.contains(belowFoldUrl))
     }
 
     private fun repoFile(path: String): java.io.File {

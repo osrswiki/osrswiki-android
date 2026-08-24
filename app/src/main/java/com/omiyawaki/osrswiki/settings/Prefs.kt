@@ -117,6 +117,15 @@ object Prefs {
     var deferLiveTableOfContentsExtract: Boolean = true
 
     /**
+     * When true, live HTML keeps `src` off hidden switcher panes and below-fold
+     * thumbs until they intersect (or the user switches), and first-view srcset
+     * is reduced to one density URL via `sizes` + host choose(). Flip to false
+     * to roll back thousand-cuts #7/#14. Reveal stays FirstViewPainted.
+     */
+    @Volatile
+    var lazyOffscreenArticleImages: Boolean = true
+
+    /**
      * Gets the cache size limit in megabytes.
      * Defaults to "100" (100 MB).
      */

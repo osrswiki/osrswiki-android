@@ -36,4 +36,23 @@ class SrcsetParserTest {
         assertTrue(method.contains("SrcsetParser.rewriteUrls"))
         assertFalse(method.contains("split(\",\")"))
     }
+
+    @Test
+    fun choosePicksSingleDensityUrlNotBoth140And280() {
+        val src = "/images/thumb/glory.png/140px-glory.png"
+        val srcset =
+            "/images/thumb/glory.png/140px-glory.png 1x, /images/thumb/glory.png/280px-glory.png 2x"
+        assertEquals(
+            "/images/thumb/glory.png/280px-glory.png",
+            SrcsetParser.choose(src, srcset, widthPx = 140, devicePixelRatio = 2f)
+        )
+        assertEquals(
+            "/images/thumb/glory.png/140px-glory.png",
+            SrcsetParser.choose(src, srcset, widthPx = 140, devicePixelRatio = 1f)
+        )
+        assertEquals(
+            src,
+            SrcsetParser.choose(src, srcset = null, widthPx = 140, devicePixelRatio = 2f)
+        )
+    }
 }

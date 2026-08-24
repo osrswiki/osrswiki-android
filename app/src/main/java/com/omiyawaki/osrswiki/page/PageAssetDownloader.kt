@@ -10,6 +10,7 @@ import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmLease
 import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmRequest
 import com.omiyawaki.osrswiki.page.preemptive.ArticlePrewarmSuppression
 import com.omiyawaki.osrswiki.page.preemptive.PreparedArticleCache
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.log.L
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -505,6 +506,8 @@ class PageAssetDownloader(
         currentCoroutineContext().ensureActive()
         deferLargeArticleTableImages(document)
         currentCoroutineContext().ensureActive()
+        applyLazyOffscreenArticleImages(document)
+        currentCoroutineContext().ensureActive()
         return document.body()?.html() ?: document.html()
     }
 
@@ -591,6 +594,118 @@ class PageAssetDownloader(
             image.attr("decoding", "async")
         }
         L.d("preprocessHtml: Deferred ${imagesToDefer.size} table/navbox images for article with $imageCount images.")
+    }
+
+    /**
+     * Thousand-cuts #7/#14: strip `src` from hidden switcher panes and below-fold
+     * thumbs (keep width/height), and set `sizes` so the browser picks one srcset
+     * density. Default infobox/lead artwork stays eager.
+     */
+    private fun applyLazyOffscreenArticleImages(document: Document) {
+        if (!Prefs.lazyOffscreenArticleImages) {
+            return
+        }
+        applySrcsetSizes(document)
+        val defaultIndex = authoredDefaultSwitcherIndex(document)
+        deferHiddenSwitcherPoolImages(document, defaultIndex)
+        deferBelowFoldImages(document)
+    }
+
+    private fun authoredDefaultSwitcherIndex(document: Document): String {
+        val buttons = document.selectFirst(".infobox-buttons")
+        val defaultVersion = buttons?.attr("data-default-version")?.trim().orEmpty()
+        if (defaultVersion.isNotEmpty()) {
+            return defaultVersion
+        }
+        val selected = document.selectFirst(".button-selected")?.attr("data-switch-index")?.trim().orEmpty()
+        if (selected.isNotEmpty()) {
+            return selected
+        }
+        return document.selectFirst("[data-switch-index]")?.attr("data-switch-index")?.trim().orEmpty()
+            .ifEmpty { "0" }
+    }
+
+    private fun applySrcsetSizes(document: Document) {
+        document.select("img[srcset]").forEach { image ->
+            if (image.hasAttr("sizes") && image.attr("sizes").isNotBlank()) {
+                return@forEach
+            }
+            val width = image.attr("width").toIntOrNull() ?: return@forEach
+            if (width <= 0) {
+                return@forEach
+            }
+            image.attr("sizes", "${width}px")
+        }
+    }
+
+    private fun deferHiddenSwitcherPoolImages(document: Document, defaultIndex: String) {
+        document.select(".infobox-switch-resources, [class*=infobox-resources-]").forEach { pool ->
+            pool.select("[data-attr-index]").forEach { node ->
+                if (node.attr("data-attr-index") == defaultIndex) {
+                    return@forEach
+                }
+                node.select("img").forEach { deferOffscreenImage(it) }
+            }
+        }
+        document.select(".switch-infobox .item").forEach { item ->
+            val itemIndex = item.attr("data-switch-index").ifBlank { item.attr("data-attr-index") }
+            if (itemIndex.isNotBlank() && itemIndex != defaultIndex) {
+                item.select("img").forEach { deferOffscreenImage(it) }
+            }
+        }
+        document.select(".rsw-synced-switch-item:not(.showing) img").forEach { deferOffscreenImage(it) }
+    }
+
+    private fun deferBelowFoldImages(document: Document) {
+        var pastHeading = false
+        val body = document.body() ?: return
+        for (element in body.select("img, h2, .mw-heading")) {
+            if (element.tagName() == "h2" || element.classNames().any { it.contains("mw-heading") }) {
+                pastHeading = true
+                continue
+            }
+            if (!pastHeading || element.tagName() != "img") {
+                continue
+            }
+            if (element.closest("table.infobox, table.main-infobox, .infobox, .infobox-switch, .collapsible-primary-infobox") != null) {
+                continue
+            }
+            deferOffscreenImage(element)
+        }
+    }
+
+    private fun deferOffscreenImage(image: Element) {
+        if (image.hasAttr("data-osrs-deferred-src")) {
+            image.attr("loading", "lazy")
+            image.attr("decoding", "async")
+            return
+        }
+        val width = image.attr("width").toIntOrNull() ?: 0
+        val height = image.attr("height").toIntOrNull() ?: 0
+        if (width <= 0 && height <= 0) {
+            // Keep src when dimensions are missing so we do not manufacture CLS.
+            image.attr("loading", "lazy")
+            image.attr("decoding", "async")
+            return
+        }
+        val src = image.attr("src")
+        if (src.isNotBlank() && !src.startsWith("data:", ignoreCase = true)) {
+            image.attr("data-osrs-deferred-src", src)
+            image.attr("src", transparentImagePlaceholder)
+        }
+        val srcset = image.attr("srcset")
+        if (srcset.isNotBlank()) {
+            image.attr("data-osrs-deferred-srcset", srcset)
+            image.removeAttr("srcset")
+        }
+        val sizes = image.attr("sizes")
+        if (sizes.isNotBlank()) {
+            image.attr("data-osrs-deferred-sizes", sizes)
+            image.removeAttr("sizes")
+        }
+        image.addClass("osrs-deferred-offscreen-image")
+        image.attr("loading", "lazy")
+        image.attr("decoding", "async")
     }
 
     private fun isExpectedCancellation(error: Throwable): Boolean =
