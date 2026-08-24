@@ -25,6 +25,13 @@ object osrsArticleOverlayPresenter {
         if (activity is PageActivity) {
             return false
         }
+        if (topFragment(activity) != null) {
+            // Already showing an article overlay (e.g. Calculators from Search
+            // History). A nested overlay is blank/transparent and a later
+            // PageActivity singleTop push then crashes. Let PageActivity own
+            // the next article instead.
+            return false
+        }
         val host = ensureHost(activity)
         host.translationX = 0f
         host.alpha = 1f

@@ -304,8 +304,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         val nextTag = "PageFragmentTag-${hiddenArticleFragmentTags.size + 1}-${System.nanoTime()}"
         val transaction = supportFragmentManager.beginTransaction()
         if (current != null) {
-            transaction.remove(current)
-            transaction.add(R.id.page_live_underlay, current, currentArticleFragmentTag)
+            // Hide in the same container. AndroidX forbids re-adding a fragment
+            // to a different container ID (was page_fragment_container, now
+            // page_live_underlay) and crashes with IllegalStateException.
+            transaction.hide(current)
             hiddenArticleFragmentTags.addLast(currentArticleFragmentTag)
         }
         transaction.add(R.id.page_fragment_container, next, nextTag)
@@ -322,8 +324,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         if (current != null) {
             transaction.remove(current)
         }
-        transaction.remove(previous)
-        transaction.add(R.id.page_fragment_container, previous, previousTag)
+        transaction.show(previous)
         transaction.commitNowAllowingStateLoss()
         currentArticleFragmentTag = previousTag
         return true
@@ -614,6 +615,10 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
                     srcRect,
                     bitmap,
                     { result ->
+                        if (isFinishing || isDestroyed) {
+                            bitmap.recycle()
+                            return@request
+                        }
                         if (result == PixelCopy.SUCCESS) {
                             backPreviewStack.addLast(bitmap)
                             binding.pageBackPreview.setImageBitmap(bitmap)
@@ -661,9 +666,12 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         val clamped = progress.coerceIn(0f, 1f)
         val width = binding.navMenuTriggerLayout.width.toFloat().coerceAtLeast(1f)
         binding.navMenuTriggerLayout.animate().cancel()
-        binding.pageBackPreview.visibility = View.GONE
+        // Previous articles stay hidden in page_fragment_container (cannot move
+        // fragment container IDs). Interactive back uses the PixelCopy bitmap.
+        binding.pageBackPreview.visibility =
+            if (backPreviewStack.isNotEmpty()) View.VISIBLE else View.GONE
         binding.pageLiveUnderlay.visibility = View.VISIBLE
-        revealLivePreviousActivity(hiddenArticleFragmentTags.isEmpty())
+        revealLivePreviousActivity(hiddenArticleFragmentTags.isEmpty() && backPreviewStack.isEmpty())
         binding.navMenuTriggerLayout.translationX = osrsBackSwipeTranslationX(
             clamped,
             width,

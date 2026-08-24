@@ -55,7 +55,7 @@ class osrsMoreSettingsThemeFeedbackContractTest {
         assertTrue(base.contains("osrsArticleOverlayPresenter.restore(this"))
         val progress = page.substringAfter("private fun applyInteractiveBackProgress").substringBefore("private fun commitInteractiveBack")
         assertTrue(progress.contains("pageLiveUnderlay"))
-        assertTrue(progress.contains("pageBackPreview.visibility = View.GONE"))
+        assertTrue(progress.contains("backPreviewStack.isNotEmpty()"))
         assertTrue(progress.contains("revealLivePreviousActivity"))
         assertTrue(page.contains("setTranslucent(reveal)"))
         assertFalse(progress.contains("osrsUnderlyingActivityPreview"))

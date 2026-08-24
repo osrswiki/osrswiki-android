@@ -28,6 +28,15 @@ class osrsArticleHostAndUpdatesSearchContractTest {
     }
 
     @Test
+    fun overlayDoesNotStackWhenAnArticleOverlayIsAlreadyShowing() {
+        val presenter = source("page/osrsArticleOverlayPresenter.kt")
+        val present = presenter.substringAfter("fun present(context: Context, intent: Intent): Boolean")
+            .substringBefore("fun pop(activity: FragmentActivity): Boolean")
+        assertTrue(present.contains("if (topFragment(activity) != null)"))
+        assertTrue(present.contains("return false"))
+    }
+
+    @Test
     fun viewMoreOpensReusableUpdatesSearchScope() {
         val news = source("news/ui/NewsFragment.kt")
         val adapter = source("news/ui/NewsFeedAdapter.kt")
