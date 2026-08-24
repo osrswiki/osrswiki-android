@@ -84,13 +84,14 @@ class osrsScopedSearchPagingSource(
                 .filter { result -> scope.namespace == null || result.ns == scope.namespace }
         )
         val browseEmpty = query.trim().isEmpty() && scope.emptyQueryBrowsesNewest
+        val orderedFirstPaint = if (browseEmpty) osrsUpdatesBrowseOrder.sort(firstPaint) else firstPaint
         val searchResults = if (browseEmpty) {
-            previewStore.merge(firstPaint)
+            previewStore.merge(orderedFirstPaint)
             enrichScope.launch {
-                val enriched = osrsSearchPreviewEnricher.enrichMissingPreviews(apiService, firstPaint)
+                val enriched = osrsSearchPreviewEnricher.enrichMissingPreviews(apiService, orderedFirstPaint)
                 previewStore.merge(enriched)
             }
-            firstPaint
+            orderedFirstPaint
         } else {
             val enriched = osrsSearchPreviewEnricher.enrichMissingPreviews(apiService, firstPaint)
             previewStore.merge(enriched)

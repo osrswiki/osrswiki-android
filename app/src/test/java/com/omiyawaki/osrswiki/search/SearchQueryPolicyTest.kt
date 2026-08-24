@@ -151,6 +151,50 @@ class SearchQueryPolicyTest {
         }
     }
 
+    @Test
+    fun emptyQueryBrowseIsReverseChronologicalByGeneratorIndexThenTimestampThenPageId() {
+        val shuffled = listOf(
+            SearchResult(
+                ns = 112,
+                title = "Update:Oldest",
+                pageid = 10,
+                index = 3,
+                timestamp = "2024-01-01T00:00:00Z"
+            ),
+            SearchResult(
+                ns = 112,
+                title = "Update:Newest",
+                pageid = 30,
+                index = 1,
+                timestamp = "2026-08-01T00:00:00Z"
+            ),
+            SearchResult(
+                ns = 112,
+                title = "Update:Middle",
+                pageid = 20,
+                index = 2,
+                timestamp = "2025-06-01T00:00:00Z"
+            )
+        )
+        assertEquals(
+            listOf("Update:Newest", "Update:Middle", "Update:Oldest"),
+            osrsUpdatesBrowseOrder.sort(shuffled).map { it.title }
+        )
+        assertEquals(
+            listOf("Update:Newest", "Update:Middle", "Update:Oldest"),
+            SearchQueryPolicy.rank("", shuffled).map { it.title }
+        )
+
+        val missingIndex = listOf(
+            SearchResult(ns = 112, title = "Update:Later", pageid = 2, timestamp = "2026-08-02T00:00:00Z"),
+            SearchResult(ns = 112, title = "Update:Earlier", pageid = 9, timestamp = "2026-08-01T00:00:00Z")
+        )
+        assertEquals(
+            listOf("Update:Later", "Update:Earlier"),
+            osrsUpdatesBrowseOrder.sort(missingIndex).map { it.title }
+        )
+    }
+
     private fun result(title: String, index: Int, snippet: String? = null) = SearchResult(
         ns = 0,
         title = title,

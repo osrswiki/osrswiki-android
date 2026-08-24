@@ -59,7 +59,7 @@ internal object SearchQueryPolicy {
 
     fun rank(query: String, results: List<SearchResult>): List<SearchResult> {
         val normalizedQuery = normalize(apiQuery(query))
-        if (normalizedQuery.isBlank()) return results.sortedBy { it.index }
+        if (normalizedQuery.isBlank()) return osrsUpdatesBrowseOrder.sort(results)
         val queryTokens = tokens(normalizedQuery)
 
         return results.withIndex().sortedWith(

@@ -112,6 +112,64 @@ class SearchResultAccessibilityTest {
         )
     }
 
+    @Test
+    fun emptySnippetReservesTwoLineHeightSoEnrichDoesNotGrowTheRow() {
+        val binding = inflatedBinding()
+        val holder = SearchAdapter.SearchResultViewHolder(
+            binding = binding,
+            listener = object : SearchAdapter.OnItemClickListener {
+                override fun onItemClick(item: CleanedSearchResultItem) = Unit
+            }
+        )
+        val titleOnly = CleanedSearchResultItem(
+            id = "11",
+            title = "Update:Blank intro",
+            snippet = "",
+            thumbnailUrl = null
+        )
+        holder.bind(titleOnly, searchQuery = null)
+        assertEquals(View.VISIBLE, binding.searchItemSnippet.visibility)
+        assertTrue(binding.searchItemSnippet.minLines >= 2)
+        assertEquals(2, binding.searchItemSnippet.maxLines)
+        val emptyHeight = measuredRowHeight(binding)
+
+        holder.bind(
+            titleOnly.copy(snippet = "Diango is giving out hats in Draynor Village this week."),
+            searchQuery = null
+        )
+        assertEquals(View.VISIBLE, binding.searchItemSnippet.visibility)
+        assertEquals(emptyHeight, measuredRowHeight(binding))
+    }
+
+    @Test
+    fun longTitleStaysOneLineAndEllipsizes() {
+        val binding = inflatedBinding()
+        val holder = SearchAdapter.SearchResultViewHolder(
+            binding = binding,
+            listener = object : SearchAdapter.OnItemClickListener {
+                override fun onItemClick(item: CleanedSearchResultItem) = Unit
+            }
+        )
+        holder.bind(
+            item = CleanedSearchResultItem(
+                id = "19",
+                title = "The Official OSRS Podcast Episode 19 With Mod Archie",
+                snippet = "Today might be his birthday.",
+                thumbnailUrl = null
+            ),
+            searchQuery = null
+        )
+        assertEquals(1, binding.searchItemTitle.maxLines)
+        assertEquals(android.text.TextUtils.TruncateAt.END, binding.searchItemTitle.ellipsize)
+    }
+
+    private fun measuredRowHeight(binding: ItemSearchResultBinding): Int {
+        val width = android.view.View.MeasureSpec.makeMeasureSpec(1080, android.view.View.MeasureSpec.EXACTLY)
+        val height = android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+        binding.root.measure(width, height)
+        return binding.root.measuredHeight
+    }
+
     private fun inflatedBinding(): ItemSearchResultBinding {
         val context = ContextThemeWrapper(
             ApplicationProvider.getApplicationContext<Context>(),

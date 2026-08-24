@@ -5,11 +5,12 @@ import com.omiyawaki.osrswiki.R
 
 /**
  * Reusable Search destination filter. Home "View more" is one call site:
- * Update: namespace (112), newest-first when the query is empty.
+ * Update: namespace (112), reverse-chronological when the query is empty
+ * (`osrsUpdatesBrowseOrder`: generator index, then timestamp, then pageid).
  */
 data class osrsSearchScope(
     val namespace: Int? = null,
-    val emptyQueryBrowsesNewest: Boolean = false,
+    val emptyQueryBrowsesNewest: Boolean = false, // reverse-chronological via osrsUpdatesBrowseOrder
     val hintResId: Int = R.string.search_hint_wiki
 ) {
     val restrictsNamespace: Boolean get() = namespace != null

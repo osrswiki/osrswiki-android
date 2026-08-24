@@ -84,6 +84,17 @@ class osrsArticleHostAndUpdatesSearchContractTest {
         assertTrue(scoped.contains("generatedRecentChanges"))
         assertTrue(scoped.contains("generatedNamespacedSearch"))
         assertTrue(scoped.contains("result.ns == scope.namespace"))
+        assertTrue(scoped.contains("osrsUpdatesBrowseOrder.sort"))
+        assertTrue(source("search/osrsUpdatesBrowseOrder.kt").contains("generator index"))
+        assertTrue(source("search/osrsUpdatesBrowseOrder.kt").contains("pageid"))
+        val searchAdapter = source("search/SearchAdapter.kt")
+        assertFalse(searchAdapter.contains("searchItemSnippet.visibility = View.GONE"))
+        val row = resource("layout/item_search_result.xml")
+        assertTrue(row.contains("android:minLines=\"2\""))
+        assertTrue(row.contains("android:maxLines=\"2\""))
+        val titleBlock = row.substringAfter("search_item_title").substringBefore("search_item_snippet")
+        assertTrue(titleBlock.contains("android:maxLines=\"1\""))
+        assertTrue(titleBlock.contains("android:ellipsize=\"end\""))
     }
 
     @Test

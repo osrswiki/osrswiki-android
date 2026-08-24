@@ -105,6 +105,60 @@ class SearchPagingSourceTest {
     }
 
     @Test
+    fun scopedEmptyQuerySortsApiPageOrderNewestFirst() = runTest {
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedRecentChanges(112, 3, null, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Oldest",
+                            pageid = 10,
+                            index = 3,
+                            timestamp = "2024-01-01T00:00:00Z"
+                        ),
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Newest",
+                            pageid = 30,
+                            index = 1,
+                            timestamp = "2026-08-01T00:00:00Z"
+                        ),
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Middle",
+                            pageid = 20,
+                            index = 2,
+                            timestamp = "2025-06-01T00:00:00Z"
+                        )
+                    )
+                )
+            )
+        )
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 3,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(
+            listOf("Update:Newest", "Update:Middle", "Update:Oldest"),
+            page.data.map { it.title }
+        )
+    }
+
+    @Test
     fun scopedTypedQueryUsesNamespacedSearch() = runTest {
         val apiQuery = SearchQueryPolicy.networkQuery("varlamore")
         val apiService = mock<WikiApiService>()
@@ -193,12 +247,13 @@ class SearchPagingSourceTest {
                 continuation = null,
                 query = QueryResult(
                     pages = listOf(
-                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, snippet = null, extract = null),
-                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, snippet = "already"),
+                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, index = 1, snippet = null, extract = null),
+                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, index = 2, snippet = "already"),
                         SearchResult(
                             ns = 112,
                             title = "Update:Chrome snippet",
                             pageid = 13,
+                            index = 3,
                             snippet = "CLICK HERE TO SHOW THIS CONTENT",
                             extract = "If you can't see the podcast, click here."
                         )
@@ -283,8 +338,8 @@ class SearchPagingSourceTest {
                 continuation = null,
                 query = QueryResult(
                     pages = listOf(
-                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, snippet = null, extract = null),
-                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, snippet = "already")
+                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, index = 1, snippet = null, extract = null),
+                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, index = 2, snippet = "already")
                     )
                 )
             )

@@ -84,6 +84,8 @@ class SearchAdapter(
                 )
                 binding.searchItemTitle.text = spannableString
             }
+            binding.searchItemTitle.maxLines = 1
+            binding.searchItemTitle.ellipsize = android.text.TextUtils.TruncateAt.END
             binding.searchItemTitle.applyAlegreyaHeadline()
 
             var cleanSnippet = ""
@@ -102,13 +104,13 @@ class SearchAdapter(
                     // No query - show plain snippet, let TextView's textColor handle the color
                     binding.searchItemSnippet.text = cleanSnippet
                 }
-                
-                binding.searchItemSnippet.visibility = View.VISIBLE
-                
             } else {
-                binding.searchItemSnippet.text = null
-                binding.searchItemSnippet.visibility = View.GONE
+                // Keep the two-line slot so preview enrich cannot grow the row.
+                binding.searchItemSnippet.text = ""
             }
+            binding.searchItemSnippet.minLines = 2
+            binding.searchItemSnippet.maxLines = 2
+            binding.searchItemSnippet.visibility = View.VISIBLE
 
             // Load the thumbnail if the URL exists, otherwise hide the image view.
             if (item.thumbnailUrl != null) {
