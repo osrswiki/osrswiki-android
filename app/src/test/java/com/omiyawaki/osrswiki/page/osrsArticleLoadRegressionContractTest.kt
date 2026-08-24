@@ -316,6 +316,29 @@ class osrsArticleLoadRegressionContractTest {
         assertTrue(fixes.contains("min-width: var(--osrs-bonuses-min-inline-size)"))
     }
 
+    @Test
+    fun firstViewportWatcherStartsWhenBodyExistsNotOnlyAtDcl() {
+        val shared = File(repositoryRoot(), "shared/js/first_viewport_assets.js").readText()
+        val android = asset("web/first_viewport_assets.js")
+        assertEquals(shared, android)
+        val startTail = shared.substringAfter("function start()")
+        assertTrue(
+            "start() must run when document.body already exists (article HTML is above this script)",
+            Regex("""if\s*\(\s*document\.body\s*\)\s*\{\s*start\(\s*\)\s*;""").containsMatchIn(startTail)
+        )
+        assertTrue(
+            "DOMContentLoaded remains the fallback when body is not ready yet",
+            startTail.contains("document.addEventListener('DOMContentLoaded', start)")
+        )
+        assertFalse(
+            "must not wait for DCL solely because readyState is still loading",
+            Regex(
+                """if\s*\(\s*document\.readyState\s*===\s*'loading'\s*\)\s*\{\s*""" +
+                    """document\.addEventListener\('DOMContentLoaded',\s*start\)"""
+            ).containsMatchIn(startTail)
+        )
+    }
+
     private fun repositoryRoot(): File {
         var dir = File(".").canonicalFile
         repeat(12) {
