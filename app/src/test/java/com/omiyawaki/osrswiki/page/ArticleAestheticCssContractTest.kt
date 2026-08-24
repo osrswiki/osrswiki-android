@@ -62,6 +62,7 @@ class ArticleAestheticCssContractTest {
         assertTrue(css.contains(".mwe-math-element"))
         assertTrue(css.contains("audio.mw-file-element"))
         assertTrue(css.contains("table.musicplayer"))
+        assertTrue(css.contains(".infobox-media-player"))
         assertTrue(css.contains("float: none !important"))
         assertTrue(css.contains("min-width: min(160px, 72vw)"))
         assertTrue(css.contains("--osrs-disclosure-control-padding-block: 12px !important;"))
@@ -72,6 +73,7 @@ class ArticleAestheticCssContractTest {
             )
         )
         assertFalse(css.contains("padding: 6px 10px !important;"))
+        infoboxMediaPlayerMustPaintANonZeroAudioBox(css)
         assertTrue(css.contains("p > .mwe-math-element"))
         assertTrue(css.contains("display: inline"))
         assertTrue(css.contains(".mwe-math-element-inline"))
@@ -504,6 +506,44 @@ class ArticleAestheticCssContractTest {
         val gadgetIdx = runtime.indexOf("'gadget_calc.css'")
         val fixesIdx = runtime.indexOf("'fixes.css'")
         assertTrue(gadgetIdx >= 0 && fixesIdx >= 0 && gadgetIdx < fixesIdx)
+    }
+
+    @Test
+    fun seaShantyInfoboxMediaPlayerIsDisplayableNotCollapsed() {
+        val css = assetFile("styles/android-article-aesthetics.css").readText()
+        infoboxMediaPlayerMustPaintANonZeroAudioBox(css)
+        assertFalse(
+            "Infobox TimedMediaHandler audio must not be display:none.",
+            Regex(
+                """\.infobox-media-player[^{]*\{[^}]*display:\s*none"""
+            ).containsMatchIn(css)
+        )
+    }
+
+    private fun infoboxMediaPlayerMustPaintANonZeroAudioBox(css: String) {
+        assertTrue(
+            "Sea Shanty 2 uses td.infobox-media-player, not table.musicplayer.",
+            css.contains(".infobox-media-player")
+        )
+        val mediaRules = Regex(
+            """\.infobox-media-player[^{]*\{[^}]+\}"""
+        ).findAll(css).joinToString("\n") { it.value }
+        assertTrue(
+            "Infobox audio rules must exist so the contract cannot match unrelated later CSS.",
+            mediaRules.isNotBlank()
+        )
+        assertTrue(
+            "Infobox audio needs a height floor so WebView native chrome is not 0px.\n$mediaRules",
+            mediaRules.contains("min-height: 48px")
+        )
+        assertTrue(
+            "Infobox audio needs a width floor; min(100%, 260px) of a shrink-wrap mw:File span is 0.\n$mediaRules",
+            mediaRules.contains("min-width: min(220px, 100%)")
+        )
+        assertFalse(
+            "Zero-height collapse of infobox audio is a product fail.\n$mediaRules",
+            mediaRules.contains("height: 0")
+        )
     }
 
     private fun assetFile(path: String): File {

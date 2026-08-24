@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -342,6 +343,78 @@ class ReadingListOfflineAssetsTest {
 
         val failure = runCatching { saving.await() }.exceptionOrNull()
         assertTrue(failure is CancellationException)
+    }
+
+    @Test
+    fun wikiAudioTranscodeLookupMapsInfoboxOggToQueryStrippedMp3() {
+        val ogg = "https://oldschool.runescape.wiki/images/Sea_Shanty_2.ogg?8e3b9"
+        val transcode =
+            "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67"
+        val transcodeStripped =
+            "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3"
+        assertEquals(transcodeStripped, WikiAudioTranscodeLookup.transcodeUrl(ogg))
+        assertNull(
+            "Already-transcoded paths must not be rewritten again.",
+            WikiAudioTranscodeLookup.transcodeUrl(transcode)
+        )
+        assertTrue(WikiAudioTranscodeLookup.candidatePlaybackUrls(ogg).contains(transcodeStripped))
+        assertTrue(WikiAudioTranscodeLookup.candidatePlaybackUrls(transcode).contains(transcodeStripped))
+        assertNull(WikiAudioTranscodeLookup.transcodeUrl("https://oldschool.runescape.wiki/images/amulet.gif"))
+    }
+
+    @Test
+    fun resolverServesPersistedTranscodeMp3ForInfoboxOggRequest() {
+        val storageDir = kotlin.io.path.createTempDirectory("reading-list-audio").toFile()
+        try {
+            val transcodeUrl =
+                "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67"
+            val oggUrl = "https://oldschool.runescape.wiki/images/Sea_Shanty_2.ogg?8e3b9"
+            val mp3Bytes = "ID3".toByteArray() + ByteArray(16) { 0xFB.toByte() }
+            val objectRow = OfflineObject(
+                id = 2L,
+                url = transcodeUrl,
+                lang = "en",
+                path = "durable-shanty-mp3",
+                status = OfflineObject.STATUS_SAVED,
+                usedByStr = "|42|",
+                saveType = OfflineObject.SAVE_TYPE_READING_LIST
+            )
+            File(storageDir, "durable-shanty-mp3.0").writeText("Content-Type: audio/mpeg\n")
+            File(storageDir, "durable-shanty-mp3.1").writeBytes(mp3Bytes)
+            val lookup = { requestedUrl: String, language: String ->
+                objectRow.takeIf {
+                    language == "en" &&
+                        WikiAudioTranscodeLookup.stripQuery(requestedUrl) ==
+                        WikiAudioTranscodeLookup.stripQuery(it.url)
+                }
+            }
+
+            val resolver = ReadingListOfflineAssetResolver(storageDir, lookup)
+            val served = resolver.open(oggUrl)
+            assertNotNull("Infobox ogg play must remap to the saved transcode MP3", served)
+            assertEquals("audio/mpeg", served!!.mimeType)
+            assertEquals(mp3Bytes.toList(), served.stream.use { it.readBytes().toList() })
+        } finally {
+            storageDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun resolverDoesNotReturnEmptyBodyWhenWikiAudioWasNotPackaged() {
+        val storageDir = kotlin.io.path.createTempDirectory("reading-list-audio-miss").toFile()
+        try {
+            val resolver = ReadingListOfflineAssetResolver(storageDir) { _, _ -> null }
+            assertNull(
+                resolver.open("https://oldschool.runescape.wiki/images/Sea_Shanty_2.ogg?8e3b9")
+            )
+            assertNull(
+                resolver.open(
+                    "https://oldschool.runescape.wiki/images/transcoded/Sea_Shanty_2.ogg/Sea_Shanty_2.ogg.mp3?f5d67"
+                )
+            )
+        } finally {
+            storageDir.deleteRecursively()
+        }
     }
 
     @Test

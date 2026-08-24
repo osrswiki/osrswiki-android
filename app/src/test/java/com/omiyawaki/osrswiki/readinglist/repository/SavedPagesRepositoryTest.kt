@@ -665,5 +665,11 @@ class SavedPagesRepositoryTest {
             lang: String,
             saveType: String
         ): OfflineObject? = null
+
+        override fun findByUrlIgnoringQuery(
+            baseUrl: String,
+            lang: String,
+            saveType: String
+        ): OfflineObject? = null
     }
 }

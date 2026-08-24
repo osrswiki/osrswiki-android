@@ -180,6 +180,7 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("web/collapsible_content.js"))
         assertTrue(html.contains("web/live_article_asset_warm.js"))
         assertTrue(html.contains("web/first_viewport_assets.js"))
+        assertTrue(html.contains("web/article_audio_player.js"))
         assertTrue(html.contains("var RLCONF ="))
         assertTrue(html.contains("var RLPAGEMODULES ="))
         assertTrue(html.contains("\"ext.Tabber\""))
@@ -188,6 +189,17 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("min-height: 1.3em"))
         assertTrue(html.contains("alegreya_bold.ttf"))
         assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
+    }
+
+    @Test
+    fun buildFullHtmlDocumentWiresArticleAudioPlayer() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Sea Shanty 2",
+            bodyContent = """<td class="infobox-media-player"><audio controls class="mw-file-element"></audio></td>""",
+            theme = Theme.OSRS_LIGHT
+        )
+        assertTrue(html.contains("web/article_audio_player.js"))
+        assertTrue(html.contains("infobox-media-player"))
     }
 
     @Test

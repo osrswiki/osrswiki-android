@@ -414,6 +414,34 @@ math.mwe-math-element-inline {
     min-width: min(180px, 100%);
 }
 
+/* Sea Shanty 2 and other TimedMediaHandler tracks live in td.infobox-media-player,
+   wrapped in span.mw-default-size[typeof="mw:File"]. Shared fixes shrink those
+   spans to auto/min-width:0; `width: min(100%, 260px)` then collapses to 0. */
+.infobox-media-player,
+.infobox-media-player span.mw-default-size[typeof^="mw:File"],
+.infobox-media-player span.mw-default-size[typeof^="mw:File"] > span,
+.infobox-media-player .osrs-article-audio {
+    display: block !important;
+    height: auto !important;
+    line-height: normal !important;
+    max-width: 100% !important;
+    min-width: min(220px, 100%) !important;
+    width: 100% !important;
+}
+
+.infobox-media-player audio.mw-file-element,
+.infobox-media-player audio,
+.osrs-article-audio audio {
+    box-sizing: border-box !important;
+    display: block !important;
+    height: 48px !important;
+    margin: 0.25em 0;
+    max-width: 100% !important;
+    min-height: 48px !important;
+    min-width: min(220px, 100%) !important;
+    width: 100% !important;
+}
+
 audio.mw-file-element,
 .mw-parser-output audio {
     display: block;

@@ -790,6 +790,39 @@ internal data class ReadingListOfflineAsset(
     val stream: InputStream
 )
 
+/**
+ * Infobox audio keeps the original wiki ogg under /images as the first source. Explicit
+ * Save stores the preferred transcoded MPEG blob (different query). Playback lookup must
+ * remap the live ogg request onto that packaged MPEG, ignoring cache-busting queries.
+ */
+internal object WikiAudioTranscodeLookup {
+    fun stripQuery(url: String): String {
+        val withoutFragment = url.substringBefore('#')
+        return withoutFragment.substringBefore('?')
+    }
+
+    fun transcodeUrl(from: String): String? {
+        val uri = runCatching { URI(from) }.getOrNull() ?: return null
+        val path = uri.path.orEmpty()
+        if (!path.startsWith("/images/") || path.contains("/transcoded/")) return null
+        val ext = path.substringAfterLast('.', missingDelimiterValue = "").lowercase(Locale.ROOT)
+        if (ext != "ogg" && ext != "oga") return null
+        val filename = path.substringAfterLast('/')
+        if (filename.isEmpty()) return null
+        val host = uri.host ?: return null
+        val scheme = uri.scheme?.takeIf { it.isNotBlank() } ?: "https"
+        return "$scheme://$host/images/transcoded/$filename/$filename.mp3"
+    }
+
+    fun candidatePlaybackUrls(requested: String): List<String> {
+        val stripped = stripQuery(requested)
+        val transcode = transcodeUrl(requested)
+        return linkedSetOf(requested, stripped).apply {
+            transcode?.let(::add)
+        }.toList()
+    }
+}
+
 /** Reopens interceptor-owned reading-list bytes, including after process recreation. */
 internal class ReadingListOfflineAssetResolver internal constructor(
     private val storageDir: File,
@@ -802,17 +835,24 @@ internal class ReadingListOfflineAssetResolver internal constructor(
                 url,
                 lang,
                 OfflineObject.SAVE_TYPE_READING_LIST
+            ) ?: offlineObjectDao.findByUrlIgnoringQuery(
+                WikiAudioTranscodeLookup.stripQuery(url),
+                lang,
+                OfflineObject.SAVE_TYPE_READING_LIST
             )
         }
     )
 
     fun open(url: String, language: String = "en"): ReadingListOfflineAsset? {
-        val saved = lookup(url, language)?.takeIf {
-            it.saveType == OfflineObject.SAVE_TYPE_READING_LIST &&
-                it.status == OfflineObject.STATUS_SAVED &&
-                it.usedByStr.isNotBlank()
+        val saved = WikiAudioTranscodeLookup.candidatePlaybackUrls(url).firstNotNullOfOrNull { candidate ->
+            lookup(candidate, language)?.takeIf {
+                it.saveType == OfflineObject.SAVE_TYPE_READING_LIST &&
+                    it.status == OfflineObject.STATUS_SAVED &&
+                    it.usedByStr.isNotBlank()
+            }
         } ?: return null
-        val contentFile = File(storageDir, saved.path + CONTENT_SUFFIX).takeIf(File::isFile)
+        val contentFile = File(storageDir, saved.path + CONTENT_SUFFIX)
+            .takeIf { it.isFile && it.length() > 0L }
             ?: return null
         val metadataFile = File(storageDir, saved.path + METADATA_SUFFIX).takeIf(File::isFile)
             ?: return null

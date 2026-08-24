@@ -175,4 +175,14 @@ interface OfflineObjectDao {
 
     @Query("SELECT * FROM offline_objects WHERE url = :url AND lang = :lang AND saveType = :saveType LIMIT 1")
     fun findByUrlAndLangAndSaveType(url: String, lang: String, saveType: String): OfflineObject?
+
+    @Query(
+        """
+        SELECT * FROM offline_objects
+        WHERE lang = :lang AND saveType = :saveType
+        AND (url = :baseUrl OR url LIKE :baseUrl || '?%')
+        LIMIT 1
+        """
+    )
+    fun findByUrlIgnoringQuery(baseUrl: String, lang: String, saveType: String): OfflineObject?
 }
