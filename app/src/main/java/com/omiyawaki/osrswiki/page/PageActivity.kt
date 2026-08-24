@@ -1574,6 +1574,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
             snippet: String? = null,
             thumbnailUrl: String? = null
         ) {
+            osrsHideImeOnArticleOpen.hide(context)
             val intent = newIntent(context, pageTitle, pageId, source, snippet, thumbnailUrl)
             if (osrsArticleOverlayPresenter.present(context, intent)) {
                 return
@@ -1582,6 +1583,7 @@ class PageActivity : BaseActivity(), PageFragment.Callback, osrsArticleChromeHos
         }
 
         fun open(context: Context, updateItem: com.omiyawaki.osrswiki.news.model.UpdateItem, source: Int) {
+            osrsHideImeOnArticleOpen.hide(context)
             val intent = newIntent(context, updateItem, source)
             if (osrsArticleOverlayPresenter.present(context, intent)) {
                 return

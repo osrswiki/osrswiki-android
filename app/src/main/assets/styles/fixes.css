@@ -1860,9 +1860,8 @@ table.wikitable :is(th, td) > :is(
     clear: none !important;
 }
 
-.collapsible-container.collapsible-primary-infobox:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
-.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(> table.infobox),
-.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(> .infobox-switch) {
+.collapsible-container.collapsible-bonuses-infobox:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(> table.infobox-bonuses) {
     overflow-x: auto !important;
 }
 
@@ -1884,7 +1883,9 @@ table.wikitable :is(th, td) > :is(
 
 /* Item/switcher infoboxes shrink-wrap. The 12px chrome sits around the wiki
    table instead of being stolen from its ~300px column, so labels such as
-   Equipable stay one line. Location/map cards still cap nested media. */
+   Equipable stay one line. Nested maps stay capped so they cannot stretch
+   the card to a full-bleed column; the card itself may grow to the needed
+   width within the content column. */
 .collapsible-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
 .collapsible-primary-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body {
     margin-inline: auto !important;
@@ -1894,6 +1895,13 @@ table.wikitable :is(th, td) > :is(
 
 .collapsible-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(.mw-kartographer-map),
 .collapsible-primary-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body:has(.mw-kartographer-map) {
+    max-width: 100% !important;
+}
+
+.collapsible-infobox:not(.collapsible-bonuses-infobox) .mw-kartographer-map,
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox) .mw-kartographer-map {
+    box-sizing: border-box !important;
+    width: min(18.75rem, 100%) !important;
     max-width: min(18.75rem, 100%) !important;
 }
 
@@ -2147,6 +2155,26 @@ ul.tabbernav > li {
 .osrs-scroll-cue-layer::after {
     display: none !important;
     opacity: 0 !important;
+}
+
+/* A compact infobox whose max-content width fits the content column must use
+   that width. Nested overflow-x:auto around a 300px map/audio cap created a
+   scrollport (or crushed the player) while the column still had room. Bonuses
+   tables keep a single local horizontal scroller. */
+.collapsible-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content,
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content,
+.collapsible-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox):not(.collapsed) > .collapsible-content > .osrs-disclosure-body,
+.collapsible-infobox:not(.collapsible-bonuses-infobox) table.infobox:not(.infobox-bonuses),
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox) table.infobox:not(.infobox-bonuses),
+.collapsible-infobox:not(.collapsible-bonuses-infobox) .infobox-switch,
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox) .infobox-switch {
+    overflow-x: visible !important;
+}
+
+.collapsible-infobox:not(.collapsible-bonuses-infobox),
+.collapsible-primary-infobox:not(.collapsible-bonuses-infobox) {
+    overflow-x: auto !important;
 }
 /* OSRS_SHARED_ARTICLE_SEMANTICS_END */
 

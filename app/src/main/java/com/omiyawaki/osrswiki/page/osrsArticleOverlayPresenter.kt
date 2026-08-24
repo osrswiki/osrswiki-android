@@ -32,6 +32,7 @@ object osrsArticleOverlayPresenter {
             // the next article instead.
             return false
         }
+        osrsHideImeOnArticleOpen.hide(activity)
         val host = ensureHost(activity)
         host.translationX = 0f
         host.alpha = 1f
@@ -45,7 +46,9 @@ object osrsArticleOverlayPresenter {
             host.visibility = View.VISIBLE
             host.isClickable = true
             host.isFocusable = true
+            host.isFocusableInTouchMode = true
             host.bringToFront()
+            host.requestFocus()
             true
         } catch (error: Throwable) {
             L.e("osrsArticleOverlayPresenter: overlay present failed", error)
