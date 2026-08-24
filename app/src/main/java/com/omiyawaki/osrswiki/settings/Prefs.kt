@@ -107,6 +107,14 @@ object Prefs {
     @Volatile
     var deferLiveWikiFidelityCss: Boolean = true
 
+    /**
+     * When true, live Android opens commit HTML / start WebView paint before
+     * `PageTableOfContentsExtractor` Jsoup work. The TOC sheet may be empty
+     * briefly, then populate. Flip to false to roll back thousand-cuts #4
+     * (sequential extract on the html_ready critical path).
+     */
+    @Volatile
+    var deferLiveTableOfContentsExtract: Boolean = true
 
     /**
      * Gets the cache size limit in megabytes.

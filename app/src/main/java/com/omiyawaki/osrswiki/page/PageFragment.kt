@@ -235,6 +235,10 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             if (isAdded && _binding != null && !webViewReleasedWhileStopped) {
                 pageUiUpdater?.updateUi()
                 pageReadingListManager.observeAndRefreshSaveButtonState()
+                val sections = pageViewModel.uiState.tableOfContentsSections
+                if (sections.isNotEmpty()) {
+                    contentsHandler?.setup(sections)
+                }
             }
         }
 

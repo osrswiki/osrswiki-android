@@ -28,6 +28,9 @@ class PageContentLoader(
     private var pageLoadJob: Job? = null
     private var backgroundAssetsJob: Job? = null
     private var firstViewSlotWarmJob: Job? = null
+    private var tocExtractJob: Job? = null
+    @Volatile
+    private var tocExtractGeneration: Int = 0
     @Volatile
     private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
     @Volatile
@@ -157,27 +160,34 @@ class PageContentLoader(
                 val wikiUrlForWarm = WikiSite.OSRS_WIKI.mobileUrl(result.parseResult.title ?: "")
                 startFirstViewSlotWarm(result.processedHtml, wikiUrlForWarm)
                 val paintSnapshot = result.readyToPaintHtml
-                val (finalHtml, tableOfContentsSections) = withContext(Dispatchers.Default) {
+                val deferToc = Prefs.deferLiveTableOfContentsExtract
+                val displayTitle = result.parseResult.displaytitle ?: result.parseResult.title
+                val tocHtml = if (paintSnapshot != null) {
+                    osrsSavedPaintHtml.extractBodyForToc(paintSnapshot)
+                } else {
+                    result.processedHtml
+                }
+                val floorConvention = osrsArticleFloorConvention.resolved()
+                val (finalHtml, sequentialToc) = withContext(Dispatchers.Default) {
                     currentCoroutineContext().ensureActive()
                     val collapseTablesEnabled = Prefs.isCollapseTablesEnabled
-                    val displayTitle = result.parseResult.displaytitle ?: result.parseResult.title
-                    val tocHtml = if (paintSnapshot != null) {
-                        osrsSavedPaintHtml.extractBodyForToc(paintSnapshot)
-                    } else {
-                        result.processedHtml
-                    }
                     lateinit var tableOfContentsSections: List<Section>
-                    val tocTime = measureTimeMillis {
-                        tableOfContentsSections = PageTableOfContentsExtractor.extract(
-                            displayTitle,
-                            tocHtml,
-                            osrsArticleFloorConvention.resolved()
-                        )
+                    val tocTime = if (deferToc) {
+                        tableOfContentsSections = emptyList()
+                        -1L
+                    } else {
+                        measureTimeMillis {
+                            tableOfContentsSections = PageTableOfContentsExtractor.extract(
+                                displayTitle,
+                                tocHtml,
+                                floorConvention
+                            )
+                        }
                     }
                     currentCoroutineContext().ensureActive()
-                    lateinit var finalHtml: String
+                    lateinit var builtHtml: String
                     val documentBuildTime = measureTimeMillis {
-                        finalHtml = if (paintSnapshot != null) {
+                        builtHtml = if (paintSnapshot != null) {
                             val isCalculatorPage = tocHtml.contains("jcConfig") ||
                                 osrsWikiWebViewUrl.isCalculatorNamespaceTitle(result.parseResult.title)
                             osrsSavedPaintHtml.applyingLivePreferences(
@@ -204,8 +214,8 @@ class PageContentLoader(
                     currentCoroutineContext().ensureActive()
                     L.d(
                         "ArticleRenderPhase: tocExtractionMs=$tocTime documentBuildMs=$documentBuildTime " +
-                            "processedChars=${result.processedHtml.length} finalChars=${finalHtml.length} " +
-                            "paintSnapshot=${paintSnapshot != null}"
+                            "processedChars=${result.processedHtml.length} finalChars=${builtHtml.length} " +
+                            "paintSnapshot=${paintSnapshot != null} tocDeferred=$deferToc"
                     )
                     val openStarted = firstViewOpenAtElapsed
                     val openElapsed = if (openStarted != null) {
@@ -219,10 +229,10 @@ class PageContentLoader(
                     }
                     L.d(
                         "LOAD-MINMAX html_ready elapsedMs=$openElapsed documentBuildMs=$documentBuildTime " +
-                            "htmlChars=${finalHtml.length} paintSnapshot=${paintSnapshot != null} " +
-                            "deferWikiFidelityCss=${Prefs.deferLiveWikiFidelityCss}"
+                            "htmlChars=${builtHtml.length} paintSnapshot=${paintSnapshot != null} " +
+                            "deferWikiFidelityCss=${Prefs.deferLiveWikiFidelityCss} tocDeferred=$deferToc"
                     )
-                    finalHtml to tableOfContentsSections
+                    builtHtml to tableOfContentsSections
                 }
                 L.d("handleDownloadProgress: Final HTML length: ${finalHtml.length} characters")
 
@@ -238,13 +248,20 @@ class PageContentLoader(
                         isCurrentlyOffline = result.source == ArticleContentSource.SAVED,
                         progress = if (savedPaintOpen) 90 else 50,
                         progressText = if (savedPaintOpen) null else "Rendering page...",
-                        tableOfContentsSections = tableOfContentsSections
+                        tableOfContentsSections = sequentialToc
                     )
                     backgroundAssetsJob?.cancel()
                     backgroundAssetsJob = null
                     liveArticleAssetWarmer = null
                     // WebView owns visible media after the document commit.
                     onStateUpdated()
+                }
+                if (deferToc) {
+                    startDeferredTableOfContentsExtract(
+                        displayTitle = displayTitle,
+                        tocHtml = tocHtml,
+                        convention = floorConvention
+                    )
                 }
             }
             is DownloadProgress.Failure -> {
@@ -397,6 +414,51 @@ class PageContentLoader(
         L.d("LOAD-MINMAX first_viewport_settled elapsedMs=$elapsed")
     }
 
+    fun startDeferredTableOfContentsExtract(
+        displayTitle: String?,
+        tocHtml: String,
+        convention: osrsArticleFloorConvention
+    ) {
+        tocExtractJob?.cancel()
+        val generation = tocExtractGeneration + 1
+        tocExtractGeneration = generation
+        if (tocHtml.isBlank()) {
+            tocExtractJob = null
+            return
+        }
+        tocExtractJob = coroutineScope.launch(Dispatchers.Default) {
+            currentCoroutineContext().ensureActive()
+            lateinit var sections: List<Section>
+            val tocTime = measureTimeMillis {
+                sections = PageTableOfContentsExtractor.extract(
+                    displayTitle,
+                    tocHtml,
+                    convention
+                )
+            }
+            currentCoroutineContext().ensureActive()
+            val started = articleOpenAtElapsed
+            val openElapsed = if (started != null) {
+                android.os.SystemClock.elapsedRealtime() - started
+            } else {
+                -1L
+            }
+            L.d(
+                "LOAD-MINMAX toc_ready elapsedMs=$openElapsed tocExtractionMs=$tocTime " +
+                    "sectionCount=${sections.size}"
+            )
+            withContext(Dispatchers.Main) {
+                if (generation != tocExtractGeneration) {
+                    return@withContext
+                }
+                pageViewModel.uiState = pageViewModel.uiState.copy(
+                    tableOfContentsSections = sections
+                )
+                onStateUpdated()
+            }
+        }
+    }
+
     fun cancelActivePageWork() {
         pageLoadJob?.cancel()
         pageLoadJob = null
@@ -406,5 +468,8 @@ class PageContentLoader(
         firstViewSlotWarmJob?.cancel()
         firstViewSlotWarmJob = null
         firstViewSlotWarmer = null
+        tocExtractJob?.cancel()
+        tocExtractJob = null
+        tocExtractGeneration += 1
     }
 }

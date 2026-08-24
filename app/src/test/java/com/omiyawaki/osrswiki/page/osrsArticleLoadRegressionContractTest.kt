@@ -222,6 +222,44 @@ class osrsArticleLoadRegressionContractTest {
 
 
     @Test
+    fun slice4DeferLiveTableOfContentsExtractDefaultOnAndOffHtmlReady() {
+        val prefs = source("settings/Prefs.kt")
+        assertTrue(prefs.contains("var deferLiveTableOfContentsExtract: Boolean = true"))
+        val loader = source("page/PageContentLoader.kt")
+        assertTrue(loader.contains("fun startDeferredTableOfContentsExtract"))
+        assertTrue(loader.contains("LOAD-MINMAX toc_ready"))
+        assertTrue(loader.contains("tocDeferred=\$deferToc"))
+        assertTrue(loader.contains("Prefs.deferLiveTableOfContentsExtract"))
+        val successBranch = loader.substringAfter("is DownloadProgress.Success ->")
+            .substringBefore("is DownloadProgress.Failure ->")
+        assertTrue(successBranch.contains("startFirstViewSlotWarm"))
+        assertTrue(successBranch.contains("onStateUpdated()"))
+        assertTrue(successBranch.contains("startDeferredTableOfContentsExtract"))
+        assertTrue(
+            "HTML commit / onStateUpdated must happen before deferred TOC extract",
+            successBranch.indexOf("onStateUpdated()") <
+                successBranch.indexOf("startDeferredTableOfContentsExtract")
+        )
+        val htmlReadyLine = loader.lineSequence()
+            .first { it.contains("LOAD-MINMAX html_ready elapsedMs=") }
+        assertFalse(
+            "tocExtractionMs must not share the html_ready log line",
+            htmlReadyLine.contains("tocExtractionMs")
+        )
+        val deferredFn = loader.substringAfter("fun startDeferredTableOfContentsExtract")
+            .substringBefore("fun cancelActivePageWork")
+        assertTrue(deferredFn.contains("PageTableOfContentsExtractor.extract"))
+        assertTrue(deferredFn.contains("LOAD-MINMAX toc_ready"))
+        assertTrue(loader.contains("tocExtractJob?.cancel()"))
+        val fragment = source("page/PageFragment.kt")
+        assertTrue(fragment.contains("contentsHandler?.setup(sections)"))
+        assertTrue(fragment.contains("tableOfContentsSections"))
+        val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")
+            .substringBefore("fun showFindInPage()")
+        assertTrue(readyCallback.contains("fetchTableOfContents()"))
+    }
+
+    @Test
     fun task8BonusesMinCellGuardrailProbeAndAntiCrushCssLocked() {
         val root = repositoryRoot()
         val probe = File(root, "tools/qa/bonuses-min-cell-guardrail-probe.js").readText()
