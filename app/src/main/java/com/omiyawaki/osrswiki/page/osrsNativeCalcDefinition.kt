@@ -3,7 +3,10 @@ package com.omiyawaki.osrswiki.page
 import java.util.regex.Pattern
 
 object osrsNativeCalcDefinition {
-    val spikeNativeTitles: Set<String> = setOf("Calculator:Agility")
+    val spikeNativeTitles: Set<String> = setOf(
+        "Calculator:Agility",
+        "Calculator:Combat level"
+    )
 
     enum class ParamType(val token: String) {
         STRING("string"),
@@ -231,6 +234,15 @@ object osrsNativeCalcDefinition {
         }
         parts.add("}}")
         return parts.joinToString("")
+    }
+
+    fun chromeTitle(calcId: String): String {
+        var rest = calcId
+        if (rest.startsWith("Calculator:")) {
+            rest = rest.removePrefix("Calculator:")
+        }
+        rest = rest.trim().ifEmpty { "Calculator" }
+        return if (rest.lowercase().endsWith("calculator")) rest else "$rest calculator"
     }
 
     fun parseResultIsError(html: String?): Boolean {

@@ -193,4 +193,49 @@ class osrsNativeCalcDefinitionTest {
             )
         )
     }
+
+    @Test
+    fun combatLevelExtractAndDefaultInvokeReuseTheKit() {
+        val config = """
+            <pre class="jcConfig">
+             template = Calculator:Combat level/Template
+             form = combatCalcForm
+             result = combatCalcResult
+             param  = playername|Player name||hs|attack,1,1;strength,3,1;ranged,5,1;magic,7,1;defence,2,1;hitpoints,4,1;prayer,6,1
+             param = attack|Attack|1|int|1-99
+             param = strength|Strength|1|int|1-99
+             param = ranged|Ranged|1|int|1-99
+             param = magic|Magic|1|int|1-99
+             param = defence|Defence|1|int|1-99
+             param = hitpoints|Hitpoints|10|int|9-99
+             param = prayer|Prayer|1|int|1-99
+             autosubmit = enabled
+            </pre>
+        """.trimIndent()
+        val definition = osrsNativeCalcDefinition.parse(config, "Calculator:Combat level")
+        assertNotNull(definition)
+        requireNotNull(definition)
+        assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(definition))
+        assertEquals("Combat level calculator", osrsNativeCalcDefinition.chromeTitle(definition.id))
+        assertEquals("Calculator:Combat level/Template", definition.invoke.template)
+        assertEquals(
+            listOf("playername", "attack", "strength", "ranged", "magic", "defence", "hitpoints", "prayer"),
+            definition.inputs.map { it.name }
+        )
+        assertTrue(definition.inputs.none { it.type == osrsNativeCalcDefinition.ParamType.HIDDEN })
+        val hp = definition.inputs.first { it.name == "hitpoints" }
+        assertEquals("10", hp.defaultValue)
+        assertEquals(9, hp.minValue)
+        assertEquals(99, hp.maxValue)
+        val wikitext = osrsNativeCalcDefinition.invokeWikitext(definition)
+        assertEquals(
+            "{{Calculator:Combat level/Template|attack=1|strength=1|ranged=1|magic=1|defence=1|hitpoints=10|prayer=1}}",
+            wikitext
+        )
+        assertFalse(wikitext!!.contains("|skill="))
+        val copy = osrsNativeCalcSession.introCopy(config, "Calculator:Combat level")
+        assertTrue(copy.lowercase().contains("combat"))
+        assertFalse(copy.contains("Agility"))
+        assertFalse(osrsNativeCalcDefinition.parseResultIsError("<p>Your combat level is 3, balanced.</p>"))
+    }
 }

@@ -33,11 +33,12 @@ class osrsNativeCalcView @JvmOverloads constructor(
     init {
         addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         isFillViewport = true
-        contentDescription = "Agility calculator"
+        contentDescription = "Native calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
     }
 
     fun bind(session: osrsNativeCalcSession) {
+        contentDescription = session.chromeTitle
         val paper = themeColor(R.attr.paper_color, ContextCompat.getColor(context, R.color.osrs_parchment_light))
         val onPaper = themeColor(com.google.android.material.R.attr.colorOnSurface, ContextCompat.getColor(context, R.color.osrs_text_dark))
         val secondary = ContextCompat.getColor(
@@ -48,9 +49,9 @@ class osrsNativeCalcView @JvmOverloads constructor(
         column.setBackgroundColor(paper)
         column.removeAllViews()
 
-        column.addView(text("Agility calculator", onPaper, 22f, true).apply {
+        column.addView(text(session.chromeTitle, onPaper, 22f, true).apply {
             id = View.generateViewId()
-            contentDescription = "Agility calculator"
+            contentDescription = session.chromeTitle
         })
         if (session.introCopy.isNotBlank()) {
             column.addView(text(session.introCopy, secondary, 15f, false).apply {

@@ -32,6 +32,9 @@ class osrsNativeCalcSession(
         private set
     var usesDarkTheme: Boolean = false
 
+    val chromeTitle: String
+        get() = osrsNativeCalcDefinition.chromeTitle(definition?.id ?: pageTitle)
+
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     private var submitToken = 0
@@ -170,7 +173,7 @@ class osrsNativeCalcSession(
             }
             definition = parsed.first
             values = parsed.first.inputs.associate { it.name to it.defaultValue }.toMutableMap()
-            introCopy = introCopy(parsed.second)
+            introCopy = introCopy(parsed.second, title)
             phase = Phase.NATIVE
             statusMessage = ""
             onChange()
@@ -290,10 +293,16 @@ class osrsNativeCalcSession(
     }
 
     companion object {
-        fun introCopy(wikitext: String): String {
-            val lines = mutableListOf(
-                "Enter your current Agility level or XP and a goal. Methods come from the live wiki calculator, not formulas shipped in the app."
-            )
+        fun introCopy(wikitext: String, title: String = ""): String {
+            val lead = when (title) {
+                "Calculator:Combat level" ->
+                    "Enter your combat stats, or look them up from hiscores. The wiki returns your combat level. Formulas stay on the wiki, not in the app."
+                "Calculator:Agility" ->
+                    "Enter your current Agility level or XP and a goal. Methods come from the live wiki calculator, not formulas shipped in the app."
+                else ->
+                    "Fill the fields below. Results come from the live wiki calculator, not formulas shipped in the app."
+            }
+            val lines = mutableListOf(lead)
             val start = wikitext.indexOf("===Assumptions===")
             if (start >= 0) {
                 val rest = wikitext.substring(start + "===Assumptions===".length)
