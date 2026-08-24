@@ -95,6 +95,7 @@ class PageHtmlBuilder(private val context: Context) {
                 // Global variable for table collapse preference that collapsible_content.js can read
                 window.OSRS_TABLE_COLLAPSED = $collapseTablesEnabled;
                 console.log('PageHtmlBuilder: Set global collapse preference to ' + window.OSRS_TABLE_COLLAPSED);
+                window.__osrsNarrowFirstViewportPaintedSet = ${Prefs.narrowFirstViewportPaintedSet};
             </script>
         """.trimIndent()
     }

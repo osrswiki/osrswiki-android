@@ -103,7 +103,79 @@ class osrsArticleLoadRegressionContractTest {
         assertTrue(readyCallback.contains("startLiveArticleAssetWarm"))
         assertFalse(readyCallback.contains("startFirstViewSlotWarm"))
         val firstViewport = asset("web/first_viewport_assets.js")
-        assertTrue(firstViewport.contains("notify(unique(slotUrls().concat(collectIntersecting())))"))
+        assertTrue(firstViewport.contains("notify(paintedUrls())"))
+        assertTrue(firstViewport.contains("function paintedUrls"))
+        assertTrue(firstViewport.contains("collectDefaultSwitcherPane"))
+        assertTrue(firstViewport.contains("chosenElementUrls"))
+        assertTrue(firstViewport.contains("currentSrc"))
+        assertTrue(firstViewport.contains("var urls = paintedUrls()"))
+        assertFalse(
+            "watchComplete must not union the full switcher pool as the default painted set",
+            Regex("""function watchComplete\(\) \{[\s\S]{0,200}?slotUrls\(\)\.concat\(collectIntersecting\(\)\)""")
+                .containsMatchIn(firstViewport)
+        )
+    }
+
+    @Test
+    fun slice1NarrowFirstViewportPaintedSetDefaultOnAndWired() {
+        val prefs = source("settings/Prefs.kt")
+        assertTrue(prefs.contains("var narrowFirstViewportPaintedSet: Boolean = true"))
+        val htmlBuilder = source("page/PageHtmlBuilder.kt")
+        assertTrue(htmlBuilder.contains("window.__osrsNarrowFirstViewportPaintedSet"))
+        assertTrue(htmlBuilder.contains("Prefs.narrowFirstViewportPaintedSet"))
+        val firstViewport = asset("web/first_viewport_assets.js")
+        assertTrue(firstViewport.contains("__osrsNarrowFirstViewportPaintedSet"))
+        assertTrue(firstViewport.contains("collectDefaultSwitcherPane"))
+        assertTrue(firstViewport.contains("chosenElementUrls"))
+        val switcher = asset("web/switch_infobox.js")
+        assertTrue(switcher.contains("scheduleSwitcherPoolDecode"))
+        assertTrue(switcher.contains("preloadSwitcherPool"))
+        assertTrue(switcher.contains("osrs-first-view-complete"))
+        assertTrue(switcher.contains("performSwitch(initialIndex)"))
+        val initBody = switcher.substringAfter("function initializePage()")
+            .substringBefore("function preloadSwitcherPool")
+        assertTrue(initBody.contains("scheduleSwitcherPoolDecode()"))
+        assertTrue(initBody.contains("performSwitch(initialIndex)"))
+        assertTrue(
+            initBody.indexOf("scheduleSwitcherPoolDecode()") <
+                initBody.indexOf("performSwitch(initialIndex)")
+        )
+        assertFalse(
+            "full-pool Image()+decode must not run inline before performSwitch",
+            initBody.contains("preloader.decode()")
+        )
+        val preloadBody = switcher.substringAfter("function scheduleSwitcherPoolDecode()")
+            .substringBefore("let pendingSwitcherScrollPin")
+        assertTrue(preloadBody.contains("osrs-first-view-complete"))
+        assertTrue(preloadBody.contains("preloadSwitcherPool()"))
+        val warmer = source("page/osrsFirstViewAssetWarmer.kt")
+        assertTrue(warmer.contains("extractFirstViewSlot"))
+        assertTrue(warmer.contains("narrowFirstViewportPaintedSet"))
+        val defaultOnBranch = warmer.substringAfter("narrowFirstViewportPaintedSet")
+            .substringBefore("} else {")
+        assertFalse(
+            "early warmer default-on path must not Jsoup-extract the full document",
+            defaultOnBranch.contains("ReadingListAssetUrlExtractor.extract(html")
+        )
+        val remainder = source("page/osrsLiveArticleAssetWarmer.kt")
+        assertTrue(
+            "remainder warmer still enumerates the full document after reveal",
+            remainder.contains("ReadingListAssetUrlExtractor.extract(html")
+        )
+        val fragment = source("page/PageFragment.kt")
+        val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")
+            .substringBefore("fun showFindInPage()")
+        assertTrue(readyCallback.contains("startLiveArticleAssetWarm"))
+        val webViewManager = source("page/PageWebViewManager.kt")
+        assertFalse(
+            Regex("""FirstViewportSettled""" + """[\s\S]{0,120}?notifyFirstViewPainted""")
+                .containsMatchIn(webViewManager)
+        )
+        val store = source("page/osrsPreparedArticleWebViewStore.kt")
+        assertTrue(store.contains("private const val maxEntries = 2"))
+        val builder = source("page/PageHtmlBuilder.kt")
+        assertTrue(builder.contains("styles/fixes.css"))
+        assertTrue(builder.contains("styles/gadget_calc.css"))
     }
 
     @Test

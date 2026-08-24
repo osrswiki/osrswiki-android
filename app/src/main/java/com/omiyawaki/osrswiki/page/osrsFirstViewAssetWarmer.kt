@@ -2,6 +2,7 @@ package com.omiyawaki.osrswiki.page
 
 import com.omiyawaki.osrswiki.savedpages.ReadingListAssetUrlExtractor
 import com.omiyawaki.osrswiki.savedpages.osrsArticleViewAssetStore
+import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.util.log.L
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -31,17 +32,23 @@ internal class osrsFirstViewAssetWarmer(
         if (html.isBlank()) {
             return
         }
-        val required = ReadingListAssetUrlExtractor.extract(html, baseUrl)
         val firstView = ReadingListAssetUrlExtractor.extractFirstViewSlot(html, baseUrl)
-        val plan = osrsLiveArticleAssetPlan.partition(required, firstView)
-        queue.load(plan.high, emptyList())
-        L.d("osrsFirstViewWarm: start count=${plan.high.size}")
+        val high = if (Prefs.narrowFirstViewportPaintedSet) {
+            // Slice 1: slot extract only. Do not Jsoup-extract the full document
+            // URL list on the early path; remainder warm still does that after reveal.
+            firstView.take(osrsLiveArticleAssetPlan.FIRST_VIEW_CAP)
+        } else {
+            val required = ReadingListAssetUrlExtractor.extract(html, baseUrl)
+            osrsLiveArticleAssetPlan.partition(required, firstView).high
+        }
+        queue.load(high, emptyList())
+        L.d("osrsFirstViewWarm: start count=${high.size}")
         coroutineScope {
             repeat(concurrency.coerceAtLeast(0)) {
                 launch { drain() }
             }
         }
-        L.d("osrsFirstViewWarm: done count=${plan.high.size}")
+        L.d("osrsFirstViewWarm: done count=${high.size}")
     }
 
     private suspend fun drain() {

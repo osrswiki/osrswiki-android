@@ -88,6 +88,16 @@ object Prefs {
     @Volatile
     var warmFirstViewportImagesEarly: Boolean = true
 
+    /**
+     * When true, FirstViewPainted waits only on intersecting media plus the
+     * authored-default switcher pane (not the full switcher pool / every srcset
+     * candidate), and the early first-view warmer extracts the slot only — not
+     * the full document URL list. Flip to false to roll back the post-Task-10
+     * painted-set cut. Reveal stays FirstViewPainted.
+     */
+    @Volatile
+    var narrowFirstViewportPaintedSet: Boolean = true
+
 
     /**
      * Gets the cache size limit in megabytes.

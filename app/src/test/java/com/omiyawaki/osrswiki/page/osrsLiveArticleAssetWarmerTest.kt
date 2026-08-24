@@ -211,9 +211,44 @@ class osrsLiveArticleAssetWarmerTest {
         assertTrue(shared.contains("domImageAlreadyDecoded"))
         assertTrue(shared.contains("naturalWidth"))
         assertTrue(shared.contains("new Image()"))
-        assertTrue(shared.contains("notify(unique(slotUrls().concat(collectIntersecting())))"))
+        assertTrue(shared.contains("notify(paintedUrls())"))
+        assertTrue(shared.contains("function paintedUrls"))
+        assertTrue(shared.contains("collectDefaultSwitcherPane"))
+        assertTrue(shared.contains("chosenElementUrls"))
+        assertTrue(shared.contains("var urls = paintedUrls()"))
         assertFalse(shared.contains("el.src ="))
         assertFalse(shared.contains("setAttribute('src'"))
+    }
+
+    @Test
+    fun firstViewWarmerDoesNotWalkFullDocumentOnEarlyPath() = runTest {
+        val fetched = CopyOnWriteArrayList<String>()
+        osrsFirstViewAssetWarmer(
+            fetch = { url -> fetched.add(url) },
+            concurrency = 1
+        ).warm(gloryHtml)
+
+        assertTrue(fetched.contains("https://oldschool.runescape.wiki/images/glory-default.png"))
+        assertTrue(fetched.contains("https://oldschool.runescape.wiki/images/glory-uncharged.png"))
+        assertFalse(fetched.contains(belowFoldUrl))
+        assertFalse(fetched.any { it.contains("row-") })
+
+        val remainder = CopyOnWriteArrayList<String>()
+        osrsLiveArticleAssetWarmer(
+            fetch = { url -> remainder.add(url) },
+            highConcurrency = 1,
+            lowConcurrency = 1
+        ).warm(gloryHtml)
+        assertTrue(remainder.contains(belowFoldUrl))
+
+        val warmerSource = repoFile(
+            "platforms/android/app/src/main/java/com/omiyawaki/osrswiki/page/osrsFirstViewAssetWarmer.kt"
+        ).readText()
+        assertTrue(warmerSource.contains("extractFirstViewSlot"))
+        val defaultOn = warmerSource.substringAfter("narrowFirstViewportPaintedSet")
+            .substringBefore("} else {")
+        assertFalse(defaultOn.contains("ReadingListAssetUrlExtractor.extract(html"))
+        assertTrue(defaultOn.contains("firstView.take"))
     }
 
     private fun repoFile(path: String): java.io.File {
