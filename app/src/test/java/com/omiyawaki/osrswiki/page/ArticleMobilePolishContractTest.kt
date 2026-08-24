@@ -55,6 +55,31 @@ class ArticleMobilePolishContractTest {
     }
 
     @Test
+    fun quoteTablesAreNotGenericNowrapScrollSurfaces() {
+        val script = asset("web/mobile_article_polish.js")
+        val interceptor = asset("web/horizontal_scroll_interceptor.js")
+        val css = asset("styles/fixes.css")
+
+        assertTrue(script.contains("isQuoteBoxTable"))
+        assertTrue(script.contains("td.quotation-mark, th.quotation-mark"))
+        assertTrue(
+            "Quote tables must share the prose-banner exemption so they are not wrapped as scroll surfaces.",
+            script.contains("isQuoteBoxTable(table)")
+        )
+        assertTrue(interceptor.contains("isQuoteBoxTable"))
+        assertTrue(interceptor.contains("td.quotation-mark, th.quotation-mark"))
+        assertTrue(css.contains("td.quotation-mark"))
+        assertTrue(css.contains("white-space: normal !important"))
+        assertFalse(
+            "Quote-box tables must not be forced to max-content inside local scroll surfaces.",
+            Regex(
+                """\.osrs-local-scroll-surface > table:not\(\.infobox\):not\(\.infobox-bonuses\) \{[\s\S]{0,240}width: max-content !important"""
+            ).containsMatchIn(css) &&
+                !css.contains(":not(:has(td.quotation-mark))")
+        )
+    }
+
+    @Test
     fun priceChartIsWidthBoundedAndTouchInteractive() {
         val chart = asset("web/ge_charts_init.js")
 

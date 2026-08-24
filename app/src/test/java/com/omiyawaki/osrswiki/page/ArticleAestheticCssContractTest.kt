@@ -271,6 +271,42 @@ class ArticleAestheticCssContractTest {
     }
 
     @Test
+    fun quoteBoxesWrapInsideContentWidthInLightAndDark() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        val components = assetFile("styles/components.css").readText()
+        val themes = assetFile("styles/themes.css").readText()
+        val base = assetFile("styles/base.css").readText()
+        val polish = assetFile("web/mobile_article_polish.js").readText()
+        val interceptor = assetFile("web/horizontal_scroll_interceptor.js").readText()
+
+        val blockquoteRule = components.substringAfter("blockquote {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertTrue(blockquoteRule.contains("max-width: 100%"))
+        assertTrue(blockquoteRule.contains("white-space: normal"))
+        assertTrue(blockquoteRule.contains("overflow-x: visib"))
+        assertTrue(fixes.contains("table:has(td.quotation-mark)"))
+        assertTrue(fixes.contains("td.quotation-mark"))
+        assertTrue(
+            "Quote text cells must wrap; quotation-mark glyphs may stay nowrap.",
+            fixes.contains("td.quotation-mark ~ td") ||
+                fixes.contains("td:not(.quotation-mark)")
+        )
+        assertTrue(fixes.contains("overflow-wrap: anywhere"))
+        assertTrue(fixes.contains("Wiki quote boxes"))
+        assertTrue(themes.contains("html.theme-osrs-dark"))
+        assertFalse(
+            "Dark theme must not restore nowrap on quotes.",
+            Regex("""html\.theme-osrs-dark[\s\S]{0,800}blockquote[\s\S]{0,200}nowrap""")
+                .containsMatchIn(themes)
+        )
+        assertTrue(base.contains("pre {") && base.substringAfter("pre {").substringBefore("}").contains("overflow-x: auto"))
+        assertTrue(polish.contains("isQuoteBoxTable"))
+        assertTrue(interceptor.contains("isQuoteBoxTable"))
+        assertTrue(polish.contains("td.quotation-mark, th.quotation-mark"))
+        assertTrue(interceptor.contains("td.quotation-mark, th.quotation-mark"))
+    }
+
+    @Test
     fun infoboxesAreNotHiddenUntilTransformsComplete() {
         val tables = assetFile("web/collapsible_tables.css").readText()
         assertFalse(tables.contains("body:not(.js-transforms-complete) .infobox"))

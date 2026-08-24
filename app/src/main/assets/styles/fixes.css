@@ -1123,10 +1123,10 @@ html body .osrs-calculator-panel .oo-ui-horizontalLayout.jsCalc-group {
     white-space: nowrap;
 }
 
-.osrs-local-scroll-surface > table:not(.infobox):not(.infobox-bonuses),
-.osrs-local-scroll-surface > .osrs-disclosure-body > table:not(.infobox):not(.infobox-bonuses),
-.collapsible-content.osrs-local-scroll-surface > table:not(.infobox):not(.infobox-bonuses),
-.collapsible-content.osrs-local-scroll-surface > .osrs-disclosure-body > table:not(.infobox):not(.infobox-bonuses) {
+.osrs-local-scroll-surface > table:not(.infobox):not(.infobox-bonuses):not(:has(td.quotation-mark)),
+.osrs-local-scroll-surface > .osrs-disclosure-body > table:not(.infobox):not(.infobox-bonuses):not(:has(td.quotation-mark)),
+.collapsible-content.osrs-local-scroll-surface > table:not(.infobox):not(.infobox-bonuses):not(:has(td.quotation-mark)),
+.collapsible-content.osrs-local-scroll-surface > .osrs-disclosure-body > table:not(.infobox):not(.infobox-bonuses):not(:has(td.quotation-mark)) {
     clear: none !important;
     float: none !important;
     margin-inline: 0 !important;
@@ -2421,11 +2421,50 @@ table.notebox th,
 .osrs-article-scroll-region:has(> table.ambox),
 .osrs-article-scroll-region:has(> table.mbox),
 .osrs-article-scroll-region:has(> table.notebox),
+.osrs-article-scroll-region:has(> table:has(td.quotation-mark)),
 .osrs-local-scroll-surface:has(> table.messagebox),
 .osrs-local-scroll-surface:has(> table.ambox),
 .osrs-local-scroll-surface:has(> table.mbox),
-.osrs-local-scroll-surface:has(> table.notebox) {
+.osrs-local-scroll-surface:has(> table.notebox),
+.osrs-local-scroll-surface:has(> table:has(td.quotation-mark)) {
     overflow-x: visible !important;
+}
+
+/* Wiki quote boxes (Cquote2 tables with td.quotation-mark, HTML blockquote)
+   wrap inside the article column. They are prose, not data tables. */
+blockquote {
+    margin-inline: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    overflow-x: visible !important;
+}
+
+table:has(td.quotation-mark) {
+    table-layout: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    overflow-x: visible !important;
+}
+
+table:has(td.quotation-mark) td:not(.quotation-mark),
+table:has(td.quotation-mark) th:not(.quotation-mark) {
+    overflow-wrap: anywhere;
+    white-space: normal !important;
+    word-break: break-word;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100%;
+}
+
+td.quotation-mark,
+th.quotation-mark {
+    width: auto !important;
+    white-space: nowrap !important;
+    box-sizing: border-box;
 }
 
 /* osrs-bonuses-overlap-guard: keep section labels and slot text from
