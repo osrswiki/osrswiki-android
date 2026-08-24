@@ -8,16 +8,18 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import android.webkit.WebView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
-import com.omiyawaki.osrswiki.R
-import com.omiyawaki.osrswiki.ui.common.ThemedAlertDialogs
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import com.google.android.material.textfield.TextInputLayout
+import com.omiyawaki.osrswiki.R
 
 class osrsNativeCalcView @JvmOverloads constructor(
     context: Context,
@@ -29,6 +31,7 @@ class osrsNativeCalcView @JvmOverloads constructor(
         setPadding(pad, pad, pad, dp(96))
     }
     private var resultWeb: WebView? = null
+    private val fieldEditors = mutableMapOf<String, EditText>()
 
     init {
         addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
@@ -48,13 +51,25 @@ class osrsNativeCalcView @JvmOverloads constructor(
         setBackgroundColor(paper)
         column.setBackgroundColor(paper)
         column.removeAllViews()
+        fieldEditors.clear()
 
-        column.addView(text(session.chromeTitle, onPaper, 22f, true).apply {
+        column.addView(text(session.chromeTitle, onPaper, 20f, true).apply {
             id = View.generateViewId()
+            setTextAppearance(R.style.AppTextAppearance_TitleBold)
+            setTextColor(onPaper)
             contentDescription = session.chromeTitle
         })
+        bannerText(session.hiscoresError, session.formError)?.let { message ->
+            column.addView(text(message, ContextCompat.getColor(context, R.color.color_error), 14f, false).apply {
+                setPadding(0, dp(12), 0, dp(8))
+                contentDescription = message
+                importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            })
+        }
         if (session.introCopy.isNotBlank()) {
             column.addView(text(session.introCopy, secondary, 15f, false).apply {
+                setTextAppearance(R.style.AppTextAppearance_Body)
+                setTextColor(secondary)
                 setPadding(0, dp(8), 0, dp(8))
             })
         }
@@ -64,12 +79,10 @@ class osrsNativeCalcView @JvmOverloads constructor(
             })
             column.addView(control(session, input, onPaper))
         }
-        session.hiscoresError?.takeIf { it.isNotBlank() }?.let {
-            column.addView(text(it, ContextCompat.getColor(context, R.color.color_error), 13f, false))
-        }
         val submit = MaterialButton(context).apply {
             text = "Submit"
             setOnClickListener {
+                commitFocusedFields(session)
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
                     as? android.view.inputmethod.InputMethodManager
                 imm?.hideSoftInputFromWindow(windowToken, 0)
@@ -102,6 +115,9 @@ class osrsNativeCalcView @JvmOverloads constructor(
                 null
             )
         }
+        if (bannerText(session.hiscoresError, session.formError) != null) {
+            post { scrollTo(0, 0) }
+        }
     }
 
     private fun control(
@@ -119,7 +135,15 @@ class osrsNativeCalcView @JvmOverloads constructor(
                 if (input.type == osrsNativeCalcDefinition.ParamType.HS) {
                     row.addView(MaterialButton(context).apply {
                         text = "Lookup"
-                        setOnClickListener { session.lookupHiscores() }
+                        contentDescription = "Lookup hiscores"
+                        setOnClickListener {
+                            session.setValue(input.name, field.text.toString(), submit = false)
+                            field.clearFocus()
+                            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                                as? android.view.inputmethod.InputMethodManager
+                            imm?.hideSoftInputFromWindow(windowToken, 0)
+                            session.lookupHiscores()
+                        }
                     }, linear())
                 }
                 row
@@ -174,20 +198,39 @@ class osrsNativeCalcView @JvmOverloads constructor(
         input: osrsNativeCalcDefinition.Input,
         onPaper: Int
     ): View {
-        return MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            text = session.values[input.name] ?: input.defaultValue
-            setTextColor(onPaper)
-            setOnClickListener {
-                val options = input.options.toTypedArray()
-                ThemedAlertDialogs.show(
-                    ThemedAlertDialogs.builder(context)
-                        .setTitle(input.label)
-                        .setItems(options) { _, which ->
-                            session.setValue(input.name, options[which])
-                        }
+        val layout = TextInputLayout(context)
+        val current = session.values[input.name] ?: input.defaultValue
+        val dropdown = MaterialAutoCompleteTextView(context).apply {
+            setAdapter(
+                ArrayAdapter(
+                    context,
+                    android.R.layout.simple_list_item_1,
+                    input.options
                 )
+            )
+            setText(current, false)
+            setTextColor(onPaper)
+            inputType = InputType.TYPE_NULL
+            keyListener = null
+            isFocusable = false
+            isCursorVisible = false
+            threshold = 1
+            contentDescription = "${input.label} menu"
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            setOnClickListener { showDropDown() }
+            setOnItemClickListener { _, _, position, _ ->
+                val selected = input.options.getOrNull(position) ?: return@setOnItemClickListener
+                session.setValue(input.name, selected)
             }
         }
+        layout.addView(
+            dropdown,
+            LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        )
+        layout.endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
+        layout.contentDescription = "${input.label} menu"
+        layout.setEndIconOnClickListener { dropdown.showDropDown() }
+        return layout
     }
 
     private fun chips(session: osrsNativeCalcSession, input: osrsNativeCalcDefinition.Input): View {
@@ -218,9 +261,20 @@ class osrsNativeCalcView @JvmOverloads constructor(
             setTextColor(onPaper)
             setHintTextColor(onPaper)
             setOnFocusChangeListener { _, hasFocus ->
-                if (!hasFocus) session.setValue(input.name, text.toString())
+                if (!hasFocus) session.setValue(input.name, text.toString(), submit = input.type != osrsNativeCalcDefinition.ParamType.HS && input.type != osrsNativeCalcDefinition.ParamType.RSN && input.type != osrsNativeCalcDefinition.ParamType.STRING)
             }
+            fieldEditors[input.name] = this
         }
+    }
+
+    private fun commitFocusedFields(session: osrsNativeCalcSession) {
+        fieldEditors.forEach { (name, editor) ->
+            session.setValue(name, editor.text.toString(), submit = false)
+        }
+    }
+
+    private fun bannerText(hiscores: String?, form: String?): String? {
+        return hiscores?.takeIf { it.isNotBlank() } ?: form?.takeIf { it.isNotBlank() }
     }
 
     private fun text(value: String, color: Int, size: Float, bold: Boolean): TextView {

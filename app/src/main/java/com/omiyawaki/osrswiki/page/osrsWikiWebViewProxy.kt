@@ -82,9 +82,17 @@ object osrsWikiWebViewProxy {
             }
         }
         val fetched = fetch(wikiUrl, method, encoded.headers, encoded.body, context)
-            ?: throw IllegalStateException("calculator proxy returned no response")
+        if (fetched == null) {
+            result.put("ok", false)
+            result.put("error", "calculator proxy returned no response")
+            result.put("body", "")
+            return result
+        }
         if (wikiUrl.contains("/cors/") && fetched.body.isEmpty()) {
-            throw IllegalStateException("empty-hiscores-response")
+            result.put("ok", false)
+            result.put("error", "empty-hiscores-response")
+            result.put("body", "")
+            return result
         }
         if (cacheable && fetched.body.isNotEmpty()) {
             osrsCalculatorParseCache.write(context, method, wikiUrl, cacheBody, fetched.body)

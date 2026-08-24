@@ -238,4 +238,76 @@ class osrsNativeCalcDefinitionTest {
         assertFalse(copy.contains("Agility"))
         assertFalse(osrsNativeCalcDefinition.parseResultIsError("<p>Your combat level is 3, balanced.</p>"))
     }
+
+    @Test
+    fun hiscoresUnavailableMessageMatchesWikiGadget() {
+        assertEquals(
+            "The player \"zzzznotaplayer\" does not exist, is banned or unranked, or we couldn't fetch your hiscores. Please enter the data manually.",
+            osrsNativeCalcDefinition.hiscoresUnavailableMessage("zzzznotaplayer")
+        )
+        assertEquals(
+            osrsNativeCalcDefinition.hiscoresUnavailableMessage("Lynx Titan"),
+            osrsNativeCalcDefinition.hiscoresUnavailableMessage("  Lynx Titan  ")
+        )
+    }
+
+    @Test
+    fun nameFieldEditsDoNotAutosubmit() {
+        assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.HS))
+        assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.RSN))
+        assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.STRING))
+        assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.SELECT))
+        assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.INT))
+        assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.TOGGLE_SWITCH))
+    }
+
+    @Test
+    fun applyHiscoresMapsAgilityLevelAndXp() {
+        val lines = MutableList(24) { "-1,-1,-1" }
+        lines[17] = "100,60,273742"
+        val applied = osrsNativeCalcDefinition.applyHiscores(
+            lines.joinToString("\n"),
+            "XPInput,17,2;lvlInput,17,1"
+        )
+        assertEquals("60", applied?.get("lvlInput"))
+        assertEquals("273742", applied?.get("XPInput"))
+    }
+
+    @Test
+    fun applyHiscoresRejectsMissingPlayerPayloads() {
+        assertEquals(null, osrsNativeCalcDefinition.applyHiscores("", "lvlInput,17,1"))
+        assertEquals(null, osrsNativeCalcDefinition.applyHiscores("404", "lvlInput,17,1"))
+        assertEquals(null, osrsNativeCalcDefinition.applyHiscores("<html>not found</html>", "lvlInput,17,1"))
+        val lookup = osrsNativeCalcDefinition.interpretHiscoresLookup(
+            false,
+            "",
+            "zzzznotaplayer",
+            "XPInput,17,2;lvlInput,17,1"
+        )
+        assertTrue(lookup is osrsNativeCalcDefinition.HiscoresLookup.Failed)
+        val message = (lookup as osrsNativeCalcDefinition.HiscoresLookup.Failed).message
+        assertTrue(message.contains("zzzznotaplayer"))
+        assertTrue(message.contains("does not exist"))
+    }
+
+    @Test
+    fun parseFailureStaysAsNativeBannerCopy() {
+        val message = osrsNativeCalcDefinition.parseFailureMessage(
+            "<p class=\"scribunto-error\">Lua error in Module:Skill_calc</p>"
+        )
+        assertTrue(message.isNotBlank())
+        assertFalse(message.lowercase().contains("scribunto"))
+    }
+
+    @Test
+    fun nativeCalcSelectUsesExposedDropdownMenu() {
+        val candidates = listOf(
+            java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt"),
+            java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
+        )
+        val source = candidates.first { it.exists() }.readText()
+        assertTrue(source.contains("END_ICON_DROPDOWN_MENU"))
+        assertTrue(source.contains("MaterialAutoCompleteTextView"))
+        assertTrue(source.contains("menu"))
+    }
 }

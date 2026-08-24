@@ -28,6 +28,8 @@ class osrsNativeCalcSession(
         private set
     var hiscoresError: String? = null
         private set
+    var formError: String? = null
+        private set
     var fallbackReason: osrsNativeCalcDefinition.FallbackReason? = null
         private set
     var usesDarkTheme: Boolean = false
@@ -61,10 +63,15 @@ class osrsNativeCalcSession(
         worker.execute { loadDefinition() }
     }
 
-    fun setValue(name: String, value: String) {
+    fun setValue(name: String, value: String, submit: Boolean? = null) {
         values[name] = value
-        onChange()
-        scheduleSubmit()
+        val type = definition?.inputs?.firstOrNull { it.name == name }?.type
+            ?: osrsNativeCalcDefinition.ParamType.STRING
+        val shouldSubmit = submit ?: osrsNativeCalcDefinition.shouldAutosubmitOnEdit(type)
+        if (shouldSubmit) {
+            onChange()
+            scheduleSubmit()
+        }
     }
 
     fun step(name: String, delta: Int) {
@@ -73,7 +80,7 @@ class osrsNativeCalcSession(
         var next = current + delta
         input?.minValue?.let { next = maxOf(it, next) }
         input?.maxValue?.let { next = minOf(it, next) }
-        setValue(name, next.toString())
+        setValue(name, next.toString(), submit = true)
     }
 
     fun visibleInputs(): List<osrsNativeCalcDefinition.Input> {
@@ -111,29 +118,42 @@ class osrsNativeCalcSession(
             return
         }
         hiscoresError = null
+        formError = null
         statusMessage = "Looking up hiscores…"
         onChange()
         worker.execute {
             val player = rawName.replace(" ", "_")
-            val result = osrsWikiWebViewProxy.request(
-                context,
-                "GET",
-                "/cors/m=hiscore_oldschool/index_lite.ws?player=$player",
-                null
-            )
+            val encoded = java.net.URLEncoder.encode(player, "UTF-8").replace("+", "%20")
+            val result = try {
+                osrsWikiWebViewProxy.request(
+                    context,
+                    "GET",
+                    "/cors/m=hiscore_oldschool/index_lite.ws?player=$encoded",
+                    null
+                )
+            } catch (error: Exception) {
+                org.json.JSONObject()
+                    .put("ok", false)
+                    .put("error", error.message ?: "hiscores-lookup-failed")
+                    .put("body", "")
+            }
             val ok = result.optBoolean("ok")
             val body = result.optString("body")
             main.post {
-                if (!ok || body.isBlank()) {
-                    hiscoresError = "Could not fetch hiscores for $rawName."
-                    statusMessage = ""
-                    onChange()
-                    return@post
+                when (val lookup = osrsNativeCalcDefinition.interpretHiscoresLookup(ok, body, rawName, hs.range)) {
+                    is osrsNativeCalcDefinition.HiscoresLookup.Failed -> {
+                        hiscoresError = lookup.message
+                        statusMessage = ""
+                        onChange()
+                    }
+                    is osrsNativeCalcDefinition.HiscoresLookup.Applied -> {
+                        lookup.values.forEach { (key, value) -> values[key] = value }
+                        hiscoresError = null
+                        statusMessage = ""
+                        onChange()
+                        scheduleSubmit()
+                    }
                 }
-                applyHiscores(body, hs.range)
-                statusMessage = ""
-                onChange()
-                scheduleSubmit()
             }
         }
     }
@@ -202,7 +222,7 @@ class osrsNativeCalcSession(
             return
         }
         main.post {
-            if (phase != Phase.FALLBACK) phase = Phase.SUBMITTING
+            if (phase == Phase.LOADING) phase = Phase.SUBMITTING
             statusMessage = "Calculating…"
             onChange()
         }
@@ -223,31 +243,25 @@ class osrsNativeCalcSession(
         val html = parseHtml(result)
         main.post {
             if (osrsNativeCalcDefinition.parseResultIsError(html)) {
+                if (phase == Phase.NATIVE || phase == Phase.SUBMITTING) {
+                    formError = osrsNativeCalcDefinition.parseFailureMessage(html)
+                    phase = Phase.NATIVE
+                    statusMessage = ""
+                    onChange()
+                    return@post
+                }
                 fallbackReason = osrsNativeCalcDefinition.FallbackReason.PARSE_ERROR
                 phase = Phase.FALLBACK
                 statusMessage = ""
                 onChange()
                 return@post
             }
+            formError = null
             resultHtml = html
             resultDocument = wrapResultHtml(html, usesDarkTheme)
             phase = Phase.NATIVE
             statusMessage = ""
             onChange()
-        }
-    }
-
-    private fun applyHiscores(body: String, mapping: String) {
-        val lines = body.split('\n')
-        for (piece in mapping.split(';')) {
-            val parts = piece.split(',').map { it.trim() }
-            if (parts.size < 3) continue
-            val skill = parts[1].toIntOrNull() ?: continue
-            val field = parts[2].toIntOrNull() ?: continue
-            if (skill !in lines.indices) continue
-            val cols = lines[skill].split(',')
-            if (field !in cols.indices) continue
-            values[parts[0]] = cols[field]
         }
     }
 

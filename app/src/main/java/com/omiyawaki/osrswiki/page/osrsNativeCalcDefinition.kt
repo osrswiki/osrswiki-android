@@ -252,6 +252,67 @@ object osrsNativeCalcDefinition {
         return "scribunto-error" in lowered || "lua error" in lowered
     }
 
+    fun hiscoresUnavailableMessage(player: String): String {
+        val name = player.trim()
+        return "The player \"$name\" does not exist, is banned or unranked, or we couldn't fetch your hiscores. Please enter the data manually."
+    }
+
+    fun parseFailureMessage(html: String?): String {
+        val body = html?.trim().orEmpty()
+        val match = Regex("Lua error[^<]*", RegexOption.IGNORE_CASE).find(body)?.value?.trim()
+        if (!match.isNullOrEmpty()) return match
+        return "The wiki could not calculate a result. Please check your inputs and try again."
+    }
+
+    fun shouldAutosubmitOnEdit(type: ParamType): Boolean {
+        return when (type) {
+            ParamType.HS, ParamType.RSN, ParamType.STRING -> false
+            else -> true
+        }
+    }
+
+    sealed class HiscoresLookup {
+        data class Applied(val values: Map<String, String>) : HiscoresLookup()
+        data class Failed(val message: String) : HiscoresLookup()
+    }
+
+    fun interpretHiscoresLookup(
+        ok: Boolean,
+        body: String,
+        player: String,
+        mapping: String
+    ): HiscoresLookup {
+        val applied = if (ok) applyHiscores(body, mapping) else null
+        return if (applied.isNullOrEmpty()) {
+            HiscoresLookup.Failed(hiscoresUnavailableMessage(player))
+        } else {
+            HiscoresLookup.Applied(applied)
+        }
+    }
+
+    fun applyHiscores(body: String, mapping: String): Map<String, String>? {
+        val trimmed = body.trim()
+        if (trimmed.isEmpty()) return null
+        val lowered = trimmed.lowercase()
+        if ("<html" in lowered || "<!doctype" in lowered) return null
+        val lines = trimmed.split('\n')
+        if (lines.size <= 1) return null
+        val updates = linkedMapOf<String, String>()
+        for (piece in mapping.split(';')) {
+            val parts = piece.split(',').map { it.trim() }
+            if (parts.size < 3) continue
+            val skill = parts[1].toIntOrNull() ?: continue
+            val field = parts[2].toIntOrNull() ?: continue
+            if (skill !in lines.indices) continue
+            val cols = lines[skill].split(',')
+            if (field !in cols.indices) continue
+            val value = cols[field].trim()
+            if (value.isEmpty()) continue
+            updates[parts[0]] = value
+        }
+        return updates.takeIf { it.isNotEmpty() }
+    }
+
     fun fallbackReason(
         title: String? = null,
         definition: Model? = null,

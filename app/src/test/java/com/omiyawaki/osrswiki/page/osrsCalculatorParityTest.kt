@@ -291,6 +291,19 @@ class osrsCalculatorParityTest {
         assertTrue(proxied.getString("body").contains("Your combat level is 3"))
     }
 
+    @Test
+    fun hiscoresLookupFailureReturnsOkFalseInsteadOfThrowing() {
+        val context = RuntimeEnvironment.getApplication()
+        val result = osrsWikiWebViewProxy.request(
+            context,
+            "GET",
+            "/cors/m=hiscore_oldschool/index_lite.ws?player=zzzznotaplayer",
+            null
+        )
+        assertFalse(result.optBoolean("ok"))
+        assertTrue(result.optString("error").isNotBlank())
+    }
+
     private fun catalogJson(): String {
         val candidates = listOf(
             File("../../../shared/manifests/osrs-wiki-calculators.json"),
