@@ -147,9 +147,10 @@ class PageHtmlBuilder(private val context: Context) {
             // Preserved title logic from working version
             val cleanedTitle = StringUtil.extractMainTitle(title)
             val documentTitle = if (cleanedTitle.isBlank()) "OSRS Wiki" else cleanedTitle
-            // Wave2c residual: short Calculator:Token titles (Sailing) are one CSS
-            // word and mid-wrap under overflow-wrap:break-word. Prefer a break
-            // after the namespace colon; Genie-style spaced titles still wrap on spaces.
+            // Wave2c/wave4 residual: Calculator:Sailing is one CSS word and mid-wraps
+            // under overflow-wrap:break-word. Wave6: Construction/Materials does the
+            // same after the slash. Prefer breaks after the namespace colon and
+            // subpage slash; Genie-style spaced titles still wrap on spaces.
             val titleHeaderHtml = "<h1 class=\"page-header\">${softWrapNamespaceTitle(documentTitle)}</h1>"
             
             // Clean any existing page-header titles from bodyContent to prevent duplication
@@ -335,16 +336,23 @@ class PageHtmlBuilder(private val context: Context) {
     }
     
     /**
-     * Insert <wbr> after wiki namespace colons when the following char is
-     * non-space so long unbroken tokens (Calculator:Sailing) wrap after the
-     * colon instead of mid-word. Safe for plain extractMainTitle output.
+     * Insert <wbr> after wiki namespace colons and subpage slashes when the
+     * following char is non-space so long unbroken tokens wrap at those
+     * separators instead of mid-word (Calculator:Sailing,
+     * Calculator:Construction/Materials). Safe for plain extractMainTitle output.
      */
     private fun softWrapNamespaceTitle(title: String): String {
-        return NAMESPACE_COLON_WBR.replace(title, "$1<wbr>")
+        return SUBPAGE_SLASH_WBR.replace(
+            NAMESPACE_COLON_WBR.replace(title, "$1<wbr>"),
+            "$1<wbr>"
+        )
     }
 
     private val NAMESPACE_COLON_WBR =
         Regex("""\b([A-Za-z][A-Za-z ]{0,40}:)(?=\S)""")
+
+    private val SUBPAGE_SLASH_WBR =
+        Regex("""(/)(?=[A-Za-z])""")
 
     /**
      * Removes any existing page-header titles from HTML content to prevent duplication.

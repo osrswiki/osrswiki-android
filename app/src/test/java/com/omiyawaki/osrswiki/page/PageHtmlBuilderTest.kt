@@ -215,6 +215,23 @@ class PageHtmlBuilderTest {
     }
 
     @Test
+    fun calculatorSubpageTitleInsertsWbrAfterColonAndSlash() {
+        val html = builder.buildFullHtmlDocument(
+            title = "Calculator:Construction/Materials",
+            bodyContent = "<p>This is a static calculator.</p>",
+            theme = Theme.OSRS_LIGHT
+        )
+        assertTrue(html.contains("Calculator:<wbr>Construction/<wbr>Materials"))
+        val sailing = builder.buildFullHtmlDocument(
+            title = "Calculator:Sailing",
+            bodyContent = "<p>Sailing.</p>",
+            theme = Theme.OSRS_LIGHT
+        )
+        assertTrue(sailing.contains("Calculator:<wbr>Sailing"))
+        assertFalse(sailing.contains("Sailing/<wbr>"))
+    }
+
+    @Test
     fun calculatorPagesLoadCalcCoreAndCalculatorNamespace() {
         val html = builder.buildFullHtmlDocument(
             title = "Calculator:Combat level",

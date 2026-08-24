@@ -72,11 +72,12 @@ object Prefs {
     /**
      * When true, live/saved HTML uses one minified critical bundle
      * (`styles/critical-article.min.css`) instead of ten separate critical sheets.
-     * Default false: Task 7 per-file inline path remains production until measured.
-     * Flip after Task 9 warm p50 accepts the bundle (Phase B Task 7b).
+     * Default true: production uses the Task 7b bundle on the Task 7 live inline path
+     * (`inlineLiveFirstPaintCss`). Flip to false for one-commit rollback to per-file
+     * critical sheets. Body reveal stays FirstViewPainted; settled is stopwatch-only.
      */
     @Volatile
-    var useCriticalArticleBundle: Boolean = false
+    var useCriticalArticleBundle: Boolean = true
 
 
     /**

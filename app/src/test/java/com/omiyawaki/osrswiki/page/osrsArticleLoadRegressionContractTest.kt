@@ -81,9 +81,9 @@ class osrsArticleLoadRegressionContractTest {
     }
 
     @Test
-    fun criticalArticleBundleFlagDefaultsOffAndBuilderWiresIt() {
+    fun criticalArticleBundleFlagDefaultsOnAndBuilderWiresIt() {
         val prefs = source("settings/Prefs.kt")
-        assertTrue(prefs.contains("var useCriticalArticleBundle: Boolean = false"))
+        assertTrue(prefs.contains("var useCriticalArticleBundle: Boolean = true"))
         val builder = source("page/PageHtmlBuilder.kt")
         assertTrue(builder.contains("Prefs.useCriticalArticleBundle"))
         assertTrue(builder.contains("CRITICAL_ARTICLE_BUNDLE_ASSET = \"styles/critical-article.min.css\""))
