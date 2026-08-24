@@ -15,6 +15,7 @@ import com.omiyawaki.osrswiki.network.SearchResult as NetworkSearchResult
 import com.omiyawaki.osrswiki.util.StringUtil
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -30,8 +31,18 @@ class SearchViewModel(
     )
     val currentQuery: StateFlow<String?> = _currentQuery.asStateFlow()
 
+    internal val previewStore: osrsSearchPreviewStore
+        get() = searchRepository.previewStore
+
     val onlineSearchResultsFlow: Flow<PagingData<CleanedSearchResultItem>> = _currentQuery
-        .debounce(80L)
+        .transformLatest { query ->
+            val trimmed = query?.trim().orEmpty()
+            val browseEmpty = trimmed.isEmpty() && scope.emptyQueryBrowsesNewest
+            if (!browseEmpty) {
+                delay(80L)
+            }
+            emit(query)
+        }
         .distinctUntilChanged()
         .flatMapLatest { query ->
             val trimmed = query?.trim().orEmpty()

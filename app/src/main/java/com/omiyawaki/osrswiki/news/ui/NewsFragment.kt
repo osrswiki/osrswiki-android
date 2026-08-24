@@ -28,6 +28,7 @@ import com.omiyawaki.osrswiki.page.preemptive.VisibleArticlePrewarmBinder
 import com.omiyawaki.osrswiki.random.RandomPageRepository
 import com.omiyawaki.osrswiki.search.SearchActivity
 import com.omiyawaki.osrswiki.search.osrsSearchScope
+import com.omiyawaki.osrswiki.search.osrsUpdatesListTiming
 import com.omiyawaki.osrswiki.theme.ThemeAware
 import com.omiyawaki.osrswiki.util.SpeechRecognitionManager
 import com.omiyawaki.osrswiki.util.createVoiceRecognitionManager
@@ -272,6 +273,7 @@ class NewsFragment : Fragment(), ThemeAware {
                 handleLinkClick(url)
             },
             onViewMoreUpdatesClicked = {
+                osrsUpdatesListTiming.markOpen()
                 startActivity(
                     SearchActivity.newIntent(
                         requireContext(),

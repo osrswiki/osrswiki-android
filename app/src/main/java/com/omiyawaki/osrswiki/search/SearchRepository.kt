@@ -13,7 +13,9 @@ import com.omiyawaki.osrswiki.network.WikiApiService
 import com.omiyawaki.osrswiki.search.db.RecentSearch
 import com.omiyawaki.osrswiki.search.db.RecentSearchDao
 import com.omiyawaki.osrswiki.util.StringUtil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -32,6 +34,8 @@ class SearchRepository(
     private val offlinePageFtsDao: OfflinePageFtsDao,
     private val recentSearchDao: RecentSearchDao
 ) {
+    internal val previewStore = osrsSearchPreviewStore()
+    private val enrichScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // --- Recent Searches ---
 
@@ -88,7 +92,9 @@ class SearchRepository(
                         apiService = apiService,
                         query = query,
                         scope = scope,
-                        articleMetaDao = articleMetaDao
+                        articleMetaDao = articleMetaDao,
+                        previewStore = previewStore,
+                        enrichScope = enrichScope
                     )
                 } else {
                     SearchPagingSource(

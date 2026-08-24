@@ -41,6 +41,7 @@ class osrsArticleHostAndUpdatesSearchContractTest {
         val news = source("news/ui/NewsFragment.kt")
         val adapter = source("news/ui/NewsFeedAdapter.kt")
         val layout = resource("layout/item_news_card_updates.xml")
+        val viewMoreLayout = resource("layout/item_news_updates_view_more.xml")
         val strings = resource("values/strings.xml")
         val activity = source("search/SearchActivity.kt")
         val fragment = source("search/SearchFragment.kt")
@@ -49,12 +50,23 @@ class osrsArticleHostAndUpdatesSearchContractTest {
         val scoped = source("search/osrsScopedSearchPagingSource.kt")
         val scope = source("search/osrsSearchScope.kt")
 
-        assertTrue(layout.contains("@+id/home_updates_view_more"))
-        assertTrue(layout.contains("@string/home_updates_view_more"))
-        assertTrue(layout.contains("?attr/linkColor"))
+        assertTrue(
+            layout.contains("@+id/home_updates_view_more") ||
+                viewMoreLayout.contains("@+id/home_updates_view_more")
+        )
+        assertTrue(
+            layout.contains("@string/home_updates_view_more") ||
+                viewMoreLayout.contains("@string/home_updates_view_more")
+        )
+        assertTrue(layout.contains("?attr/linkColor") || viewMoreLayout.contains("?attr/linkColor"))
         assertTrue(fragment.contains("emptyQueryBrowsesNewest"))
         assertTrue(activity.contains("emptyQueryBrowsesNewest"))
         assertTrue(scoped.contains("enrichMissingPreviews"))
+        assertTrue(scoped.contains("osrsSearchPreviewEnricher.firstPaint"))
+        assertTrue(scoped.contains("previewStore.merge"))
+        assertTrue(source("search/osrsUpdatesListTiming.kt").contains("LOAD-MINMAX first_updates_list_visible"))
+        assertTrue(news.contains("osrsUpdatesListTiming.markOpen()"))
+        assertTrue(source("search/SearchResultsFragment.kt").contains("markFirstVisible"))
         assertTrue(strings.contains("home_updates_view_more\">View more<"))
         assertTrue(strings.contains("search_updates_hint\">Search updates<"))
         assertTrue(adapter.contains("onViewMoreUpdatesClicked"))

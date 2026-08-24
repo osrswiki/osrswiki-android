@@ -20,7 +20,8 @@ import com.omiyawaki.osrswiki.util.StringUtil
 import com.omiyawaki.osrswiki.util.applyAlegreyaHeadline
 
 class SearchAdapter(
-    private val onItemClickListener: OnItemClickListener
+    private val onItemClickListener: OnItemClickListener,
+    var previewStore: osrsSearchPreviewStore? = null
 ) : PagingDataAdapter<CleanedSearchResultItem, SearchAdapter.SearchResultViewHolder>(
     SEARCH_RESULT_COMPARATOR
 ) {
@@ -44,7 +45,9 @@ class SearchAdapter(
     override fun onBindViewHolder(holder: SearchResultViewHolder, position: Int) {
         val item = getItem(position)
         if (item != null) {
-            holder.bind(item, currentSearchQuery)
+            val override = item.id.toIntOrNull()?.let { previewStore?.snippetFor(it) }
+            val bound = if (!override.isNullOrBlank()) item.copy(snippet = override) else item
+            holder.bind(bound, currentSearchQuery)
         }
     }
 

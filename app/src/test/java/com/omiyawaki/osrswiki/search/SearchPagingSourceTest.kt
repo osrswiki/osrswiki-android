@@ -13,8 +13,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class SearchPagingSourceTest {
@@ -84,7 +89,8 @@ class SearchPagingSourceTest {
             apiService = apiService,
             query = "",
             scope = osrsSearchScope.UPDATES,
-            articleMetaDao = FakeArticleMetaDao()
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
         )
         val result = source.load(
             PagingSource.LoadParams.Refresh(
@@ -121,7 +127,8 @@ class SearchPagingSourceTest {
             apiService = apiService,
             query = "varlamore",
             scope = osrsSearchScope.UPDATES,
-            articleMetaDao = FakeArticleMetaDao()
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
         )
         val result = source.load(
             PagingSource.LoadParams.Refresh(
@@ -164,7 +171,8 @@ class SearchPagingSourceTest {
             apiService = apiService,
             query = "sailing",
             scope = osrsSearchScope.UPDATES,
-            articleMetaDao = FakeArticleMetaDao()
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
         )
         val result = source.load(
             PagingSource.LoadParams.Refresh(
@@ -198,7 +206,7 @@ class SearchPagingSourceTest {
                 )
             )
         )
-        whenever(apiService.getPageExtract("11|13")).thenReturn(
+        whenever(apiService.getPageExtract(any())).thenReturn(
             com.omiyawaki.osrswiki.network.model.FallbackApiResponse(
                 query = com.omiyawaki.osrswiki.network.model.FallbackQueryResult(
                     pages = listOf(
@@ -234,11 +242,14 @@ class SearchPagingSourceTest {
                 )
             )
         )
+        val store = osrsSearchPreviewStore()
         val source = osrsScopedSearchPagingSource(
             apiService = apiService,
             query = "",
             scope = osrsSearchScope.UPDATES,
-            articleMetaDao = FakeArticleMetaDao()
+            articleMetaDao = FakeArticleMetaDao(),
+            previewStore = store,
+            enrichScope = backgroundScope
         )
         val result = source.load(
             PagingSource.LoadParams.Refresh(
@@ -248,9 +259,57 @@ class SearchPagingSourceTest {
             )
         )
         val page = result as PagingSource.LoadResult.Page
-        assertEquals("Diango is giving out hats in Draynor.", page.data.first { it.pageid == 11 }.snippet)
+        assertEquals(
+            listOf("Update:Blank intro", "Update:Has snippet", "Update:Chrome snippet"),
+            page.data.map { it.title }
+        )
+        assertNull(page.data.first { it.pageid == 11 }.snippet)
         assertEquals("already", page.data.first { it.pageid == 12 }.snippet)
-        assertEquals("Regional servers are coming to South Africa.", page.data.first { it.pageid == 13 }.snippet)
+        verify(apiService, never()).getPageExtract(any())
+        verify(apiService, never()).getArticleParseDataByPageId(any())
+
+        val enriched = osrsSearchPreviewEnricher.enrichMissingPreviews(apiService, page.data)
+        store.merge(enriched)
+        assertEquals("Diango is giving out hats in Draynor.", store.snippetFor(11))
+        assertEquals("already", store.snippetFor(12))
+        assertEquals("Regional servers are coming to South Africa.", store.snippetFor(13))
+    }
+
+    @Test
+    fun scopedBrowseReturnsFirstUsableRowsBeforeParseHtmlCompletes() = runTest {
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedRecentChanges(112, 2, null, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(ns = 112, title = "Update:Blank intro", pageid = 11, snippet = null, extract = null),
+                        SearchResult(ns = 112, title = "Update:Has snippet", pageid = 12, snippet = "already")
+                    )
+                )
+            )
+        )
+        whenever(apiService.getPageExtract(any())).thenThrow(AssertionError("must not block first page"))
+        whenever(apiService.getArticleParseDataByPageId(any())).thenThrow(AssertionError("must not block first page"))
+        val source = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
+        )
+        val result = source.load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 2,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Update:Blank intro", "Update:Has snippet"), page.data.map { it.title })
+        assertTrue(page.data.any { it.title == "Update:Has snippet" && it.snippet == "already" })
+        verify(apiService, never()).getPageExtract(any())
+        verify(apiService, never()).getArticleParseDataByPageId(any())
     }
 
     private class FakeArticleMetaDao : ArticleMetaDao {

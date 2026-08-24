@@ -60,7 +60,9 @@ class SearchActivity : BaseActivity() {
         }
         
         // Browse-newest destinations (Home View more) are a list, not a typeahead.
-        if (!searchScope().emptyQueryBrowsesNewest) {
+        if (searchScope().emptyQueryBrowsesNewest) {
+            osrsUpdatesListTiming.markOpen(restart = false)
+        } else {
             binding.searchEditText.requestFocus()
         }
     }

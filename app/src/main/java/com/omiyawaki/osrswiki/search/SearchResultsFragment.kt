@@ -41,6 +41,8 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
     private lateinit var offlineSearchAdapter: OfflineSearchAdapter
     private var articlePrewarmBinder: VisibleArticlePrewarmBinder? = null
     private var pendingScrollToTopQuery: String? = null
+    private var previewListener: (() -> Unit)? = null
+    private var loggedFirstVisible = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -64,8 +66,19 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
     }
 
     private fun setupRecyclerViewAdapters() {
-        onlineSearchAdapter = SearchAdapter(this)
+        onlineSearchAdapter = SearchAdapter(this, previewStore = viewModel.previewStore)
         offlineSearchAdapter = OfflineSearchAdapter(this)
+        val listener: () -> Unit = {
+            view?.post {
+                if (_binding != null && onlineSearchAdapter.itemCount > 0) {
+                    onlineSearchAdapter.notifyItemRangeChanged(0, onlineSearchAdapter.itemCount)
+                    markFirstVisibleIfNeeded()
+                }
+            }
+            Unit
+        }
+        previewListener = listener
+        viewModel.previewStore.addListener(listener)
         onlineSearchAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT
         offlineSearchAdapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT
         binding.recyclerViewSearchResults.layoutManager = LinearLayoutManager(context)
@@ -82,6 +95,9 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
                 val expectingResults = !currentQuery.isNullOrBlank() || viewModel.scope.emptyQueryBrowsesNewest
                 binding.recyclerViewSearchResults.isVisible = hasResults
                 binding.textViewNoResults.isVisible = !hasResults && expectingResults
+                if (hasResults) {
+                    markFirstVisibleIfNeeded()
+                }
 
                 if (!hasResults && expectingResults) {
                     binding.textViewNoResults.text = if (currentQuery.isNullOrBlank()) {
@@ -240,7 +256,16 @@ class SearchResultsFragment : Fragment(), SearchAdapter.OnItemClickListener {
         )
     }
 
+    private fun markFirstVisibleIfNeeded() {
+        if (loggedFirstVisible) return
+        if (onlineSearchAdapter.itemCount <= 0) return
+        loggedFirstVisible = true
+        osrsUpdatesListTiming.markFirstVisible(onlineSearchAdapter.itemCount)
+    }
+
     override fun onDestroyView() {
+        previewListener?.let { viewModel.previewStore.removeListener(it) }
+        previewListener = null
         articlePrewarmBinder?.dispose()
         articlePrewarmBinder = null
         super.onDestroyView()
