@@ -25,10 +25,9 @@
                 android:id="@+id/donate_title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
                 android:text="@string/donate_header"
                 android:textAlignment="center"
-                android:textAppearance="@style/AppTextAppearance.SettingsPageHero"
+                android:textAppearance="@style/AppTextAppearance.SettingsSection"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -37,6 +36,7 @@
                 android:id="@+id/donate_description"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:layout_marginBottom="32dp"
                 android:text="@string/donate_description"
                 android:textAlignment="center"
@@ -149,25 +149,25 @@
                 android:id="@+id/wiki_support_description"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:visibility="gone"
+                android:layout_marginTop="@dimen/osrs_donate_wiki_block_spacing"
                 android:text="@string/donate_wiki_description"
                 android:textAlignment="center"
                 android:textAppearance="@style/AppTextAppearance.Body"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/wiki_support_title" />
+                app:layout_constraintTop_toBottomOf="@id/status_text"
+                app:layout_goneMarginTop="@dimen/osrs_donate_wiki_block_spacing" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/wiki_donate_button"
                 style="@style/Widget.OSRSWiki.OutboundLinkButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/osrs_donate_wiki_block_spacing"
+                android:layout_marginTop="8dp"
                 android:text="@string/donate_wiki_button"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/status_text"
-                app:layout_goneMarginTop="@dimen/osrs_donate_wiki_block_spacing" />
+                app:layout_constraintTop_toBottomOf="@id/wiki_support_description" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
