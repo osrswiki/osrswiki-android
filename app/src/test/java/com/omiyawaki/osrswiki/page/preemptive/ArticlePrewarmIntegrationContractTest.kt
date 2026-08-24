@@ -55,6 +55,11 @@ class ArticlePrewarmIntegrationContractTest {
         assertFalse(successBranch.contains("downloadPostTextPriorityAssets"))
         assertTrue(successBranch.contains("WebView owns visible media after the document commit"))
         assertFalse(successBranch.contains("startLiveArticleAssetWarm"))
+        assertTrue(successBranch.contains("startFirstViewSlotWarm"))
+        assertTrue(
+            successBranch.indexOf("startFirstViewSlotWarm") <
+                successBranch.indexOf("onStateUpdated()")
+        )
 
         val fragment = source("page/PageFragment.kt")
         val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")

@@ -211,6 +211,7 @@ class osrsLiveArticleAssetWarmerTest {
         assertTrue(shared.contains("domImageAlreadyDecoded"))
         assertTrue(shared.contains("naturalWidth"))
         assertTrue(shared.contains("new Image()"))
+        assertTrue(shared.contains("notify(unique(slotUrls().concat(collectIntersecting())))"))
         assertFalse(shared.contains("el.src ="))
         assertFalse(shared.contains("setAttribute('src'"))
     }

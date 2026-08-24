@@ -27,8 +27,11 @@ class PageContentLoader(
 ) {
     private var pageLoadJob: Job? = null
     private var backgroundAssetsJob: Job? = null
+    private var firstViewSlotWarmJob: Job? = null
     @Volatile
     private var liveArticleAssetWarmer: osrsLiveArticleAssetWarmer? = null
+    @Volatile
+    private var firstViewSlotWarmer: osrsFirstViewAssetWarmer? = null
     @Volatile
     private var articleOpenAtElapsed: Long? = null // tap/open clock; not cleared by painted
     @Volatile
@@ -151,6 +154,8 @@ class PageContentLoader(
                 val result = progress.result
                 L.d("handleDownloadProgress: Received Success - PageID: ${result.parseResult.pageid}, Title: '${result.parseResult.title}', DisplayTitle: '${result.parseResult.displaytitle}'")
                 L.d("handleDownloadProgress: HTML content length: ${result.processedHtml.length} characters")
+                val wikiUrlForWarm = WikiSite.OSRS_WIKI.mobileUrl(result.parseResult.title ?: "")
+                startFirstViewSlotWarm(result.processedHtml, wikiUrlForWarm)
                 val paintSnapshot = result.readyToPaintHtml
                 val (finalHtml, tableOfContentsSections) = withContext(Dispatchers.Default) {
                     currentCoroutineContext().ensureActive()
@@ -305,6 +310,36 @@ class PageContentLoader(
         }
     }
 
+    fun startFirstViewSlotWarm(html: String, wikiUrl: String) {
+        if (!Prefs.warmFirstViewportImagesEarly) {
+            return
+        }
+        firstViewSlotWarmJob?.cancel()
+        if (html.isBlank()) {
+            firstViewSlotWarmer = null
+            firstViewSlotWarmJob = null
+            return
+        }
+        val warmer = osrsFirstViewAssetWarmer()
+        firstViewSlotWarmer = warmer
+        val started = firstViewOpenAtElapsed
+        val openElapsed = if (started != null) {
+            android.os.SystemClock.elapsedRealtime() - started
+        } else {
+            -1L
+        }
+        L.d("LOAD-MINMAX first_view_slot_warm_start elapsedMs=$openElapsed htmlChars=${html.length}")
+        firstViewSlotWarmJob = coroutineScope.launch(Dispatchers.IO) {
+            try {
+                warmer.warm(html, wikiUrl.ifBlank { "https://oldschool.runescape.wiki/" })
+            } finally {
+                if (firstViewSlotWarmer === warmer) {
+                    firstViewSlotWarmer = null
+                }
+            }
+        }
+    }
+
     fun promoteLiveArticleAssets(urls: List<String>) {
         val base = pageViewModel.uiState.wikiUrl?.ifBlank { null }
             ?: "https://oldschool.runescape.wiki/"
@@ -323,6 +358,7 @@ class PageContentLoader(
             }.getOrNull() ?: return@mapNotNull null
             osrsArticleViewAssetStore.canonicalize(absolute)
         }
+        firstViewSlotWarmer?.promote(resolved)
         liveArticleAssetWarmer?.promote(resolved)
     }
 
@@ -365,5 +401,8 @@ class PageContentLoader(
         backgroundAssetsJob?.cancel()
         backgroundAssetsJob = null
         liveArticleAssetWarmer = null
+        firstViewSlotWarmJob?.cancel()
+        firstViewSlotWarmJob = null
+        firstViewSlotWarmer = null
     }
 }

@@ -81,6 +81,32 @@ class osrsArticleLoadRegressionContractTest {
     }
 
     @Test
+    fun task10EarlyFirstViewSlotWarmWiredBeforeDocumentCommit() {
+        val prefs = source("settings/Prefs.kt")
+        assertTrue(prefs.contains("var warmFirstViewportImagesEarly: Boolean = true"))
+        val loader = source("page/PageContentLoader.kt")
+        assertTrue(loader.contains("fun startFirstViewSlotWarm"))
+        assertTrue(loader.contains("Prefs.warmFirstViewportImagesEarly"))
+        assertTrue(loader.contains("osrsFirstViewAssetWarmer()"))
+        assertTrue(loader.contains("LOAD-MINMAX first_view_slot_warm_start"))
+        val successBranch = loader.substringAfter("is DownloadProgress.Success ->")
+            .substringBefore("is DownloadProgress.Failure ->")
+        assertTrue(successBranch.contains("startFirstViewSlotWarm"))
+        assertTrue(
+            successBranch.indexOf("startFirstViewSlotWarm") <
+                successBranch.indexOf("onStateUpdated()")
+        )
+        assertFalse(successBranch.contains("startLiveArticleAssetWarm"))
+        val fragment = source("page/PageFragment.kt")
+        val readyCallback = fragment.substringAfter("override fun onPageReadyForDisplay()")
+            .substringBefore("fun showFindInPage()")
+        assertTrue(readyCallback.contains("startLiveArticleAssetWarm"))
+        assertFalse(readyCallback.contains("startFirstViewSlotWarm"))
+        val firstViewport = asset("web/first_viewport_assets.js")
+        assertTrue(firstViewport.contains("notify(unique(slotUrls().concat(collectIntersecting())))"))
+    }
+
+    @Test
     fun criticalArticleBundleFlagDefaultsOnAndBuilderWiresIt() {
         val prefs = source("settings/Prefs.kt")
         assertTrue(prefs.contains("var useCriticalArticleBundle: Boolean = true"))

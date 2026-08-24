@@ -79,6 +79,15 @@ object Prefs {
     @Volatile
     var useCriticalArticleBundle: Boolean = true
 
+    /**
+     * When true, live opens extract first-viewport slot image URLs from HTML and
+     * fetch them into the article-view session store before WebView document
+     * commit. Decode → FirstViewPainted semantics are unchanged; this only
+     * requests intersecting/slot URLs sooner. Flip to false to roll back Task 10.
+     */
+    @Volatile
+    var warmFirstViewportImagesEarly: Boolean = true
+
 
     /**
      * Gets the cache size limit in megabytes.
