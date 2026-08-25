@@ -18,6 +18,30 @@ object osrsNativeCalcSlotGeometry {
         return viewportTranslationY(slotTopCssPx - scrollYCssPx, webViewScale)
     }
 
+    fun hostTranslationYFromViewScroll(
+        slotTopCssPx: Float,
+        scrollYViewPx: Float,
+        webViewScale: Float
+    ): Float {
+        val scale = when {
+            webViewScale <= 0f -> 1f
+            else -> webViewScale
+        }
+        return slotTopCssPx * scale - scrollYViewPx
+    }
+
+    fun hostTranslationYFromViewport(
+        viewportTopCssPx: Float,
+        scrollDeltaViewPx: Float,
+        webViewScale: Float
+    ): Float {
+        val scale = when {
+            webViewScale <= 0f -> 1f
+            else -> webViewScale
+        }
+        return viewportTopCssPx * scale - scrollDeltaViewPx
+    }
+
     fun viewportTranslationY(boundingClientRectTopCss: Float, webViewScale: Float): Float {
         val scale = when {
             webViewScale <= 0f -> 1f
@@ -137,5 +161,30 @@ object osrsNativeCalcSlotGeometry {
             return null
         }
         return root
+    }
+
+    fun popupMayShow(selectCount: Int, slotActive: Boolean, missing: Boolean): Boolean {
+        return !missing && slotActive && selectCount == 0
+    }
+
+    /**
+     * After [android.widget.PopupWindow.showAtLocation], the host's parent is
+     * PopupDecorView, not [popupContent]. Treating that as a foreign parent
+     * and calling removeView strips the form, leaving an empty parchment popup.
+     */
+    fun shouldDetachHostForPopup(hostParent: Any?, popupContent: Any?, host: Any): Boolean {
+        if (hostParent == null) return false
+        if (popupContent === host) return false
+        if (hostParent === popupContent) return false
+        return true
+    }
+
+    /**
+     * PopupWindow lays its content view out to the window size. Keep the form
+     * at its measured height inside a wrapper so Method options below the
+     * clip still exist and [contentTranslationY] can reveal them.
+     */
+    fun popupContentHeight(formHeight: Int, windowHeight: Int): Int {
+        return formHeight.coerceAtLeast(1)
     }
 }
