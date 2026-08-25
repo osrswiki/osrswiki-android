@@ -286,15 +286,33 @@ class ArticleAestheticCssContractTest {
         assertTrue(blockquoteRule.contains("max-width: 100%"))
         assertTrue(blockquoteRule.contains("white-space: normal"))
         assertTrue(blockquoteRule.contains("overflow-x: visib"))
-        assertTrue(fixes.contains("table:has(td.quotation-mark)"))
-        assertTrue(fixes.contains("td.quotation-mark"))
-        assertTrue(
-            "Quote text cells must wrap; quotation-mark glyphs may stay nowrap.",
-            fixes.contains("td.quotation-mark ~ td") ||
-                fixes.contains("td:not(.quotation-mark)")
+        assertFalse(
+            "blockquote must not use overflow-wrap:anywhere; that is wrap-at-any-glyph, not layout proof.",
+            blockquoteRule.contains("overflow-wrap: anywhere")
         )
-        assertTrue(fixes.contains("overflow-wrap: anywhere"))
-        assertTrue(fixes.contains("Wiki quote boxes"))
+
+        val quoteRules = fixes.substringAfter("Wiki quote boxes")
+            .substringBefore("osrs-bonuses-overlap-guard", missingDelimiterValue = "")
+        assertTrue("Missing wiki quote-box rule block in fixes.css", quoteRules.isNotBlank())
+        assertTrue(quoteRules.contains("table:has(td.quotation-mark)"))
+        assertTrue(quoteRules.contains("td.quotation-mark"))
+        assertTrue(
+            "Quote body must be the cell after the opening mark, not every non-mark cell. Cquote2 attribution-row spacers steal leftover width if they also get width:100%/min-width:0.",
+            quoteRules.contains("td.quotation-mark + td")
+        )
+        assertTrue(quoteRules.contains("white-space: normal !important"))
+        assertTrue(
+            "Quotation-mark columns must stay shrink-to-glyph so leftover width goes to the body.",
+            quoteRules.contains("width: 1%")
+        )
+        assertFalse(
+            "Quote-box CSS must not collapse min-content with overflow-wrap:anywhere.",
+            quoteRules.contains("overflow-wrap: anywhere")
+        )
+        assertFalse(
+            "Do not set min-width:0 on every non-mark quote cell; that plus wrap-anywhere is the 1-2 letter rail.",
+            quoteRules.contains("td:not(.quotation-mark)") && quoteRules.contains("min-width: 0")
+        )
         assertTrue(themes.contains("html.theme-osrs-dark"))
         assertFalse(
             "Dark theme must not restore nowrap on quotes.",
