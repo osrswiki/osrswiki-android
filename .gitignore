@@ -33,6 +33,7 @@ node_modules/
 # Immutable release map assets are materialized for builds, never committed.
 *.mbtiles
 app/src/main/assets/img-[0-9]*.png
+/underground-realms-release/
 
 # Temporary files
 *.tmp

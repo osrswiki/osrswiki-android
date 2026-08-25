@@ -145,13 +145,13 @@ dependencies {
 }
 
 val generatedRealmAssets = layout.buildDirectory.dir("generated/realmAssets/main")
+// Explicit opt-in only. Do NOT auto-pick the home underground-realms cache —
+// that silently made the v2.0.1 GitHub FOSS APK diverge from a clean public
+// assemble / F-Droid build (fixture stub vs 2.3MB candidate 010 + assets/assets).
+// Debug/full-map builds must pass -PosrsUndergroundAssetsDir=... or
+// OSRS_UNDERGROUND_ASSETS_DIR=...
 val suppliedRealmAssets = providers.gradleProperty("osrsUndergroundAssetsDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_ASSETS_DIR"))
-    .orElse(providers.provider {
-        val home = System.getProperty("user.home").orEmpty()
-        val cached = file("$home/Developer/osrswiki-local-artifacts/cache/binary-assets/underground-realms")
-        if (file("${cached.path}/underground-realms.json").isFile) cached.absolutePath else ""
-    })
 val suppliedPublicationEvidence = providers.gradleProperty("osrsUndergroundEvidenceDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_EVIDENCE_DIR"))
 val expectedRealmManifestSha256 = providers.gradleProperty(
