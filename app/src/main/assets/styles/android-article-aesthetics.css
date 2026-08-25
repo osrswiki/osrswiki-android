@@ -416,8 +416,18 @@ math.mwe-math-element-inline {
 
 /* Sea Shanty 2 and other TimedMediaHandler tracks live in td.infobox-media-player,
    wrapped in span.mw-default-size[typeof="mw:File"]. Shared fixes shrink those
-   spans to auto/min-width:0; `width: min(100%, 260px)` then collapses to 0. */
-.infobox-media-player,
+   spans to auto/min-width:0; `width: min(100%, 260px)` then collapses to 0.
+   Shipped chrome uses the full infobox/content width (not a 220px chip). */
+td.infobox-media-player,
+.infobox-media-player {
+    display: table-cell !important;
+    height: auto !important;
+    line-height: normal !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
 .infobox-media-player span.mw-default-size[typeof^="mw:File"],
 .infobox-media-player span.mw-default-size[typeof^="mw:File"] > span,
 .infobox-media-player .osrs-article-audio {
@@ -425,8 +435,74 @@ math.mwe-math-element-inline {
     height: auto !important;
     line-height: normal !important;
     max-width: 100% !important;
-    min-width: min(220px, 100%) !important;
+    min-width: 0 !important;
     width: 100% !important;
+}
+
+.infobox-media-player .osrs-article-audio-chrome,
+.osrs-article-audio-chrome {
+    display: flex !important;
+    align-items: center;
+    box-sizing: border-box;
+    gap: 8px;
+    height: auto !important;
+    max-width: 100% !important;
+    min-height: 44px;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+.osrs-article-audio-play {
+    align-items: center;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 22px;
+    display: flex !important;
+    height: 44px;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 !important;
+    width: 44px;
+}
+
+.osrs-article-audio-time,
+.osrs-article-audio-duration {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    min-width: 2.6em;
+    opacity: 0.85;
+    white-space: nowrap;
+}
+
+.osrs-article-audio-seek {
+    flex: 1 1 auto;
+    min-width: 72px;
+    width: 100%;
+}
+
+/* Hide leftover stacked Play when chrome already owns play/pause. */
+.osrs-article-audio:has(.osrs-article-audio-chrome) > .osrs-article-audio-play {
+    display: none !important;
+}
+
+/* Native compact <audio controls> chrome is not the Android control row. */
+.osrs-article-audio:has(.osrs-article-audio-chrome) audio {
+    border: 0 !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    height: 1px !important;
+    margin: 0 !important;
+    max-width: 1px !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    width: 1px !important;
 }
 
 .infobox-media-player audio.mw-file-element,
@@ -434,11 +510,8 @@ math.mwe-math-element-inline {
 .osrs-article-audio audio {
     box-sizing: border-box !important;
     display: block !important;
-    height: 48px !important;
     margin: 0.25em 0;
     max-width: 100% !important;
-    min-height: 48px !important;
-    min-width: min(220px, 100%) !important;
     width: 100% !important;
 }
 

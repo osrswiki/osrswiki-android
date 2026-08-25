@@ -551,16 +551,20 @@ class ArticleAestheticCssContractTest {
             mediaRules.isNotBlank()
         )
         assertTrue(
-            "Infobox audio needs a height floor so WebView native chrome is not 0px.\n$mediaRules",
-            mediaRules.contains("min-height: 48px")
+            "Infobox player chrome must be full available width, not a 220px compact chip.\n$mediaRules",
+            css.contains(".osrs-article-audio-chrome") && css.contains("width: 100%")
         )
-        assertTrue(
-            "Infobox audio needs a width floor; min(100%, 260px) of a shrink-wrap mw:File span is 0.\n$mediaRules",
+        assertFalse(
+            "Chip-sized min-width floor is the crushed-player contract; chrome must use content width.\n$mediaRules",
             mediaRules.contains("min-width: min(220px, 100%)")
         )
         assertFalse(
             "Zero-height collapse of infobox audio is a product fail.\n$mediaRules",
             mediaRules.contains("height: 0")
+        )
+        assertTrue(
+            "Native compact <audio controls> chrome is not the Android control row.",
+            css.contains(".osrs-article-audio:has(.osrs-article-audio-chrome) audio")
         )
     }
 
