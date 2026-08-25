@@ -89,6 +89,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var pageUiUpdater: PageUiUpdater? = null
     private var nativeCalcSession: osrsNativeCalcSession? = null
     private var nativeCalcView: osrsNativeCalcView? = null
+    private var nativeCalcPopup: android.widget.PopupWindow? = null
     private var nativeCalcSlotTopPx: Int? = null
     private var nativeCalcCssClientWidth: Float = 0f
     private var nativeCalcScrollListenerInstalled = false
@@ -1310,6 +1311,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         nativeMapHandler?.cleanup()
         nativeCalcSession?.release()
         nativeCalcSession = null
+        dismissNativeCalcPopup()
         nativeCalcView = null
         _binding?.pageWebView?.run {
             destroyReleasedWebView(this)
@@ -1376,10 +1378,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         nativeCalcView = view
         host.removeAllViews()
         host.minimumWidth = resources.displayMetrics.widthPixels
-        host.addView(
-            view,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        )
+        host.visibility = View.GONE
         installNativeCalcScrollListener()
         nativeCalcSession = osrsNativeCalcSession(requireContext().applicationContext) {
             renderNativeCalculator()
@@ -1396,13 +1395,10 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         } else {
             View.VISIBLE
         }
-        host.visibility = if (showNativeForm) View.VISIBLE else View.GONE
-        host.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
-        host.translationZ = osrsNativeCalcSlotGeometry.HOST_ELEVATION
-        binding.root.clipChildren = true
-        binding.root.clipToPadding = true
+        host.visibility = View.GONE
+        binding.root.clipChildren = false
+        binding.root.clipToPadding = false
         if (showNativeForm) {
-            host.bringToFront()
             nativeCalcView?.bind(session)
             nativeCalcView?.post {
                 installNativeCalcSlot()
@@ -1411,7 +1407,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         } else {
             nativeCalcSlotTopPx = null
             nativeCalcSlotRetries = 0
-            host.translationY = 0f
+            dismissNativeCalcPopup()
             binding.pageWebView.evaluateJavascript(
                 osrsNativeCalcDefinition.uninstallSlotJavaScript(),
                 null
@@ -1428,17 +1424,57 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     private fun positionNativeCalcHost(scrollY: Int = binding.pageWebView.scrollY) {
-        val host = _binding?.nativeCalcHost ?: return
+        val view = nativeCalcView ?: return
         val top = nativeCalcSlotTopPx ?: return
+        val webView = _binding?.pageWebView ?: return
         val scale = osrsNativeCalcSlotGeometry.cssToViewScale(
-            webViewWidthPx = binding.pageWebView.width,
+            webViewWidthPx = webView.width,
             cssClientWidth = nativeCalcCssClientWidth
         )
-        host.translationY = osrsNativeCalcSlotGeometry.hostTranslationY(
+        val translationY = osrsNativeCalcSlotGeometry.hostTranslationY(
             slotTopCssPx = top.toFloat(),
             scrollYCssPx = scrollY.toFloat(),
             webViewScale = scale
         )
+        val loc = IntArray(2)
+        webView.getLocationOnScreen(loc)
+        val screenY = loc[1] + translationY.toInt()
+        val width = webView.width.coerceAtLeast(resources.displayMetrics.widthPixels)
+        if (view.parent != null && view.parent !== nativeCalcPopup?.contentView) {
+            (view.parent as? ViewGroup)?.removeView(view)
+        }
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val height = view.measuredHeight.coerceAtLeast(1)
+        val popup = nativeCalcPopup ?: android.widget.PopupWindow(
+            view,
+            width,
+            height,
+            false
+        ).also {
+            it.isClippingEnabled = false
+            it.isTouchable = true
+            it.isFocusable = false
+            it.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
+            nativeCalcPopup = it
+        }
+        popup.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
+        popup.width = width
+        popup.height = height
+        if (!popup.isShowing) {
+            if (webView.isAttachedToWindow) {
+                popup.showAtLocation(webView, Gravity.NO_GRAVITY, loc[0], screenY)
+            }
+        } else {
+            popup.update(loc[0], screenY, width, height)
+        }
+    }
+
+    private fun dismissNativeCalcPopup() {
+        nativeCalcPopup?.dismiss()
+        nativeCalcPopup = null
     }
 
     private fun installNativeCalcSlot() {
