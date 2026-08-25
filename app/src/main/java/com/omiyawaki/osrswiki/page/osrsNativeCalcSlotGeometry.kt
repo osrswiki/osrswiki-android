@@ -163,8 +163,17 @@ object osrsNativeCalcSlotGeometry {
         return root
     }
 
-    fun popupMayShow(selectCount: Int, slotActive: Boolean, missing: Boolean): Boolean {
-        return !missing && slotActive && selectCount == 0
+    fun popupMayShow(
+        selectCount: Int,
+        slotActive: Boolean,
+        missing: Boolean,
+        collapsed: Boolean = false
+    ): Boolean {
+        return !missing && slotActive && selectCount == 0 && !collapsed
+    }
+
+    fun overlayCoversArticleHeader(overlayIncludesHeader: Boolean, collapsed: Boolean): Boolean {
+        return overlayIncludesHeader && collapsed
     }
 
     /**

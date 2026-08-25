@@ -201,6 +201,11 @@ class osrsNativeCalcViewTest {
         assertNotNull(overflow)
         assertNotNull(form)
         assertEquals("calculator", view.contentDescription)
+        assertEquals(
+            "article header owns toggle; native overlay must not paint a one-off header",
+            null,
+            header
+        )
         assertEquals(android.view.View.VISIBLE, overflow.visibility)
         view.setCollapsed(true)
         assertTrue(view.collapsed)
@@ -219,8 +224,45 @@ class osrsNativeCalcViewTest {
         )
         overflow.layout(0, 0, 400, overflow.measuredHeight)
         assertTrue("wide form must be able to scroll horizontally", overflow.canScrollHorizontally(1) || form.measuredWidth > overflow.width)
-        header.performClick()
-        assertTrue(view.collapsed)
+        view.setCollapsed(true)
+        view.setCollapsed(false)
+        assertFalse(view.collapsed)
+        assertEquals(android.view.View.VISIBLE, overflow.visibility)
+    }
+
+    @Test
+    fun shippedCollapsibleAndRuntimeWrapCalcLikeArticleTables() {
+        val collapsible = listOf(
+            java.io.File("src/main/assets/web/collapsible_content.js"),
+            java.io.File("app/src/main/assets/web/collapsible_content.js")
+        ).first { it.exists() }.readText()
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        assertTrue(collapsible.contains("window.osrsWrapCollapsible"))
+        assertTrue(collapsible.contains("collapsible-header"))
+        assertTrue(collapsible.contains("collapsible-label"))
+        assertTrue(collapsible.contains("collapsible-state"))
+        assertTrue(collapsible.contains("osrs-disclosure-body"))
+        assertTrue(collapsible.contains("kind === 'calculator'"))
+        assertTrue(collapsible.contains("allowInsideCalculator"))
+        assertTrue(collapsible.contains("window.osrsWrapWikitablesInRoot"))
+        assertTrue(collapsible.contains("window.osrsToggleCollapsible"))
+        assertTrue(runtime.contains("osrsWrapCollapsible"))
+        assertTrue(runtime.contains("osrsWrapWikitablesInRoot"))
+        assertTrue(runtime.contains("osrsPlaceNativeCalcResultInBox"))
+        assertFalse(
+            "calc box must keep article chrome, not a transparent full-bleed override",
+            runtime.contains("html.osrs-native-calc-slot-active .collapsible-calculator {") &&
+                runtime.contains("background:transparent!important;background-color:transparent!important")
+        )
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        assertTrue(source.contains("setCollapsed(parsed.collapsed)"))
+        assertTrue(source.contains("popupMayShow"))
+        assertFalse(source.contains("osrsNativeCalcSetCollapsed(\$collapsed)"))
     }
 
     private fun collectText(view: android.view.View, into: MutableList<String>) {

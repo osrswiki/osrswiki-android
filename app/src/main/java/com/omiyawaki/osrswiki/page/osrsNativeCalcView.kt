@@ -41,31 +41,18 @@ class osrsNativeCalcView @JvmOverloads constructor(
         isFillViewport = true
         isHorizontalScrollBarEnabled = true
     }
-    private val header = TextView(context).apply {
-        id = R.id.native_calc_header
-        text = "Calculator"
-        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-        contentDescription = "Calculator"
-    }
     var collapsed: Boolean = false
         private set
     var onCollapsedChange: ((Boolean) -> Unit)? = null
 
     init {
         orientation = VERTICAL
-        val pad = dp(16)
-        setPadding(pad, pad, pad, dp(24))
-        header.setPadding(0, 0, 0, dp(8))
-        header.setOnClickListener { setCollapsed(!collapsed) }
-        val screen = resources.displayMetrics.widthPixels
-        minimumWidth = screen
-        header.minWidth = screen
-        form.minimumWidth = (screen - pad * 2).coerceAtLeast(1)
+        val pad = dp(8)
+        setPadding(pad, pad, pad, pad)
         overflow.addView(
             form,
-            LayoutParams((screen - pad * 2).coerceAtLeast(1), LayoutParams.WRAP_CONTENT)
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
         )
-        addView(header, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         contentDescription = "calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
@@ -75,8 +62,6 @@ class osrsNativeCalcView @JvmOverloads constructor(
         val changed = collapsed != value
         collapsed = value
         overflow.visibility = if (value) GONE else VISIBLE
-        header.contentDescription = if (value) "Calculator collapsed" else "Calculator"
-        header.text = if (value) "Calculator  Tap to expand" else "Calculator  Tap to collapse"
         if (changed) onCollapsedChange?.invoke(value)
     }
 
@@ -88,9 +73,6 @@ class osrsNativeCalcView @JvmOverloads constructor(
             if (session.usesDarkTheme) R.color.osrs_text_secondary_dark else R.color.osrs_text_secondary_light
         )
         setBackgroundColor(paper)
-        header.setTextColor(onPaper)
-        header.setTypeface(header.typeface, android.graphics.Typeface.BOLD)
-        header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         bindError(session)
         form.removeAllViews()
         form.addView(errorBanner, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))

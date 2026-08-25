@@ -215,6 +215,21 @@ class osrsNativeCalcSlotGeometryTest {
                 missing = false
             )
         )
+        assertFalse(
+            "collapsed article header must stay tappable; overlay hides",
+            osrsNativeCalcSlotGeometry.popupMayShow(
+                selectCount = 0,
+                slotActive = true,
+                missing = false,
+                collapsed = true
+            )
+        )
+        assertFalse(
+            osrsNativeCalcSlotGeometry.overlayCoversArticleHeader(
+                overlayIncludesHeader = false,
+                collapsed = true
+            )
+        )
         val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
             ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
         val source = fragment.readText()

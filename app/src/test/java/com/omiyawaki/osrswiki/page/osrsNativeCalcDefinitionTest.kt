@@ -329,6 +329,19 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(runtime.contains("collapsible-calculator"))
         assertTrue(runtime.contains("osrsWrapNativeCalcCalculatorBox"))
         assertTrue(runtime.contains("osrsNativeCalcSetCollapsed"))
+        assertTrue(runtime.contains("osrsWrapCollapsible"))
+        assertTrue(runtime.contains("osrsWrapWikitablesInRoot"))
+        val collapsibleCandidates = listOf(
+            java.io.File("src/main/assets/web/collapsible_content.js"),
+            java.io.File("app/src/main/assets/web/collapsible_content.js"),
+            java.io.File("../../../shared/js/collapsible_content.js")
+        )
+        val collapsible = collapsibleCandidates.first { it.exists() }.readText()
+        assertTrue(collapsible.contains("window.osrsWrapCollapsible"))
+        assertTrue(collapsible.contains("kind === 'calculator'"))
+        assertTrue(collapsible.contains("allowInsideCalculator"))
+        assertTrue(collapsible.contains("window.osrsWrapWikitablesInRoot"))
+        assertTrue(runtime.contains("osrsWrapCollapsible({"))
         assertTrue(source.contains("osrsNativeCalcSlotGeometry.hostTranslationY"))
         assertTrue(source.contains("osrsNativeCalcSlotGeometry.HOST_ELEVATION"))
         assertFalse(source.contains("host.elevation = if (showNativeForm) 24f"))
@@ -383,6 +396,7 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(source.contains("native-calc-option-"))
         assertFalse(source.contains("AlertDialog.Builder"))
         assertTrue(source.contains("native_calc_overflow"))
-        assertTrue(source.contains("collapsible") || source.contains("setCollapsed"))
+        assertTrue(source.contains("setCollapsed"))
+        assertFalse(source.contains("id = R.id.native_calc_header"))
     }
 }
