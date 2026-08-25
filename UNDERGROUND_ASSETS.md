@@ -17,14 +17,17 @@ consumes (`underground-realms.json` plus `**/*.mbtiles`).
   ./underground-realms-release
 ```
 
-Then point a full-map Android assemble at that directory:
+Then point a full-map Android assemble at that directory. Relative
+`-PosrsUndergroundAssetsDir` values resolve from the Android Gradle root
+(the public repo root), not `undergroundmaps/`:
 
 ```bash
 ./gradlew :undergroundmaps:assembleRelease \
-  -PosrsUndergroundAssetsDir="$PWD/underground-realms-release"
+  -PosrsUndergroundAssetsDir=underground-realms-release
 ```
 
-`OSRS_UNDERGROUND_ASSETS_DIR` is the equivalent environment variable. Without
+`OSRS_UNDERGROUND_ASSETS_DIR` is the equivalent environment variable
+(absolute paths still work). Without
 that opt-in, `prepareUndergroundRealmAssets` stages the in-tree fixture stub
 from `undergroundmaps/src/fixtureAssets`. There is no implicit home-cache
 fallback.

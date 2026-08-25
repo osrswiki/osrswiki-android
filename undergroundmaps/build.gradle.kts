@@ -181,7 +181,10 @@ val prepareUndergroundRealmAssets by tasks.registering(Sync::class) {
 
     val resolvedRealmAssets = suppliedRealmAssets.orNull.orEmpty()
     if (resolvedRealmAssets.isNotBlank()) {
-        from(file(resolvedRealmAssets)) {
+        // Relative values are the Android Gradle root (public repo root /
+        // platforms/android), not this module directory. That matches
+        // F-Droid prebuild osrsUndergroundAssetsDir=underground-realms-release.
+        from(rootProject.file(resolvedRealmAssets)) {
             include("underground-realms.json", "**/*.mbtiles")
         }
     } else {

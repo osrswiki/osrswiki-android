@@ -55,6 +55,8 @@ class osrsStandalonePackagingContractTest {
         assertTrue(gradle.contains("osrsUndergroundAssetsDir"))
         assertTrue(gradle.contains("OSRS_UNDERGROUND_ASSETS_DIR"))
         assertTrue(gradle.contains("src/fixtureAssets"))
+        assertTrue(gradle.contains("rootProject.file(resolvedRealmAssets)"))
+        assertFalse(gradle.contains("from(file(resolvedRealmAssets))"))
         assertFalse(gradle.contains("binary-assets/underground-realms"))
         assertFalse(gradle.contains("osrswiki-local-artifacts/cache"))
         assertFalse(productionSources.contains("Last Man Standing Desert Island"))
