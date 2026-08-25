@@ -62,6 +62,26 @@ class ArticleAudioPlayerContractTest {
             "IIFE must attach to window, not assume Node.",
             script.contains("typeof window !== 'undefined' ? window : globalThis")
         )
+        assertFalse(
+            "44px min-height is the tall-chrome QA fail.",
+            script.contains("min-height:44px")
+        )
+        assertFalse(
+            "Contrasting --body-border outline is the second-outline QA fail.",
+            script.contains("--body-border")
+        )
+        assertTrue(
+            "Chrome height must come from the shared pill token.",
+            script.contains("--osrs-article-audio-height")
+        )
+        assertTrue(
+            "Chrome radius must come from the shared half-height token.",
+            script.contains("--osrs-article-audio-radius")
+        )
+        assertTrue(
+            "Outer border must be dropped so it cannot read as a second outline.",
+            script.contains("border:0")
+        )
         assertTrue(css.contains(".osrs-article-audio-chrome"))
         assertTrue(css.contains(".osrs-article-audio-time"))
         assertTrue(css.contains(".osrs-article-audio-seek"))
@@ -69,6 +89,19 @@ class ArticleAudioPlayerContractTest {
             "Hide leftover stacked play when chrome is present.",
             css.contains(".osrs-article-audio:has(.osrs-article-audio-chrome) > .osrs-article-audio-play")
         )
+        assertTrue(
+            "Aesthetics must use the shared height token, not a 44px floor.",
+            css.contains("--osrs-article-audio-height")
+        )
+        assertTrue(css.contains("--osrs-article-audio-radius"))
+        assertFalse(
+            "Aesthetics must not hardcode a 44px chrome/play box.",
+            Regex("""\.osrs-article-audio[^{]*\{[^}]*min-height:\s*44px""").containsMatchIn(css)
+        )
+        val themes = assetFile("styles/themes.css").readText()
+        assertTrue(themes.contains("--osrs-article-audio-height: 32px"))
+        assertTrue(themes.contains("--osrs-article-audio-radius: calc(var(--osrs-article-audio-height) / 2)"))
+        assertTrue(themes.contains("--osrs-article-audio-fill: var(--body-main)"))
     }
 
     private fun asset(path: String): String = assetFile(path).readText()

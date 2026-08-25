@@ -443,12 +443,18 @@ td.infobox-media-player,
 .osrs-article-audio-chrome {
     display: flex !important;
     align-items: center;
+    background: var(--osrs-article-audio-fill, var(--body-main, #e2dbc8));
+    border: 0;
+    border-color: var(--osrs-article-audio-fill, var(--body-main, #e2dbc8));
+    border-radius: var(--osrs-article-audio-radius, 16px);
     box-sizing: border-box;
-    gap: 8px;
-    height: auto !important;
+    gap: 6px;
+    height: var(--osrs-article-audio-height, 32px) !important;
     max-width: 100% !important;
-    min-height: 44px;
+    min-height: var(--osrs-article-audio-height, 32px);
     min-width: 0 !important;
+    overflow: hidden;
+    padding: 0 10px 0 0;
     width: 100% !important;
 }
 
@@ -456,14 +462,14 @@ td.infobox-media-player,
     align-items: center;
     background: transparent !important;
     border: 0 !important;
-    border-radius: 22px;
+    border-radius: var(--osrs-article-audio-radius, 16px);
     display: flex !important;
-    height: 44px;
+    height: var(--osrs-article-audio-control-size, 32px);
     justify-content: center;
-    min-height: 44px;
-    min-width: 44px;
+    min-height: var(--osrs-article-audio-control-size, 32px);
+    min-width: var(--osrs-article-audio-control-size, 32px);
     padding: 0 !important;
-    width: 44px;
+    width: var(--osrs-article-audio-control-size, 32px);
 }
 
 .osrs-article-audio-time,

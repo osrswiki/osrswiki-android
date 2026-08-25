@@ -566,6 +566,32 @@ class ArticleAestheticCssContractTest {
             "Native compact <audio controls> chrome is not the Android control row.",
             css.contains(".osrs-article-audio:has(.osrs-article-audio-chrome) audio")
         )
+        val chromeRule = css.substringAfter(".osrs-article-audio-chrome {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertTrue("Missing .osrs-article-audio-chrome rule", chromeRule.isNotBlank())
+        assertFalse(
+            "44px min-height is the tall-chrome QA fail.\n$chromeRule",
+            chromeRule.contains("44px")
+        )
+        assertTrue(
+            "Chrome height must use the shared pill token.\n$chromeRule",
+            chromeRule.contains("--osrs-article-audio-height")
+        )
+        assertTrue(
+            "Chrome radius must use the shared half-height token.\n$chromeRule",
+            chromeRule.contains("--osrs-article-audio-radius")
+        )
+        assertTrue(
+            "Outer border must be absent or painted from the fill token.\n$chromeRule",
+            chromeRule.contains("border: 0") && chromeRule.contains("--osrs-article-audio-fill")
+        )
+        val playRule = css.substringAfter(".osrs-article-audio-play {")
+            .substringBefore("}", missingDelimiterValue = "")
+        assertFalse(
+            "Play control must shrink with the pill, not keep a 44px box.\n$playRule",
+            playRule.contains("44px")
+        )
+        assertTrue(playRule.contains("--osrs-article-audio-control-size"))
     }
 
     @Test
