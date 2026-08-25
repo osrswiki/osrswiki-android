@@ -568,6 +568,13 @@ class ArticleAestheticCssContractTest {
         )
     }
 
+    @Test
+    fun nativeCalculatorCollapsibleAllowsHorizontalOverflow() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        assertTrue(fixes.contains("collapsible-calculator"))
+        assertTrue(fixes.contains("overflow-x: auto !important"))
+    }
+
     private fun assetFile(path: String): File {
         return listOf(
             File("src/main/assets", path),

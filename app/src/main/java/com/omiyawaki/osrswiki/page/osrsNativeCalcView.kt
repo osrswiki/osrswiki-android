@@ -8,6 +8,8 @@ import android.util.TypedValue
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.Filter
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
@@ -30,14 +32,52 @@ class osrsNativeCalcView @JvmOverloads constructor(
         setPadding(0, dp(8), 0, dp(8))
         minHeight = dp(24)
     }
+    private val form = LinearLayout(context).apply {
+        id = R.id.native_calc_form
+        orientation = VERTICAL
+    }
+    private val overflow = HorizontalScrollView(context).apply {
+        id = R.id.native_calc_overflow
+        isFillViewport = true
+        isHorizontalScrollBarEnabled = true
+    }
+    private val header = TextView(context).apply {
+        id = R.id.native_calc_header
+        text = "Calculator"
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        contentDescription = "Calculator"
+    }
+    var collapsed: Boolean = false
+        private set
+    var onCollapsedChange: ((Boolean) -> Unit)? = null
 
     init {
         orientation = VERTICAL
         val pad = dp(16)
         setPadding(pad, pad, pad, dp(24))
-        addView(errorBanner, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        contentDescription = "Native calculator"
+        header.setPadding(0, 0, 0, dp(8))
+        header.setOnClickListener { setCollapsed(!collapsed) }
+        val screen = resources.displayMetrics.widthPixels
+        minimumWidth = screen
+        header.minWidth = screen
+        form.minimumWidth = (screen - pad * 2).coerceAtLeast(1)
+        overflow.addView(
+            form,
+            LayoutParams((screen - pad * 2).coerceAtLeast(1), LayoutParams.WRAP_CONTENT)
+        )
+        addView(header, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        contentDescription = "calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+    }
+
+    fun setCollapsed(value: Boolean) {
+        val changed = collapsed != value
+        collapsed = value
+        overflow.visibility = if (value) GONE else VISIBLE
+        header.contentDescription = if (value) "Calculator collapsed" else "Calculator"
+        header.text = if (value) "Calculator  Tap to expand" else "Calculator  Tap to collapse"
+        if (changed) onCollapsedChange?.invoke(value)
     }
 
     fun bind(session: osrsNativeCalcSession) {
@@ -48,16 +88,20 @@ class osrsNativeCalcView @JvmOverloads constructor(
             if (session.usesDarkTheme) R.color.osrs_text_secondary_dark else R.color.osrs_text_secondary_light
         )
         setBackgroundColor(paper)
+        header.setTextColor(onPaper)
+        header.setTypeface(header.typeface, android.graphics.Typeface.BOLD)
+        header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         bindError(session)
-        while (childCount > 1) {
-            removeViewAt(1)
-        }
+        form.removeAllViews()
+        form.addView(errorBanner, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         fieldEditors.clear()
         session.visibleInputs().forEach { input ->
-            addView(text(input.label, onPaper, 14f, true).apply {
+            form.addView(text(input.label, onPaper, 14f, true).apply {
                 setPadding(0, dp(12), 0, dp(4))
+                tag = "native-calc-label-${input.name}"
+                contentDescription = input.label
             })
-            addView(control(session, input, onPaper))
+            form.addView(control(session, input, onPaper))
         }
         val submit = MaterialButton(context).apply {
             text = "Submit"
@@ -71,10 +115,11 @@ class osrsNativeCalcView @JvmOverloads constructor(
             }
             contentDescription = "Submit calculator"
         }
-        addView(submit, linear())
+        form.addView(submit, linear())
         if (session.statusMessage.isNotBlank()) {
-            addView(text(session.statusMessage, secondary, 13f, false))
+            form.addView(text(session.statusMessage, secondary, 13f, false))
         }
+        setCollapsed(collapsed)
     }
 
     private fun bindError(session: osrsNativeCalcSession) {
@@ -174,20 +219,15 @@ class osrsNativeCalcView @JvmOverloads constructor(
         val layout = TextInputLayout(context)
         val current = session.values[input.name] ?: input.defaultValue
         val dropdown = MaterialAutoCompleteTextView(context).apply {
-            setAdapter(
-                ArrayAdapter(
-                    context,
-                    android.R.layout.simple_list_item_1,
-                    input.options
-                )
-            )
+            val adapter = UnfilteredArrayAdapter(context, input.options)
+            setAdapter(adapter)
             setText(current, false)
             setTextColor(onPaper)
             inputType = InputType.TYPE_NULL
             keyListener = null
             isFocusable = false
             isCursorVisible = false
-            threshold = 1
+            threshold = Int.MAX_VALUE
             contentDescription = "${input.label} menu"
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
             setOnClickListener { showDropDown() }
@@ -270,4 +310,24 @@ class osrsNativeCalcView @JvmOverloads constructor(
         LayoutParams.WRAP_CONTENT,
         LayoutParams.WRAP_CONTENT
     ).apply { marginStart = dp(6) }
+
+    private class UnfilteredArrayAdapter(
+        context: Context,
+        private val items: List<String>
+    ) : ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, items) {
+        override fun getCount(): Int = items.size
+        override fun getItem(position: Int): String = items[position]
+        override fun getFilter(): Filter = object : Filter() {
+            override fun performFiltering(constraint: CharSequence?): FilterResults {
+                return FilterResults().apply {
+                    values = items
+                    count = items.size
+                }
+            }
+
+            override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                notifyDataSetChanged()
+            }
+        }
+    }
 }

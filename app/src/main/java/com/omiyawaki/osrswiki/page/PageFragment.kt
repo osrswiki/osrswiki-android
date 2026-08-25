@@ -90,6 +90,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var nativeCalcSession: osrsNativeCalcSession? = null
     private var nativeCalcView: osrsNativeCalcView? = null
     private var nativeCalcSlotTopPx: Int? = null
+    private var nativeCalcCssClientWidth: Float = 0f
     private var nativeCalcScrollListenerInstalled = false
     private var nativeCalcSlotRetries = 0
     private lateinit var gestureDetector: GestureDetector
@@ -1367,8 +1368,14 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             System.getProperty("debug.osrs.forceNativeCalcFallback") == "true"
         val host = binding.nativeCalcHost
         val view = osrsNativeCalcView(requireContext())
+        view.onCollapsedChange = { _ ->
+            view.post {
+                installNativeCalcSlot()
+            }
+        }
         nativeCalcView = view
         host.removeAllViews()
+        host.minimumWidth = resources.displayMetrics.widthPixels
         host.addView(
             view,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -1390,9 +1397,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             View.VISIBLE
         }
         host.visibility = if (showNativeForm) View.VISIBLE else View.GONE
-        host.elevation = if (showNativeForm) 24f else 0f
-        host.bringToFront()
+        host.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
+        host.translationZ = osrsNativeCalcSlotGeometry.HOST_ELEVATION
+        binding.root.clipChildren = true
+        binding.root.clipToPadding = true
         if (showNativeForm) {
+            host.bringToFront()
             nativeCalcView?.bind(session)
             nativeCalcView?.post {
                 installNativeCalcSlot()
@@ -1420,7 +1430,15 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private fun positionNativeCalcHost(scrollY: Int = binding.pageWebView.scrollY) {
         val host = _binding?.nativeCalcHost ?: return
         val top = nativeCalcSlotTopPx ?: return
-        host.translationY = (top - scrollY).toFloat()
+        val scale = osrsNativeCalcSlotGeometry.cssToViewScale(
+            webViewWidthPx = binding.pageWebView.width,
+            cssClientWidth = nativeCalcCssClientWidth
+        )
+        host.translationY = osrsNativeCalcSlotGeometry.hostTranslationY(
+            slotTopCssPx = top.toFloat(),
+            scrollYCssPx = scrollY.toFloat(),
+            webViewScale = scale
+        )
     }
 
     private fun installNativeCalcSlot() {
@@ -1431,27 +1449,66 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             ?: nativeCalcView?.measuredHeight?.takeIf { it > 0 }
             ?: (420 * resources.displayMetrics.density).toInt()
         val cssHeight = (height / binding.pageWebView.scale).toInt().coerceAtLeast(1)
+        val collapsed = nativeCalcView?.collapsed == true
         binding.pageWebView.evaluateJavascript(
             osrsNativeCalcDefinition.installSlotJavaScript(formId, resultId, cssHeight)
         ) { raw ->
+            binding.pageWebView.evaluateJavascript(
+                "window.osrsNativeCalcSetCollapsed && window.osrsNativeCalcSetCollapsed($collapsed)",
+                null
+            )
             val installedTop = parseNativeCalcSlotTop(raw)
             val topProbe =
-                "(function(){var s=document.getElementById('osrs-native-calc-slot');if(!s)return 0;return Math.round(s.getBoundingClientRect().top+(window.scrollY||0));})()"
+                "(function(){var s=document.getElementById('osrs-native-calc-slot');if(!s)return JSON.stringify({missing:true});var r=s.getBoundingClientRect();return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(s.closest('.collapsible-calculator')&&s.closest('.collapsible-calculator').classList.contains('collapsed'))});})()"
             binding.pageWebView.evaluateJavascript(topProbe) { probeRaw ->
-                val top = parseNativeCalcSlotTop(probeRaw).takeIf { it > 0 }
-                    ?: installedTop
-            if (top > 0) {
+                val parsed = parseNativeCalcSlotPayload(probeRaw)
+                if (parsed.missing) {
+                    if (nativeCalcSlotRetries < 12) {
+                        nativeCalcSlotRetries += 1
+                        binding.pageWebView.postDelayed({ installNativeCalcSlot() }, 350)
+                    }
+                    return@evaluateJavascript
+                }
+                val top = parsed.top.takeIf { it != 0 } ?: installedTop
                 nativeCalcSlotTopPx = top
+                if (parsed.clientWidth > 0) nativeCalcCssClientWidth = parsed.clientWidth.toFloat()
                 nativeCalcSlotRetries = 0
-                positionNativeCalcHost()
-            } else if (nativeCalcSlotRetries < 12) {
-                nativeCalcSlotRetries += 1
-                binding.pageWebView.postDelayed({ installNativeCalcSlot() }, 350)
-            } else if (nativeCalcSlotTopPx == null) {
-                nativeCalcSlotTopPx = 220
+                if (parsed.collapsed) {
+                    nativeCalcView?.setCollapsed(true)
+                }
                 positionNativeCalcHost()
             }
+        }
+    }
+
+    private data class NativeCalcSlotPayload(
+        val top: Int = 0,
+        val collapsed: Boolean = false,
+        val missing: Boolean = false,
+        val clientWidth: Int = 0
+    )
+
+    private fun parseNativeCalcSlotPayload(raw: String?): NativeCalcSlotPayload {
+        if (raw.isNullOrBlank() || raw == "null") return NativeCalcSlotPayload(missing = true)
+        return try {
+            val value = org.json.JSONTokener(raw).nextValue()
+            val obj = when (value) {
+                is org.json.JSONObject -> value
+                is String -> org.json.JSONTokener(value).nextValue() as? org.json.JSONObject
+                else -> null
             }
+            if (obj != null) {
+                NativeCalcSlotPayload(
+                    top = obj.optInt("top", 0),
+                    collapsed = obj.optBoolean("collapsed", false),
+                    missing = obj.optBoolean("missing", false),
+                    clientWidth = obj.optInt("clientWidth", 0)
+                )
+            } else {
+                NativeCalcSlotPayload(top = parseNativeCalcSlotTop(raw))
+            }
+        } catch (_: Exception) {
+            NativeCalcSlotPayload(top = parseNativeCalcSlotTop(raw))
         }
     }
 

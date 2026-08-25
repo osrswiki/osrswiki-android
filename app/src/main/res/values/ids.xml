@@ -7,5 +7,9 @@
     <item type="id" name="osrs_article_overlay_host" />
     <item type="id" name="page_live_underlay" />
     <item type="id" name="native_calc_error" />
+    <item type="id" name="native_calc_header" />
+    <item type="id" name="native_calc_overflow" />
+    <item type="id" name="native_calc_form" />
+    <item type="id" name="native_calc_label" />
 
     </resources>

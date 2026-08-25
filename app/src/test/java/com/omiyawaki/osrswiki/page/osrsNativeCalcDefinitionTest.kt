@@ -326,6 +326,13 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(runtime.contains("osrs-native-calc-slot-style"))
         assertTrue(runtime.contains(".osrs-calculator-panel"))
         assertTrue(runtime.contains(".oo-ui-textInputWidget"))
+        assertTrue(runtime.contains("collapsible-calculator"))
+        assertTrue(runtime.contains("osrsWrapNativeCalcCalculatorBox"))
+        assertTrue(runtime.contains("osrsNativeCalcSetCollapsed"))
+        assertTrue(source.contains("osrsNativeCalcSlotGeometry.hostTranslationY"))
+        assertTrue(source.contains("osrsNativeCalcSlotGeometry.HOST_ELEVATION"))
+        assertFalse(source.contains("host.elevation = if (showNativeForm) 24f"))
+        assertFalse(source.contains("nativeCalcSlotTopPx = 220"))
     }
 
     @Test
@@ -360,5 +367,9 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(source.contains("END_ICON_DROPDOWN_MENU"))
         assertTrue(source.contains("MaterialAutoCompleteTextView"))
         assertTrue(source.contains("menu"))
+        assertTrue(source.contains("UnfilteredArrayAdapter"))
+        assertTrue(source.contains("Int.MAX_VALUE"))
+        assertTrue(source.contains("native_calc_overflow"))
+        assertTrue(source.contains("collapsible") || source.contains("setCollapsed"))
     }
 }

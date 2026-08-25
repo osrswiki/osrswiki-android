@@ -3,7 +3,9 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.TextView
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import androidx.test.core.app.ApplicationProvider
 import com.omiyawaki.osrswiki.R
 import org.junit.Assert.assertEquals
@@ -114,5 +116,114 @@ class osrsNativeCalcViewTest {
         assertEquals(osrsNativeCalcSession.Phase.NATIVE, session.phase)
         assertEquals("Plank", session.resultHtml)
         assertEquals("osamo", session.values["name"])
+    }
+
+    @Test
+    fun agilitySelectLabelsAndMenusExposeEveryJcConfigOption() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext<Context>(),
+            R.style.Theme_OSRSWiki_OSRSLight
+        )
+        val view = osrsNativeCalcView(context)
+        lateinit var session: osrsNativeCalcSession
+        session = osrsNativeCalcSession(context) { view.bind(session) }
+        val definition = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")
+        assertNotNull(definition)
+        session.seedNativeStateForTesting(
+            definition!!,
+            definition.inputs.associate { it.name to it.defaultValue },
+            "Plank"
+        )
+        view.bind(session)
+        val wanted = listOf(
+            "Current: Level or Experience",
+            "Goal: Level or Experience?",
+            "Method"
+        )
+        val labels = mutableListOf<String>()
+        collectText(view, labels)
+        wanted.forEach { label ->
+            assertTrue("missing label $label in $labels", labels.contains(label))
+        }
+        val dropdowns = mutableListOf<MaterialAutoCompleteTextView>()
+        collectDropdowns(view, dropdowns)
+        assertTrue("expected Agility select menus, found ${dropdowns.size}", dropdowns.size >= 3)
+        dropdowns.forEach { dropdown ->
+            dropdown.showDropDown()
+            val adapter = dropdown.adapter
+            assertNotNull(adapter)
+            assertTrue(
+                "menu must list every option, not only the first item: ${adapter!!.count}",
+                adapter.count > 1
+            )
+        }
+        val method = definition.inputs.first { it.name == "method" }
+        val methodDropdown = dropdowns.first { it.contentDescription?.contains("Method") == true }
+        methodDropdown.showDropDown()
+        assertEquals(method.options.size, methodDropdown.adapter.count)
+        assertTrue(method.options.contains("Hallowed Sepulchre"))
+        assertTrue(method.options.contains("Barbarian Fishing"))
+    }
+
+    @Test
+    fun collapsibleCalculatorBoxHidesBodyAndAllowsHorizontalOverflow() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext<Context>(),
+            R.style.Theme_OSRSWiki_OSRSLight
+        )
+        val view = osrsNativeCalcView(context)
+        lateinit var session: osrsNativeCalcSession
+        session = osrsNativeCalcSession(context) { view.bind(session) }
+        val definition = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")
+        assertNotNull(definition)
+        session.seedNativeStateForTesting(
+            definition!!,
+            definition.inputs.associate { it.name to it.defaultValue },
+            "Plank"
+        )
+        view.bind(session)
+        val overflow = view.findViewById<HorizontalScrollView>(R.id.native_calc_overflow)
+        val form = view.findViewById<android.view.View>(R.id.native_calc_form)
+        val header = view.findViewById<TextView>(R.id.native_calc_header)
+        assertNotNull(overflow)
+        assertNotNull(form)
+        assertEquals("calculator", view.contentDescription)
+        assertEquals(android.view.View.VISIBLE, overflow.visibility)
+        view.setCollapsed(true)
+        assertTrue(view.collapsed)
+        assertEquals(android.view.View.GONE, overflow.visibility)
+        view.setCollapsed(false)
+        assertEquals(android.view.View.VISIBLE, overflow.visibility)
+        form.minimumWidth = 2400
+        view.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+        )
+        view.layout(0, 0, 400, view.measuredHeight)
+        overflow.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(view.measuredHeight, android.view.View.MeasureSpec.AT_MOST)
+        )
+        overflow.layout(0, 0, 400, overflow.measuredHeight)
+        assertTrue("wide form must be able to scroll horizontally", overflow.canScrollHorizontally(1) || form.measuredWidth > overflow.width)
+        header.performClick()
+        assertTrue(view.collapsed)
+    }
+
+    private fun collectText(view: android.view.View, into: MutableList<String>) {
+        when (view) {
+            is TextView -> into.add(view.text.toString())
+            is android.view.ViewGroup -> {
+                for (i in 0 until view.childCount) collectText(view.getChildAt(i), into)
+            }
+        }
+        view.contentDescription?.toString()?.let { if (it.isNotBlank()) into.add(it) }
+    }
+
+    private fun collectDropdowns(view: android.view.View, into: MutableList<MaterialAutoCompleteTextView>) {
+        if (view is MaterialAutoCompleteTextView) into.add(view)
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) collectDropdowns(view.getChildAt(i), into)
+        }
     }
 }
