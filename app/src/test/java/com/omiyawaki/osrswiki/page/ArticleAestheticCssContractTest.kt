@@ -159,6 +159,48 @@ class ArticleAestheticCssContractTest {
         assertTrue(fixes.contains(".collapsible-container.collapsed > .collapsible-content"))
         assertFalse(fixes.contains("padding: 12px 12px 0 12px !important;"))
         assertFalse(fixes.contains("padding: 0 12px !important;"))
+        assertDateCellsAndImageRowsStayContained(fixes)
+    }
+
+    @Test
+    fun sharedArticleCssContainsDateCellsAndKeepsImageRowsInViewport() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        val polish = assetFile("web/mobile_article_polish.js").readText()
+        val imageCap = assetFile("web/image_area_cap.js").readText()
+        val aesthetics = assetFile("styles/android-article-aesthetics.css").readText()
+        assertDateCellsAndImageRowsStayContained(fixes)
+        assertTrue(polish.contains("markImageRowTables"))
+        assertTrue(polish.contains("osrs-image-row-table"))
+        assertTrue(imageCap.contains("if (targetWidth > viewportWidth && dims.width > 0)"))
+        assertTrue(aesthetics.contains("table.osrs-map-table:not(.osrs-image-row-table)"))
+        assertFalse(
+            "Generic wikitable nowrap/max-content must not dump leftover width onto bonuses.",
+            Regex(
+                """table\.infobox-bonuses[^{]{0,80}:is\(th, td\)[^{]{0,40}\{[^}]*min-width:\s*max-content"""
+            ).containsMatchIn(fixes)
+        )
+        assertTrue(fixes.contains("table.infobox-bonuses"))
+        assertTrue(fixes.contains(".wikitable img"))
+        assertTrue(fixes.contains("width: 22px"))
+    }
+
+    private fun assertDateCellsAndImageRowsStayContained(fixes: String) {
+        assertTrue(fixes.contains("OSRS_DATE_CELL_CONTAINMENT"))
+        assertTrue(fixes.contains("OSRS_IMAGE_ROW_IN_VIEWPORT"))
+        assertTrue(fixes.contains("osrs-image-row-table"))
+        assertTrue(fixes.contains("min-width: max-content"))
+        assertTrue(
+            fixes.contains(
+                "table.wikitable:not(.infobox):not(.infobox-bonuses):not(.navbox):not(.osrs-map-table) :is(th, td)[style*=\"max-width\"]"
+            )
+        )
+        assertTrue(fixes.contains("table.osrs-map-table:not(.osrs-image-row-table)"))
+        assertFalse(
+            "Two-map location rows must not inherit the Destination|Map 99% column.",
+            Regex(
+                """table\.osrs-map-table\s*>\s*:is\(thead, tbody, tfoot\)\s*>\s*tr\s*>\s*:is\(th, td\):has\(\.mw-kartographer-map\)"""
+            ).containsMatchIn(fixes.replace(" ", "").replace("\n", ""))
+        )
     }
 
     @Test
