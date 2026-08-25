@@ -52,6 +52,45 @@ object osrsNativeCalcSlotGeometry {
         return pinnedToTop && hostElevation >= appBarElevation
     }
 
+    data class PopupFrame(
+        val windowY: Int,
+        val windowHeight: Int,
+        val contentTranslationY: Float,
+        val visible: Boolean
+    )
+
+    /**
+     * Intersect the translated form with the WebView rect. Negative
+     * [translationY] shrinks from the top (content shifts up) instead of
+     * painting over search chrome above [webViewTopOnScreen].
+     */
+    fun clippedPopupFrame(
+        webViewTopOnScreen: Int,
+        webViewHeight: Int,
+        translationY: Float,
+        formHeight: Int
+    ): PopupFrame {
+        if (webViewHeight <= 0 || formHeight <= 0) {
+            return PopupFrame(webViewTopOnScreen, 0, 0f, false)
+        }
+        val unclippedTop = webViewTopOnScreen + translationY
+        val unclippedBottom = unclippedTop + formHeight
+        val clipTop = webViewTopOnScreen.toFloat()
+        val clipBottom = (webViewTopOnScreen + webViewHeight).toFloat()
+        val windowTop = maxOf(unclippedTop, clipTop)
+        val windowBottom = minOf(unclippedBottom, clipBottom)
+        val windowHeight = (windowBottom - windowTop).toInt()
+        if (windowHeight <= 0) {
+            return PopupFrame(webViewTopOnScreen, 0, 0f, false)
+        }
+        return PopupFrame(
+            windowY = windowTop.toInt(),
+            windowHeight = windowHeight,
+            contentTranslationY = unclippedTop - windowTop,
+            visible = true
+        )
+    }
+
     /**
      * The overlay is laid out at the top of the article shell and moved with
      * [hostTranslationY]. If the parent clips children to that untranslated
@@ -71,5 +110,32 @@ object osrsNativeCalcSlotGeometry {
         val clipTop = layoutTop
         val clipBottom = layoutTop + layoutHeight
         return minOf(clipBottom, drawnBottom) <= maxOf(clipTop, drawnTop)
+    }
+
+    fun containsRawPoint(
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        rawX: Float,
+        rawY: Float
+    ): Boolean {
+        return rawX >= left && rawX < right && rawY >= top && rawY < bottom
+    }
+
+    fun hitClickable(root: android.view.View, rawX: Float, rawY: Float): android.view.View? {
+        if (root.visibility != android.view.View.VISIBLE) return null
+        if (root is android.view.ViewGroup) {
+            for (i in root.childCount - 1 downTo 0) {
+                hitClickable(root.getChildAt(i), rawX, rawY)?.let { return it }
+            }
+        }
+        if (!root.isClickable && !root.isLongClickable) return null
+        val loc = IntArray(2)
+        root.getLocationOnScreen(loc)
+        if (!containsRawPoint(loc[0], loc[1], loc[0] + root.width, loc[1] + root.height, rawX, rawY)) {
+            return null
+        }
+        return root
     }
 }

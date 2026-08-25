@@ -216,34 +216,65 @@ class osrsNativeCalcView @JvmOverloads constructor(
         input: osrsNativeCalcDefinition.Input,
         onPaper: Int
     ): View {
-        val layout = TextInputLayout(context)
         val current = session.values[input.name] ?: input.defaultValue
-        val dropdown = MaterialAutoCompleteTextView(context).apply {
-            val adapter = UnfilteredArrayAdapter(context, input.options)
+        val adapter = UnfilteredArrayAdapter(context, input.options)
+        val hidden = MaterialAutoCompleteTextView(context).apply {
             setAdapter(adapter)
             setText(current, false)
-            setTextColor(onPaper)
-            inputType = InputType.TYPE_NULL
-            keyListener = null
-            isFocusable = false
-            isCursorVisible = false
             threshold = Int.MAX_VALUE
-            contentDescription = "${input.label} menu"
-            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-            setOnClickListener { showDropDown() }
-            setOnItemClickListener { _, _, position, _ ->
-                val selected = input.options.getOrNull(position) ?: return@setOnItemClickListener
-                session.setValue(input.name, selected)
-            }
+            visibility = GONE
+            contentDescription = "${input.label} adapter"
         }
-        layout.addView(
-            dropdown,
-            LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-        )
-        layout.endIconMode = TextInputLayout.END_ICON_DROPDOWN_MENU
-        layout.contentDescription = "${input.label} menu"
-        layout.setEndIconOnClickListener { dropdown.showDropDown() }
-        return layout
+        val optionsList = LinearLayout(context).apply {
+            orientation = VERTICAL
+            visibility = GONE
+            tag = "native-calc-options-${input.name}"
+        }
+        val button = MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = current
+            setTextColor(onPaper)
+            contentDescription = "${input.label} menu"
+            tag = input.options
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+            isFocusable = true
+            isClickable = true
+        }
+        button.setOnClickListener {
+            if (optionsList.visibility == VISIBLE) {
+                optionsList.visibility = GONE
+                onCollapsedChange?.invoke(collapsed)
+                return@setOnClickListener
+            }
+            optionsList.removeAllViews()
+            input.options.forEach { option ->
+                optionsList.addView(
+                    MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                        text = option
+                        setTextColor(onPaper)
+                        contentDescription = option
+                        tag = "native-calc-option-$option"
+                        isFocusable = true
+                        isClickable = true
+                        setOnClickListener {
+                            button.text = option
+                            hidden.setText(option, false)
+                            session.setValue(input.name, option)
+                            optionsList.visibility = GONE
+                            onCollapsedChange?.invoke(collapsed)
+                        }
+                    },
+                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+                )
+            }
+            optionsList.visibility = VISIBLE
+            onCollapsedChange?.invoke(collapsed)
+        }
+        return LinearLayout(context).apply {
+            orientation = VERTICAL
+            addView(hidden, LayoutParams(0, 0))
+            addView(button, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            addView(optionsList, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
     }
 
     private fun chips(session: osrsNativeCalcSession, input: osrsNativeCalcDefinition.Input): View {

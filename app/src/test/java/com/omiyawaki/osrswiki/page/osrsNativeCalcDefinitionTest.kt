@@ -351,6 +351,18 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(install.contains(".oo-ui-textInputWidget"))
         assertTrue(install.contains(".jsCalc-field"))
         assertTrue(runtime.contains("html.osrs-native-calc-slot-active"))
+        val hideRootAt = install.indexOf("var hideRoot")
+        val selectQueryAt = install.indexOf("hideRoot.querySelectorAll('select")
+        assertTrue("install must assign hideRoot", hideRootAt >= 0)
+        assertTrue("install must neutralize leftover gadget <select> nodes", selectQueryAt >= 0)
+        assertTrue(
+            "hideRoot must be assigned before querying selects, or slot install throws and Android WebView keeps the HTML Method picker",
+            hideRootAt < selectQueryAt
+        )
+        assertTrue(install.contains("disabled"))
+        assertTrue(install.contains("removeChild") || install.contains(".remove("))
+        assertTrue(install.contains("MutationObserver"))
+        assertTrue(install.contains("waiting: true"))
         val uninstall = runtime.substringAfter("window.osrsUninstallNativeCalcSlot = function")
             .substringBefore("function osrsInstallCalculatorKeyboardGuards")
         assertTrue(uninstall.contains("osrs-native-calc-slot-active"))
@@ -364,11 +376,12 @@ class osrsNativeCalcDefinitionTest {
             java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
         )
         val source = candidates.first { it.exists() }.readText()
-        assertTrue(source.contains("END_ICON_DROPDOWN_MENU"))
         assertTrue(source.contains("MaterialAutoCompleteTextView"))
         assertTrue(source.contains("menu"))
         assertTrue(source.contains("UnfilteredArrayAdapter"))
         assertTrue(source.contains("Int.MAX_VALUE"))
+        assertTrue(source.contains("native-calc-option-"))
+        assertFalse(source.contains("AlertDialog.Builder"))
         assertTrue(source.contains("native_calc_overflow"))
         assertTrue(source.contains("collapsible") || source.contains("setCollapsed"))
     }

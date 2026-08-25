@@ -158,11 +158,24 @@ class osrsNativeCalcViewTest {
             )
         }
         val method = definition.inputs.first { it.name == "method" }
-        val methodDropdown = dropdowns.first { it.contentDescription?.contains("Method") == true }
+        val methodDropdown = dropdowns.first { it.contentDescription?.toString()?.contains("Method") == true }
         methodDropdown.showDropDown()
         assertEquals(method.options.size, methodDropdown.adapter.count)
         assertTrue(method.options.contains("Hallowed Sepulchre"))
         assertTrue(method.options.contains("Barbarian Fishing"))
+        val menus = mutableListOf<android.view.View>()
+        collectMenuButtons(view, menus)
+        val methodMenu = menus.first { it.contentDescription?.toString()?.contains("Method menu") == true }
+        assertEquals(method.options, methodMenu.tag)
+        methodMenu.performClick()
+        val opened = mutableListOf<String>()
+        collectText(view, opened)
+        method.options.forEach { option ->
+            assertTrue(
+                "Method menu must list $option in the native form, not a WebView picker: $opened",
+                opened.contains(option)
+            )
+        }
     }
 
     @Test
@@ -224,6 +237,13 @@ class osrsNativeCalcViewTest {
         if (view is MaterialAutoCompleteTextView) into.add(view)
         if (view is android.view.ViewGroup) {
             for (i in 0 until view.childCount) collectDropdowns(view.getChildAt(i), into)
+        }
+    }
+
+    private fun collectMenuButtons(view: android.view.View, into: MutableList<android.view.View>) {
+        if (view.contentDescription?.toString()?.endsWith(" menu") == true) into.add(view)
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) collectMenuButtons(view.getChildAt(i), into)
         }
     }
 }
