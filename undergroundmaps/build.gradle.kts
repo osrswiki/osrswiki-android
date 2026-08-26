@@ -144,7 +144,6 @@ dependencies {
     androidTestImplementation(libs.androidx.uiautomator)
 }
 
-val generatedRealmAssets = layout.buildDirectory.dir("generated/realmAssets/main")
 // Explicit opt-in only. Do NOT auto-pick the home underground-realms cache —
 // that silently made the v2.0.1 GitHub FOSS APK diverge from a clean public
 // assemble / F-Droid build (fixture stub vs 2.3MB candidate 010 + assets/assets).
@@ -152,6 +151,17 @@ val generatedRealmAssets = layout.buildDirectory.dir("generated/realmAssets/main
 // OSRS_UNDERGROUND_ASSETS_DIR=...
 val suppliedRealmAssets = providers.gradleProperty("osrsUndergroundAssetsDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_ASSETS_DIR"))
+val resolvedRealmAssetsPath = suppliedRealmAssets.orNull.orEmpty()
+// Keep Play/debug opt-in bytes out of the default fixture output. A later
+// no-opt-in prepare in the same tree used to overwrite generated/realmAssets/main
+// and leak fixture/surface.mbtiles into the next Play/debug package.
+val generatedRealmAssets = layout.buildDirectory.dir(
+    if (resolvedRealmAssetsPath.isNotBlank()) {
+        "generated/realmAssets/optIn"
+    } else {
+        "generated/realmAssets/fixture"
+    }
+)
 val suppliedPublicationEvidence = providers.gradleProperty("osrsUndergroundEvidenceDir")
     .orElse(providers.environmentVariable("OSRS_UNDERGROUND_EVIDENCE_DIR"))
 val expectedRealmManifestSha256 = providers.gradleProperty(
@@ -178,8 +188,9 @@ val prepareUndergroundRealmAssets by tasks.registering(Sync::class) {
         expectedRealmManifestSha256.orElse("fixture-or-unpinned")
     )
     inputs.property("requireCompletePublicationClosure", requireCompletePublicationClosure)
+    inputs.property("osrsUndergroundAssetsDir", resolvedRealmAssetsPath.ifBlank { "fixture" })
 
-    val resolvedRealmAssets = suppliedRealmAssets.orNull.orEmpty()
+    val resolvedRealmAssets = resolvedRealmAssetsPath
     if (resolvedRealmAssets.isNotBlank()) {
         // Relative values are the Android Gradle root (public repo root /
         // platforms/android), not this module directory. That matches

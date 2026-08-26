@@ -56,6 +56,8 @@ class osrsStandalonePackagingContractTest {
         assertTrue(gradle.contains("OSRS_UNDERGROUND_ASSETS_DIR"))
         assertTrue(gradle.contains("src/fixtureAssets"))
         assertTrue(gradle.contains("rootProject.file(resolvedRealmAssets)"))
+        assertTrue(gradle.contains("generated/realmAssets/optIn"))
+        assertTrue(gradle.contains("generated/realmAssets/fixture"))
         assertFalse(gradle.contains("from(file(resolvedRealmAssets))"))
         assertFalse(gradle.contains("binary-assets/underground-realms"))
         assertFalse(gradle.contains("osrswiki-local-artifacts/cache"))

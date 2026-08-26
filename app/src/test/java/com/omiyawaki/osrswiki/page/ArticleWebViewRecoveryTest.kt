@@ -358,6 +358,57 @@ class ArticleWebViewRecoveryTest {
     }
 
     @Test
+    fun canonicalArticleMapsAttachForKartographerPlaceholdersAndKeepStaticOnOpenFailure() {
+        val handler = sourceFile("NativeMapHandler.kt").readText()
+        val fragment = sourceFile("CanonicalArticleMapFragment.kt").readText()
+        val createBody = handler.substringAfter("private fun createMapContainer")
+            .substringBefore("private fun applyMapContainerLayout")
+        val failureBody = createBody.substringAfter("fragment.onFailure")
+            .substringBefore("fragment.childFragmentManager")
+
+        assertTrue(createBody.contains("CanonicalArticleMapFragment.newInstance"))
+        assertFalse(createBody.contains("infobox"))
+        assertTrue(createBody.contains("onFirstFrame"))
+        assertTrue(createBody.contains("hideStaticPlaceholder(id)"))
+        assertTrue(createBody.contains("onFailure"))
+        assertTrue(failureBody.contains("showStaticPlaceholder(id)"))
+        assertTrue(failureBody.contains("removeMapContainer(id)"))
+        assertFalse(failureBody.contains("hideStaticPlaceholder"))
+        assertTrue(fragment.contains("repository.loadCatalog()"))
+        assertTrue(fragment.contains("osrsArticleMapRealmResolver.resolve"))
+        assertTrue(fragment.contains("if (isAdded) onFailure?.invoke(error)"))
+        val catchBody = fragment.substringAfter("} catch (error: Throwable) {")
+            .substringBefore("}")
+        assertTrue(catchBody.contains("onFailure?.invoke(error)"))
+        assertFalse(catchBody.contains("onFirstFrame"))
+        assertTrue(fragment.contains("installFirstFrameHandoff()"))
+        val firstFrame = fragment.substringAfter("private fun installFirstFrameHandoff")
+            .substringBefore("override fun onStart")
+        assertTrue(firstFrame.contains("onFirstFrame?.invoke()"))
+        assertFalse(handler.contains("fixture/surface.mbtiles"))
+    }
+
+    @Test
+    fun articleNativeMapOverlayStateKeepsToggleOpenAcrossLaterMeasurement() {
+        val state = ArticleNativeMapOverlayState()
+        val infobox = state.recordMeasurement(
+            id = "map-placeholder-infobox",
+            bounds = ArticleNativeMapBounds(top = 40f, start = 16f, width = 300f, height = 180f),
+            initiallyVisible = true
+        )
+        assertEquals(true, infobox.desiredVisible)
+
+        state.recordDesiredVisibility("map-placeholder-glory-0", true)
+        val glory = state.recordMeasurement(
+            id = "map-placeholder-glory-0",
+            bounds = ArticleNativeMapBounds(top = 520f, start = 16f, width = 300f, height = 180f),
+            initiallyVisible = false
+        )
+        assertEquals(true, glory.desiredVisible)
+        assertEquals(true, state.record("map-placeholder-glory-0")?.desiredVisible)
+    }
+
+    @Test
     fun articleNavigationWaitsForExplicitGenerationBoundDomOwnershipClassification() {
         val source = sourceFile("PageFragment.kt").readText()
         val setupBody = source.substringAfter("private fun setupGestureDetector()")
