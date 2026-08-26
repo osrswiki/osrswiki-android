@@ -332,6 +332,60 @@ class osrsNativeCalcSlotGeometryTest {
     }
 
     @Test
+    fun firstLayoutWidthUsesContentColumnNotLeftoverOrIntersection() {
+        assertEquals(
+            "first probe must use the article content column, not a skinny leftover slot",
+            366f,
+            osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+                slotWidthCss = 96f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        assertEquals(
+            366f,
+            osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+                slotWidthCss = 96f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f,
+                intersected = true
+            ),
+            0.1f
+        )
+        assertEquals(
+            "matching slot and column stay at the column",
+            366f,
+            osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+                slotWidthCss = 366f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        assertEquals(
+            366f,
+            osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+                slotWidthCss = 0f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        assertTrue(source.contains("firstLayoutWidthCss"))
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        assertTrue(runtime.contains("osrsNativeCalcContentColumnWidth"))
+        assertTrue(runtime.contains("osrsNativeCalcApplyContentColumnWidth"))
+        assertTrue(runtime.contains("contentColumn"))
+    }
+
+    @Test
     fun rawPointInsideNativeControlIsHitSoWebViewSelectDoesNotStealTap() {
         assertTrue(
             osrsNativeCalcSlotGeometry.containsRawPoint(

@@ -1609,14 +1609,22 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
               if(!s)return JSON.stringify({missing:true,selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active'))});
               var r=s.getBoundingClientRect();
               var box=s.closest('.collapsible-calculator');
-              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),width:Math.round(r.width),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
+              var boxR=box?box.getBoundingClientRect():null;
+              var column=window.osrsNativeCalcContentColumnWidth?window.osrsNativeCalcContentColumnWidth():0;
+              if(window.osrsNativeCalcApplyContentColumnWidth&&box)window.osrsNativeCalcApplyContentColumnWidth(box);
+              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),width:Math.round(Math.max(r.width,boxR?boxR.width:0,column)),contentColumn:Math.round(column),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
             })()
             """.trimIndent()
         ) { raw ->
             if (gen != nativeCalcInstallGeneration) return@evaluateJavascript
             val parsed = parseNativeCalcSlotPayload(raw)
             nativeCalcSlotLeftPx = parsed.left
-            if (parsed.width > 0) nativeCalcSlotWidthPx = parsed.width
+            val widthCss = osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+                slotWidthCss = parsed.width.toFloat(),
+                contentColumnWidthCss = parsed.contentColumn.toFloat(),
+                viewportWidthCss = parsed.clientWidth.toFloat()
+            )
+            if (widthCss > 0f) nativeCalcSlotWidthPx = widthCss.toInt()
             nativeCalcView?.setCollapsed(parsed.collapsed)
             val mayShow = osrsNativeCalcSlotGeometry.popupMayShow(
                 selectCount = parsed.selectCount,
@@ -1669,6 +1677,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val top: Int = 0,
         val left: Int = 0,
         val width: Int = 0,
+        val contentColumn: Int = 0,
         val collapsed: Boolean = false,
         val missing: Boolean = false,
         val clientWidth: Int = 0,
@@ -1691,6 +1700,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                     top = obj.optInt("top", 0),
                     left = obj.optInt("left", 0),
                     width = obj.optInt("width", 0),
+                    contentColumn = obj.optInt("contentColumn", 0),
                     collapsed = obj.optBoolean("collapsed", false),
                     missing = obj.optBoolean("missing", false),
                     clientWidth = obj.optInt("clientWidth", 0),

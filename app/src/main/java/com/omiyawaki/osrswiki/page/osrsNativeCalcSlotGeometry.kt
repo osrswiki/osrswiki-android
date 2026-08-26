@@ -196,4 +196,30 @@ object osrsNativeCalcSlotGeometry {
     fun popupContentHeight(formHeight: Int, windowHeight: Int): Int {
         return formHeight.coerceAtLeast(1)
     }
+
+    /**
+     * Host width on first layout. Leftover gadget/slot shrink-wrap that is
+     * much smaller than the article content column is ignored. [intersected]
+     * must not change the result — width is not gated on viewport intersection.
+     */
+    @JvmOverloads
+    fun firstLayoutWidthCss(
+        slotWidthCss: Float,
+        contentColumnWidthCss: Float,
+        viewportWidthCss: Float,
+        intersected: Boolean = false
+    ): Float {
+        val column = when {
+            contentColumnWidthCss > 1f -> contentColumnWidthCss
+            viewportWidthCss > 1f -> viewportWidthCss
+            else -> slotWidthCss
+        }
+        if (contentColumnWidthCss > 1f && slotWidthCss > 1f &&
+            slotWidthCss < contentColumnWidthCss * 0.7f
+        ) {
+            return contentColumnWidthCss
+        }
+        if (slotWidthCss > 1f) return slotWidthCss
+        return if (intersected) column else column
+    }
 }
