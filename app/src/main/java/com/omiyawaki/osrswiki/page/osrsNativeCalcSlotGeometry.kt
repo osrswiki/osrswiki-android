@@ -155,8 +155,8 @@ object osrsNativeCalcSlotGeometry {
             }
         }
         // EditText is focusable-in-touch-mode but not clickable by default.
-        // Fields are interactive controls; pans that start on them must not
-        // fall through (same residual as iOS).
+        // Fields are interactive controls; a DOWN on them is a tap candidate,
+        // not an owned gesture — vertical slop becomes article scroll.
         if (!root.isClickable && !root.isLongClickable && !root.isFocusableInTouchMode) {
             return null
         }
@@ -167,6 +167,16 @@ object osrsNativeCalcSlotGeometry {
         }
         return root
     }
+
+    /**
+     * WebView [MotionEvent] local x/y are in WebView space. A synthetic
+     * dispatch onto the popup host must use screen/raw minus the host's
+     * screen origin, or buttons miss while EditText IME (raw hit-test)
+     * still works.
+     */
+    fun hostLocalX(rawX: Float, hostScreenX: Int): Float = rawX - hostScreenX.toFloat()
+
+    fun hostLocalY(rawY: Float, hostScreenY: Int): Float = rawY - hostScreenY.toFloat()
 
     fun popupMayShow(
         selectCount: Int,
@@ -272,10 +282,171 @@ object osrsNativeCalcSlotGeometry {
     }
 
     /**
-     * Off-control pans must reach the article WebView. Only a gesture that
-     * started on a clickable descendant is owned by the overlay.
+     * Off-control pans must reach the article WebView. A control-started
+     * gesture is consumed only when it stays a tap (never exceeded slop).
      */
-    fun popupConsumesWebViewTouch(ownsGesture: Boolean): Boolean = ownsGesture
+    fun popupConsumesWebViewTouch(consume: Boolean): Boolean = consume
+
+    data class osrsNativeCalcControlTouchDecision(
+        val consume: Boolean,
+        val candidate: Boolean,
+        val blockHorizontalSwipe: Boolean,
+        val dispatchTap: Boolean,
+        val cancelControl: Boolean,
+        val offerIme: Boolean,
+        val releaseIme: Boolean,
+        val downX: Float,
+        val downY: Float
+    )
+
+    fun movementExceededSlop(dx: Float, dy: Float, slopPx: Int): Boolean {
+        val slop = slopPx.coerceAtLeast(0).toFloat()
+        return dx * dx + dy * dy > slop * slop
+    }
+
+    fun isVerticalArticlePan(dx: Float, dy: Float): Boolean = kotlin.math.abs(dy) >= kotlin.math.abs(dx)
+
+    /**
+     * Tap-vs-pan for a pointer that may have started on a native-calc control.
+     * DOWN over a clickable is not consumed: the WebView keeps the pointer so a
+     * later vertical pan can scroll. UP inside slop dispatches the tap.
+     * Horizontal pans that started on a control must not become back-swipe.
+     */
+    fun decideControlTouch(
+        actionMasked: Int,
+        hitClickable: Boolean,
+        candidate: Boolean,
+        blockHorizontalSwipe: Boolean,
+        deliveredDown: Boolean,
+        downX: Float,
+        downY: Float,
+        x: Float,
+        y: Float,
+        slopPx: Int
+    ): osrsNativeCalcControlTouchDecision {
+        val dx = x - downX
+        val dy = y - downY
+        val exceeded = movementExceededSlop(dx, dy, slopPx)
+        return when (actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                if (hitClickable) {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = false,
+                        candidate = true,
+                        blockHorizontalSwipe = true,
+                        dispatchTap = false,
+                        cancelControl = false,
+                        offerIme = false,
+                        releaseIme = false,
+                        downX = x,
+                        downY = y
+                    )
+                } else {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = false,
+                        candidate = false,
+                        blockHorizontalSwipe = false,
+                        dispatchTap = false,
+                        cancelControl = false,
+                        offerIme = false,
+                        releaseIme = true,
+                        downX = x,
+                        downY = y
+                    )
+                }
+            }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                if (!candidate && !blockHorizontalSwipe) {
+                    idleTouchDecision(downX, downY)
+                } else if (candidate && exceeded) {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = false,
+                        candidate = false,
+                        blockHorizontalSwipe = true,
+                        dispatchTap = false,
+                        cancelControl = deliveredDown,
+                        offerIme = false,
+                        releaseIme = false,
+                        downX = downX,
+                        downY = downY
+                    )
+                } else {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = false,
+                        candidate = candidate,
+                        blockHorizontalSwipe = true,
+                        dispatchTap = false,
+                        cancelControl = false,
+                        offerIme = false,
+                        releaseIme = false,
+                        downX = downX,
+                        downY = downY
+                    )
+                }
+            }
+            android.view.MotionEvent.ACTION_UP -> {
+                if (candidate && !exceeded) {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = true,
+                        candidate = false,
+                        blockHorizontalSwipe = false,
+                        dispatchTap = true,
+                        cancelControl = false,
+                        offerIme = true,
+                        releaseIme = false,
+                        downX = downX,
+                        downY = downY
+                    )
+                } else {
+                    osrsNativeCalcControlTouchDecision(
+                        consume = false,
+                        candidate = false,
+                        blockHorizontalSwipe = blockHorizontalSwipe,
+                        dispatchTap = false,
+                        cancelControl = deliveredDown,
+                        offerIme = false,
+                        releaseIme = false,
+                        downX = downX,
+                        downY = downY
+                    )
+                }
+            }
+            android.view.MotionEvent.ACTION_CANCEL -> osrsNativeCalcControlTouchDecision(
+                consume = false,
+                candidate = false,
+                blockHorizontalSwipe = blockHorizontalSwipe,
+                dispatchTap = false,
+                cancelControl = deliveredDown,
+                offerIme = false,
+                releaseIme = false,
+                downX = downX,
+                downY = downY
+            )
+            else -> osrsNativeCalcControlTouchDecision(
+                consume = false,
+                candidate = candidate,
+                blockHorizontalSwipe = blockHorizontalSwipe,
+                dispatchTap = false,
+                cancelControl = false,
+                offerIme = false,
+                releaseIme = false,
+                downX = downX,
+                downY = downY
+            )
+        }
+    }
+
+    private fun idleTouchDecision(downX: Float, downY: Float) = osrsNativeCalcControlTouchDecision(
+        consume = false,
+        candidate = false,
+        blockHorizontalSwipe = false,
+        dispatchTap = false,
+        cancelControl = false,
+        offerIme = false,
+        releaseIme = false,
+        downX = downX,
+        downY = downY
+    )
 
     /**
      * Overlay frame width. Wider-than-box chrome clips to the collapsible

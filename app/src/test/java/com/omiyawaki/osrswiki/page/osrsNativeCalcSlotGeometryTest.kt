@@ -195,7 +195,27 @@ class osrsNativeCalcSlotGeometryTest {
         assertTrue(source.contains("offerNativeCalcIme"))
         assertTrue(source.contains("showSoftInput"))
         assertTrue(source.contains("popupConsumesWebViewTouch"))
-        assertTrue(source.contains("nativeCalcOwnsTouch"))
+        assertTrue(source.contains("decideControlTouch"))
+        assertTrue(source.contains("nativeCalcTouchCandidate"))
+        assertTrue(source.contains("nativeCalcBlockHorizontalSwipe"))
+        assertTrue(source.contains("scaledTouchSlop"))
+        assertTrue(source.contains("hostLocalX"))
+        assertTrue(source.contains("setLocation"))
+        assertFalse(
+            "synthetic control taps must use raw/screen minus host origin, not WebView-local offsetLocation",
+            source.substringAfter("private fun dispatchNativeCalcControlEvent")
+                .substringBefore("private fun cancelWebViewPointer")
+                .contains("offsetLocation")
+        )
+        assertFalse(
+            "IME must not make the popup a touch-modal lid; pans on a focused field still scroll",
+            source.contains("popup.isTouchable = true")
+        )
+        val offer = source.substringAfter("private fun offerNativeCalcIme")
+            .substringBefore("private fun releaseNativeCalcIme")
+        assertTrue(offer.contains("isFocusable = true"))
+        assertTrue(offer.contains("isTouchable = false"))
+        assertTrue(offer.contains("isFocusableInTouchMode = false"))
     }
 
     @Test
@@ -524,5 +544,139 @@ class osrsNativeCalcSlotGeometryTest {
                 rawY = 1750f
             )
         )
+    }
+
+    @Test
+    fun controlTouchDownOverClickableDoesNotConsumeUntilTapOrPan() {
+        val slop = 16
+        val down = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_DOWN,
+            hitClickable = true,
+            candidate = false,
+            blockHorizontalSwipe = false,
+            deliveredDown = false,
+            downX = 0f,
+            downY = 0f,
+            x = 100f,
+            y = 200f,
+            slopPx = slop
+        )
+        assertFalse("DOWN over a control must not consume; the WebView keeps the pointer", down.consume)
+        assertTrue(down.candidate)
+        assertTrue(down.blockHorizontalSwipe)
+        assertFalse(down.dispatchTap)
+        assertFalse(down.offerIme)
+
+        val within = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_MOVE,
+            hitClickable = true,
+            candidate = true,
+            blockHorizontalSwipe = true,
+            deliveredDown = false,
+            downX = 100f,
+            downY = 200f,
+            x = 104f,
+            y = 208f,
+            slopPx = slop
+        )
+        assertFalse(within.consume)
+        assertTrue(within.candidate)
+        assertFalse(within.dispatchTap)
+
+        val tap = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_UP,
+            hitClickable = true,
+            candidate = true,
+            blockHorizontalSwipe = true,
+            deliveredDown = false,
+            downX = 100f,
+            downY = 200f,
+            x = 104f,
+            y = 208f,
+            slopPx = slop
+        )
+        assertTrue("UP inside slop is the tap: consume so the WebView does not click", tap.consume)
+        assertTrue(tap.dispatchTap)
+        assertTrue(tap.offerIme)
+        assertFalse(tap.candidate)
+    }
+
+    @Test
+    fun hostLocalFromRawUsesScreenOriginNotWebViewLocal() {
+        // WebView-local (400, 300) plus search-bar offset would miss a button
+        // at popup (76, 321) if we subtracted host origin from local x/y.
+        assertEquals(604f, osrsNativeCalcSlotGeometry.hostLocalX(680f, 76), 0.01f)
+        assertEquals(110f, osrsNativeCalcSlotGeometry.hostLocalY(431f, 321), 0.01f)
+        val webViewLocalY = 497f - 200f
+        val wrongY = webViewLocalY - 321f
+        assertTrue("WebView-local minus host screen Y misses the Lookup row", wrongY < 0f)
+        assertTrue(osrsNativeCalcSlotGeometry.hostLocalY(497f, 321) > 0f)
+    }
+
+    @Test
+    fun controlTouchVerticalSlopCancelsAndDoesNotTap() {
+        val slop = 16
+        assertFalse(osrsNativeCalcSlotGeometry.movementExceededSlop(0f, 16f, slop))
+        assertTrue(osrsNativeCalcSlotGeometry.movementExceededSlop(0f, 17f, slop))
+        assertTrue(osrsNativeCalcSlotGeometry.isVerticalArticlePan(3f, 40f))
+        assertFalse(osrsNativeCalcSlotGeometry.isVerticalArticlePan(40f, 3f))
+
+        val pan = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_MOVE,
+            hitClickable = true,
+            candidate = true,
+            blockHorizontalSwipe = true,
+            deliveredDown = true,
+            downX = 100f,
+            downY = 200f,
+            x = 102f,
+            y = 240f,
+            slopPx = slop
+        )
+        assertFalse("vertical slop belongs to the article WebView", pan.consume)
+        assertFalse(pan.candidate)
+        assertTrue(pan.blockHorizontalSwipe)
+        assertTrue("already-delivered DOWN must be cancelled so the control does not click", pan.cancelControl)
+        assertFalse(pan.dispatchTap)
+        assertFalse(pan.offerIme)
+
+        val up = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_UP,
+            hitClickable = true,
+            candidate = false,
+            blockHorizontalSwipe = true,
+            deliveredDown = false,
+            downX = 100f,
+            downY = 200f,
+            x = 102f,
+            y = 280f,
+            slopPx = slop
+        )
+        assertFalse(up.consume)
+        assertFalse(up.dispatchTap)
+        assertTrue(
+            "keep blocking horizontal swipe through UP so a field pan cannot become back-swipe",
+            up.blockHorizontalSwipe
+        )
+    }
+
+    @Test
+    fun parchmentDownReleasesImeAndDoesNotConsume() {
+        val down = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = android.view.MotionEvent.ACTION_DOWN,
+            hitClickable = false,
+            candidate = false,
+            blockHorizontalSwipe = false,
+            deliveredDown = false,
+            downX = 0f,
+            downY = 0f,
+            x = 50f,
+            y = 80f,
+            slopPx = 16
+        )
+        assertFalse(down.consume)
+        assertFalse(down.candidate)
+        assertTrue(down.releaseIme)
+        assertFalse(down.blockHorizontalSwipe)
     }
 }

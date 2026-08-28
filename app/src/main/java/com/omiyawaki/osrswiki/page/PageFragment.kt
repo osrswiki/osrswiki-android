@@ -93,7 +93,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var nativeCalcPopupHost: android.widget.FrameLayout? = null
     private var nativeCalcPopupDismissing = false
     private val nativeCalcPopupScreenRect = android.graphics.Rect()
-    private var nativeCalcOwnsTouch = false
+    private var nativeCalcTouchCandidate = false
+    private var nativeCalcBlockHorizontalSwipe = false
+    private var nativeCalcDeliveredDown = false
+    private var nativeCalcTouchDownX = 0f
+    private var nativeCalcTouchDownY = 0f
+    private var nativeCalcImeHoldsWebViewFocus = false
     private var nativeCalcSlotTopPx: Int? = null
     private var nativeCalcSlotLeftPx: Int = 0
     private var nativeCalcSlotWidthPx: Int = 0
@@ -449,6 +454,14 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                 return@setOnTouchListener true
             }
             if (injectingWebViewCancel) {
+                return@setOnTouchListener false
+            }
+            if (nativeCalcBlockHorizontalSwipe) {
+                if (event.actionMasked == MotionEvent.ACTION_UP ||
+                    event.actionMasked == MotionEvent.ACTION_CANCEL
+                ) {
+                    nativeCalcBlockHorizontalSwipe = false
+                }
                 return@setOnTouchListener false
             }
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -1442,50 +1455,95 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private fun dispatchNativeCalcPopupTouch(event: android.view.MotionEvent): Boolean {
         val host = nativeCalcView ?: return false
         if (nativeCalcPopup?.isShowing != true) {
-            nativeCalcOwnsTouch = false
+            resetNativeCalcTouchState()
             return false
         }
-        when (event.actionMasked) {
-            android.view.MotionEvent.ACTION_DOWN -> {
-                nativeCalcOwnsTouch =
-                    osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY) != null
-                if (!nativeCalcOwnsTouch) {
-                    releaseNativeCalcIme(host)
-                }
-            }
-            android.view.MotionEvent.ACTION_UP,
-            android.view.MotionEvent.ACTION_CANCEL -> {
-                val consume = osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(nativeCalcOwnsTouch)
-                if (consume) {
-                    dispatchNativeCalcOwnedTouch(host, event)
-                }
-                nativeCalcOwnsTouch = false
-                return consume
+        val slop = android.view.ViewConfiguration.get(host.context).scaledTouchSlop
+        val hitClickable = event.actionMasked != android.view.MotionEvent.ACTION_DOWN ||
+            osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY) != null
+        val decision = osrsNativeCalcSlotGeometry.decideControlTouch(
+            actionMasked = event.actionMasked,
+            hitClickable = hitClickable,
+            candidate = nativeCalcTouchCandidate,
+            blockHorizontalSwipe = nativeCalcBlockHorizontalSwipe,
+            deliveredDown = nativeCalcDeliveredDown,
+            downX = nativeCalcTouchDownX,
+            downY = nativeCalcTouchDownY,
+            x = event.rawX,
+            y = event.rawY,
+            slopPx = slop
+        )
+        nativeCalcTouchCandidate = decision.candidate
+        nativeCalcBlockHorizontalSwipe = decision.blockHorizontalSwipe
+        nativeCalcTouchDownX = decision.downX
+        nativeCalcTouchDownY = decision.downY
+        if (decision.releaseIme) {
+            releaseNativeCalcIme(host)
+        }
+        if (decision.cancelControl && nativeCalcDeliveredDown) {
+            dispatchNativeCalcControlEvent(host, event, android.view.MotionEvent.ACTION_CANCEL)
+            nativeCalcDeliveredDown = false
+        }
+        if (decision.dispatchTap) {
+            cancelWebViewPointer(event)
+            dispatchNativeCalcControlEvent(host, event, android.view.MotionEvent.ACTION_DOWN)
+            dispatchNativeCalcControlEvent(host, event, android.view.MotionEvent.ACTION_UP)
+            nativeCalcDeliveredDown = false
+            if (decision.offerIme) {
+                offerNativeCalcIme(host, event)
             }
         }
-        if (!osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(nativeCalcOwnsTouch)) {
-            return false
-        }
-        dispatchNativeCalcOwnedTouch(host, event)
-        return true
+        return osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(decision.consume)
     }
 
-    private fun dispatchNativeCalcOwnedTouch(host: osrsNativeCalcView, event: android.view.MotionEvent) {
+    private fun resetNativeCalcTouchState() {
+        nativeCalcTouchCandidate = false
+        nativeCalcBlockHorizontalSwipe = false
+        nativeCalcDeliveredDown = false
+    }
+
+    private fun dispatchNativeCalcControlEvent(
+        host: osrsNativeCalcView,
+        event: android.view.MotionEvent,
+        action: Int
+    ) {
         val loc = IntArray(2)
         host.getLocationOnScreen(loc)
         val copy = android.view.MotionEvent.obtain(event)
-        copy.offsetLocation(-loc[0].toFloat(), -loc[1].toFloat())
+        copy.action = action
+        copy.setLocation(
+            osrsNativeCalcSlotGeometry.hostLocalX(event.rawX, loc[0]),
+            osrsNativeCalcSlotGeometry.hostLocalY(event.rawY, loc[1])
+        )
         host.dispatchTouchEvent(copy)
         copy.recycle()
-        if (event.actionMasked == android.view.MotionEvent.ACTION_UP) {
-            offerNativeCalcIme(host, event)
+        if (action == android.view.MotionEvent.ACTION_DOWN) {
+            nativeCalcDeliveredDown = true
+        } else if (action == android.view.MotionEvent.ACTION_UP ||
+            action == android.view.MotionEvent.ACTION_CANCEL
+        ) {
+            nativeCalcDeliveredDown = false
+        }
+    }
+
+    private fun cancelWebViewPointer(event: android.view.MotionEvent) {
+        val webView = _binding?.pageWebView ?: return
+        val cancel = android.view.MotionEvent.obtain(event)
+        cancel.action = android.view.MotionEvent.ACTION_CANCEL
+        injectingWebViewCancel = true
+        try {
+            webView.onTouchEvent(cancel)
+        } finally {
+            injectingWebViewCancel = false
+            cancel.recycle()
         }
     }
 
     /**
      * FLAG_NOT_FOCUSABLE stops EditText from attaching the IME even when
-     * FLAG_ALT_FOCUSABLE_IM is set. Briefly flip the popup focusable so a
-     * field tap can raise the keyboard; parchment pans still miss this path.
+     * FLAG_ALT_FOCUSABLE_IM is set. Make the popup focusable so a true tap
+     * can raise the keyboard, but never a touch-modal lid: pans on a focused
+     * field must still reach the article WebView.
      */
     private fun offerNativeCalcIme(host: osrsNativeCalcView, event: android.view.MotionEvent) {
         val hit = osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY)
@@ -1493,13 +1551,15 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val popup = nativeCalcPopup ?: return
         popup.inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NEEDED
         popup.softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
-        // A NOT_TOUCHABLE window never becomes mServedView, so the IME stays
-        // bound to the article WebView. While a field is focused the popup is
-        // briefly a lid (same residual as iOS: pans that start on a field).
-        popup.isTouchable = true
+        popup.isTouchable = false
         popup.isFocusable = true
         popup.update()
-        _binding?.pageWebView?.clearFocus()
+        val webView = _binding?.pageWebView
+        if (webView != null && !nativeCalcImeHoldsWebViewFocus) {
+            nativeCalcImeHoldsWebViewFocus = true
+            webView.isFocusableInTouchMode = false
+        }
+        webView?.clearFocus()
         hit.isFocusableInTouchMode = true
         hit.requestFocus()
         val imm = host.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
@@ -1514,6 +1574,11 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val imm = host.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
             as? android.view.inputmethod.InputMethodManager
         imm?.hideSoftInputFromWindow(host.windowToken, 0)
+        val webView = _binding?.pageWebView
+        if (nativeCalcImeHoldsWebViewFocus && webView != null) {
+            webView.isFocusableInTouchMode = true
+            nativeCalcImeHoldsWebViewFocus = false
+        }
         val popup = nativeCalcPopup ?: return
         if (popup.isFocusable || popup.isTouchable) {
             popup.isTouchable = false
@@ -1601,8 +1666,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         ).also {
             it.isClippingEnabled = true
             // Not a touch-modal lid: FLAG_NOT_TOUCHABLE so parchment pans reach
-            // the article WebView. Clickable descendants get events via
-            // dispatchNativeCalcPopupTouch / hitClickable (same residual as iOS).
+            // the article WebView. Clickable descendants get taps via
+            // dispatchNativeCalcPopupTouch slop discrimination; pans that start
+            // on a control still scroll the article.
             it.isTouchable = false
             it.isFocusable = false
             it.isOutsideTouchable = false
@@ -1656,7 +1722,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     private fun dismissNativeCalcPopup() {
-        nativeCalcOwnsTouch = false
+        resetNativeCalcTouchState()
         nativeCalcPopupDismissing = true
         nativeCalcPopup?.dismiss()
         nativeCalcPopup = null
