@@ -3,7 +3,6 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.View
-import android.widget.HorizontalScrollView
 import android.widget.TextView
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import androidx.test.core.app.ApplicationProvider
@@ -179,7 +178,7 @@ class osrsNativeCalcViewTest {
     }
 
     @Test
-    fun collapsibleCalculatorBoxHidesBodyAndAllowsHorizontalOverflow() {
+    fun collapsibleCalculatorBoxHidesBodyAndInnerScrollsThenClipsWidth() {
         val context = ContextThemeWrapper(
             ApplicationProvider.getApplicationContext<Context>(),
             R.style.Theme_OSRSWiki_OSRSLight
@@ -195,7 +194,7 @@ class osrsNativeCalcViewTest {
             "Plank"
         )
         view.bind(session)
-        val overflow = view.findViewById<HorizontalScrollView>(R.id.native_calc_overflow)
+        val overflow = view.findViewById<android.view.View>(R.id.native_calc_overflow)
         val form = view.findViewById<android.view.View>(R.id.native_calc_form)
         val header = view.findViewById<TextView>(R.id.native_calc_header)
         assertNotNull(overflow)
@@ -212,18 +211,52 @@ class osrsNativeCalcViewTest {
         assertEquals(android.view.View.GONE, overflow.visibility)
         view.setCollapsed(false)
         assertEquals(android.view.View.VISIBLE, overflow.visibility)
+        form.minimumHeight = 2400
         form.minimumWidth = 2400
         view.measure(
             android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
-            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+            android.view.View.MeasureSpec.makeMeasureSpec(800, android.view.View.MeasureSpec.EXACTLY)
         )
-        view.layout(0, 0, 400, view.measuredHeight)
+        view.layout(0, 0, 400, 800)
         overflow.measure(
             android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
-            android.view.View.MeasureSpec.makeMeasureSpec(view.measuredHeight, android.view.View.MeasureSpec.AT_MOST)
+            android.view.View.MeasureSpec.makeMeasureSpec(800, android.view.View.MeasureSpec.EXACTLY)
         )
-        overflow.layout(0, 0, 400, overflow.measuredHeight)
-        assertTrue("wide form must be able to scroll horizontally", overflow.canScrollHorizontally(1) || form.measuredWidth > overflow.width)
+        overflow.layout(0, 0, 400, 800)
+        assertEquals(
+            "inner NestedScrollView must fill the collapsible cap, not wrap the full form",
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            overflow.layoutParams.height
+        )
+        assertTrue(
+            "Agility form must inner-pan Name through the method table",
+            overflow.canScrollVertically(1) || form.measuredHeight > overflow.height
+        )
+        assertFalse(
+            "wider-than-box chrome clips like article tables and must not steal vertical pans",
+            overflow.canScrollHorizontally(1)
+        )
+        assertTrue("wide form must clip to the collapsible box width", form.width <= overflow.width || overflow.width == 400)
+        assertTrue(
+            "tall Agility must show an inner vertical scroller",
+            overflow.isVerticalScrollBarEnabled
+        )
+        form.minimumHeight = 0
+        form.minimumWidth = 0
+        view.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(8000, android.view.View.MeasureSpec.EXACTLY)
+        )
+        view.layout(0, 0, 400, 8000)
+        overflow.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(400, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(8000, android.view.View.MeasureSpec.EXACTLY)
+        )
+        overflow.layout(0, 0, 400, 8000)
+        assertFalse(
+            "Combat-sized chrome must not grow a pointless inner scroller",
+            overflow.isVerticalScrollBarEnabled
+        )
         view.setCollapsed(true)
         view.setCollapsed(false)
         assertFalse(view.collapsed)

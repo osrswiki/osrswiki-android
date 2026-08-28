@@ -96,6 +96,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var nativeCalcSlotTopPx: Int? = null
     private var nativeCalcSlotLeftPx: Int = 0
     private var nativeCalcSlotWidthPx: Int = 0
+    private var nativeCalcBoxHeightCss: Float = 0f
     private var nativeCalcViewportTopCss: Float = 0f
     private var nativeCalcProbeScrollY: Int = 0
     private var nativeCalcCssClientWidth: Float = 0f
@@ -1513,17 +1514,31 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        val height = view.measuredHeight.coerceAtLeast(1)
-        if (height < 80) {
+        val contentHeight = view.findViewById<View>(R.id.native_calc_form)?.measuredHeight
+            ?.takeIf { it > 0 }
+            ?: view.measuredHeight.coerceAtLeast(1)
+        if (contentHeight < 80) {
             webView.post { positionNativeCalcHost(scrollY) }
             return
         }
-        val contentHeight = osrsNativeCalcSlotGeometry.popupContentHeight(height, height)
+        val boxHeightView = if (nativeCalcBoxHeightCss > 1f) nativeCalcBoxHeightCss * scale else 0f
+        val visibleHeight = osrsNativeCalcSlotGeometry.overlayVisibleHeight(
+            formHeight = contentHeight.toFloat(),
+            viewportHeight = webView.height.toFloat(),
+            formTopY = translationY,
+            boxHeight = boxHeightView
+        ).toInt().coerceAtLeast(1)
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(visibleHeight, View.MeasureSpec.EXACTLY)
+        )
+        val height = visibleHeight
+        val contentLaidOut = osrsNativeCalcSlotGeometry.popupContentHeight(height, height)
         val frame = osrsNativeCalcSlotGeometry.clippedPopupFrame(
             webViewTopOnScreen = loc[1],
             webViewHeight = webView.height,
             translationY = translationY,
-            formHeight = contentHeight
+            formHeight = contentLaidOut
         )
         val popup = nativeCalcPopup ?: android.widget.PopupWindow(
             host,
@@ -1565,9 +1580,9 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             loc[0] + offsetX + width,
             frame.windowY + frame.windowHeight
         )
-        view.layoutParams = android.widget.FrameLayout.LayoutParams(width, contentHeight)
+        view.layoutParams = android.widget.FrameLayout.LayoutParams(width, contentLaidOut)
         view.translationY = frame.contentTranslationY
-        view.layout(0, 0, width, contentHeight)
+        view.layout(0, 0, width, contentLaidOut)
         popup.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
         popup.width = width
         popup.height = frame.windowHeight
@@ -1592,10 +1607,27 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val session = nativeCalcSession ?: return
         val formId = session.definition?.ui?.formId.orEmpty()
         val resultId = session.definition?.ui?.resultId.orEmpty()
-        val height = nativeCalcView?.takeIf { it.height > 0 }?.height
+        val form = nativeCalcView?.findViewById<View>(R.id.native_calc_form)
+        val height = form?.takeIf { it.height > 0 }?.height
+            ?: form?.measuredHeight?.takeIf { it > 0 }
+            ?: nativeCalcView?.takeIf { it.height > 0 }?.height
             ?: nativeCalcView?.measuredHeight?.takeIf { it > 0 }
             ?: (420 * resources.displayMetrics.density).toInt()
-        val cssHeight = (height / binding.pageWebView.scale).toInt().coerceAtLeast(1)
+        val scale = osrsNativeCalcSlotGeometry.cssToViewScale(
+            webViewWidthPx = binding.pageWebView.width,
+            cssClientWidth = nativeCalcCssClientWidth
+        )
+        val visibleHeight = osrsNativeCalcSlotGeometry.overlayVisibleHeight(
+            formHeight = height.toFloat(),
+            viewportHeight = binding.pageWebView.height.toFloat(),
+            formTopY = osrsNativeCalcSlotGeometry.hostTranslationYFromViewport(
+                viewportTopCssPx = nativeCalcViewportTopCss,
+                scrollDeltaViewPx = 0f,
+                webViewScale = scale
+            ),
+            boxHeight = if (nativeCalcBoxHeightCss > 1f) nativeCalcBoxHeightCss * scale else 0f
+        ).coerceAtLeast(1f)
+        val cssHeight = (visibleHeight / binding.pageWebView.scale).toInt().coerceAtLeast(1)
         val gen = ++nativeCalcInstallGeneration
         val installCall = osrsNativeCalcDefinition.installSlotJavaScript(formId, resultId, cssHeight)
         binding.pageWebView.evaluateJavascript(
@@ -1610,21 +1642,24 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
               var r=s.getBoundingClientRect();
               var box=s.closest('.collapsible-calculator');
               var boxR=box?box.getBoundingClientRect():null;
-              var column=window.osrsNativeCalcContentColumnWidth?window.osrsNativeCalcContentColumnWidth():0;
+              var body=box&&box.querySelector(':scope > .collapsible-content > .osrs-disclosure-body');
+              var bodyR=body?body.getBoundingClientRect():null;
+              var column=window.osrsNativeCalcContentColumnWidth?window.osrsNativeCalcContentColumnWidth(box):0;
               if(window.osrsNativeCalcApplyContentColumnWidth&&box)window.osrsNativeCalcApplyContentColumnWidth(box);
-              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),width:Math.round(Math.max(r.width,boxR?boxR.width:0,column)),contentColumn:Math.round(column),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
+              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),width:Math.round(Math.max(r.width,boxR?boxR.width:0,column)),boxHeight:Math.round(bodyR?bodyR.height:(boxR?boxR.height:0)),contentColumn:Math.round(column),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
             })()
             """.trimIndent()
         ) { raw ->
             if (gen != nativeCalcInstallGeneration) return@evaluateJavascript
             val parsed = parseNativeCalcSlotPayload(raw)
             nativeCalcSlotLeftPx = parsed.left
-            val widthCss = osrsNativeCalcSlotGeometry.firstLayoutWidthCss(
+            val widthCss = osrsNativeCalcSlotGeometry.overlayClipWidthCss(
                 slotWidthCss = parsed.width.toFloat(),
                 contentColumnWidthCss = parsed.contentColumn.toFloat(),
                 viewportWidthCss = parsed.clientWidth.toFloat()
             )
             if (widthCss > 0f) nativeCalcSlotWidthPx = widthCss.toInt()
+            if (parsed.boxHeight > 0) nativeCalcBoxHeightCss = parsed.boxHeight.toFloat()
             nativeCalcView?.setCollapsed(parsed.collapsed)
             val mayShow = osrsNativeCalcSlotGeometry.popupMayShow(
                 selectCount = parsed.selectCount,
@@ -1677,6 +1712,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val top: Int = 0,
         val left: Int = 0,
         val width: Int = 0,
+        val boxHeight: Int = 0,
         val contentColumn: Int = 0,
         val collapsed: Boolean = false,
         val missing: Boolean = false,
@@ -1700,6 +1736,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                     top = obj.optInt("top", 0),
                     left = obj.optInt("left", 0),
                     width = obj.optInt("width", 0),
+                    boxHeight = obj.optInt("boxHeight", 0),
                     contentColumn = obj.optInt("contentColumn", 0),
                     collapsed = obj.optBoolean("collapsed", false),
                     missing = obj.optBoolean("missing", false),

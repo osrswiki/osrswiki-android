@@ -222,4 +222,55 @@ object osrsNativeCalcSlotGeometry {
         if (slotWidthCss > 1f) return slotWidthCss
         return if (intersected) column else column
     }
+
+    /**
+     * Visible overlay height inside the collapsible / remaining article
+     * viewport. Tall Agility chrome inner-scrolls; Combat keeps intrinsic
+     * height. [boxHeight] wins when it is a real body, not leftover shrink-wrap.
+     */
+    @JvmOverloads
+    fun overlayVisibleHeight(
+        formHeight: Float,
+        viewportHeight: Float,
+        formTopY: Float,
+        boxHeight: Float = 0f
+    ): Float {
+        if (formHeight <= 0f) return 0f
+        val remaining = maxOf(0f, viewportHeight - maxOf(formTopY, 0f))
+        var cap = remaining
+        if (boxHeight > 1f && (remaining < 1f || boxHeight >= remaining * 0.35f)) {
+            cap = if (remaining < 1f) boxHeight else minOf(cap, boxHeight)
+        }
+        if (cap < 1f) return 0f
+        return minOf(formHeight, cap)
+    }
+
+    fun innerVerticalScrollEnabled(formHeight: Float, visibleHeight: Float): Boolean {
+        return formHeight > visibleHeight + 0.5f
+    }
+
+    /**
+     * Overlay frame width. Wider-than-box chrome clips to the collapsible
+     * column the same way wide article tables do.
+     */
+    @JvmOverloads
+    fun overlayClipWidthCss(
+        slotWidthCss: Float,
+        contentColumnWidthCss: Float,
+        viewportWidthCss: Float,
+        intersected: Boolean = false
+    ): Float {
+        val fitted = firstLayoutWidthCss(
+            slotWidthCss = slotWidthCss,
+            contentColumnWidthCss = contentColumnWidthCss,
+            viewportWidthCss = viewportWidthCss,
+            intersected = intersected
+        )
+        val cap = when {
+            contentColumnWidthCss > 1f -> contentColumnWidthCss
+            viewportWidthCss > 1f -> viewportWidthCss
+            else -> fitted
+        }
+        return minOf(fitted, cap)
+    }
 }

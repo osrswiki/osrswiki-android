@@ -9,9 +9,9 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Filter
-import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.widget.NestedScrollView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -36,10 +36,14 @@ class osrsNativeCalcView @JvmOverloads constructor(
         id = R.id.native_calc_form
         orientation = VERTICAL
     }
-    private val overflow = HorizontalScrollView(context).apply {
+    private val overflow = NestedScrollView(context).apply {
         id = R.id.native_calc_overflow
         isFillViewport = true
-        isHorizontalScrollBarEnabled = true
+        isVerticalScrollBarEnabled = true
+        isHorizontalScrollBarEnabled = false
+        clipToPadding = true
+        clipChildren = true
+        overScrollMode = OVER_SCROLL_IF_CONTENT_SCROLLS
     }
     var collapsed: Boolean = false
         private set
@@ -49,13 +53,32 @@ class osrsNativeCalcView @JvmOverloads constructor(
         orientation = VERTICAL
         val pad = dp(8)
         setPadding(pad, pad, pad, pad)
+        clipToPadding = true
+        clipChildren = true
         overflow.addView(
             form,
-            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         )
-        addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        overflow.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            syncInnerScroll()
+        }
         contentDescription = "calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+    }
+
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        super.onLayout(changed, l, t, r, b)
+        syncInnerScroll()
+    }
+
+    private fun syncInnerScroll() {
+        val enabled = osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
+            formHeight = maxOf(form.height, form.measuredHeight).toFloat(),
+            visibleHeight = overflow.height.toFloat()
+        )
+        overflow.isVerticalScrollBarEnabled = enabled
+        overflow.isNestedScrollingEnabled = enabled
     }
 
     fun setCollapsed(value: Boolean) {

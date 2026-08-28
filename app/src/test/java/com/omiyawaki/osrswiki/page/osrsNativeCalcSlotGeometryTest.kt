@@ -375,14 +375,84 @@ class osrsNativeCalcSlotGeometryTest {
         val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
             ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
         val source = fragment.readText()
-        assertTrue(source.contains("firstLayoutWidthCss"))
+        assertTrue(source.contains("overlayClipWidthCss") || source.contains("firstLayoutWidthCss"))
         val runtime = listOf(
             java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
             java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js")
         ).first { it.exists() }.readText()
         assertTrue(runtime.contains("osrsNativeCalcContentColumnWidth"))
         assertTrue(runtime.contains("osrsNativeCalcApplyContentColumnWidth"))
+        assertTrue(
+            "column measure must skip nested collapsibles inside the calculator box",
+            runtime.contains("box.contains")
+        )
         assertTrue(runtime.contains("contentColumn"))
+    }
+
+    @Test
+    fun overlayVisibleHeightCapsTallAgilityAndLeavesShortCombat() {
+        assertEquals(
+            600f,
+            osrsNativeCalcSlotGeometry.overlayVisibleHeight(
+                formHeight = 1800f,
+                viewportHeight = 800f,
+                formTopY = 200f
+            ),
+            0.1f
+        )
+        assertEquals(
+            480f,
+            osrsNativeCalcSlotGeometry.overlayVisibleHeight(
+                formHeight = 1800f,
+                viewportHeight = 800f,
+                formTopY = 200f,
+                boxHeight = 480f
+            ),
+            0.1f
+        )
+        assertEquals(
+            360f,
+            osrsNativeCalcSlotGeometry.overlayVisibleHeight(
+                formHeight = 360f,
+                viewportHeight = 800f,
+                formTopY = 200f
+            ),
+            0.1f
+        )
+        assertTrue(
+            osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
+                formHeight = 1800f,
+                visibleHeight = 600f
+            )
+        )
+        assertFalse(
+            osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
+                formHeight = 360f,
+                visibleHeight = 360f
+            )
+        )
+        assertEquals(
+            366f,
+            osrsNativeCalcSlotGeometry.overlayClipWidthCss(
+                slotWidthCss = 520f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        assertTrue(source.contains("overlayVisibleHeight"))
+        assertTrue(source.contains("overlayClipWidthCss") || source.contains("firstLayoutWidthCss"))
+        val view = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
+        val viewSource = view.readText()
+        assertTrue(viewSource.contains("NestedScrollView") || viewSource.contains("androidx.core.widget.NestedScrollView"))
+        assertFalse(
+            "HorizontalScrollView steals article vertical pans; clip width like article tables",
+            viewSource.contains("HorizontalScrollView")
+        )
     }
 
     @Test
