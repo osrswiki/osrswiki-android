@@ -10,6 +10,7 @@ import org.jsoup.nodes.Document
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -21,6 +22,14 @@ import java.io.File
 class PageHtmlBuilderTest {
 
     private val builder = PageHtmlBuilder(ApplicationProvider.getApplicationContext<Context>())
+
+    @Before
+    fun resetHtmlBuilderPrefs() {
+        // Production default is the critical bundle. These tests inspect
+        // individual stylesheet names unless they opt into the bundle.
+        Prefs.useCriticalArticleBundle = false
+        Prefs.deferLiveWikiFidelityCss = false
+    }
 
     @Test
     fun buildFullHtmlDocumentCreatesSingleCleanPageHeader() {
@@ -186,7 +195,7 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("\"ext.Tabber\""))
         assertTrue(html.contains("id=\"osrs-article-first-paint\""))
         assertTrue(html.contains("h1.page-header"))
-        assertTrue(html.contains("min-height: 1.3em"))
+        assertTrue(html.contains("min-height: 0"))
         assertTrue(html.contains("alegreya_bold.ttf"))
         assertFalse(html.contains("padding-top: calc(env(safe-area-inset-top"))
     }
@@ -286,6 +295,7 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("\"mediawiki.widgets\""))
         assertTrue(html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116"))
         assertTrue(html.contains("mediawiki/gadget_calc_core.js"))
+        assertTrue(html.contains("web/osrs_native_calc_indoc.js"))
         assertTrue(html.contains("web/osrs_calculator_runtime.js"))
         assertTrue(html.contains("styles/gadget_calc.css"))
         assertTrue(html.contains("id=\"bodyContent\""))

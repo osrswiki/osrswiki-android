@@ -144,25 +144,6 @@ class osrsNativeCalcDefinitionTest {
     }
 
     @Test
-    fun introCopyAndDarkResultWrapperAvoidBlackOnDark() {
-        val copy = osrsNativeCalcSession.introCopy(
-            """
-            ===Assumptions===
-            * The bonus experience gained at the Agility Pyramid is only calculated for the current level.
-            ===Calculator===
-            """.trimIndent()
-        )
-        assertTrue(copy.contains("live wiki calculator"))
-        assertTrue(copy.contains("Assumptions"))
-        assertTrue(copy.contains("Agility Pyramid"))
-        val dark = osrsNativeCalcSession.wrapResultHtml("<table><tr><td>Plank</td></tr></table>", true)
-        assertTrue(dark.contains("#28221d"))
-        assertTrue(dark.contains("#f4eaea"))
-        assertFalse(dark.contains("background: #000"))
-        assertFalse(dark.contains("color: #000"))
-    }
-
-    @Test
     fun fallbackReasons() {
         assertEquals(
             osrsNativeCalcDefinition.FallbackReason.MISSING_CONFIG,
@@ -233,9 +214,6 @@ class osrsNativeCalcDefinitionTest {
             wikitext
         )
         assertFalse(wikitext!!.contains("|skill="))
-        val copy = osrsNativeCalcSession.introCopy(config, "Calculator:Combat level")
-        assertTrue(copy.lowercase().contains("combat"))
-        assertFalse(copy.contains("Agility"))
         assertFalse(osrsNativeCalcDefinition.parseResultIsError("<p>Your combat level is 3, balanced.</p>"))
     }
 
@@ -301,18 +279,15 @@ class osrsNativeCalcDefinitionTest {
 
     @Test
     fun nativeCalcKeepsArticleWebViewAsPageShell() {
-        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.IDLE))
-        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.LOADING))
-        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.NATIVE))
-        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.SUBMITTING))
-        assertFalse(osrsNativeCalcSession.hidesArticleShell(osrsNativeCalcSession.Phase.FALLBACK))
         val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
             ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
         val source = fragment.readText()
-        assertTrue(source.contains("osrsNativeCalcSession.hidesArticleShell"))
-        assertFalse(
-            source.contains("binding.articleSwipeRefresh.visibility = if (showNative) View.INVISIBLE else View.VISIBLE")
-        )
+        assertFalse(source.contains("osrsNativeCalcSession"))
+        assertFalse(source.contains("osrsNativeCalcSlotGeometry"))
+        assertFalse(source.contains("native_calc_host"))
+        val layout = java.io.File("src/main/res/layout/fragment_page.xml").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/res/layout/fragment_page.xml")
+        assertFalse(layout.readText().contains("native_calc_host"))
         val runtimeCandidates = listOf(
             java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
             java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
@@ -320,6 +295,7 @@ class osrsNativeCalcDefinitionTest {
         )
         val runtime = runtimeCandidates.first { it.exists() }.readText()
         assertTrue(runtime.contains("osrsInstallNativeCalcSlot"))
+        assertTrue(runtime.contains("osrsBootIndocCalc"))
         assertTrue(runtime.contains("osrs-native-calc-slot"))
         assertTrue(runtime.contains("osrsNativeCalcSetResult"))
         assertTrue(runtime.contains("osrs-native-calc-slot-active"))
@@ -342,10 +318,6 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(collapsible.contains("allowInsideCalculator"))
         assertTrue(collapsible.contains("window.osrsWrapWikitablesInRoot"))
         assertTrue(runtime.contains("osrsWrapCollapsible({"))
-        assertTrue(source.contains("osrsNativeCalcSlotGeometry.hostTranslationY"))
-        assertTrue(source.contains("osrsNativeCalcSlotGeometry.HOST_ELEVATION"))
-        assertFalse(source.contains("host.elevation = if (showNativeForm) 24f"))
-        assertFalse(source.contains("nativeCalcSlotTopPx = 220"))
     }
 
     @Test
@@ -383,20 +355,53 @@ class osrsNativeCalcDefinitionTest {
     }
 
     @Test
-    fun nativeCalcSelectUsesExposedDropdownMenu() {
-        val candidates = listOf(
-            java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt"),
-            java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
+    fun agilitySelectLabelsRenderFromJcConfig() {
+        val definition = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")!!
+        assertEquals(
+            listOf(
+                "Current: Level or Experience",
+                "Goal: Level or Experience?",
+                "Method"
+            ),
+            definition.inputs.filter { it.type == osrsNativeCalcDefinition.ParamType.SELECT }.map { it.label }
         )
-        val source = candidates.first { it.exists() }.readText()
-        assertTrue(source.contains("MaterialAutoCompleteTextView"))
-        assertTrue(source.contains("menu"))
-        assertTrue(source.contains("UnfilteredArrayAdapter"))
-        assertTrue(source.contains("Int.MAX_VALUE"))
-        assertTrue(source.contains("native-calc-option-"))
-        assertFalse(source.contains("AlertDialog.Builder"))
-        assertTrue(source.contains("native_calc_overflow"))
-        assertTrue(source.contains("setCollapsed"))
-        assertFalse(source.contains("id = R.id.native_calc_header"))
+        val indoc = listOf(
+            java.io.File("src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("app/src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("../../../shared/js/osrs_native_calc_indoc.js")
+        ).first { it.exists() }.readText()
+        assertTrue(indoc.contains("osrs-indoc-calc-form"))
+        assertTrue(indoc.contains("role=\"form\""))
+        assertTrue(indoc.contains("aria-label"))
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        assertTrue(runtime.contains("showChoicePicker"))
+    }
+
+    @Test
+    fun indocOwnsTheSlotWithoutNativeOverlay() {
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        assertFalse(source.contains("osrsNativeCalcView"))
+        assertFalse(source.contains("PopupWindow"))
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        assertTrue(runtime.contains("osrsBootIndocCalc"))
+        assertTrue(runtime.contains("data-osrs-indoc-calc"))
+        val indoc = listOf(
+            java.io.File("src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("app/src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("../../../shared/js/osrs_native_calc_indoc.js")
+        ).first { it.exists() }.readText()
+        assertTrue(indoc.contains("osrs-indoc-calc-form"))
+        assertTrue(indoc.contains("Calculator:Agility"))
+        assertTrue(indoc.contains("Calculator:Combat level"))
     }
 }

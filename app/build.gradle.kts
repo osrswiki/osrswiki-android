@@ -266,6 +266,7 @@ tasks.register<Copy>("organizeAssets") {
                     "live_article_asset_warm.js", "first_viewport_assets.js", "image_area_cap.js",
                     "article_audio_player.js")
             exclude("osrs_calculator_runtime.js")
+            exclude("osrs_native_calc_indoc.js")
             exclude("mediawiki/*.js")
             into("js")
         }
@@ -275,7 +276,7 @@ tasks.register<Copy>("organizeAssets") {
             include("collapsible_content.js", "horizontal_scroll_interceptor.js", "responsive_videos.js",
                     "clipboard_bridge.js", "infobox_switcher_bootstrap.js", "switch_infobox.js",
                     "mobile_article_polish.js", "ge_charts_init.js", "chart.umd.min.js",
-                    "tabber_init.js", "table_column_normalize.js", "osrs_calculator_runtime.js",
+                    "tabber_init.js", "table_column_normalize.js", "osrs_native_calc_indoc.js", "osrs_calculator_runtime.js",
                     "live_article_asset_warm.js", "first_viewport_assets.js", "image_area_cap.js",
                     "article_audio_player.js")
             into("web")
