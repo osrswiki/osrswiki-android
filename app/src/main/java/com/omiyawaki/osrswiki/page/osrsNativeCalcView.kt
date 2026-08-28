@@ -9,9 +9,9 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Filter
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.widget.NestedScrollView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
@@ -28,6 +28,7 @@ class osrsNativeCalcView @JvmOverloads constructor(
     private val errorBanner = TextView(context).apply {
         id = R.id.native_calc_error
         visibility = GONE
+        isClickable = false
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         setPadding(0, dp(8), 0, dp(8))
         minHeight = dp(24)
@@ -36,14 +37,14 @@ class osrsNativeCalcView @JvmOverloads constructor(
         id = R.id.native_calc_form
         orientation = VERTICAL
     }
-    private val overflow = NestedScrollView(context).apply {
+    // Frame, not an inner vertical scroller: the article owns vertical scroll.
+    // Keep the overflow id so collapse still hides the chrome.
+    private val overflow = FrameLayout(context).apply {
         id = R.id.native_calc_overflow
-        isFillViewport = true
-        isVerticalScrollBarEnabled = true
-        isHorizontalScrollBarEnabled = false
+        isClickable = false
+        isFocusable = false
         clipToPadding = true
-        clipChildren = true
-        overScrollMode = OVER_SCROLL_IF_CONTENT_SCROLLS
+        clipChildren = false
     }
     var collapsed: Boolean = false
         private set
@@ -51,34 +52,19 @@ class osrsNativeCalcView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        isClickable = false
         val pad = dp(8)
         setPadding(pad, pad, pad, pad)
         clipToPadding = true
-        clipChildren = true
+        clipChildren = false
+        form.isClickable = false
         overflow.addView(
             form,
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         )
-        addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        overflow.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            syncInnerScroll()
-        }
+        addView(overflow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         contentDescription = "calculator"
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
-    }
-
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        super.onLayout(changed, l, t, r, b)
-        syncInnerScroll()
-    }
-
-    private fun syncInnerScroll() {
-        val enabled = osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
-            formHeight = maxOf(form.height, form.measuredHeight).toFloat(),
-            visibleHeight = overflow.height.toFloat()
-        )
-        overflow.isVerticalScrollBarEnabled = enabled
-        overflow.isNestedScrollingEnabled = enabled
     }
 
     fun setCollapsed(value: Boolean) {
@@ -105,6 +91,7 @@ class osrsNativeCalcView @JvmOverloads constructor(
                 setPadding(0, dp(12), 0, dp(4))
                 tag = "native-calc-label-${input.name}"
                 contentDescription = input.label
+                isClickable = false
             })
             form.addView(control(session, input, onPaper))
         }
@@ -309,6 +296,12 @@ class osrsNativeCalcView @JvmOverloads constructor(
             setText(session.values[input.name] ?: input.defaultValue)
             setTextColor(onPaper)
             setHintTextColor(onPaper)
+            isClickable = true
+            isFocusable = true
+            isFocusableInTouchMode = true
+            if (Build.VERSION.SDK_INT >= 21) {
+                showSoftInputOnFocus = true
+            }
             setOnFocusChangeListener { _, hasFocus ->
                 if (!hasFocus) session.setValue(input.name, text.toString(), submit = input.type != osrsNativeCalcDefinition.ParamType.HS && input.type != osrsNativeCalcDefinition.ParamType.RSN && input.type != osrsNativeCalcDefinition.ParamType.STRING)
             }
@@ -331,6 +324,7 @@ class osrsNativeCalcView @JvmOverloads constructor(
             text = value
             setTextColor(color)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
+            isClickable = false
             if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
     }

@@ -154,7 +154,12 @@ object osrsNativeCalcSlotGeometry {
                 hitClickable(root.getChildAt(i), rawX, rawY)?.let { return it }
             }
         }
-        if (!root.isClickable && !root.isLongClickable) return null
+        // EditText is focusable-in-touch-mode but not clickable by default.
+        // Fields are interactive controls; pans that start on them must not
+        // fall through (same residual as iOS).
+        if (!root.isClickable && !root.isLongClickable && !root.isFocusableInTouchMode) {
+            return null
+        }
         val loc = IntArray(2)
         root.getLocationOnScreen(loc)
         if (!containsRawPoint(loc[0], loc[1], loc[0] + root.width, loc[1] + root.height, rawX, rawY)) {
@@ -224,9 +229,9 @@ object osrsNativeCalcSlotGeometry {
     }
 
     /**
-     * Visible overlay height inside the collapsible / remaining article
-     * viewport. Tall Agility chrome inner-scrolls; Combat keeps intrinsic
-     * height. [boxHeight] wins when it is a real body, not leftover shrink-wrap.
+     * How much of the intrinsic form still intersects the article viewport.
+     * Used to clip the PopupWindow to the WebView, not to shrink the DOM slot
+     * or wrap an inner NestedScrollView. The article owns vertical scroll.
      */
     @JvmOverloads
     fun overlayVisibleHeight(
@@ -245,9 +250,32 @@ object osrsNativeCalcSlotGeometry {
         return minOf(formHeight, cap)
     }
 
-    fun innerVerticalScrollEnabled(formHeight: Float, visibleHeight: Float): Boolean {
-        return formHeight > visibleHeight + 0.5f
+    /**
+     * Overlay width from the 5/s probe. The disclosure-body interior ([bodyWCss])
+     * is authoritative: pairing the slot's left with the box/column width spills
+     * past the collapsible by the box padding (named on ip; Android same class).
+     */
+    fun overlayWidthFromProbeCss(
+        bodyWCss: Float,
+        slotWidthCss: Float,
+        contentColumnWidthCss: Float,
+        viewportWidthCss: Float,
+        intersected: Boolean = false
+    ): Float {
+        val slot = if (bodyWCss > 1f) bodyWCss else slotWidthCss
+        return overlayClipWidthCss(
+            slotWidthCss = slot,
+            contentColumnWidthCss = contentColumnWidthCss,
+            viewportWidthCss = viewportWidthCss,
+            intersected = intersected
+        )
     }
+
+    /**
+     * Off-control pans must reach the article WebView. Only a gesture that
+     * started on a clickable descendant is owned by the overlay.
+     */
+    fun popupConsumesWebViewTouch(ownsGesture: Boolean): Boolean = ownsGesture
 
     /**
      * Overlay frame width. Wider-than-box chrome clips to the collapsible

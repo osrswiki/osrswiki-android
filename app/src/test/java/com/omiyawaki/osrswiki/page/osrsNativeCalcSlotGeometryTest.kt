@@ -169,10 +169,6 @@ class osrsNativeCalcSlotGeometryTest {
         assertTrue(source.contains("showAtLocation"))
         assertTrue(source.contains("clippedPopupFrame"))
         assertTrue(source.contains("view.minimumWidth = width"))
-        val popupBlock = source.substringAfter("android.widget.PopupWindow(")
-            .substringBefore("private fun dismissNativeCalcPopup")
-        assertTrue(popupBlock.contains("isFocusable = false"))
-        assertFalse(popupBlock.contains("isFocusable = true"))
         assertTrue(xml.contains("android:id=\"@+id/native_calc_host\""))
         assertTrue(xml.contains("android:clipChildren=\"false\""))
         assertTrue(source.contains("hitClickable"))
@@ -182,6 +178,24 @@ class osrsNativeCalcSlotGeometryTest {
         assertTrue(source.contains("selectCount"))
         assertTrue(source.contains("slotActive"))
         assertTrue(source.contains("installNativeCalcSlot()"))
+        val popupBlock = source.substringAfter("android.widget.PopupWindow(")
+            .substringBefore("private fun dismissNativeCalcPopup")
+        assertTrue(popupBlock.contains("isFocusable = false"))
+        assertFalse(popupBlock.contains("isFocusable = true"))
+        assertTrue(
+            "popup must not be a touch-modal lid; off-control pans reach the article WebView",
+            popupBlock.contains("setTouchModal(false)")
+        )
+        assertFalse(popupBlock.contains("setTouchModal(true)"))
+        assertTrue(popupBlock.contains("isTouchable = false"))
+        assertTrue(
+            "non-focusable popup still needs FLAG_ALT_FOCUSABLE_IM so EditText can raise the IME",
+            popupBlock.contains("INPUT_METHOD_NEEDED")
+        )
+        assertTrue(source.contains("offerNativeCalcIme"))
+        assertTrue(source.contains("showSoftInput"))
+        assertTrue(source.contains("popupConsumesWebViewTouch"))
+        assertTrue(source.contains("nativeCalcOwnsTouch"))
     }
 
     @Test
@@ -375,7 +389,7 @@ class osrsNativeCalcSlotGeometryTest {
         val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
             ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
         val source = fragment.readText()
-        assertTrue(source.contains("overlayClipWidthCss") || source.contains("firstLayoutWidthCss"))
+        assertTrue(source.contains("overlayWidthFromProbeCss") || source.contains("firstLayoutWidthCss"))
         val runtime = listOf(
             java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
             java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js")
@@ -390,7 +404,74 @@ class osrsNativeCalcSlotGeometryTest {
     }
 
     @Test
-    fun overlayVisibleHeightCapsTallAgilityAndLeavesShortCombat() {
+    fun overlayWidthUsesDisclosureBodyInteriorNotBoxOrColumn() {
+        assertEquals(
+            "body interior 364 with box/column 388 must stay 364 so chrome is a subset of the collapsible",
+            364f,
+            osrsNativeCalcSlotGeometry.overlayWidthFromProbeCss(
+                bodyWCss = 364f,
+                slotWidthCss = 388f,
+                contentColumnWidthCss = 388f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        assertEquals(
+            "without bodyW, a matching slot width still wins over leftover pairing",
+            364f,
+            osrsNativeCalcSlotGeometry.overlayWidthFromProbeCss(
+                bodyWCss = 0f,
+                slotWidthCss = 364f,
+                contentColumnWidthCss = 388f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        assertFalse(osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(false))
+        assertTrue(osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(true))
+        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
+        val source = fragment.readText()
+        val install = source.substringAfter("private fun installNativeCalcSlot")
+            .substringBefore("private data class NativeCalcSlotPayload")
+        assertTrue(install.contains("bodyW"))
+        assertFalse(
+            "slot-left paired with max(slot, box, column) spills past the box by the padding",
+            install.contains("Math.max(r.width,boxR?boxR.width:0,column)")
+        )
+        assertTrue(source.contains("overlayWidthFromProbeCss"))
+        assertFalse(
+            "full formHeight stamps the DOM slot; viewport-capped overlayVisibleHeight was the inner-scroller cap",
+            install.contains("overlayVisibleHeight")
+        )
+        val position = source.substringAfter("private fun positionNativeCalcHost")
+            .substringBefore("private fun dismissNativeCalcPopup")
+        assertFalse(position.contains("overlayVisibleHeight"))
+        assertEquals(
+            366f,
+            osrsNativeCalcSlotGeometry.overlayClipWidthCss(
+                slotWidthCss = 520f,
+                contentColumnWidthCss = 366f,
+                viewportWidthCss = 390f
+            ),
+            0.1f
+        )
+        val view = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt").takeIf { it.exists() }
+            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
+        val viewSource = view.readText()
+        assertFalse(
+            "article owns vertical scrolling; chrome is intrinsic like an on-wiki collapsible",
+            viewSource.contains("NestedScrollView")
+        )
+        assertFalse(viewSource.contains("innerVerticalScrollEnabled"))
+        assertFalse(
+            "HorizontalScrollView steals article vertical pans; clip width like article tables",
+            viewSource.contains("HorizontalScrollView")
+        )
+    }
+
+    @Test
+    fun overlayVisibleHeightIsViewportRemainderNotASlotStamp() {
         assertEquals(
             600f,
             osrsNativeCalcSlotGeometry.overlayVisibleHeight(
@@ -418,40 +499,6 @@ class osrsNativeCalcSlotGeometryTest {
                 formTopY = 200f
             ),
             0.1f
-        )
-        assertTrue(
-            osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
-                formHeight = 1800f,
-                visibleHeight = 600f
-            )
-        )
-        assertFalse(
-            osrsNativeCalcSlotGeometry.innerVerticalScrollEnabled(
-                formHeight = 360f,
-                visibleHeight = 360f
-            )
-        )
-        assertEquals(
-            366f,
-            osrsNativeCalcSlotGeometry.overlayClipWidthCss(
-                slotWidthCss = 520f,
-                contentColumnWidthCss = 366f,
-                viewportWidthCss = 390f
-            ),
-            0.1f
-        )
-        val fragment = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt").takeIf { it.exists() }
-            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/PageFragment.kt")
-        val source = fragment.readText()
-        assertTrue(source.contains("overlayVisibleHeight"))
-        assertTrue(source.contains("overlayClipWidthCss") || source.contains("firstLayoutWidthCss"))
-        val view = java.io.File("src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt").takeIf { it.exists() }
-            ?: java.io.File("app/src/main/java/com/omiyawaki/osrswiki/page/osrsNativeCalcView.kt")
-        val viewSource = view.readText()
-        assertTrue(viewSource.contains("NestedScrollView") || viewSource.contains("androidx.core.widget.NestedScrollView"))
-        assertFalse(
-            "HorizontalScrollView steals article vertical pans; clip width like article tables",
-            viewSource.contains("HorizontalScrollView")
         )
     }
 

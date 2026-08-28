@@ -93,6 +93,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     private var nativeCalcPopupHost: android.widget.FrameLayout? = null
     private var nativeCalcPopupDismissing = false
     private val nativeCalcPopupScreenRect = android.graphics.Rect()
+    private var nativeCalcOwnsTouch = false
     private var nativeCalcSlotTopPx: Int? = null
     private var nativeCalcSlotLeftPx: Int = 0
     private var nativeCalcSlotWidthPx: Int = 0
@@ -1440,19 +1441,85 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
 
     private fun dispatchNativeCalcPopupTouch(event: android.view.MotionEvent): Boolean {
         val host = nativeCalcView ?: return false
-        if (nativeCalcPopup?.isShowing != true) return false
-        if (!nativeCalcPopupScreenRect.contains(event.rawX.toInt(), event.rawY.toInt()) &&
-            osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY) == null
-        ) {
+        if (nativeCalcPopup?.isShowing != true) {
+            nativeCalcOwnsTouch = false
             return false
         }
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                nativeCalcOwnsTouch =
+                    osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY) != null
+                if (!nativeCalcOwnsTouch) {
+                    releaseNativeCalcIme(host)
+                }
+            }
+            android.view.MotionEvent.ACTION_UP,
+            android.view.MotionEvent.ACTION_CANCEL -> {
+                val consume = osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(nativeCalcOwnsTouch)
+                if (consume) {
+                    dispatchNativeCalcOwnedTouch(host, event)
+                }
+                nativeCalcOwnsTouch = false
+                return consume
+            }
+        }
+        if (!osrsNativeCalcSlotGeometry.popupConsumesWebViewTouch(nativeCalcOwnsTouch)) {
+            return false
+        }
+        dispatchNativeCalcOwnedTouch(host, event)
+        return true
+    }
+
+    private fun dispatchNativeCalcOwnedTouch(host: osrsNativeCalcView, event: android.view.MotionEvent) {
         val loc = IntArray(2)
         host.getLocationOnScreen(loc)
         val copy = android.view.MotionEvent.obtain(event)
         copy.offsetLocation(-loc[0].toFloat(), -loc[1].toFloat())
         host.dispatchTouchEvent(copy)
         copy.recycle()
-        return true
+        if (event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+            offerNativeCalcIme(host, event)
+        }
+    }
+
+    /**
+     * FLAG_NOT_FOCUSABLE stops EditText from attaching the IME even when
+     * FLAG_ALT_FOCUSABLE_IM is set. Briefly flip the popup focusable so a
+     * field tap can raise the keyboard; parchment pans still miss this path.
+     */
+    private fun offerNativeCalcIme(host: osrsNativeCalcView, event: android.view.MotionEvent) {
+        val hit = osrsNativeCalcSlotGeometry.hitClickable(host, event.rawX, event.rawY)
+        if (hit !is android.widget.EditText) return
+        val popup = nativeCalcPopup ?: return
+        popup.inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NEEDED
+        popup.softInputMode = android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+        // A NOT_TOUCHABLE window never becomes mServedView, so the IME stays
+        // bound to the article WebView. While a field is focused the popup is
+        // briefly a lid (same residual as iOS: pans that start on a field).
+        popup.isTouchable = true
+        popup.isFocusable = true
+        popup.update()
+        _binding?.pageWebView?.clearFocus()
+        hit.isFocusableInTouchMode = true
+        hit.requestFocus()
+        val imm = host.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+            as? android.view.inputmethod.InputMethodManager
+        hit.post {
+            if (!hit.hasFocus()) return@post
+            imm?.showSoftInput(hit, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    private fun releaseNativeCalcIme(host: osrsNativeCalcView) {
+        val imm = host.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+            as? android.view.inputmethod.InputMethodManager
+        imm?.hideSoftInputFromWindow(host.windowToken, 0)
+        val popup = nativeCalcPopup ?: return
+        if (popup.isFocusable || popup.isTouchable) {
+            popup.isTouchable = false
+            popup.isFocusable = false
+            popup.update()
+        }
     }
 
     private fun positionNativeCalcHost(scrollY: Int = binding.pageWebView.scrollY) {
@@ -1514,26 +1581,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
-        val contentHeight = view.findViewById<View>(R.id.native_calc_form)?.measuredHeight
-            ?.takeIf { it > 0 }
-            ?: view.measuredHeight.coerceAtLeast(1)
+        val contentHeight = view.measuredHeight.coerceAtLeast(1)
         if (contentHeight < 80) {
             webView.post { positionNativeCalcHost(scrollY) }
             return
         }
-        val boxHeightView = if (nativeCalcBoxHeightCss > 1f) nativeCalcBoxHeightCss * scale else 0f
-        val visibleHeight = osrsNativeCalcSlotGeometry.overlayVisibleHeight(
-            formHeight = contentHeight.toFloat(),
-            viewportHeight = webView.height.toFloat(),
-            formTopY = translationY,
-            boxHeight = boxHeightView
-        ).toInt().coerceAtLeast(1)
-        view.measure(
-            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(visibleHeight, View.MeasureSpec.EXACTLY)
-        )
-        val height = visibleHeight
-        val contentLaidOut = osrsNativeCalcSlotGeometry.popupContentHeight(height, height)
+        val contentLaidOut = osrsNativeCalcSlotGeometry.popupContentHeight(contentHeight, webView.height)
         val frame = osrsNativeCalcSlotGeometry.clippedPopupFrame(
             webViewTopOnScreen = loc[1],
             webViewHeight = webView.height,
@@ -1547,11 +1600,18 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
             false
         ).also {
             it.isClippingEnabled = true
-            it.isTouchable = true
+            // Not a touch-modal lid: FLAG_NOT_TOUCHABLE so parchment pans reach
+            // the article WebView. Clickable descendants get events via
+            // dispatchNativeCalcPopupTouch / hitClickable (same residual as iOS).
+            it.isTouchable = false
             it.isFocusable = false
             it.isOutsideTouchable = false
+            // FLAG_NOT_FOCUSABLE + INPUT_METHOD_NEEDED sets FLAG_ALT_FOCUSABLE_IM
+            // so dispatched EditText taps can raise the IME without making the
+            // popup a focus/touch lid.
+            it.inputMethodMode = android.widget.PopupWindow.INPUT_METHOD_NEEDED
             if (android.os.Build.VERSION.SDK_INT >= 29) {
-                it.setTouchModal(true)
+                it.setTouchModal(false)
             }
             it.elevation = osrsNativeCalcSlotGeometry.HOST_ELEVATION
             it.setOnDismissListener {
@@ -1596,6 +1656,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
     }
 
     private fun dismissNativeCalcPopup() {
+        nativeCalcOwnsTouch = false
         nativeCalcPopupDismissing = true
         nativeCalcPopup?.dismiss()
         nativeCalcPopup = null
@@ -1608,26 +1669,12 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val formId = session.definition?.ui?.formId.orEmpty()
         val resultId = session.definition?.ui?.resultId.orEmpty()
         val form = nativeCalcView?.findViewById<View>(R.id.native_calc_form)
-        val height = form?.takeIf { it.height > 0 }?.height
-            ?: form?.measuredHeight?.takeIf { it > 0 }
-            ?: nativeCalcView?.takeIf { it.height > 0 }?.height
+        val height = nativeCalcView?.takeIf { it.height > 0 }?.height
             ?: nativeCalcView?.measuredHeight?.takeIf { it > 0 }
+            ?: form?.takeIf { it.height > 0 }?.height
+            ?: form?.measuredHeight?.takeIf { it > 0 }
             ?: (420 * resources.displayMetrics.density).toInt()
-        val scale = osrsNativeCalcSlotGeometry.cssToViewScale(
-            webViewWidthPx = binding.pageWebView.width,
-            cssClientWidth = nativeCalcCssClientWidth
-        )
-        val visibleHeight = osrsNativeCalcSlotGeometry.overlayVisibleHeight(
-            formHeight = height.toFloat(),
-            viewportHeight = binding.pageWebView.height.toFloat(),
-            formTopY = osrsNativeCalcSlotGeometry.hostTranslationYFromViewport(
-                viewportTopCssPx = nativeCalcViewportTopCss,
-                scrollDeltaViewPx = 0f,
-                webViewScale = scale
-            ),
-            boxHeight = if (nativeCalcBoxHeightCss > 1f) nativeCalcBoxHeightCss * scale else 0f
-        ).coerceAtLeast(1f)
-        val cssHeight = (visibleHeight / binding.pageWebView.scale).toInt().coerceAtLeast(1)
+        val cssHeight = (height / binding.pageWebView.scale).toInt().coerceAtLeast(1)
         val gen = ++nativeCalcInstallGeneration
         val installCall = osrsNativeCalcDefinition.installSlotJavaScript(formId, resultId, cssHeight)
         binding.pageWebView.evaluateJavascript(
@@ -1646,14 +1693,15 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
               var bodyR=body?body.getBoundingClientRect():null;
               var column=window.osrsNativeCalcContentColumnWidth?window.osrsNativeCalcContentColumnWidth(box):0;
               if(window.osrsNativeCalcApplyContentColumnWidth&&box)window.osrsNativeCalcApplyContentColumnWidth(box);
-              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),width:Math.round(Math.max(r.width,boxR?boxR.width:0,column)),boxHeight:Math.round(bodyR?bodyR.height:(boxR?boxR.height:0)),contentColumn:Math.round(column),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
+              return JSON.stringify({top:Math.round(r.top+(window.scrollY||document.documentElement.scrollTop||0)),viewportTop:r.top,left:Math.round(r.left),bodyW:bodyR&&bodyR.width>1?Math.round(bodyR.width):0,width:(bodyR&&bodyR.width>1?Math.round(bodyR.width):Math.round(r.width)),boxHeight:Math.round(bodyR?bodyR.height:(boxR?boxR.height:0)),contentColumn:Math.round(column),clientWidth:document.documentElement.clientWidth||window.innerWidth||0,collapsed:!!(box&&box.classList.contains('collapsed')),selectCount:document.querySelectorAll('select').length,slotActive:!!(document.documentElement&&document.documentElement.classList.contains('osrs-native-calc-slot-active')),missing:false});
             })()
             """.trimIndent()
         ) { raw ->
             if (gen != nativeCalcInstallGeneration) return@evaluateJavascript
             val parsed = parseNativeCalcSlotPayload(raw)
             nativeCalcSlotLeftPx = parsed.left
-            val widthCss = osrsNativeCalcSlotGeometry.overlayClipWidthCss(
+            val widthCss = osrsNativeCalcSlotGeometry.overlayWidthFromProbeCss(
+                bodyWCss = parsed.bodyW.toFloat(),
                 slotWidthCss = parsed.width.toFloat(),
                 contentColumnWidthCss = parsed.contentColumn.toFloat(),
                 viewportWidthCss = parsed.clientWidth.toFloat()
@@ -1712,6 +1760,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
         val top: Int = 0,
         val left: Int = 0,
         val width: Int = 0,
+        val bodyW: Int = 0,
         val boxHeight: Int = 0,
         val contentColumn: Int = 0,
         val collapsed: Boolean = false,
@@ -1736,6 +1785,7 @@ class PageFragment : Fragment(), RenderCallback, ThemeAware {
                     top = obj.optInt("top", 0),
                     left = obj.optInt("left", 0),
                     width = obj.optInt("width", 0),
+                    bodyW = obj.optInt("bodyW", 0),
                     boxHeight = obj.optInt("boxHeight", 0),
                     contentColumn = obj.optInt("contentColumn", 0),
                     collapsed = obj.optBoolean("collapsed", false),
