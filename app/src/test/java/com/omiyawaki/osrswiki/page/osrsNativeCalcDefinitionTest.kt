@@ -404,4 +404,39 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(indoc.contains("Calculator:Agility"))
         assertTrue(indoc.contains("Calculator:Combat level"))
     }
+
+    @Test
+    fun indocEnterKeyHintIsGoOnHiscoresAndDoneOnOtherFields() {
+        val indoc = listOf(
+            java.io.File("src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("app/src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("../../../shared/js/osrs_native_calc_indoc.js")
+        ).first { it.exists() }.readText()
+        assertTrue(indoc.contains("input.type === 'hs' ? 'go' : 'done'"))
+        assertTrue(indoc.contains("enterkeyhint=\"go\"" ) || indoc.contains("enterkeyhint=\"' + enterHint + '\""))
+        assertTrue(indoc.contains("enterkeyhint=\"done\""))
+        assertTrue(indoc.contains("data-osrs-indoc-type"))
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        val bind = runtime.substringAfter("function bind() {")
+            .substringBefore("form.addEventListener('change'")
+        assertTrue(bind.contains("isIndocEnterKey"))
+        assertTrue(bind.contains("keydown"))
+        assertTrue(bind.contains("fieldTypeFor(target.name) === 'hs'"))
+        assertTrue(bind.contains("lookupHiscores()"))
+        assertTrue(bind.contains("dismissIndocKeyboard"))
+        assertTrue(bind.contains("preventDefault"))
+        val keydown = bind.substringAfter("form.addEventListener('keydown'")
+            .substringBefore("form.addEventListener('click'")
+        assertTrue(keydown.contains("lookupHiscores()"))
+        assertFalse(keydown.contains("data-osrs-indoc-step"))
+        assertTrue(keydown.contains("isIndocTextOrNumberField"))
+        val click = bind.substringAfter("form.addEventListener('click'")
+        assertTrue(click.contains("data-osrs-indoc-lookup"))
+        assertTrue(click.contains("lookupHiscores()"))
+        assertTrue(runtime.contains("existingHint !== 'go' && existingHint !== 'search'"))
+    }
 }
