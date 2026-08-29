@@ -439,4 +439,32 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(click.contains("lookupHiscores()"))
         assertTrue(runtime.contains("existingHint !== 'go' && existingHint !== 'search'"))
     }
+
+    @Test
+    fun indocLookupFailWritesResultErrorIconAndPublisherIgnoresStatus() {
+        val indoc = listOf(
+            java.io.File("src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("app/src/main/assets/web/osrs_native_calc_indoc.js"),
+            java.io.File("../../../shared/js/osrs_native_calc_indoc.js")
+        ).first { it.exists() }.readText()
+        assertTrue(indoc.contains("function lookupErrorHtml"))
+        assertTrue(indoc.contains("osrs-indoc-calc-error-icon"))
+        assertTrue(indoc.contains("<strong class=\"error\">"))
+        val runtime = listOf(
+            java.io.File("src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("app/src/main/assets/web/osrs_calculator_runtime.js"),
+            java.io.File("../../../shared/js/osrs_calculator_runtime.js")
+        ).first { it.exists() }.readText()
+        val lookup = runtime.substringAfter("function lookupHiscores() {")
+            .substringBefore("function fieldTypeFor(name)")
+        assertTrue(lookup.contains("clearLookupOutput()"))
+        assertTrue(lookup.indexOf("clearLookupOutput()") < lookup.indexOf("osrsIndocRequest("))
+        assertTrue(lookup.contains("showLookupError(player)"))
+        val publish = runtime.substringAfter("function osrsPublishCalculatorResult() {")
+            .substringBefore("function osrsRevealCalculatorNode")
+        assertFalse(publish.contains("innerText"))
+        assertFalse(publish.contains("document.body"))
+        assertTrue(publish.contains("osrsCalculatorResultSourceNode()"))
+        assertTrue(runtime.contains("node.id === 'osrs-calculator-status'"))
+    }
 }
