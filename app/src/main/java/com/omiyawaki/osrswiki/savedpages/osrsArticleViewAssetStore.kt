@@ -135,15 +135,69 @@ internal object osrsArticleViewAssetStore : osrsSessionAssetLookup {
         }
     }
 
-    fun openWebResponse(url: String): android.webkit.WebResourceResponse? {
+    fun openWebResponse(
+        url: String,
+        requestHeaders: Map<String, String>? = null
+    ): android.webkit.WebResourceResponse? {
         val asset = fetchAndCache(url) ?: return null
         val mime = asset.contentType.substringBefore(';').trim()
             .ifBlank { "application/octet-stream" }
+        val total = asset.body.size
+        // Chromium only marks media seekable when the server honors byte ranges.
+        // A plain 200 here left seekable=[0,0]: every audio seek snapped to 0.
+        val rangeSpec = requestHeaders?.entries
+            ?.firstOrNull { it.key.equals("Range", ignoreCase = true) }
+            ?.value
+        val range = parseByteRange(rangeSpec, total)
+        if (range != null) {
+            val (start, endInclusive) = range
+            val length = endInclusive - start + 1
+            return android.webkit.WebResourceResponse(
+                mime,
+                "UTF-8",
+                206,
+                "Partial Content",
+                mapOf(
+                    "Accept-Ranges" to "bytes",
+                    "Content-Range" to "bytes $start-$endInclusive/$total",
+                    "Content-Length" to length.toString()
+                ),
+                ByteArrayInputStream(asset.body, start, length)
+            )
+        }
         return android.webkit.WebResourceResponse(
             mime,
             "UTF-8",
+            200,
+            "OK",
+            mapOf(
+                "Accept-Ranges" to "bytes",
+                "Content-Length" to total.toString()
+            ),
             ByteArrayInputStream(asset.body)
         )
+    }
+
+    /** Returns inclusive [start, end] within [0, total) for an RFC 7233 single byte range. */
+    internal fun parseByteRange(spec: String?, total: Int): Pair<Int, Int>? {
+        if (spec == null || total <= 0) return null
+        val match = Regex("""^\s*bytes=(\d*)-(\d*)\s*$""").find(spec) ?: return null
+        val startText = match.groupValues[1]
+        val endText = match.groupValues[2]
+        if (startText.isEmpty() && endText.isEmpty()) return null
+        if (startText.isEmpty()) {
+            val suffixLength = endText.toLongOrNull() ?: return null
+            if (suffixLength <= 0L) return null
+            val start = (total - suffixLength).coerceAtLeast(0L).toInt()
+            return start to total - 1
+        }
+        val start = startText.toLongOrNull() ?: return null
+        if (start >= total) return null
+        val endInclusive = endText.toLongOrNull()
+            ?.coerceAtMost((total - 1).toLong())
+            ?: (total - 1).toLong()
+        if (endInclusive < start) return null
+        return start.toInt() to endInclusive.toInt()
     }
 
     @Synchronized

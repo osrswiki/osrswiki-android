@@ -190,6 +190,37 @@ function assertPillChrome(metrics, label) {
     borderW === 0 || borderMatchesFill,
     `${label}: outer border must be absent (width ${borderW}) or match fill (${metrics.chrome.borderTopColor} vs ${metrics.chrome.backgroundColor})`,
   );
+
+  // Empty-band guard: the enhanced wrap and the media cell must hug the pill.
+  // Leftover native-audio height or an uncollapsed mw:File span stack shows up
+  // here as a wrap/cell noticeably taller than the 32px chrome.
+  assert.ok(
+    metrics.wrap.h <= metrics.chrome.h + 4,
+    `${label}: wrap height ${metrics.wrap.h} must hug chrome height ${metrics.chrome.h} (no empty band)`,
+  );
+  const cellPaddingAllowance = 20;
+  assert.ok(
+    metrics.cell.h <= metrics.chrome.h + cellPaddingAllowance,
+    `${label}: media cell height ${metrics.cell.h} must not reserve a band around the ${metrics.chrome.h}px pill`,
+  );
+}
+
+function assertCrossPlatformSpacing(allMetrics) {
+  for (const theme of THEMES) {
+    for (const pass of [1, 2]) {
+      const android = allMetrics.find((m) => m.platform === "android" && m.theme === theme && m.pass === pass);
+      const ios = allMetrics.find((m) => m.platform === "ios" && m.theme === theme && m.pass === pass);
+      assert.ok(android && ios, `${theme}/pass${pass}: both platform runs must exist`);
+      assert.ok(
+        Math.abs(ios.cell.h - android.cell.h) <= 2,
+        `${theme}/pass${pass}: iOS media cell height ${ios.cell.h} must match Android ${android.cell.h} within 2px`,
+      );
+      assert.ok(
+        Math.abs(ios.wrap.h - android.wrap.h) <= 2,
+        `${theme}/pass${pass}: iOS wrap height ${ios.wrap.h} must match Android ${android.wrap.h} within 2px`,
+      );
+    }
+  }
 }
 
 function normalizeColor(value) {
@@ -317,6 +348,8 @@ test("Sea Shanty 2 infobox player is a short full-width pill with fill-matched o
         }
       }
     }
+
+    assertCrossPlatformSpacing(allMetrics);
 
     const logPath = path.join(dir, "article-audio-player-layout.json");
     await writeFile(logPath, `${JSON.stringify({ runs: allMetrics }, null, 2)}\n`);

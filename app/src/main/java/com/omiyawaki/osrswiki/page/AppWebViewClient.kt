@@ -189,7 +189,7 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             osrsArticleViewAssetStore.isEligible(url)
         ) {
             osrsArticleViewAssetStore.install(view.context)
-            osrsArticleViewAssetStore.openWebResponse(url)?.let { sessionAsset ->
+            osrsArticleViewAssetStore.openWebResponse(url, request.requestHeaders)?.let { sessionAsset ->
                 Log.i(logTag, "  -> INTERCEPT [HIT] in article-view session store for: $url")
                 return sessionAsset
             }
