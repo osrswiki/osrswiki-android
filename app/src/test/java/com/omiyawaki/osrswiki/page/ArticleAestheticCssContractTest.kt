@@ -713,6 +713,42 @@ class ArticleAestheticCssContractTest {
             )
         )
         assertTrue(aesthetics.contains(".collapsible-container .osrs-calculator-result"))
+        val nestedChildContent = nestedWells.substringAfter(
+            ".collapsible-container .collapsible-container:not(.collapsed) > .collapsible-content {"
+        ).substringBefore(".collapsible-container .collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body")
+        assertTrue(
+            "Nested collapsible contents use the same inline inset as a regular collapsible.",
+            nestedChildContent.contains("padding-inline: var(--osrs-disclosure-content-inline-inset)")
+        )
+        val nestedChildBody = nestedWells.substringAfter(
+            ".collapsible-container .collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body"
+        ).substringBefore(".collapsible-container .collapsible-container .collapsible-container {")
+        assertTrue(
+            "Nested disclosure-body must not add a second gutter on top of content padding.",
+            nestedChildBody.contains("margin-inline: 0 !important")
+        )
+        val gadget = assetFile("styles/gadget_calc.css").readText()
+        assertTrue(gadget.contains(".osrs-indoc-calc-switch input"))
+        assertTrue(gadget.contains("-webkit-appearance: none !important"))
+        assertTrue(gadget.contains("accent-color: var(--ooui-progressive, #744e2f)"))
+        assertTrue(gadget.contains("background-color: var(--ooui-progressive, #744e2f) !important"))
+        assertTrue(
+            "Dark-mode Submit text must use on-progressive (ink on cream), not hardcoded cream.",
+            gadget.contains("color: var(--ooui-on-progressive, #28221d)")
+        )
+        assertFalse(
+            "Do not force cream Submit text in dark mode.",
+            gadget.contains("color: #f4efe6")
+        )
+        val runtime = assetFile("web/osrs_calculator_runtime.js").readText()
+        assertFalse(
+            "Runtime theme skin must not force cream Submit text in dark mode.",
+            runtime.contains("color:#f4efe6")
+        )
+        assertTrue(
+            "Native calc slot must not stretch checkboxes to the 2.5rem text-field height.",
+            runtime.contains("input:not([type=\"checkbox\"]):not([type=\"radio\"])")
+        )
     }
 
     private fun assetFile(path: String): File {
