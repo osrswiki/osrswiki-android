@@ -49,6 +49,14 @@ class ArticleAestheticCssContractTest {
         assertTrue(css.contains("margin-inline: var(--osrs-disclosure-content-inline-inset, 12px) !important;"))
         assertTrue(css.contains("display: flow-root !important;"))
         assertTrue(css.contains("background-color: var(--osrs-disclosure-chrome-bg, var(--body-mid)) !important;"))
+        assertTrue(css.contains("Nested-in-collapsible wells"))
+        assertTrue(
+            css.contains(
+                "background-color: var(--osrs-disclosure-nested-well-bg, var(--body-main)) !important;"
+            )
+        )
+        assertTrue(css.contains(".collapsible-container .collapsible-container"))
+        assertTrue(css.contains(".collapsible-container .osrs-calculator-result"))
         assertTrue(css.contains(".collapsible-infobox:not(.collapsed) > .collapsible-content"))
         assertTrue(css.contains("max-width: min(18.75rem, 100%) !important;"))
         assertTrue(css.contains(":has(.mw-kartographer-map)"))
@@ -641,6 +649,70 @@ class ArticleAestheticCssContractTest {
         val fixes = assetFile("styles/fixes.css").readText()
         assertTrue(fixes.contains("collapsible-calculator"))
         assertTrue(fixes.contains("overflow-x: auto !important"))
+    }
+
+    @Test
+    fun nestedCollapsibleWellsUseArticleFillAndKeepScrollportUnpadded() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        val aesthetics = assetFile("styles/android-article-aesthetics.css").readText()
+        assertTrue(fixes.contains("--osrs-disclosure-content-inline-inset: 12px;"))
+        assertTrue(fixes.contains("--osrs-disclosure-nested-well-bg: var(--body-main);"))
+        assertTrue(fixes.contains("Nested-in-collapsible wells"))
+        assertTrue(
+            fixes.contains(
+                "background-color: var(--osrs-disclosure-nested-well-bg, var(--body-main)) !important;"
+            )
+        )
+        assertTrue(
+            "Nested collapsible cards must reuse article parchment, not a third brown.",
+            fixes.contains(".collapsible-container .collapsible-container {")
+        )
+        assertTrue(
+            "Next nest after a parchment well returns to disclosure chrome.",
+            fixes.contains(".collapsible-container .collapsible-container .collapsible-container {")
+        )
+        assertTrue(fixes.contains(".collapsible-container .osrs-calculator-result"))
+        val nestedWells = fixes.substringAfter("/* Nested-in-collapsible wells")
+        assertTrue("Missing nested-well block", nestedWells.isNotBlank())
+        assertTrue(
+            "Parent cards that wrap nested containers must fill the article column.",
+            nestedWells.contains(
+                ":has(> .collapsible-content .collapsible-container)"
+            )
+        )
+        assertTrue(
+            nestedWells.contains(":has(> .collapsible-content .osrs-calculator-result)")
+        )
+        val nestedCardRule = nestedWells.substringAfter(
+            ".osrs-disclosure-body > .collapsible-container,"
+        ).substringBefore(".collapsible-container .collapsible-container {")
+        assertTrue(
+            "Nested wells fill the already-inset disclosure-body, not shrink-wrap.",
+            nestedCardRule.contains("width: 100% !important;")
+        )
+        val disclosureBodyRule = fixes.substringAfter(
+            ".collapsible-container:not(.collapsed) > .collapsible-content > .osrs-disclosure-body,"
+        ).substringBefore("/* Nested-in-collapsible wells", missingDelimiterValue = "")
+        assertTrue("Missing top-level disclosure-body rule", disclosureBodyRule.isNotBlank())
+        assertTrue(
+            "Disclosure-body scrollport must keep padding-inline:0 so width:100% descendants do not kiss the header.",
+            disclosureBodyRule.contains("padding-inline: 0 !important;")
+        )
+        assertFalse(
+            "Do not pad the overflow-x:auto disclosure-body scrollport with the inset token.",
+            disclosureBodyRule.contains("padding-inline: var(--osrs-disclosure-content-inline-inset)")
+        )
+        assertFalse(
+            "Wikitable cell fills must not be swapped for nested-well parchment.",
+            Regex("""td[^{]{0,80}\{[^}]*osrs-disclosure-nested-well-bg""").containsMatchIn(fixes)
+        )
+        assertTrue(aesthetics.contains("Nested-in-collapsible wells"))
+        assertTrue(
+            aesthetics.contains(
+                "background-color: var(--osrs-disclosure-nested-well-bg, var(--body-main)) !important;"
+            )
+        )
+        assertTrue(aesthetics.contains(".collapsible-container .osrs-calculator-result"))
     }
 
     private fun assetFile(path: String): File {
