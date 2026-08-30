@@ -211,8 +211,10 @@ object osrsNativeCalcDefinition {
     }
 
     fun isPageNativeChromeEligible(html: String?, title: String? = null): Boolean {
-        if (html == null || countJcConfigs(html) != 1) return false
-        return isNativeChromeEligible(parse(html, title))
+        if (html == null) return false
+        val sources = eachConfig(html)
+        if (sources.isEmpty()) return false
+        return sources.all { isNativeChromeEligible(parse(it, title)) }
     }
 
     fun invokeWikitext(definition: Model?, values: Map<String, String> = emptyMap()): String? {
@@ -359,23 +361,33 @@ object osrsNativeCalcDefinition {
         html: String? = null
     ): FallbackReason? {
         if (html != null && parseResultIsError(html)) return FallbackReason.PARSE_ERROR
-        if (html != null && countJcConfigs(html) > 1) return FallbackReason.UNSUPPORTED_TITLE
+        if (html != null && countJcConfigs(html) > 1 && !isPageNativeChromeEligible(html, title)) {
+            return FallbackReason.UNSUPPORTED_TITLE
+        }
         if (definition == null) return FallbackReason.MISSING_CONFIG
         if (definition.unknownTypes.isNotEmpty()) return FallbackReason.UNKNOWN_PARAM_TYPE
         if (!isNativeChromeEligible(definition)) return FallbackReason.UNSUPPORTED_TITLE
         return null
     }
 
-    fun firstConfig(text: String): String? {
+    fun firstConfig(text: String): String? = eachConfig(text).firstOrNull()
+
+    fun eachConfig(text: String): List<String> {
+        val sources = mutableListOf<String>()
         val pre = prePattern.matcher(text)
-        if (pre.find()) {
+        while (pre.find()) {
             val tag = pre.group(1).orEmpty().lowercase()
             val inner = pre.group(2).orEmpty()
-            return if (tag == "pre") decodeEntities(inner) else unwrapDivConfig(inner)
+            sources.add(if (tag == "pre") decodeEntities(inner) else unwrapDivConfig(inner))
+        }
+        if (sources.isNotEmpty()) return sources
+        if (Regex("""(?i)\b(?:template|module|param)\s*=""").containsMatchIn(text) &&
+            !jcConfigOpen.matcher(text).find()) {
+            return listOf(text)
         }
         val loose = loosePattern.matcher(text)
-        if (loose.find()) return loose.group(0)
-        return null
+        if (loose.find()) return listOf(loose.group(0))
+        return emptyList()
     }
 
     fun normalizeAutosubmit(raw: String?): String {
