@@ -57,6 +57,7 @@ class osrsCalculatorApiBridge(private val context: Context) {
             val label = payload.optString("label", "Choose option")
             val optionsArray = payload.optJSONArray("options")
             val currentValue = payload.optString("currentValue", "")
+            val searchable = payload.optBoolean("searchable", false) || (optionsArray?.length() ?: 0) > 12
 
             android.util.Log.d("osrsCalcApi", "showChoicePicker options=${optionsArray?.length() ?: -1} label=$label")
             if (optionsArray == null || optionsArray.length() == 0) {
@@ -90,28 +91,101 @@ class osrsCalculatorApiBridge(private val context: Context) {
             
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 try {
-                    ThemedAlertDialogs.show(
-                        ThemedAlertDialogs.builder(activityContext())
-                            .setTitle(label)
-                            .setSingleChoiceItems(
-                                optionLabels.toTypedArray(),
-                                selectedIndex
-                            ) { dialog, which ->
+                    val activity = activityContext()
+                    val builder = ThemedAlertDialogs.builder(activity).setTitle(label)
+                    if (searchable) {
+                        val density = activity.resources.displayMetrics.density
+                        val pad = (12 * density).toInt()
+                        val column = android.widget.LinearLayout(activity).apply {
+                            orientation = android.widget.LinearLayout.VERTICAL
+                            setPadding(pad, pad, pad, 0)
+                        }
+                        val search = android.widget.EditText(activity).apply {
+                            hint = "Filter"
+                            inputType = android.text.InputType.TYPE_CLASS_TEXT
+                            setSingleLine(true)
+                        }
+                        val list = android.widget.ListView(activity)
+                        val visibleLabels = optionLabels.toMutableList()
+                        val visibleValues = optionValues.toMutableList()
+                        val adapter = android.widget.ArrayAdapter(
+                            activity,
+                            android.R.layout.simple_list_item_single_choice,
+                            visibleLabels
+                        )
+                        list.adapter = adapter
+                        list.choiceMode = android.widget.ListView.CHOICE_MODE_SINGLE
+                        if (selectedIndex >= 0) list.setItemChecked(selectedIndex, true)
+                        fun applyFilter(query: String) {
+                            val needle = query.trim().lowercase()
+                            visibleLabels.clear()
+                            visibleValues.clear()
+                            for (i in optionLabels.indices) {
+                                if (needle.isEmpty() || optionLabels[i].lowercase().contains(needle)) {
+                                    visibleLabels.add(optionLabels[i])
+                                    visibleValues.add(optionValues[i])
+                                }
+                            }
+                            adapter.notifyDataSetChanged()
+                        }
+                        search.addTextChangedListener(object : android.text.TextWatcher {
+                            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                                applyFilter(s?.toString() ?: "")
+                            }
+                            override fun afterTextChanged(s: android.text.Editable?) {}
+                        })
+                        column.addView(search)
+                        column.addView(
+                            list,
+                            android.widget.LinearLayout.LayoutParams(
+                                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                                (320 * density).toInt()
+                            )
+                        )
+                        builder.setView(column)
+                        var dialogRef: android.app.Dialog? = null
+                        list.setOnItemClickListener { _, _, which, _ ->
+                            if (which in visibleValues.indices) {
                                 result.put("selected", true)
-                                result.put("value", optionValues[which])
-                                dialog.dismiss()
+                                result.put("value", visibleValues[which])
+                                dialogRef?.dismiss()
                                 semaphore.release()
                             }
-                            .setNegativeButton("Cancel") { dialog, _ ->
-                                result.put("selected", false)
-                                dialog.dismiss()
-                                semaphore.release()
-                            }
-                            .setOnCancelListener {
-                                result.put("selected", false)
-                                semaphore.release()
-                            }
-                    )
+                        }
+                        builder.setNegativeButton("Cancel") { dialog, _ ->
+                            result.put("selected", false)
+                            dialog.dismiss()
+                            semaphore.release()
+                        }
+                        builder.setOnCancelListener {
+                            result.put("selected", false)
+                            semaphore.release()
+                        }
+                        dialogRef = ThemedAlertDialogs.show(builder)
+                    } else {
+                        ThemedAlertDialogs.show(
+                            builder
+                                .setSingleChoiceItems(
+                                    optionLabels.toTypedArray(),
+                                    selectedIndex
+                                ) { dialog, which ->
+                                    result.put("selected", true)
+                                    result.put("value", optionValues[which])
+                                    dialog.dismiss()
+                                    semaphore.release()
+                                }
+                                .setNegativeButton("Cancel") { dialog, _ ->
+                                    result.put("selected", false)
+                                    dialog.dismiss()
+                                    semaphore.release()
+                                }
+                                .setOnCancelListener {
+                                    result.put("selected", false)
+                                    semaphore.release()
+                                }
+                        )
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("osrsCalcApi", "Failed to show picker: ${e.message}")
                     result.put("selected", false)

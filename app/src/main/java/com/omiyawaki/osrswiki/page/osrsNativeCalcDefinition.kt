@@ -4,7 +4,7 @@ import java.util.regex.Pattern
 
 object osrsNativeCalcDefinition {
     private val jcConfigOpen = Pattern.compile(
-        """(?i)<pre[^>]*class="[^"]*jcConfig[^"]*""""
+        """(?i)<(?:pre|div)[^>]*class="[^"]*jcConfig[^"]*""""
     )
 
     enum class ParamType(val token: String) {
@@ -16,6 +16,9 @@ object osrsNativeCalcDefinition {
         CHECK("check"),
         TOGGLE_SWITCH("toggleswitch"),
         TOGGLE_BUTTON("togglebutton"),
+        TOGGLE_BUTTON_GROUP("togglebuttongroup"),
+        COMBOBOX("combobox"),
+        GROUP("group"),
         HS("hs"),
         RSN("rsn"),
         HIDDEN("hidden"),
@@ -62,7 +65,8 @@ object osrsNativeCalcDefinition {
         val toggles: Map<String, List<String>>,
         val toggleOff: Map<String, List<String>>,
         val minValue: Int? = null,
-        val maxValue: Int? = null
+        val maxValue: Int? = null,
+        val help: String = ""
     )
 
     data class Model(
@@ -80,10 +84,10 @@ object osrsNativeCalcDefinition {
 
     private val kitTypes = ParamType.entries.filter { it != ParamType.UNKNOWN }.toSet()
     private val prePattern = Pattern.compile(
-        """(?is)<pre[^>]*class="[^"]*jcConfig[^"]*"[^>]*>(.*?)</pre>"""
+        """(?is)<(pre|div)[^>]*class="[^"]*jcConfig[^"]*"[^>]*>(.*?)</\1>"""
     )
     private val loosePattern = Pattern.compile(
-        """(?is)(?:^|\n)\s*(?:template|module)\s*=.+?(?=\n\s*(?:\{\||----|<pre|$))"""
+        """(?is)(?:^|\n)\s*(?:template|module)\s*=.+?(?=\n\s*(?:\{\||----|<pre|<div|$))"""
     )
 
     fun parse(
@@ -103,7 +107,7 @@ object osrsNativeCalcDefinition {
         var moduleFunc: String? = null
         val inputs = mutableListOf<Input>()
         val unknownTypes = mutableListOf<String>()
-        for (rawLine in config.split('\n')) {
+        for (rawLine in configLines(config)) {
             val parsed = splitConfigLine(rawLine) ?: continue
             val (key, value) = parsed
             if (key != "param") {
@@ -133,16 +137,14 @@ object osrsNativeCalcDefinition {
             val rawType = fields[3].lowercase()
             val range = fields[4]
             val rawToggles = fields[5]
+            val help = parseHelp(fields)
             val type = ParamType.from(rawType)
             if (type == ParamType.UNKNOWN && rawType.isNotEmpty()) {
                 unknownTypes.add(rawType)
             }
-            val toggleDefault = when {
-                defaultValue.isNotEmpty() -> defaultValue
-                type == ParamType.TOGGLE_SWITCH ||
-                    type == ParamType.TOGGLE_BUTTON ||
-                    type == ParamType.CHECK -> "true"
-                else -> inputName
+            val toggleDefault = when (type) {
+                ParamType.TOGGLE_SWITCH, ParamType.TOGGLE_BUTTON, ParamType.CHECK -> "true"
+                else -> defaultValue.ifEmpty { inputName }
             }
             if (type == ParamType.TOGGLE_SWITCH && defaultValue.isEmpty()) {
                 defaultValue = "false"
@@ -160,7 +162,8 @@ object osrsNativeCalcDefinition {
                     toggles = toggles.first,
                     toggleOff = toggles.second,
                     minValue = bounds.first,
-                    maxValue = bounds.second
+                    maxValue = bounds.second,
+                    help = help
                 )
             )
         }
@@ -233,13 +236,19 @@ object osrsNativeCalcDefinition {
         values.forEach { (key, value) -> merged[key] = value }
         val visible = visibleInputNames(definition, merged)
         for (input in definition.inputs) {
-            if (input.type == ParamType.UNKNOWN) continue
+            if (input.type == ParamType.UNKNOWN || input.type == ParamType.GROUP) continue
             val always = input.type == ParamType.HIDDEN || input.type == ParamType.FIXED
             if (!always && input.name !in visible) continue
             var value = merged[input.name].orEmpty()
             if ((input.type == ParamType.HS || input.type == ParamType.RSN) && value.isEmpty()) continue
             if (input.type == ParamType.TOGGLE_SWITCH) {
                 value = boolToken(value)
+            }
+            if (input.type == ParamType.CHECK) {
+                value = checkToken(input, checkIsOn(input, value))
+            }
+            if (input.type == ParamType.TOGGLE_BUTTON_GROUP) {
+                value = csvTokens(value).joinToString(",")
             }
             parts.add("|${input.name}=$value")
         }
@@ -277,7 +286,7 @@ object osrsNativeCalcDefinition {
 
     fun shouldAutosubmitOnEdit(type: ParamType): Boolean {
         return when (type) {
-            ParamType.HS, ParamType.RSN, ParamType.STRING -> false
+            ParamType.HS, ParamType.RSN, ParamType.STRING, ParamType.GROUP -> false
             else -> true
         }
     }
@@ -359,7 +368,11 @@ object osrsNativeCalcDefinition {
 
     fun firstConfig(text: String): String? {
         val pre = prePattern.matcher(text)
-        if (pre.find()) return pre.group(1)
+        if (pre.find()) {
+            val tag = pre.group(1).orEmpty().lowercase()
+            val inner = pre.group(2).orEmpty()
+            return if (tag == "pre") decodeEntities(inner) else unwrapDivConfig(inner)
+        }
         val loose = loosePattern.matcher(text)
         if (loose.find()) return loose.group(0)
         return null
@@ -370,6 +383,21 @@ object osrsNativeCalcDefinition {
         if (value.isEmpty() || value == "off" || value == "disabled" || value == "false") return "off"
         if (value == "enabled" || value == "on" || value == "true") return "on"
         return "on"
+    }
+
+    private val configKeyBreak = Regex(
+        """\s+(?=(?:param|form|result|template|modulefunc|module|name|autosubmit|suggestns)\s*=)""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private fun configLines(config: String): List<String> {
+        var text = config
+            .replace(Regex("""<br\s*/?>""", RegexOption.IGNORE_CASE), "\n")
+            .replace(Regex("""</p>""", RegexOption.IGNORE_CASE), "\n")
+            .replace(Regex("""<p\b[^>]*>""", RegexOption.IGNORE_CASE), "")
+        text = decodeEntities(text.replace(Regex("""<[^>]+>"""), " "))
+        text = text.replace(configKeyBreak, "\n")
+        return text.split('\n')
     }
 
     private fun splitConfigLine(line: String): Pair<String, String>? {
@@ -419,7 +447,12 @@ object osrsNativeCalcDefinition {
     }
 
     private fun optionsFor(type: ParamType, range: String): List<String> {
-        if (type != ParamType.SELECT && type != ParamType.BUTTON_SELECT && type != ParamType.CHECK) {
+        if (type != ParamType.SELECT &&
+            type != ParamType.BUTTON_SELECT &&
+            type != ParamType.CHECK &&
+            type != ParamType.COMBOBOX &&
+            type != ParamType.TOGGLE_BUTTON_GROUP
+        ) {
             return emptyList()
         }
         if (range.isEmpty()) return emptyList()
@@ -447,7 +480,58 @@ object osrsNativeCalcDefinition {
                 input.toggles.values.forEach { visible.removeAll(it.toSet()) }
             }
         }
+        for (input in definition.inputs) {
+            if (input.type != ParamType.GROUP) continue
+            if (input.name in visible) continue
+            groupMembers(input).forEach { visible.remove(it) }
+        }
         return visible
+    }
+
+    private fun groupMembers(input: Input): List<String> {
+        return input.range.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    private fun csvTokens(value: String): List<String> {
+        return value.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    private fun parseHelp(fields: List<String>): String {
+        if (fields.size < 7) return ""
+        var raw = fields.drop(6).joinToString("|").trim()
+        if (raw.isEmpty()) return ""
+        if (raw.lowercase().startsWith("inline=")) raw = raw.substring(7)
+        return stripTags(raw)
+    }
+
+    private fun decodeEntities(text: String): String {
+        return text
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&amp;", "&")
+    }
+
+    private fun stripTags(text: String): String {
+        return decodeEntities(text.replace(Regex("<[^>]+>"), " "))
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    private fun unwrapDivConfig(inner: String): String {
+        val wrapped = Regex("""(?is)^\s*<([a-z][a-z0-9]*)\b[^>]*>([\s\S]*)</\1>\s*$""").matchEntire(inner)
+        return wrapped?.groupValues?.getOrNull(2) ?: inner
+    }
+
+    private fun checkIsOn(input: Input, value: String): Boolean {
+        if (input.options.size >= 2) return value == input.options[0]
+        return boolToken(value) == "true"
+    }
+
+    private fun checkToken(input: Input, on: Boolean): String {
+        if (input.options.size >= 2) return if (on) input.options[0] else input.options[1]
+        return if (on) "true" else "false"
     }
 
     private fun boolToken(value: String): String {

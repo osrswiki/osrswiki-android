@@ -154,18 +154,73 @@ class osrsNativeCalcDefinitionTest {
         assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(agility))
         assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(cooking))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(unknown))
-        assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(barrows))
+        assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(barrows))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(null))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(osrsNativeCalcDefinition.parse("no config here")))
         assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(agilityConfig, "Calculator:Agility"))
         assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(dry, "Calculator:Dry calc"))
-        assertFalse(osrsNativeCalcDefinition.isPageNativeChromeEligible(barrowsHtml, "Calculator:Barrows"))
+        assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(barrowsHtml, "Calculator:Barrows"))
         assertEquals(2, osrsNativeCalcDefinition.countJcConfigs(coordinates))
         assertFalse(osrsNativeCalcDefinition.isPageNativeChromeEligible(coordinates, "Calculator:Coordinates"))
         assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(osrsNativeCalcDefinition.parse(coordinates, "Calculator:Coordinates")))
         assertEquals("on", osrsNativeCalcDefinition.normalizeAutosubmit("enabled"))
         assertEquals("on", osrsNativeCalcDefinition.normalizeAutosubmit("true"))
         assertEquals("off", osrsNativeCalcDefinition.normalizeAutosubmit("disabled"))
+    }
+
+    @Test
+    fun leftoverSingleConfigPagesTakeNativeChrome() {
+        val barrows = """
+            <pre class="jcConfig">
+            template=Calculator:Barrows/Template
+            param = Ahrim|Ahrim?|yes|check|yes,no
+            param = toggleUnitKill|Select units killed instead of combat level sum|false|toggleswitch||unitKill
+            param = unitKill|Barrows crypt units||group|bloodworm,cryptRat
+            param = bloodworm|Bloodworms killed|0|int|0-
+            param = cryptRat|Crypt rats killed|0|int|0-
+            </pre>
+        """.trimIndent()
+        val wrench = """
+            <div class="jcConfig" style="display: none;">
+            <p>template = Calculator:Prayer/Holy wrench/Template
+            form = HWForm
+            result = HWResult
+            param = PrayerLevel|Prayer level|99|int|1-99|
+            autosubmit = enabled
+            </p>
+            </div>
+        """.trimIndent()
+        val quests = """
+            <div class="jcConfig">
+            <p>template = Template:Recursive_Questreq
+            param = 1|Quest name|While Guthix Sleeps|combobox|,A Kingdom Divided,A Night at the Theatre
+            </p>
+            </div>
+        """.trimIndent()
+        val rumours = """
+            <pre class="jcConfig">
+            template=Calculator:Hunter/Rumours/Template
+            param = leaguesRegions|Select Leagues Regions?|false|toggleswitch||regionOptions|This will assume the Karamja and Varlamore regions are unlocked by default.
+            param = regionOptions|Regions:||togglebuttongroup|Karamja,Desert,Fremennik
+            </pre>
+        """.trimIndent()
+        val barrowsDef = osrsNativeCalcDefinition.parse(barrows, "Calculator:Barrows")!!
+        val toggle = barrowsDef.inputs.first { it.name == "toggleUnitKill" }
+        assertTrue(toggle.toggles.containsKey("true"))
+        assertFalse(toggle.toggles.containsKey("false"))
+        val off = osrsNativeCalcDefinition.invokeWikitext(barrowsDef)!!
+        val on = osrsNativeCalcDefinition.invokeWikitext(barrowsDef, mapOf("toggleUnitKill" to "true"))!!
+        assertFalse(off.contains("|bloodworm="))
+        assertFalse(off.contains("|unitKill="))
+        assertTrue(on.contains("|bloodworm="))
+        assertFalse(on.contains("|unitKill="))
+        assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(wrench, "Calculator:Prayer/Holy wrench"))
+        val questDef = osrsNativeCalcDefinition.parse(quests, "Calculator:Recursive Quest Requirements")!!
+        assertEquals(osrsNativeCalcDefinition.ParamType.COMBOBOX, questDef.inputs.first().type)
+        assertTrue(questDef.inputs.first().options.contains("A Kingdom Divided"))
+        val rumoursDef = osrsNativeCalcDefinition.parse(rumours, "Calculator:Hunter/Rumours")!!
+        assertEquals("This will assume the Karamja and Varlamore regions are unlocked by default.", rumoursDef.inputs.first().help)
+        assertEquals(osrsNativeCalcDefinition.ParamType.TOGGLE_BUTTON_GROUP, rumoursDef.inputs[1].type)
     }
 
     @Test
