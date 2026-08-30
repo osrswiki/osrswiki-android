@@ -1,5 +1,6 @@
 package com.omiyawaki.osrswiki.page
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -645,10 +646,23 @@ class ArticleAestheticCssContractTest {
     }
 
     @Test
-    fun nativeCalculatorCollapsibleAllowsHorizontalOverflow() {
+    fun nativeCalculatorCollapsibleFitsViewportWithoutOuterScrollport() {
         val fixes = assetFile("styles/fixes.css").readText()
         assertTrue(fixes.contains("collapsible-calculator"))
-        assertTrue(fixes.contains("overflow-x: auto !important"))
+        val owner = (
+            ".collapsible-container.collapsible-calculator:not(.collapsed) > " +
+                ".collapsible-content,"
+        )
+        assertEquals(1, owner.toRegex(RegexOption.LITERAL).findAll(fixes).count())
+        val ownerBlock = fixes.substringAfter(owner).substringBefore("ul.gallery,")
+        assertTrue(ownerBlock.contains("overflow-x: visible !important"))
+        assertFalse(ownerBlock.contains("overflow-x: auto"))
+        assertFalse(ownerBlock.contains("html.osrs-native-calc-slot-active"))
+        assertTrue(
+            fixes.contains(
+                ".collapsible-container.collapsible-calculator .osrs-local-scroll-surface > table"
+            )
+        )
     }
 
     @Test
