@@ -3,9 +3,8 @@ package com.omiyawaki.osrswiki.page
 import java.util.regex.Pattern
 
 object osrsNativeCalcDefinition {
-    val spikeNativeTitles: Set<String> = setOf(
-        "Calculator:Agility",
-        "Calculator:Combat level"
+    private val jcConfigOpen = Pattern.compile(
+        """(?i)<pre[^>]*class="[^"]*jcConfig[^"]*""""
     )
 
     enum class ParamType(val token: String) {
@@ -112,7 +111,7 @@ object osrsNativeCalcDefinition {
                     "form" -> formId = value
                     "result" -> resultId = value
                     "name" -> if (value.isNotEmpty()) name = value
-                    "autosubmit" -> autosubmit = value.ifEmpty { "off" }
+                    "autosubmit" -> autosubmit = normalizeAutosubmit(value)
                     "template" -> {
                         invokeKind = InvokeKind.TEMPLATE
                         template = value
@@ -191,7 +190,6 @@ object osrsNativeCalcDefinition {
 
     fun isNativeChromeEligible(definition: Model?): Boolean {
         if (definition == null) return false
-        if (definition.id !in spikeNativeTitles) return false
         when (definition.invoke.kind) {
             InvokeKind.TEMPLATE -> if (definition.invoke.template.isNullOrEmpty()) return false
             InvokeKind.MODULE -> if (definition.invoke.module.isNullOrEmpty()) return false
@@ -199,6 +197,19 @@ object osrsNativeCalcDefinition {
         if (definition.unknownTypes.isNotEmpty()) return false
         if (definition.inputs.isEmpty()) return false
         return definition.inputs.all { it.type in kitTypes }
+    }
+
+    fun countJcConfigs(html: String?): Int {
+        if (html.isNullOrEmpty()) return 0
+        var count = 0
+        val matcher = jcConfigOpen.matcher(html)
+        while (matcher.find()) count++
+        return count
+    }
+
+    fun isPageNativeChromeEligible(html: String?, title: String? = null): Boolean {
+        if (html == null || countJcConfigs(html) != 1) return false
+        return isNativeChromeEligible(parse(html, title))
     }
 
     fun invokeWikitext(definition: Model?, values: Map<String, String> = emptyMap()): String? {
@@ -339,7 +350,7 @@ object osrsNativeCalcDefinition {
         html: String? = null
     ): FallbackReason? {
         if (html != null && parseResultIsError(html)) return FallbackReason.PARSE_ERROR
-        if (title != null && title !in spikeNativeTitles) return FallbackReason.UNSUPPORTED_TITLE
+        if (html != null && countJcConfigs(html) > 1) return FallbackReason.UNSUPPORTED_TITLE
         if (definition == null) return FallbackReason.MISSING_CONFIG
         if (definition.unknownTypes.isNotEmpty()) return FallbackReason.UNKNOWN_PARAM_TYPE
         if (!isNativeChromeEligible(definition)) return FallbackReason.UNSUPPORTED_TITLE
@@ -352,6 +363,13 @@ object osrsNativeCalcDefinition {
         val loose = loosePattern.matcher(text)
         if (loose.find()) return loose.group(0)
         return null
+    }
+
+    fun normalizeAutosubmit(raw: String?): String {
+        val value = (raw ?: "off").lowercase().trim()
+        if (value.isEmpty() || value == "off" || value == "disabled" || value == "false") return "off"
+        if (value == "enabled" || value == "on" || value == "true") return "on"
+        return "on"
     }
 
     private fun splitConfigLine(line: String): Pair<String, String>? {

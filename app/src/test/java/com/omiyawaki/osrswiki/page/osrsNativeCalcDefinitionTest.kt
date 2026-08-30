@@ -38,7 +38,7 @@ class osrsNativeCalcDefinitionTest {
         assertEquals("Calculator:Skill calc/Template", definition.invoke.template)
         assertEquals("AgilityCalc", definition.ui.formId)
         assertEquals("AgilityResults", definition.ui.resultId)
-        assertEquals("enabled", definition.ui.autosubmit)
+        assertEquals("on", definition.ui.autosubmit)
         assertEquals(
             listOf(
                 "name", "currentToggle", "lvlInput", "XPInput", "goalToggle",
@@ -105,7 +105,7 @@ class osrsNativeCalcDefinitionTest {
     }
 
     @Test
-    fun nativeChromeIsAgilityOnlyAndFallsBackOnUnknownTypes() {
+    fun nativeChromeIsKitNotTitleAndFallsBackOnUnknownTypes() {
         val agility = osrsNativeCalcDefinition.parse(agilityConfig, "Calculator:Agility")
         val cooking = osrsNativeCalcDefinition.parse(
             agilityConfig.replace("Agility", "Cooking"),
@@ -121,11 +121,51 @@ class osrsNativeCalcDefinitionTest {
             """.trimIndent(),
             "Calculator:Agility"
         )
+        val barrowsHtml = """
+            <pre class="jcConfig">
+            template=Calculator:Barrows/Template
+            form=BarrowsForm
+            result=BarrowsResult
+            param = Ahrim|Ahrim?|yes|check|yes,no
+            param = unitKill|Barrows crypt units||group|bloodworm,cryptRat
+            </pre>
+            """.trimIndent()
+        val barrows = osrsNativeCalcDefinition.parse(barrowsHtml, "Calculator:Barrows")
+        val coordinates = """
+            <pre class="jcConfig">
+            template = Calculator:Coordinates/PlanarToGeo
+            param = x || 2441 | int | 1024-3967
+            </pre>
+            <pre class="jcConfig">
+            template = Calculator:Coordinates/GeoToPlanar
+            param = ndeg | Degrees N/S | 0 | int | 0-180
+            </pre>
+        """.trimIndent()
+        val dry = """
+            <pre class="jcConfig">
+            module = Dry calc
+            form = dryin
+            result = dryout
+            param = chance|Chance of drop|1/128|string|
+            param = kills|Number of kills|128|int|1-inf
+            param = dropped|Number of drops obtained thus far|0|int|0-inf
+            </pre>
+        """.trimIndent()
         assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(agility))
-        assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(cooking))
+        assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(cooking))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(unknown))
+        assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(barrows))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(null))
         assertFalse(osrsNativeCalcDefinition.isNativeChromeEligible(osrsNativeCalcDefinition.parse("no config here")))
+        assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(agilityConfig, "Calculator:Agility"))
+        assertTrue(osrsNativeCalcDefinition.isPageNativeChromeEligible(dry, "Calculator:Dry calc"))
+        assertFalse(osrsNativeCalcDefinition.isPageNativeChromeEligible(barrowsHtml, "Calculator:Barrows"))
+        assertEquals(2, osrsNativeCalcDefinition.countJcConfigs(coordinates))
+        assertFalse(osrsNativeCalcDefinition.isPageNativeChromeEligible(coordinates, "Calculator:Coordinates"))
+        assertTrue(osrsNativeCalcDefinition.isNativeChromeEligible(osrsNativeCalcDefinition.parse(coordinates, "Calculator:Coordinates")))
+        assertEquals("on", osrsNativeCalcDefinition.normalizeAutosubmit("enabled"))
+        assertEquals("on", osrsNativeCalcDefinition.normalizeAutosubmit("true"))
+        assertEquals("off", osrsNativeCalcDefinition.normalizeAutosubmit("disabled"))
     }
 
     @Test
@@ -401,8 +441,9 @@ class osrsNativeCalcDefinitionTest {
             java.io.File("../../../shared/js/osrs_native_calc_indoc.js")
         ).first { it.exists() }.readText()
         assertTrue(indoc.contains("osrs-indoc-calc-form"))
-        assertTrue(indoc.contains("Calculator:Agility"))
-        assertTrue(indoc.contains("Calculator:Combat level"))
+        assertTrue(indoc.contains("isPageEligible"))
+        assertTrue(indoc.contains("countJcConfigs"))
+        assertFalse(indoc.contains("isAllowlisted"))
     }
 
     @Test

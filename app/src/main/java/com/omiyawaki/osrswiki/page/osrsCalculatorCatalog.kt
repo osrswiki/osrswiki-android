@@ -20,7 +20,7 @@ data class osrsCalculatorCatalogSnapshot(
 object osrsCalculatorCatalog {
     const val ASSET_PATH = "manifests/osrs-wiki-calculators.json"
     const val LIVE_API =
-        "https://oldschool.runescape.wiki/api.php?action=query&list=allpages&apnamespace=116&aplimit=500&format=json"
+        "https://oldschool.runescape.wiki/api.php?action=query&list=allpages&apnamespace=116&aplimit=500&apfilterredir=nonredirects&format=json"
 
     fun loadSnapshot(json: String): osrsCalculatorCatalogSnapshot {
         val root = JSONObject(json)

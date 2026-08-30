@@ -52,6 +52,7 @@ class PageHtmlBuilder(private val context: Context) {
     // Simple MediaWiki ResourceLoader - let it work naturally
     private val mediawikiArtifacts = listOf(
         "startup.js",
+        "web/osrs_native_calc_indoc.js",
         "mediawiki/gadget_calc_core.js"
     )
     
@@ -72,7 +73,6 @@ class PageHtmlBuilder(private val context: Context) {
         "js/tablesort.min.js",
         "js/tablesort_init.js",
         "web/tabber_init.js",
-        "web/osrs_native_calc_indoc.js",
         "web/osrs_calculator_runtime.js",
         "web/responsive_videos.js",
         "web/article_audio_player.js",

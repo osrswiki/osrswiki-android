@@ -224,7 +224,7 @@ class osrsCalculatorParityTest {
         assertTrue(calcCore.contains("ToggleSwitchWidget"))
         assertTrue(calcCore.contains("__osrsRebuildCalcs"))
         assertTrue(runtime.contains("osrsArmSmokeSubmit"))
-        assertTrue(runtime.contains("aria-live"))
+        assertTrue(runtime.contains("aria-hidden"))
         assertTrue(runtime.contains("MutationObserver"))
         assertTrue(runtime.contains("[id\$=\"Form\"]"))
         assertTrue(runtime.contains("#bodyContent"))
