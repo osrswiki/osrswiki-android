@@ -1,6 +1,7 @@
 package com.omiyawaki.osrswiki.search
 
 import com.omiyawaki.osrswiki.network.SearchResult
+import com.omiyawaki.osrswiki.page.osrsWikiWebViewUrl
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
@@ -18,7 +19,11 @@ internal object osrsOpenSearchParser {
             val title = titleElement.jsonPrimitive.content
             val snippet = descriptions?.getOrNull(index)?.jsonPrimitive?.contentOrNull?.ifBlank { null }
             SearchResult(
-                ns = 0,
+                ns = if (osrsWikiWebViewUrl.isCalculatorNamespaceTitle(title)) {
+                    osrsMediaWikiNamespace.CALCULATOR
+                } else {
+                    osrsMediaWikiNamespace.MAIN
+                },
                 title = title,
                 pageid = 0,
                 index = index + 1,

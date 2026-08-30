@@ -68,6 +68,82 @@ class SearchPagingSourceTest {
     }
 
     @Test
+    fun defaultSearchKeepsUserFacingCalculatorsAndDropsTemplatePages() = runTest {
+        val coordinates = SearchResult(
+            ns = 116,
+            title = "Calculator:Coordinates",
+            pageid = 560406,
+            index = 2,
+            snippet = "Convert coordinates"
+        )
+        val template = SearchResult(
+            ns = 116,
+            title = "Calculator:Combat level/Template",
+            pageid = 180997,
+            index = 1,
+            snippet = "template"
+        )
+        val agility = SearchResult(
+            ns = 0,
+            title = "Agility",
+            pageid = 1,
+            index = 1,
+            snippet = "skill"
+        )
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedPrefixSearch("coordinates*", 3, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(pages = listOf(template))
+            )
+        )
+        whenever(apiService.generatedTitlePrefixSearch("coordinates", 3, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(pages = listOf(coordinates, template))
+            )
+        )
+        whenever(apiService.generatedPrefixSearch("agility*", 3, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(pages = listOf(agility))
+            )
+        )
+        whenever(apiService.generatedTitlePrefixSearch("agility", 3, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = null,
+                query = QueryResult(pages = listOf(agility))
+            )
+        )
+
+        val coordinatesPage = SearchPagingSource(
+            apiService = apiService,
+            query = "coordinates",
+            articleMetaDao = FakeArticleMetaDao()
+        ).load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 3,
+                placeholdersEnabled = false
+            )
+        ) as PagingSource.LoadResult.Page
+        assertEquals(listOf("Calculator:Coordinates"), coordinatesPage.data.map { it.title })
+
+        val agilityPage = SearchPagingSource(
+            apiService = apiService,
+            query = "agility",
+            articleMetaDao = FakeArticleMetaDao()
+        ).load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 3,
+                placeholdersEnabled = false
+            )
+        ) as PagingSource.LoadResult.Page
+        assertEquals(listOf("Agility"), agilityPage.data.map { it.title })
+    }
+
+    @Test
     fun scopedEmptyQueryBrowsesNewestUpdatePages() = runTest {
         val apiService = mock<WikiApiService>()
         whenever(apiService.generatedRecentChanges(112, 2, null, 240)).thenReturn(

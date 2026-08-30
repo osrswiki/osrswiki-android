@@ -52,4 +52,7 @@ data class osrsSearchScope(
 object osrsMediaWikiNamespace {
     const val MAIN = 0
     const val UPDATES = 112
+    const val CALCULATOR = 116
+    /** Default Home search: main articles plus user-facing Calculator: pages. */
+    const val DEFAULT_SEARCH = "$MAIN|$CALCULATOR"
 }

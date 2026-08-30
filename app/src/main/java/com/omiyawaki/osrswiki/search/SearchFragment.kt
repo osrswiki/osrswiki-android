@@ -14,7 +14,6 @@ import androidx.fragment.app.commit
 import com.google.android.material.textfield.TextInputEditText
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.FragmentSearchBinding
-import com.omiyawaki.osrswiki.page.osrsHideImeOnArticleOpen
 
 class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
 
@@ -81,8 +80,8 @@ class SearchFragment : Fragment(), RecentSearchesFragment.Callback {
     }
 
     private fun hideSoftKeyboard() {
-        searchEditText.clearFocus()
-        osrsHideImeOnArticleOpen.hideFrom(searchEditText)
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view?.windowToken, 0)
     }
 
     private fun setupSearchInput() {

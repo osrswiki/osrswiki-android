@@ -63,6 +63,10 @@ object osrsWikiWebViewUrl {
         }
     }
 
+    fun isIncludedInDefaultSearch(title: String): Boolean {
+        return !isCalculatorNamespaceTitle(title) || isUserFacingCalculator(title)
+    }
+
     data class osrsWikiPageConfig(
         val namespaceNumber: Int,
         val canonicalNamespace: String,

@@ -71,6 +71,20 @@ class SearchQueryPolicyTest {
     }
 
     @Test
+    fun agilitySkillOutranksCalculatorAgility() {
+        val ranked = SearchQueryPolicy.rank(
+            "agility",
+            listOf(
+                result("Calculator:Agility", 2),
+                result("Agility", 1),
+                result("Agility training", 3)
+            )
+        )
+        assertEquals("Agility", ranked.first().title)
+        assertTrue(ranked.any { it.title == "Calculator:Agility" })
+    }
+
+    @Test
     fun fullTokenCoverageOutranksAShortTitlePrefix() {
         val results = listOf(result("Amulet", 1), result("Amulet of glory", 2))
         assertEquals("Amulet of glory", SearchQueryPolicy.rank("amulet glo", results).first().title)

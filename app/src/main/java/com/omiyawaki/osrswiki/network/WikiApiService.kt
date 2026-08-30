@@ -12,12 +12,14 @@ import retrofit2.http.Query
 interface WikiApiService {
     /**
      * Relevance-ranked fulltext search with Cirrus snippets and thumbnails.
-     * TextExtracts is intentionally omitted here: the extension caps extracts at 20 pages, and
-     * generating them for a full result page dominates typeahead latency. Prefix-only rows that
-     * have no Cirrus snippet get extracts from [generatedTitlePrefixSearch].
+     * Restricted to main (0) and Calculator (116). TextExtracts is intentionally omitted here:
+     * the extension caps extracts at 20 pages, and generating them for a full result page
+     * dominates typeahead latency. Prefix-only rows that have no Cirrus snippet get extracts
+     * from [generatedTitlePrefixSearch].
      */
     @GET("api.php?action=query&format=json&formatversion=2&redirects=true" +
             "&generator=search" +
+            "&gsrnamespace=0|116" +
             "&gsrprop=snippet|size|wordcount|timestamp" +
             "&gsrsort=relevance" +
             "&prop=pageimages" +
@@ -30,12 +32,14 @@ interface WikiApiService {
     ): GeneratedSearchApiResponse
 
     /**
-     * Title-prefix generator used by the website search box. Cirrus fulltext
-     * drops prefix hits such as "earth ru" → Earth rune. Limited to 10 titles, so
-     * TextExtracts can fill preview gaps without the 20-extract cap starving later rows.
+     * Title-prefix generator used by the website search box. Restricted to main (0)
+     * and Calculator (116); Cirrus fulltext drops prefix hits such as "earth ru" → Earth rune.
+     * Limited to 10 titles, so TextExtracts can fill preview gaps without the 20-extract cap
+     * starving later rows.
      */
     @GET("api.php?action=query&format=json&formatversion=2&redirects=true" +
             "&generator=prefixsearch" +
+            "&gpsnamespace=0|116" +
             "&prop=pageimages|extracts" +
             "&exintro=true&explaintext=true&exchars=160&exlimit=max" +
             "&piprop=thumbnail&pilicense=any")
@@ -95,7 +99,7 @@ interface WikiApiService {
         @Query("sroffset") offset: Int
     ): SearchApiResponse
 
-    @GET("api.php?action=opensearch&format=json&redirects=resolve")
+    @GET("api.php?action=opensearch&format=json&redirects=resolve&namespace=0|116")
     suspend fun openSearch(
         @Query("search") query: String,
         @Query("limit") limit: Int = 10

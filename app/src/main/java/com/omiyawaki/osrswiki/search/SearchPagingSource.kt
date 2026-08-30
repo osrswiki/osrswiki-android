@@ -6,6 +6,7 @@ import androidx.paging.PagingState
 import com.omiyawaki.osrswiki.database.ArticleMetaDao
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.page.osrsWikiWebViewUrl
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import retrofit2.HttpException
@@ -74,7 +75,7 @@ class SearchPagingSource(
                 query,
                 prefixPages,
                 response.query?.pages.orEmpty()
-            ).map { result ->
+            ).filter { osrsWikiWebViewUrl.isIncludedInDefaultSearch(it.title) }.map { result ->
                 val preview = result.snippet?.trim().orEmpty()
                 if (preview.isNotEmpty()) {
                     result.copy(snippet = preview)

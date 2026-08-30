@@ -21,6 +21,13 @@ class osrsCalculatorParityTest {
         assertFalse(osrsWikiWebViewUrl.isUserFacingCalculator("Calculator:Combat level/Template"))
         assertFalse(osrsWikiWebViewUrl.isUserFacingCalculator("Calculator:Fletching/Ammo/Template1"))
         assertFalse(osrsWikiWebViewUrl.isUserFacingCalculator("Calculator:Herblore/Potions/Template:Clean"))
+        assertTrue(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Agility"))
+        assertTrue(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Coordinates"))
+        assertTrue(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Cooking/Fish"))
+        assertFalse(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Combat level/Template"))
+        assertFalse(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Fletching/Ammo/Template1"))
+        assertFalse(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Herblore/Potions/doc"))
+        assertFalse(osrsWikiWebViewUrl.isIncludedInDefaultSearch("Calculator:Foo/sandbox"))
     }
 
     @Test

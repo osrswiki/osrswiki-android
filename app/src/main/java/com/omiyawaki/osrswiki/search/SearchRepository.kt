@@ -10,6 +10,7 @@ import com.omiyawaki.osrswiki.database.OfflinePageFts
 import com.omiyawaki.osrswiki.database.OfflinePageFtsDao
 import com.omiyawaki.osrswiki.network.SearchResult
 import com.omiyawaki.osrswiki.network.WikiApiService
+import com.omiyawaki.osrswiki.page.osrsWikiWebViewUrl
 import com.omiyawaki.osrswiki.search.db.RecentSearch
 import com.omiyawaki.osrswiki.search.db.RecentSearchDao
 import com.omiyawaki.osrswiki.util.StringUtil
@@ -71,7 +72,7 @@ class SearchRepository(
         return runCatching {
             osrsOpenSearchParser.parse(
                 apiService.openSearch(canonical, 10).bytes()
-            )
+            ).filter { osrsWikiWebViewUrl.isIncludedInDefaultSearch(it.title) }
         }.getOrDefault(emptyList())
     }
 
