@@ -19,7 +19,7 @@ A dedicated phone reader for the OSRS Wiki — polished search, comfortable read
 
 ## Install
 
-- **Google Play:** [Join closed testing to install Android now](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
+- **Google Play:** [Join early testing](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
 - **F-Droid:** Coming soon
 
 ## Support
