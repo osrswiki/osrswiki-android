@@ -3,7 +3,7 @@
 Unofficial phone reader for [oldschool.runescape.wiki](https://oldschool.runescape.wiki).
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
-[![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://play.google.com/store/apps/details?id=com.omiyawaki.osrswiki)
+[![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa)](https://github.com/sponsors/omiyawaki)
 
 ## Why
@@ -19,7 +19,8 @@ A dedicated phone reader for the OSRS Wiki — polished search, comfortable read
 
 ## Install
 
-- **Google Play:** [OSRS Wiki on Google Play](https://play.google.com/store/apps/details?id=com.omiyawaki.osrswiki)
+- **Google Play:** [Join closed testing to install Android now](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
+- A public Play listing needs Google’s closed-tester gate first.
 - **F-Droid:** Coming soon
 
 ## Support
