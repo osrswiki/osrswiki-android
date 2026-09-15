@@ -84,6 +84,10 @@ class SearchRepository(
         return Pager(
             config = PagingConfig(
                 pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
+                // Paging 3 defaults this to pageSize*3. That 60-hit first
+                // generator page is large enough for wiki pageimages to omit
+                // ranked thumbnails such as Rune dragon; iOS requests 20.
+                initialLoadSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE,
                 prefetchDistance = DEFAULT_SEARCH_RESULTS_PAGE_SIZE / 2,
                 enablePlaceholders = false
             ),

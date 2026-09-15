@@ -7,6 +7,7 @@ import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.test.core.app.ApplicationProvider
 import com.omiyawaki.osrswiki.R
 import com.omiyawaki.osrswiki.databinding.ItemSearchResultBinding
@@ -161,6 +162,16 @@ class SearchResultAccessibilityTest {
         )
         assertEquals(1, binding.searchItemTitle.maxLines)
         assertEquals(android.text.TextUtils.TruncateAt.END, binding.searchItemTitle.ellipsize)
+    }
+
+    @Test
+    fun thumbnailUsesFitCenterSoWikiSpritesAreNotCropped() {
+        val binding = inflatedBinding()
+        assertEquals(
+            "Search rows aspect-fit thumbnails (iOS scaleAspectFit) so mixed Wiki sprites stay recognizable.",
+            ImageView.ScaleType.FIT_CENTER,
+            binding.searchItemThumbnail.scaleType
+        )
     }
 
     private fun measuredRowHeight(binding: ItemSearchResultBinding): Int {

@@ -1,26 +1,26 @@
 # OSRS Wiki
 
-Unofficial phone reader for [oldschool.runescape.wiki](https://oldschool.runescape.wiki).
+Unofficial [Old School RuneScape Wiki](https://oldschool.runescape.wiki) reader for Android.
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa)](https://github.com/sponsors/omiyawaki)
 
-## Why
-
-A dedicated phone reader for the OSRS Wiki — polished search, comfortable reading, offline pages, and an in-app world map in one place.
-
-## Features
-
-- **Search** — find pages quickly on a phone-sized UI
-- **Read** — article layout tuned for small screens (light and dark)
-- **Offline** — save pages to read without a connection
-- **Map** — browse the Old School map in-app
+Search the wiki, read articles laid out for a phone screen, save pages for offline, and open the world map without leaving the app. Free and open source.
 
 ## Install
 
 - **Google Play:** [Join early testing](https://play.google.com/apps/testing/com.omiyawaki.osrswiki)
 - **F-Droid:** Coming soon
+
+Also available on iOS: [Download on the App Store](https://apps.apple.com/us/app/osrs-wiki/id6788651409) · [Source](https://github.com/osrswiki/osrswiki-ios)
+
+## Features
+
+- **Search** — find any page from the search tab
+- **Read** — article layout tuned for small screens, in light or dark
+- **Offline** — save pages and read them without a connection
+- **Map** — browse the Old School world map in-app
 
 ## Support
 
@@ -33,7 +33,7 @@ If you want to support development of the **apps** (not the wiki itself):
 ## Links
 
 - [Privacy policy](https://osrswiki.github.io/osrswiki-privacy-policy/)
-- [iOS app repository](https://github.com/osrswiki/osrswiki-ios)
+- [iOS app source](https://github.com/osrswiki/osrswiki-ios)
 
 ## Disclaimer
 

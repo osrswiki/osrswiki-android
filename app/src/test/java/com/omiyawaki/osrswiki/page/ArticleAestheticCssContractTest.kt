@@ -522,6 +522,24 @@ class ArticleAestheticCssContractTest {
     }
 
     @Test
+    fun packedGalleryPhotosAreNotCappedAsTwoEmIcons() {
+        val fixes = assetFile("styles/fixes.css").readText()
+        assertTrue(fixes.contains("li.gallerybox img.mw-file-element"))
+        assertTrue(fixes.contains("ul.gallery img.mw-file-element"))
+        assertTrue(fixes.contains("ul.gallery.mw-gallery-packed"))
+        assertTrue(fixes.contains("flex: 0 1 auto !important"))
+        assertTrue(fixes.contains("width: fit-content !important"))
+        val galleryRule = fixes.substringAfter("li.gallerybox img.mw-file-element")
+            .substringBefore(".mw-parser-output > figure", missingDelimiterValue = "")
+        assertTrue(galleryRule.contains("max-height: none !important"))
+        assertTrue(galleryRule.contains("max-width: 100% !important"))
+        assertFalse(
+            "Do not force a min-size on gallery photos; true icons must stay tiny.",
+            galleryRule.contains("min-width: 80px") || galleryRule.contains("min-height: 80px")
+        )
+    }
+
+    @Test
     fun calculatorThemeUsesParchmentTokensNotWikipediaGrey() {
         val themes = assetFile("styles/themes.css").readText()
         val fixes = assetFile("styles/fixes.css").readText()

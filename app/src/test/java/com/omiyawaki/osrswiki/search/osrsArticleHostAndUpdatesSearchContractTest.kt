@@ -95,6 +95,16 @@ class osrsArticleHostAndUpdatesSearchContractTest {
         val titleBlock = row.substringAfter("search_item_title").substringBefore("search_item_snippet")
         assertTrue(titleBlock.contains("android:maxLines=\"1\""))
         assertTrue(titleBlock.contains("android:ellipsize=\"end\""))
+        val thumbnail = row
+            .substringAfter("""android:id="@+id/search_item_thumbnail"""")
+            .substringBefore("/>")
+        assertTrue(thumbnail.contains("android:scaleType=\"fitCenter\""))
+        assertFalse(
+            "Android search thumbs have no separate plate; iOS must match that chrome.",
+            thumbnail.contains("android:background")
+        )
+        assertFalse(thumbnail.contains("android:clipToOutline"))
+        assertFalse(thumbnail.contains("cornerRadius"))
     }
 
     @Test

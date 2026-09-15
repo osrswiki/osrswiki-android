@@ -44,10 +44,11 @@ class osrsScopedSearchPagingSource(
         }
 
         return try {
+            val limit = osrsSearchGeneratorLimit(params.loadSize)
             val response = if (trimmed.isEmpty()) {
                 apiService.generatedRecentChanges(
                     namespace = namespace,
-                    limit = params.loadSize,
+                    limit = limit,
                     continueToken = params.key,
                     thumbSize = THUMBNAIL_SIZE
                 )
@@ -55,7 +56,7 @@ class osrsScopedSearchPagingSource(
                 apiService.generatedNamespacedSearch(
                     query = SearchQueryPolicy.networkQuery(trimmed),
                     namespace = namespace,
-                    limit = params.loadSize,
+                    limit = limit,
                     offset = params.key?.toIntOrNull() ?: 0,
                     thumbSize = THUMBNAIL_SIZE
                 )

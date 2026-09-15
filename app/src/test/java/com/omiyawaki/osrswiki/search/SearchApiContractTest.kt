@@ -63,6 +63,19 @@ class SearchApiContractTest {
     }
 
     @Test
+    fun searchPagerFirstPageMatchesIosPageimagesBatchSize() {
+        val repo = File("src/main/java/com/omiyawaki/osrswiki/search/SearchRepository.kt").readText()
+        assertTrue(
+            "Paging 3 defaults initialLoadSize to pageSize*3=60; wiki pageimages then omits ranked thumbs such as Rune dragon",
+            repo.contains("initialLoadSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE")
+        )
+        assertTrue(repo.contains("pageSize = DEFAULT_SEARCH_RESULTS_PAGE_SIZE"))
+        assertEquals(20, osrsSearchGeneratorLimit(60))
+        assertEquals(20, osrsSearchGeneratorLimit(20))
+        assertEquals(2, osrsSearchGeneratorLimit(2))
+    }
+
+    @Test
     fun openSearchParserMarksCalculatorNamespaceFromTitle() {
         val payload = """
             ["coordinates",["Treasure Trails/Guide/Coordinates","Calculator:Coordinates"],["",""],["https://oldschool.runescape.wiki/w/Treasure_Trails/Guide/Coordinates","https://oldschool.runescape.wiki/w/Calculator:Coordinates"]]

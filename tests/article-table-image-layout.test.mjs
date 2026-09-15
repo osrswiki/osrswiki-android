@@ -167,6 +167,32 @@ function galleryPair() {
     </ul>`;
 }
 
+// Packed news-post gallery matching Update:A Ruff Situation "Supporting Alveus Sanctuary":
+// ul.gallery.mw-gallery-packed > li.gallerybox > div.thumb > span[typeof=mw:File] > a > img.mw-file-element
+// with server width/height 320x180 and data-file-* of a 1920x1080 photograph.
+function packedNewsGallery() {
+  const photos = [
+    { id: "alveus-photo-1", fill: "#6b4f2a" },
+    { id: "alveus-photo-2", fill: "#2a4f6b" },
+    { id: "alveus-photo-3", fill: "#4f6b2a" },
+  ];
+  const items = photos.map((photo) => {
+    const src = svgDataUri(1920, 1080, photo.fill);
+    return `
+      <li class="gallerybox" style="width: 322px">
+        <div class="thumb" style="width: 320px;"><span typeof="mw:File"><a href="/w/File:Alveus.png" class="mw-file-description"><img id="${photo.id}" src="${src}" decoding="async" loading="lazy" width="320" height="180" class="mw-file-element" data-file-width="1920" data-file-height="1080" /></a></span></div>
+        <div class="gallerytext"></div>
+      </li>`;
+  }).join("");
+  const iconSrc = svgDataUri(22, 22, "#333");
+  return `
+    <div class="mw-heading mw-heading2"><h2 id="Supporting_Alveus_Sanctuary">Supporting Alveus Sanctuary</h2></div>
+    <ul id="alveus-gallery" style="text-align:center" class="gallery mw-gallery-packed">
+      ${items}
+    </ul>
+    <p id="prose-icon-row">Walk <span class="mw-default-size" typeof="mw:File"><a><img id="prose-icon" class="mw-file-element" width="22" height="22" src="${iconSrc}"></a></span> north.</p>`;
+}
+
 function largeContentImage() {
   const src = svgDataUri(800, 800, "#3d2b1f");
   return `
@@ -204,6 +230,7 @@ async function buildDocument({ assetRoot, aesthetics, themeClass, polish, tableN
       ${locationTable("sea-location", "sea-map-a", "sea-map-b")}
       ${locationTable("harmony-location", "harmony-map-a", "harmony-map-b")}
       ${galleryPair()}
+      ${packedNewsGallery()}
       ${largeContentImage()}
     </div>
   </div>
@@ -308,6 +335,26 @@ async function measure(page) {
       seaMaps: ["sea-map-a", "sea-map-b"].map(imageMetrics),
       harmonyMaps: ["harmony-map-a", "harmony-map-b"].map(imageMetrics),
       gallery: ["gallery-img-a", "gallery-img-b"].map(imageMetrics),
+      packedGallery: ["alveus-photo-1", "alveus-photo-2", "alveus-photo-3"].map((id) => {
+        const image = imageMetrics(id);
+        const el = document.getElementById(id);
+        const thumb = el && el.closest(".thumb");
+        const box = el && el.closest(".gallerybox");
+        const thumbBox = thumb ? thumb.getBoundingClientRect() : null;
+        const galleryBox = box ? box.getBoundingClientRect() : null;
+        return {
+          ...image,
+          thumbWidth: thumbBox ? thumbBox.width : 0,
+          thumbHeight: thumbBox ? thumbBox.height : 0,
+          boxWidth: galleryBox ? galleryBox.width : 0,
+          boxHeight: galleryBox ? galleryBox.height : 0,
+        };
+      }),
+      packedGalleryIconClass: ["alveus-photo-1", "alveus-photo-2", "alveus-photo-3"].map((id) => {
+        const el = document.getElementById(id);
+        return el ? el.classList.contains("osrs-inline-icon") : null;
+      }),
+      proseIcon: imageMetrics("prose-icon"),
       large: imageMetrics("large-content-image"),
       seaLocationTable: document.getElementById("sea-location").className,
     };
@@ -442,6 +489,11 @@ test("shared article CSS keeps date cells contained and image rows in-viewport",
                 fullPage: true,
               });
             }
+            if (caseId === "android-light" || caseId === "ios-light") {
+              await page.locator("#alveus-gallery").screenshot({
+                path: path.join(dir, `alveus-packed-gallery-${caseId}.png`),
+              });
+            }
           }
           await context.close();
         }
@@ -461,12 +513,49 @@ test("shared article CSS keeps date cells contained and image rows in-viewport",
           ...metrics.seaMaps.map((img) => [`${caseId} Sea location ${img.id}`, img]),
           ...metrics.harmonyMaps.map((img) => [`${caseId} Harmony location ${img.id}`, img]),
           ...metrics.gallery.map((img) => [`${caseId} gallery ${img.id}`, img]),
+          ...metrics.packedGallery.map((img) => [`${caseId} packed gallery ${img.id}`, img]),
           [`${caseId} large content`, metrics.large],
         ];
         for (const [label, image] of images) {
           assertImageInViewport(label, image, metrics.viewport, MAX_OVERFLOW_PX);
           assertAspect(label, image);
         }
+
+        const ICON_CAP_PX = 48;
+        for (const [index, image] of metrics.packedGallery.entries()) {
+          const label = `${caseId} packed gallery ${image.id}`;
+          assert.equal(
+            metrics.packedGalleryIconClass[index],
+            false,
+            `${label}: photographic packed-gallery img must not be classified as osrs-inline-icon`,
+          );
+          assert.ok(
+            image.width > ICON_CAP_PX && image.height > ICON_CAP_PX,
+            `${label}: photographic content rendered icon-sized (${image.width.toFixed(1)}x${image.height.toFixed(1)}); server size is ${image.attrW}x${image.attrH}`,
+          );
+          const maxServerWidth = Math.min(image.attrW, metrics.viewport.width);
+          assert.ok(
+            image.width >= Math.min(120, maxServerWidth * 0.5),
+            `${label}: expected near server/viewport size, got ${image.width.toFixed(1)}px (attr ${image.attrW})`,
+          );
+          // Fleet iOS sim (iPhone 17 / iOS 27, HEAD 8b412146): photos were ~2em
+          // chips centered in full-width empty .thumb bars. The bitmap must
+          // fill the thumb, not sit in leftover chrome.
+          assert.ok(
+            image.thumbWidth > 0 && image.boxWidth > 0,
+            `${label}: missing gallerybox/thumb metrics`,
+          );
+          const fill = image.width / image.thumbWidth;
+          assert.ok(
+            fill >= 0.8,
+            `${label}: Fleet empty-bar repro — image ${image.width.toFixed(1)}px in thumb ${image.thumbWidth.toFixed(1)}px (fill ${fill.toFixed(2)})`,
+          );
+        }
+
+        assert.ok(
+          metrics.proseIcon.width > 0 && metrics.proseIcon.width <= ICON_CAP_PX,
+          `${caseId}: true prose icons must stay tiny, got ${metrics.proseIcon.width.toFixed(1)}px`,
+        );
 
         const viewportArea = metrics.viewport.width * metrics.viewport.height;
         const largeArea = metrics.large.width * metrics.large.height;

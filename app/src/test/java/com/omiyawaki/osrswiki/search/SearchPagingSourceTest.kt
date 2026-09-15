@@ -68,6 +68,88 @@ class SearchPagingSourceTest {
     }
 
     @Test
+    fun firstLoadDoesNotRequestSixtyHitsBecausePageimagesDropsRankedThumbnails() = runTest {
+        val runeDragon = SearchResult(
+            ns = 0,
+            title = "Rune dragon",
+            pageid = 77868,
+            index = 6,
+            snippet = "dragons were created",
+            thumbnail = Thumbnail(
+                source = "https://oldschool.runescape.wiki/images/thumb/Rune_dragon.png/240px-Rune_dragon.png"
+            )
+        )
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedPrefixSearch("dragon* scimitar*", 20, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = GeneratedSearchContinuation(gsroffset = 20),
+                query = QueryResult(pages = listOf(runeDragon))
+            )
+        )
+
+        val result = SearchPagingSource(
+            apiService = apiService,
+            query = "dragon scimitar",
+            articleMetaDao = FakeArticleMetaDao()
+        ).load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 60,
+                placeholdersEnabled = false
+            )
+        )
+
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Rune dragon"), page.data.map { it.title })
+        assertEquals(
+            "https://oldschool.runescape.wiki/images/thumb/Rune_dragon.png/240px-Rune_dragon.png",
+            page.data.first().thumbnailUrl
+        )
+        verify(apiService).generatedPrefixSearch("dragon* scimitar*", 20, 0, 240)
+        verify(apiService, never()).generatedPrefixSearch("dragon* scimitar*", 60, 0, 240)
+    }
+
+    @Test
+    fun scopedTypedQueryCapsGeneratorLimitSoPageimagesKeepsThumbnails() = runTest {
+        val apiQuery = SearchQueryPolicy.networkQuery("dragon scimitar")
+        val apiService = mock<WikiApiService>()
+        whenever(apiService.generatedNamespacedSearch(apiQuery, 112, 20, 0, 240)).thenReturn(
+            GeneratedSearchApiResponse(
+                continuation = GeneratedSearchContinuation(gsroffset = 20),
+                query = QueryResult(
+                    pages = listOf(
+                        SearchResult(
+                            ns = 112,
+                            title = "Update:Dragon Slayer II",
+                            pageid = 9,
+                            snippet = "rune dragon",
+                            thumbnail = Thumbnail(source = "https://example.test/ds2.png")
+                        )
+                    )
+                )
+            )
+        )
+        val result = osrsScopedSearchPagingSource(
+            apiService = apiService,
+            query = "dragon scimitar",
+            scope = osrsSearchScope.UPDATES,
+            articleMetaDao = FakeArticleMetaDao(),
+            enrichScope = backgroundScope
+        ).load(
+            PagingSource.LoadParams.Refresh(
+                key = null,
+                loadSize = 60,
+                placeholdersEnabled = false
+            )
+        )
+        val page = result as PagingSource.LoadResult.Page
+        assertEquals(listOf("Update:Dragon Slayer II"), page.data.map { it.title })
+        assertEquals("https://example.test/ds2.png", page.data.first().thumbnailUrl)
+        verify(apiService).generatedNamespacedSearch(apiQuery, 112, 20, 0, 240)
+        verify(apiService, never()).generatedNamespacedSearch(apiQuery, 112, 60, 0, 240)
+    }
+
+    @Test
     fun defaultSearchKeepsUserFacingCalculatorsAndDropsTemplatePages() = runTest {
         val coordinates = SearchResult(
             ns = 116,

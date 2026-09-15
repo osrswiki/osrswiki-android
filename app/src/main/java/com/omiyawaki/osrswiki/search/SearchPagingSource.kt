@@ -24,7 +24,7 @@ class SearchPagingSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SearchResult> {
         val currentOffset = params.key ?: OSRS_WIKI_STARTING_PAGE_OFFSET
-        val limit = params.loadSize
+        val limit = osrsSearchGeneratorLimit(params.loadSize)
 
         if (query.isBlank()) {
             return LoadResult.Page(data = emptyList(), prevKey = null, nextKey = null)
