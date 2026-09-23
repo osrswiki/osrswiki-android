@@ -106,6 +106,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // AGP 8.3+ (this project: 8.12.1) embeds META-INF/version-control-info.textproto
+            // in release APKs when a .git checkout exists. F-Droid rebuilds from git and
+            // writes the revision; GitHub FOSS APKs assembled without usable git metadata
+            // write generate_error_reason: NO_VALID_GIT_FOUND. Disable so both sides omit
+            // the file and F-Droid Binaries APK compare can match. Play does not require
+            // this file. DSL: BuildType.vcsInfo { include = false } (added in AGP 8.3.1).
+            vcsInfo {
+                include = false
+            }
         }
         create("benchmark") {
             initWith(getByName("release"))
