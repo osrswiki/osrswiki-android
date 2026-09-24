@@ -217,6 +217,31 @@ class UiIssueRegressionTest {
     }
 
     @Test
+    fun releaseBuildEnablesR8MinifyAndKeepRulesForFdroid() {
+        val gradle = repoFile("platforms/android/app/build.gradle.kts").readText()
+        val releaseBlock = gradle
+            .substringAfter("buildTypes")
+            .substringAfter("release {")
+            .substringBefore("create(\"benchmark\")")
+
+        assertTrue("release must enable R8 minify for F-Droid !46596", releaseBlock.contains("isMinifyEnabled = true"))
+        assertTrue("release should shrink resources with minify", releaseBlock.contains("isShrinkResources = true"))
+        assertFalse("release must not leave minify disabled", releaseBlock.contains("isMinifyEnabled = false"))
+        assertTrue("keep F-Droid vcsInfo omission from PR #32", gradle.contains("vcsInfo"))
+        assertTrue("keep F-Droid dependenciesInfo omission from PR #33", gradle.contains("includeInApk = false"))
+
+        val proguard = repoFile("platforms/android/app/proguard-rules.pro").readText()
+        assertTrue(proguard.contains("@android.webkit.JavascriptInterface"))
+        assertTrue(proguard.contains("com.omiyawaki.osrswiki.news.model"))
+        assertTrue(proguard.contains("org.maplibre"))
+        assertTrue(proguard.contains("kotlinx.serialization"))
+        assertTrue(proguard.contains("nativePtr"))
+
+        val keepXml = sourceFile("res/raw/keep.xml").readText()
+        assertTrue(keepXml.contains("""tools:keep="@font/*"""))
+    }
+
+    @Test
     fun mainNavigationHostTracksTranslatedBottomNavInset() {
         val source = sourceFile("java/com/omiyawaki/osrswiki/MainActivity.kt").readText()
 

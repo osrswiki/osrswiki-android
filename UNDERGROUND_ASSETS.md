@@ -38,6 +38,10 @@ URL off the pinned `osrswiki/osrswiki-tooling` tag. Generated rasters and other
 map-building intermediates remain host-local and are never published as Git
 history.
 
+The `./scripts/fetch-map-assets.sh materialize` prebuild line downloads one
+`map_floors.zip` for the surface floors. Do not expand it into four separate
+mbtiles curls.
+
 ## F-Droid / FOSS later version
 
 FOSS and F-Droid inclusion of the real underground catalog is opt-in on a
