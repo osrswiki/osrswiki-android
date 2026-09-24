@@ -130,6 +130,18 @@ android {
         }
     }
 
+    // AGP 4.0+ (this project: 8.12.1) embeds SDK dependency metadata in the
+    // APK Signing Block as "Dependency metadata" (id 0x504B4453). F-Droid's
+    // check-apk scanner rejects that extra signing block on the GitHub-published
+    // FOSS APK (fdroiddata !46596 job 16702975404) even when zip contents already
+    // match. Play inspects the same blob on upload but does not require it.
+    // Disable so F-Droid check apk can pass. DSL: android.dependenciesInfo
+    // { includeInApk / includeInBundle } (added in AGP 4.2.0).
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
