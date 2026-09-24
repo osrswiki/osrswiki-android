@@ -98,7 +98,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // F-Droid maintainer request on fdroiddata !46596 (linsui): enable R8 so
+            // FOSS (and Play) release APKs are minified/shrunk. Resource shrinking is
+            // the AGP companion; it does not touch assets/ (mbtiles). WebView-loaded
+            // res/font files are kept via res/raw/keep.xml.
+            isMinifyEnabled = true
+            isShrinkResources = true
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }

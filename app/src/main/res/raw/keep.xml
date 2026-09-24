@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resource shrinking companion for release R8.
+     Article WebView CSS loads fonts via WebViewAssetLoader
+     https://appassets.androidplatform.net/res/font/*.ttf (ResourcesPathHandler).
+     Those files are not all referenced from Android XML (e.g. runescape_bold),
+     so shrinkResources would strip them without this keep.
+     MBTiles live in assets/ and are not affected by resource shrinking. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@font/*,@raw/keep" />
