@@ -115,12 +115,12 @@ class PageHtmlBuilderTest {
         assertFalse(html.contains("media=\"print\""))
         // Phase B: critical polish sheets must be inlined (same look as linked critical path)
         assertTrue(html.contains("data-osrs-inline-css=\"styles/fixes.css\""))
-        assertTrue(html.contains("data-osrs-inline-css=\"styles/gadget_calc.css\""))
+        assertTrue(html.contains("data-osrs-inline-css=\"styles/osrs_calculator.css\""))
         assertFalse(
             html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/fixes.css\" data-osrs-css=\"critical\">")
         )
         assertFalse(
-            html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/gadget_calc.css\" data-osrs-css=\"critical\">")
+            html.contains("<link rel=\"stylesheet\" href=\"https://appassets.androidplatform.net/assets/styles/osrs_calculator.css\" data-osrs-css=\"critical\">")
         )
     }
 
@@ -190,6 +190,7 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("web/live_article_asset_warm.js"))
         assertTrue(html.contains("web/first_viewport_assets.js"))
         assertTrue(html.contains("web/article_audio_player.js"))
+        assertTrue(html.contains("web/osrs_article_tooltips.js"))
         assertTrue(html.contains("var RLCONF ="))
         assertTrue(html.contains("var RLPAGEMODULES ="))
         assertTrue(html.contains("\"ext.Tabber\""))
@@ -294,10 +295,10 @@ class PageHtmlBuilderTest {
         assertTrue(html.contains("\"oojs-ui-widgets\""))
         assertTrue(html.contains("\"mediawiki.widgets\""))
         assertTrue(html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116"))
-        assertTrue(html.contains("mediawiki/gadget_calc_core.js"))
+        assertFalse(html.contains("mediawiki/gadget_calc_core.js"))
         assertTrue(html.contains("web/osrs_native_calc_indoc.js"))
         assertTrue(html.contains("web/osrs_calculator_runtime.js"))
-        assertTrue(html.contains("styles/gadget_calc.css"))
+        assertTrue(html.contains("styles/osrs_calculator.css"))
         assertTrue(html.contains("id=\"bodyContent\""))
         assertTrue(html.contains("--osrs-article-bottom-chrome"))
         assertTrue(html.contains("padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px)"))
@@ -474,7 +475,7 @@ class PageHtmlBuilderTest {
         assertCriticalStylesheet(document, "web/switch_infobox_styles.css")
         assertDeferredStylesheet(document, "styles/wiki-integration.css")
         assertCriticalStylesheet(document, "styles/fixes.css")
-        assertCriticalStylesheet(document, "styles/gadget_calc.css")
+        assertCriticalStylesheet(document, "styles/osrs_calculator.css")
         assertDeferredStylesheet(document, "styles/android-article-aesthetics.css")
 
         assertTrue(html.contains("id=\"osrs-article-first-paint\""))

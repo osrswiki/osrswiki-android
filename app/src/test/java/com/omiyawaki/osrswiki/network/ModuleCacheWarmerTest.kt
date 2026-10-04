@@ -35,11 +35,11 @@ class ModuleCacheWarmerTest {
         assertTrue(names.contains("oojs-ui-core"))
         assertTrue(names.contains("oojs-ui-widgets"))
         assertTrue(names.contains("mediawiki.widgets"))
-        assertTrue(names.contains("ext.gadget.rsw-util"))
-        assertTrue(names.contains("ext.gadget.calc-core"))
+        assertFalse(names.contains("ext.gadget.rsw-util"))
+        assertFalse(names.contains("ext.gadget.calc-core"))
         assertTrue(names.contains("mediawiki.base"))
-        assertTrue(names.contains("ext.gadget.GECharts"))
-        assertTrue(names.contains("ext.gadget.tooltips"))
+        assertFalse(names.contains("ext.gadget.GECharts"))
+        assertFalse(names.contains("ext.gadget.tooltips"))
     }
 
     @Test
@@ -48,8 +48,8 @@ class ModuleCacheWarmerTest {
         assertTrue(urls.contains(ModuleCacheWarmer.calculatorShapedUrl("jquery", onlyScripts = true)))
         assertTrue(urls.contains(ModuleCacheWarmer.calculatorShapedUrl("oojs", onlyScripts = true)))
         assertTrue(urls.contains(ModuleCacheWarmer.calculatorShapedUrl("mediawiki.widgets", onlyScripts = false)))
-        assertTrue(urls.contains(ModuleCacheWarmer.calculatorShapedUrl("ext.gadget.calc-core", onlyScripts = true)))
-        assertTrue(urls.any { it.contains("modules=ext.gadget.calc-core") && it.contains("skin=minerva") })
+        assertFalse(urls.contains(ModuleCacheWarmer.calculatorShapedUrl("ext.gadget.calc-core", onlyScripts = true)))
+        assertFalse(urls.any { it.contains("ext.gadget.") })
         assertFalse(urls.any { it.contains("|") })
     }
 

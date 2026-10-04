@@ -21,6 +21,7 @@ object osrsNativeCalcDefinition {
         GROUP("group"),
         HS("hs"),
         RSN("rsn"),
+        ARTICLE("article"),
         HIDDEN("hidden"),
         FIXED("fixed"),
         SEMI_HIDDEN("semihidden"),
@@ -288,7 +289,7 @@ object osrsNativeCalcDefinition {
 
     fun shouldAutosubmitOnEdit(type: ParamType): Boolean {
         return when (type) {
-            ParamType.HS, ParamType.RSN, ParamType.STRING, ParamType.GROUP -> false
+            ParamType.HS, ParamType.RSN, ParamType.STRING, ParamType.ARTICLE, ParamType.GROUP -> false
             else -> true
         }
     }

@@ -22,7 +22,7 @@ const CRITICAL_STYLES = [
   "web/collapsible_tables.css",
   "web/collapsible_sections.css",
   "web/switch_infobox_styles.css",
-  "styles/gadget_calc.css",
+  "styles/osrs_calculator.css",
   "styles/fixes.css",
 ];
 

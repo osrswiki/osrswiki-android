@@ -69,12 +69,6 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ui.map.StandardNavigationTestActivity"
-            android:exported="false"
-            android:theme="@style/Theme.OSRSWiki"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
             android:name=".page.PageActivity"
             android:configChanges="uiMode|orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout"
             android:exported="false"

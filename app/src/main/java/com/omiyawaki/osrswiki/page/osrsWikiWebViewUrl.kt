@@ -5,12 +5,16 @@ import android.net.Uri
 /**
  * Rewrites local WebView origins to the live wiki for calculator, CORS, and
  * ResourceLoader requests. App articles load from appassets.androidplatform.net,
- * so gadget-relative `/api.php` and `/cors/` would otherwise 404 locally.
+ * so relative `/api.php` and `/cors/` would otherwise 404 locally.
+ *
+ * MediaWiki gadget modules are never fetched. Wiki gadget JavaScript is not FLOSS
+ * and is not bundled or executed.
  */
 object osrsWikiWebViewUrl {
     const val WIKI_HOST = "oldschool.runescape.wiki"
     const val WIKI_ORIGIN = "https://oldschool.runescape.wiki"
     const val LOCAL_ASSET_HOST = "appassets.androidplatform.net"
+    const val REJECTED_GADGET_LOAD_JS = "/* osrs: MediaWiki gadgets are not loaded */\n"
 
     fun shouldProxy(uri: Uri): Boolean {
         val host = uri.host?.lowercase() ?: return false
@@ -37,6 +41,69 @@ object osrsWikiWebViewUrl {
                     .build()
                     .toString()
             }
+        } catch (_: Exception) {
+            url
+        }
+    }
+
+    fun isMediaWikiGadgetModule(name: String): Boolean {
+        return name.trim().startsWith("ext.gadget.")
+    }
+
+    fun withoutMediaWikiGadgets(modules: Iterable<String>): List<String> {
+        return modules.filterNot { isMediaWikiGadgetModule(it) }
+    }
+
+    fun loadPhpModuleNames(url: String): List<String> {
+        return try {
+            val modules = Uri.parse(url).getQueryParameter("modules") ?: return emptyList()
+            modules.split('|', ',').map { it.trim() }.filter { it.isNotEmpty() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun isRejectedMediaWikiGadgetLoad(url: String): Boolean {
+        if (!url.contains("/load.php")) {
+            return false
+        }
+        val modules = loadPhpModuleNames(url)
+        return modules.isNotEmpty() && modules.all { isMediaWikiGadgetModule(it) }
+    }
+
+    /**
+     * Drop `ext.gadget.*` from a load.php URL. Returns null when nothing FLOSS
+     * remains to fetch.
+     */
+    fun withoutMediaWikiGadgetLoadModules(url: String): String? {
+        return try {
+            val uri = Uri.parse(url)
+            val path = uri.path ?: return url
+            if (path != "/load.php" && !path.endsWith("/load.php")) {
+                return url
+            }
+            val modules = loadPhpModuleNames(url)
+            if (modules.isEmpty()) {
+                return url
+            }
+            val kept = withoutMediaWikiGadgets(modules)
+            if (kept.size == modules.size) {
+                return url
+            }
+            if (kept.isEmpty()) {
+                return null
+            }
+            val builder = uri.buildUpon().clearQuery()
+            uri.queryParameterNames.forEach { name ->
+                if (name == "modules") {
+                    builder.appendQueryParameter("modules", kept.joinToString("|"))
+                } else {
+                    uri.getQueryParameters(name).forEach { value ->
+                        builder.appendQueryParameter(name, value)
+                    }
+                }
+            }
+            builder.build().toString()
         } catch (_: Exception) {
             url
         }

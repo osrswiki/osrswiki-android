@@ -78,7 +78,7 @@ class osrsCalculatorParityTest {
                 entry.title,
                 html.contains("\"wgNamespaceNumber\": 116") || html.contains("\"wgNamespaceNumber\":116")
             )
-            assertTrue(entry.title, html.contains("mediawiki/gadget_calc_core.js"))
+            assertFalse(entry.title, html.contains("mediawiki/gadget_calc_core.js"))
             assertTrue(entry.title, html.contains("web/osrs_calculator_runtime.js"))
             assertTrue(entry.title, html.contains("\"wgLoadScript\": \"/load.php\""))
             assertTrue(entry.title, html.contains("\"wgScript\": \"/index.php\""))
@@ -165,13 +165,13 @@ class osrsCalculatorParityTest {
     }
 
     @Test
-    fun articleHtmlLoadsBundledCalcCoreAndDoesNotHijackForms() {
+    fun articleHtmlDoesNotLoadWikiGadgetCalcCore() {
         val html = File("src/main/java/com/omiyawaki/osrswiki/page/PageHtmlBuilder.kt").let {
             if (it.exists()) it else File("app/src/main/java/com/omiyawaki/osrswiki/page/PageHtmlBuilder.kt")
         }.readText()
-        assertTrue(html.contains("mediawiki/gadget_calc_core.js"))
+        assertFalse(html.contains("mediawiki/gadget_calc_core.js"))
         assertTrue(html.contains("web/osrs_calculator_runtime.js"))
-        assertTrue(html.contains("styles/gadget_calc.css"))
+        assertTrue(html.contains("styles/osrs_calculator.css"))
 
         val articleTools = File("../../../../platforms/ios/osrswiki/Assets/web/article_tools.js")
         val tools = if (articleTools.exists()) {
@@ -180,23 +180,16 @@ class osrsCalculatorParityTest {
             File("../../../platforms/ios/osrswiki/Assets/web/article_tools.js").readText()
         }
         assertFalse(tools.contains("document.querySelectorAll('pre.jcConfig').forEach(setupCalculator)"))
-        assertTrue(tools.contains("Calculator forms are owned by ext.gadget.calc-core"))
+        assertFalse(tools.contains("ext.gadget.calc-core"))
 
-        val calcCoreCandidates = listOf(
-            File("src/main/assets/mediawiki/gadget_calc_core.js"),
-            File("../../../shared/js/mediawiki/gadget_calc_core.js")
-        )
-        val calcCore = calcCoreCandidates.first { it.exists() }.readText()
-        assertTrue(calcCore.contains("document.getElementById('bodyContent') || document.body"))
-        assertTrue(calcCore.contains("osrsEnsureOOUITheme"))
-        assertTrue(calcCore.contains("OO.ui.ButtonOptionWidget"))
-        assertTrue(calcCore.contains("__osrsCalculatorPatched"))
-        assertFalse(calcCore.contains("\$('#bodyContent')"))
+        assertFalse(File("src/main/assets/mediawiki/gadget_calc_core.js").exists())
+        assertFalse(File("../../../shared/js/mediawiki/gadget_calc_core.js").exists())
         val runtimeCandidates = listOf(
             File("src/main/assets/web/osrs_calculator_runtime.js"),
             File("../../../shared/js/osrs_calculator_runtime.js")
         )
         val runtime = runtimeCandidates.first { it.exists() }.readText()
+        assertFalse(runtime.contains("ext.gadget."))
         assertTrue(runtime.contains("setTimeout(patchAjax, 25)"))
         assertTrue(runtime.contains("oojs-ui-widgets"))
         assertTrue(runtime.contains("ButtonOptionWidget"))
@@ -218,19 +211,8 @@ class osrsCalculatorParityTest {
         assertTrue(runtime.contains("mousedown"))
         assertTrue(runtime.contains("__osrsOpenCalcDropdown"))
         assertTrue(runtime.contains(".osrs-article-scroll-region, .osrs-local-scroll-surface"))
-        assertTrue(calcCore.contains("data-osrs-calc-built"))
         assertTrue(runtime.contains("dynamic calculator requires JavaScript"))
-        assertTrue(calcCore.contains("already implemented"))
-        assertTrue(calcCore.contains("osrsRunModuleScript"))
-        assertTrue(calcCore.contains("osrsMakeModuleRequire"))
-        assertTrue(calcCore.contains("osrsInstallImplementedScript"))
-        assertTrue(calcCore.contains("osrsEnsureMwHelpers"))
-        assertTrue(calcCore.contains("mw.html.escape"))
         assertTrue(runtime.contains("osrsEnsureJQueryAlias"))
-        assertTrue(calcCore.contains("setupCalc:"))
-        assertTrue(calcCore.contains("ToggleSwitchWidget"))
-        assertTrue(calcCore.contains("__osrsRebuildCalcs"))
-        assertTrue(runtime.contains("osrsArmSmokeSubmit"))
         assertTrue(runtime.contains("aria-hidden"))
         assertTrue(runtime.contains("MutationObserver"))
         assertTrue(runtime.contains("[id\$=\"Form\"]"))
@@ -241,7 +223,7 @@ class osrsCalculatorParityTest {
     @Test
     fun barrowsCalcWaitsForToggleSwitchGroupAndResolvesFormOutsideBodyContent() {
         val runtime = File("src/main/assets/web/osrs_calculator_runtime.js").readText()
-        val calcCore = File("src/main/assets/mediawiki/gadget_calc_core.js").readText()
+        assertFalse(File("src/main/assets/mediawiki/gadget_calc_core.js").exists())
         val barrowsConfig = """
             template=Calculator:Barrows/Template
             form=BarrowsForm
@@ -254,13 +236,7 @@ class osrsCalculatorParityTest {
         assertTrue(barrowsConfig.contains("|check|"))
         assertTrue(barrowsConfig.contains("|toggleswitch|"))
         assertTrue(barrowsConfig.contains("|group|"))
-        assertTrue(calcCore.contains("'check'"))
-        assertTrue(calcCore.contains("'toggleswitch'"))
-        assertTrue(calcCore.contains("'group'"))
-        assertTrue(calcCore.contains("typeof OO.ui.CheckboxInputWidget === 'function'"))
-        assertTrue(calcCore.contains("OO.ui.ToggleSwitchWidget"))
-        assertTrue(calcCore.contains("/\\|\\s*group\\s*\\|/i"))
-        assertTrue(calcCore.contains("document.getElementById(self.form)"))
+        assertFalse(runtime.contains("ext.gadget."))
         val oouiReady = runtime.substringAfter("function osrsCalcOOUIReady()").substringBefore("function osrsLoadModuleScript")
         assertTrue(oouiReady.contains("CheckboxInputWidget"))
         assertTrue(oouiReady.contains("ToggleSwitchWidget"))

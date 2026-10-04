@@ -590,9 +590,9 @@ class ArticleAestheticCssContractTest {
         )
         assertTrue(fixes.contains("osrs-calculator-panel .oo-ui-buttonElement"))
         assertTrue(runtime.contains("osrsReassertCalculatorThemeSheets"))
-        val gadgetIdx = runtime.indexOf("'gadget_calc.css'")
+        val calcIdx = runtime.indexOf("'osrs_calculator.css'")
         val fixesIdx = runtime.indexOf("'fixes.css'")
-        assertTrue(gadgetIdx >= 0 && fixesIdx >= 0 && gadgetIdx < fixesIdx)
+        assertTrue(calcIdx >= 0 && fixesIdx >= 0 && calcIdx < fixesIdx)
     }
 
     @Test
@@ -759,18 +759,18 @@ class ArticleAestheticCssContractTest {
             "Nested disclosure-body must not add a second gutter on top of content padding.",
             nestedChildBody.contains("margin-inline: 0 !important")
         )
-        val gadget = assetFile("styles/gadget_calc.css").readText()
-        assertTrue(gadget.contains(".osrs-indoc-calc-switch input"))
-        assertTrue(gadget.contains("-webkit-appearance: none !important"))
-        assertTrue(gadget.contains("accent-color: var(--ooui-progressive, #744e2f)"))
-        assertTrue(gadget.contains("background-color: var(--ooui-progressive, #744e2f) !important"))
+        val calcCss = assetFile("styles/osrs_calculator.css").readText()
+        assertTrue(calcCss.contains(".osrs-indoc-calc-switch input"))
+        assertTrue(calcCss.contains("-webkit-appearance: none !important"))
+        assertTrue(calcCss.contains("accent-color: var(--ooui-progressive, #744e2f)"))
+        assertTrue(calcCss.contains("background-color: var(--ooui-progressive, #744e2f) !important"))
         assertTrue(
             "Dark-mode Submit text must use on-progressive (ink on cream), not hardcoded cream.",
-            gadget.contains("color: var(--ooui-on-progressive, #28221d)")
+            calcCss.contains("color: var(--ooui-on-progressive, #28221d)")
         )
         assertFalse(
             "Do not force cream Submit text in dark mode.",
-            gadget.contains("color: #f4efe6")
+            calcCss.contains("color: #f4efe6")
         )
         val runtime = assetFile("web/osrs_calculator_runtime.js").readText()
         assertFalse(

@@ -331,6 +331,7 @@ class osrsNativeCalcDefinitionTest {
         assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.HS))
         assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.RSN))
         assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.STRING))
+        assertFalse(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.ARTICLE))
         assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.SELECT))
         assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.INT))
         assertTrue(osrsNativeCalcDefinition.shouldAutosubmitOnEdit(osrsNativeCalcDefinition.ParamType.TOGGLE_SWITCH))

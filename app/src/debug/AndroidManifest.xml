@@ -9,5 +9,10 @@
             android:name=".test.ExpandedQaVoiceActivity"
             android:exported="false"
             android:theme="@style/Theme.OSRSWiki" />
+        <activity
+            android:name=".ui.map.StandardNavigationTestActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OSRSWiki"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

@@ -3,6 +3,9 @@ package com.omiyawaki.osrswiki.page
 /**
  * Centralized registry for MediaWiki module configurations.
  * Replaces hardcoded per-page module lists with template-based approach.
+ *
+ * Wiki gadget modules are never selected. Article reading uses app-owned
+ * JavaScript instead of MediaWiki:Gadget-*.js.
  */
 object WikiModuleRegistry {
 
@@ -13,9 +16,9 @@ object WikiModuleRegistry {
     )
 
     enum class Priority {
-        HIGH,    // Critical modules (GE charts, essential functionality)
+        HIGH,    // Critical modules (essential functionality)
         MEDIUM,  // Standard modules (tabber, citations)
-        LOW      // Optional modules (tooltips, minor enhancements)
+        LOW      // Optional modules (minor enhancements)
     }
 
     /**
@@ -23,21 +26,6 @@ object WikiModuleRegistry {
      * Maps module name to configuration for smart loading.
      */
     val modules = mapOf(
-        // High priority modules (always load)
-        "ext.gadget.GECharts" to ModuleConfig(
-            dependencies = listOf("ext.gadget.GECharts-core", "jquery", "mediawiki.api"),
-            cssMarkers = listOf("GEdatachart", "GEChartBox", "GEdataprices"),
-            priority = Priority.HIGH
-        ),
-        "ext.gadget.GECharts-core" to ModuleConfig(
-            dependencies = listOf("jquery", "mediawiki.api"),
-            priority = Priority.HIGH
-        ),
-        "ext.gadget.calc-core" to ModuleConfig(
-            dependencies = listOf("ext.gadget.rsw-util", "oojs-ui-core", "oojs-ui-widgets", "mediawiki.widgets"),
-            priority = Priority.HIGH
-        ),
-        
         // Medium priority modules (load when detected)
         "ext.Tabber" to ModuleConfig(
             dependencies = listOf("jquery"),
@@ -48,13 +36,6 @@ object WikiModuleRegistry {
             dependencies = listOf("jquery", "mediawiki.util"),
             cssMarkers = listOf("reference"),
             priority = Priority.MEDIUM
-        ),
-        
-        // Low priority modules (optional)
-        "ext.gadget.tooltips" to ModuleConfig(
-            dependencies = listOf("jquery"),
-            cssMarkers = listOf("tooltip"),
-            priority = Priority.LOW
         )
     )
 
@@ -64,9 +45,7 @@ object WikiModuleRegistry {
      */
     val pageTemplates = mapOf(
         "item_pages" to listOf(
-            "ext.gadget.GECharts",
-            "ext.cite.ux-enhancements",
-            "ext.gadget.tooltips"
+            "ext.cite.ux-enhancements"
         ),
         "skill_guides" to listOf(
             "ext.Tabber",
@@ -97,7 +76,6 @@ object WikiModuleRegistry {
             detectedModules.add("oojs-ui-core")
             detectedModules.add("oojs-ui-widgets")
             detectedModules.add("mediawiki.widgets")
-            detectedModules.add("ext.gadget.rsw-util")
         }
 
         // Add template-based modules if page matches pattern
@@ -129,15 +107,13 @@ object WikiModuleRegistry {
             "mediawiki.page.ready",
             "jquery.tablesorter",
             "skins.minerva.scripts",
-            "ext.gadget.rsw-util",
-            "ext.gadget.switch-infobox",
             "mobile.init",
             "ext.checkUser.clientHints",
             "ext.popups",
             "ext.smw.purge"
         )
         
-        return (standardModules + requiredModules).distinct()
+        return osrsWikiWebViewUrl.withoutMediaWikiGadgets(standardModules + requiredModules).distinct()
     }
 
     private fun isItemPage(title: String): Boolean {
@@ -174,6 +150,6 @@ object WikiModuleRegistry {
             }
         }
         
-        return resolved.toList()
+        return osrsWikiWebViewUrl.withoutMediaWikiGadgets(resolved)
     }
 }

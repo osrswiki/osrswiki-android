@@ -34,7 +34,14 @@ object osrsWikiWebViewProxy {
             // POSTs are handled by osrsCalculatorApiBridge instead.
             return null
         }
-        val wikiUrl = osrsWikiWebViewUrl.rewriteToWiki(uri.toString())
+        var wikiUrl = osrsWikiWebViewUrl.rewriteToWiki(uri.toString())
+        if (wikiUrl.contains("/load.php")) {
+            val stripped = osrsWikiWebViewUrl.withoutMediaWikiGadgetLoadModules(wikiUrl)
+            if (stripped == null) {
+                return javascriptResponse(osrsWikiWebViewUrl.REJECTED_GADGET_LOAD_JS)
+            }
+            wikiUrl = stripped
+        }
         if (wikiUrl.contains("/load.php") && context != null) {
             val moduleCache = NetworkModuleCache.getInstance(context)
             moduleCache.getCachedResponseIfPresent(wikiUrl)?.let { cached ->
@@ -70,6 +77,16 @@ object osrsWikiWebViewProxy {
         val encoded = encodeRequestData(data)
         if (method.equals("GET", ignoreCase = true) && data is JSONObject) {
             wikiUrl = appendQuery(wikiUrl, data)
+        }
+        if (wikiUrl.contains("/load.php")) {
+            val stripped = osrsWikiWebViewUrl.withoutMediaWikiGadgetLoadModules(wikiUrl)
+            if (stripped == null) {
+                result.put("ok", true)
+                result.put("body", osrsWikiWebViewUrl.REJECTED_GADGET_LOAD_JS)
+                result.put("cached", true)
+                return result
+            }
+            wikiUrl = stripped
         }
         val cacheable = wikiUrl.contains("/api.php") || wikiUrl.contains("/load.php")
         val cacheBody = if (method.equals("GET", ignoreCase = true)) "" else encoded.bodyText

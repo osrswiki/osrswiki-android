@@ -3,6 +3,7 @@ package com.omiyawaki.osrswiki.network
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import com.omiyawaki.osrswiki.page.osrsWikiWebViewUrl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,13 +39,13 @@ class ModuleCacheWarmer internal constructor(
             EssentialModule("oojs", onlyScripts = true),
             EssentialModule("oojs-ui-core", onlyScripts = true),
             EssentialModule("oojs-ui-widgets", onlyScripts = true),
-            EssentialModule("mediawiki.widgets", onlyScripts = false),
-            EssentialModule("ext.gadget.rsw-util", onlyScripts = true)
+            EssentialModule("mediawiki.widgets", onlyScripts = false)
         )
 
         /**
          * Cold-start essentials: calculator/OOUI inject list plus common RL
-         * gadgets. `oojs` is required before `oojs-ui-core` on calculator pages.
+         * modules. `oojs` is required before `oojs-ui-core` on calculator pages.
+         * Wiki gadgets are never warmed or fetched.
          */
         val ESSENTIAL_MODULES: List<String> = listOf(
             "jquery",
@@ -52,10 +53,6 @@ class ModuleCacheWarmer internal constructor(
             "mediawiki.base",
             "mediawiki.util",
             "mediawiki.page.ready",
-            "ext.gadget.rsw-util",
-            "ext.gadget.GECharts",
-            "ext.gadget.tooltips",
-            "ext.gadget.calc-core",
             "oojs-ui-core",
             "oojs-ui-widgets",
             "mediawiki.widgets"
@@ -109,7 +106,6 @@ class ModuleCacheWarmer internal constructor(
                 urls.add(resourceLoaderShapedUrl(name, onlyScripts = true))
             }
             urls.add(resourceLoaderShapedUrl("mediawiki.widgets", onlyScripts = false))
-            urls.add(calculatorShapedUrl("ext.gadget.calc-core", onlyScripts = true))
             return urls.toList()
         }
 
@@ -137,7 +133,7 @@ class ModuleCacheWarmer internal constructor(
             return
         }
         scope.launch {
-            val urls = pageModules.map { name ->
+            val urls = osrsWikiWebViewUrl.withoutMediaWikiGadgets(pageModules).map { name ->
                 resourceLoaderShapedUrl(name, onlyScripts = true).let { url ->
                     if (isMobile) {
                         url

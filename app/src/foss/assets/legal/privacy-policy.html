@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Wiki App - FOSS Privacy Policy</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .last-updated { color: #7f8c8d; font-style: italic; }
+        .contact { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy for the OSRS Wiki App (FOSS)</h1>
+    <p class="last-updated">Last updated: October 4, 2026</p>
+
+    <p>This policy describes the unofficial OSRS Wiki Android app’s <strong>FOSS / F-Droid</strong> distribution (the <code>foss</code> flavor of <code>com.omiyawaki.osrswiki</code>). It does not describe the Google Play build.</p>
+    <p>This FOSS build does not include a crash-metrics SDK, Google Play Billing, or Google Play Services in-app purchases.</p>
+
+    <h2>1. Information on your device</h2>
+    <p>The app stores data locally so it can work as a wiki reader:</p>
+    <ul>
+        <li><strong>Search history</strong> and recently viewed pages, until you clear them or uninstall the app</li>
+        <li><strong>Saved / offline articles</strong> and cached wiki assets, until you clear offline storage or uninstall</li>
+        <li><strong>Map tiles</strong> shipped with the app as local MBTiles. The map tab does not download a remote map-tile service</li>
+    </ul>
+    <p>The app does not keep voice recordings.</p>
+
+    <h2>2. Wiki content</h2>
+    <p>Search queries, article HTML, images, and related wiki assets are requested over HTTPS from <strong>oldschool.runescape.wiki</strong> (the official Old School RuneScape Wiki).</p>
+    <p>Those HTTP requests send a User-Agent that includes the app version, Android version, device manufacturer, and device model. Wiki article JavaScript may also request additional wiki or community hosts needed to render a page.</p>
+
+    <h2>3. Optional feedback</h2>
+    <p>If you submit <em>Report an Issue</em> or <em>Request a Feature</em>, the app sends your title and description, plus app version, distribution flavor (<code>foss</code>), Android version, and device model (manufacturer, model, brand, and product) to a Cloudflare Worker at <strong>https://osrswiki-feedback.omiyawaki.workers.dev/</strong>. The Worker creates a GitHub Issue. The app does not embed a GitHub API token. If you do not use feedback, this data is not sent.</p>
+
+    <h2>4. Grand Exchange charts</h2>
+    <p>Item price charts request timeseries data from <strong>https://prices.runescape.wiki</strong>.</p>
+
+    <h2>5. Videos in wiki articles</h2>
+    <p>When an article includes a video, preview thumbnails load from <strong>https://i.ytimg.com</strong>. Playing a video can load a YouTube embed (<code>youtube.com</code> or <code>youtube-nocookie.com</code>) or open a YouTube app on the device.</p>
+
+    <h2>6. Optional voice search</h2>
+    <p>Voice search uses Android’s system <strong>SpeechRecognizer</strong> (<code>SpeechRecognizer.createSpeechRecognizer</code>). This app does not bundle a speech SDK. On many devices the platform default is Google’s online recognizer, so audio is sent over the network to that provider. Other devices may use a different vendor engine or on-device recognition. Audio is used only to produce a search query and is not stored by the app. You can skip voice search and revoke microphone permission in system settings.</p>
+
+    <h2>7. Optional support links</h2>
+    <p>Donate opens GitHub Sponsors in a browser. A separate outbound link can open the wiki’s Patreon page. This FOSS build does not include Google Play Billing and has no in-app purchases.</p>
+
+    <h2>8. What this FOSS build does not do</h2>
+    <ul>
+        <li>It does not include a crash-metrics SDK or send automatic crash telemetry</li>
+        <li>It does not include Google Play Billing or Google Play Services in-app purchases</li>
+        <li>It does not require an account</li>
+    </ul>
+
+    <h2>9. Your choices</h2>
+    <ul>
+        <li>Voice search is optional; microphone access can be revoked in device settings</li>
+        <li>Feedback is optional</li>
+        <li>Cached and offline content can be cleared in app settings</li>
+        <li>Uninstalling the app removes locally stored data</li>
+    </ul>
+
+    <h2>10. Children’s privacy</h2>
+    <p>The app does not knowingly collect personal information from children under 13. The wiki content is about a video game rated for teen audiences. If you are a parent and believe your child has provided personal information through feedback, contact us through the in-app feedback form.</p>
+
+    <h2>11. Changes to this policy</h2>
+    <p>We may update this privacy policy when the FOSS build’s data flows change. Significant changes will be included in app updates.</p>
+
+    <div class="contact">
+        <h2>Contact</h2>
+        <p>For privacy questions, use the app’s feedback form (More → Feedback). That path uses the Cloudflare Worker described above.</p>
+    </div>
+
+    <hr>
+    <p><small>
+        <strong>Note:</strong> This app is not affiliated with Jagex Ltd. Old School RuneScape is a trademark of Jagex Ltd.
+        Wiki content is provided by the community-maintained OSRS Wiki.
+    </small></p>
+</body>
+</html>

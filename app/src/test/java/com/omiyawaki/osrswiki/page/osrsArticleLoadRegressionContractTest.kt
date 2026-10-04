@@ -199,7 +199,7 @@ class osrsArticleLoadRegressionContractTest {
         assertTrue(store.contains("private const val maxEntries = 2"))
         val builder = source("page/PageHtmlBuilder.kt")
         assertTrue(builder.contains("styles/fixes.css"))
-        assertTrue(builder.contains("styles/gadget_calc.css"))
+        assertTrue(builder.contains("styles/osrs_calculator.css"))
     }
 
     @Test

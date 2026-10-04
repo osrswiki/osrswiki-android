@@ -112,6 +112,11 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             Log.i(logTag, "  -> INTERCEPT [HIT] wiki calculator/API proxy for: $url")
             return proxied
         }
+
+        if (osrsWikiWebViewUrl.isRejectedMediaWikiGadgetLoad(url)) {
+            Log.i(logTag, "  -> INTERCEPT [REJECT] MediaWiki gadget load: $url")
+            return javascriptResponse(osrsWikiWebViewUrl.REJECTED_GADGET_LOAD_JS)
+        }
         
         // Initialize CDN redirector and module cache if needed
         if (!::cdnRedirector.isInitialized) {
@@ -149,14 +154,31 @@ open class AppWebViewClient(private val linkHandler: LinkHandler) : WebViewClien
             return WebResourceResponse(savedAsset.mimeType, savedAsset.encoding, savedAsset.stream)
         }
 
-        // 3. Check NetworkModuleCache for MediaWiki load.php requests
+        // 3. Check NetworkModuleCache for MediaWiki load.php requests.
+        // Wiki gadget modules are never fetched or served from cache.
         if (moduleCache.shouldCache(url)) {
-            val moduleUrl = normalizeModuleCacheUrl(url)
+            val stripped = osrsWikiWebViewUrl.withoutMediaWikiGadgetLoadModules(url)
+            if (stripped == null) {
+                Log.i(logTag, "  -> INTERCEPT [REJECT] MediaWiki gadget load: $url")
+                return javascriptResponse(osrsWikiWebViewUrl.REJECTED_GADGET_LOAD_JS)
+            }
+            val moduleUrl = normalizeModuleCacheUrl(stripped)
             try {
                 val cachedResponse = moduleCache.getCachedResponseIfPresent(moduleUrl)
                 if (cachedResponse != null) {
                     Log.i(logTag, "  -> INTERCEPT [HIT] in NetworkModuleCache for: $moduleUrl")
-                    return javascriptResponse(cachedResponse)
+                    return javascriptResponse(osrsResourceLoaderScript.sanitize(cachedResponse))
+                }
+
+                if (stripped != url) {
+                    val fetched = osrsWikiWebViewProxy.request(view.context, "GET", stripped, null)
+                    if (fetched.optBoolean("ok")) {
+                        return javascriptResponse(
+                            osrsResourceLoaderScript.sanitize(fetched.optString("body"))
+                        )
+                    }
+                    Log.i(logTag, "  -> INTERCEPT [REJECT] stripped gadget load failed: $url")
+                    return javascriptResponse(osrsWikiWebViewUrl.REJECTED_GADGET_LOAD_JS)
                 }
 
                 if (!isNetworkAvailable(view.context)) {

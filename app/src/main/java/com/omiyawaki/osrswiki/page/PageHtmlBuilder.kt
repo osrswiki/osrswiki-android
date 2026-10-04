@@ -27,7 +27,7 @@ class PageHtmlBuilder(private val context: Context) {
         JavaScriptActionHandler.getInfoboxSwitcherCssPath(),
         // Table/infobox/bonuses + calculator chrome must apply before first layout.
         // Early-paint table-layout:fixed without these rules crushes bonus columns.
-        "styles/gadget_calc.css",
+        "styles/osrs_calculator.css",
         "styles/fixes.css"
     )
 
@@ -52,8 +52,7 @@ class PageHtmlBuilder(private val context: Context) {
     // Simple MediaWiki ResourceLoader - let it work naturally
     private val mediawikiArtifacts = listOf(
         "startup.js",
-        "web/osrs_native_calc_indoc.js",
-        "mediawiki/gadget_calc_core.js"
+        "web/osrs_native_calc_indoc.js"
     )
     
     private val articleTransformJsAssetPaths = listOf(
@@ -65,7 +64,8 @@ class PageHtmlBuilder(private val context: Context) {
         "web/live_article_asset_warm.js",
         "web/mobile_article_polish.js",
         "web/horizontal_scroll_interceptor.js",
-        "web/image_area_cap.js"
+        "web/image_area_cap.js",
+        "web/osrs_article_tooltips.js"
     )
 
     // Base JavaScript assets (before conditional GE charts addition)
