@@ -433,6 +433,15 @@ tasks.configureEach {
     }
 }
 
+// F-Droid Reproducible Builds: AGP's ArtProfile tasks can emit a different
+// assets/dexopt/baseline.prof on each clean build (issuetracker 231837768; F-Droid
+// docs "baseline.prof not deterministic"). Disable them for the foss flavor only.
+tasks.configureEach {
+    if (name.contains("ArtProfile") && name.contains("Foss")) {
+        enabled = false
+    }
+}
+
 dependencies {
     // MapLibre for map functionality
     implementation(project(":undergroundmaps"))
