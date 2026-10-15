@@ -21,6 +21,7 @@ object RandomPageRepository {
             // Make a request to the random page endpoint
             // This will redirect to a random page, so we get the final URL
             val connection = Jsoup.connect(RANDOM_URL)
+                .userAgent(com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.appUserAgent("random"))
                 .followRedirects(true)
                 .execute()
             

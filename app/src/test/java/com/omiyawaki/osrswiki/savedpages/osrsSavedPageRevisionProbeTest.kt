@@ -19,6 +19,7 @@ class osrsSavedPageRevisionProbeTest {
         assertTrue(url.contains("prop=revisions"))
         assertTrue(url.contains("rvprop=ids"))
         assertTrue(url.contains("titles=Abyssal+whip") || url.contains("titles=Abyssal%20whip"))
+        assertTrue(url.contains("maxlag=5"))
         assertFalse(url.contains("action=parse"))
     }
 

@@ -185,7 +185,7 @@ object NewsRepository : NewsFeedRepository {
                 L.d("🌐 NewsRepository: Wiki request attempt $attempt/$REQUEST_ATTEMPTS")
                 Jsoup.connect(WIKI_URL)
                     .timeout(REQUEST_TIMEOUT_MILLIS)
-                    .userAgent("OSRS Wiki Android/${com.omiyawaki.osrswiki.BuildConfig.VERSION_NAME}")
+                    .userAgent(com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.appUserAgent("news"))
                     .get()
             }
             val feed = WikiFeed(

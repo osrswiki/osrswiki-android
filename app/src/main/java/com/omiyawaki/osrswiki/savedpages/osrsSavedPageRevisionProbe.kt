@@ -15,8 +15,10 @@ object osrsSavedPageRevisionProbe {
 
     fun queryUrl(pageTitle: String): String {
         val encodedTitle = URLEncoder.encode(pageTitle, Charsets.UTF_8.name())
-        return "$WIKI_QUERY_ENDPOINT?action=query&format=json&formatversion=2" +
-            "&prop=revisions&rvprop=ids&rvlimit=1&titles=$encodedTitle"
+        return com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.withBackgroundMaxLag(
+            "$WIKI_QUERY_ENDPOINT?action=query&format=json&formatversion=2" +
+                "&prop=revisions&rvprop=ids&rvlimit=1&titles=$encodedTitle"
+        )
     }
 
     fun remoteRevision(json: String, requestedTitle: String): RemoteRevision? {

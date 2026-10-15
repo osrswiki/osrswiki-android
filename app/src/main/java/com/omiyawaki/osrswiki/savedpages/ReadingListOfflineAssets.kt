@@ -577,7 +577,7 @@ internal sealed interface ReadingListPersistedCss {
 /** Durable, exhaustive asset phase used only by an explicit reading-list save. */
 internal class ReadingListOfflineAssetSaver(
     private val fetcher: ReadingListAssetFetcher,
-    private val maxConcurrent: Int = 6
+    private val maxConcurrent: Int = 2
 ) {
     init {
         require(maxConcurrent > 0)

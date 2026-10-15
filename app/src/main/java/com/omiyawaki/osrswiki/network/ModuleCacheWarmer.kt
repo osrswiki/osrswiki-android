@@ -172,7 +172,7 @@ class ModuleCacheWarmer internal constructor(
         return try {
             val request = Request.Builder()
                 .url(url)
-                .header("User-Agent", "OSRSWiki-Android")
+                .header("User-Agent", osrsWikiApiStewardship.appUserAgent("module-cache"))
                 .header("Accept", "application/javascript, */*")
                 .get()
                 .build()

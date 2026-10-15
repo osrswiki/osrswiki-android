@@ -36,6 +36,7 @@ class SearchRepository(
     private val recentSearchDao: RecentSearchDao
 ) {
     internal val previewStore = osrsSearchPreviewStore()
+    internal val queryResultCache = osrsRecentSearchQueryCache<osrsCachedSearchFirstPage>()
     private val enrichScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // --- Recent Searches ---
@@ -99,13 +100,15 @@ class SearchRepository(
                         scope = scope,
                         articleMetaDao = articleMetaDao,
                         previewStore = previewStore,
-                        enrichScope = enrichScope
+                        enrichScope = enrichScope,
+                        queryCache = queryResultCache
                     )
                 } else {
                     SearchPagingSource(
                         apiService = apiService,
                         query = query,
-                        articleMetaDao = articleMetaDao
+                        articleMetaDao = articleMetaDao,
+                        queryCache = queryResultCache
                     )
                 }
             }

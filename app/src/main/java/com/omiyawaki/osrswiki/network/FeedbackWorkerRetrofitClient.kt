@@ -1,8 +1,6 @@
 package com.omiyawaki.osrswiki.network
 
-import android.os.Build
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.omiyawaki.osrswiki.BuildConfig
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -26,7 +24,7 @@ object FeedbackWorkerRetrofitClient {
             val originalRequest = chain.request()
             val requestWithHeaders = originalRequest.newBuilder()
                 .header("Content-Type", "application/json")
-                .header("User-Agent", "OSRSWikiApp/${BuildConfig.VERSION_NAME} (Android ${Build.VERSION.RELEASE})")
+                .header("User-Agent", osrsWikiApiStewardship.appUserAgent("feedback"))
                 .build()
             return chain.proceed(requestWithHeaders)
         }

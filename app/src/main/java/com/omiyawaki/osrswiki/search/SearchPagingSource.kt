@@ -19,7 +19,8 @@ private const val THUMBNAIL_SIZE = 240
 class SearchPagingSource(
     private val apiService: WikiApiService,
     private val query: String,
-    private val articleMetaDao: ArticleMetaDao
+    private val articleMetaDao: ArticleMetaDao,
+    private val queryCache: osrsRecentSearchQueryCache<osrsCachedSearchFirstPage>? = null
 ) : PagingSource<Int, SearchResult>() {
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, SearchResult> {
@@ -31,6 +32,16 @@ class SearchPagingSource(
         }
 
         return try {
+            val cacheKey = osrsRecentSearchQueryCache.key("all", query)
+            if (currentOffset == OSRS_WIKI_STARTING_PAGE_OFFSET) {
+                queryCache?.get(cacheKey)?.let { cached ->
+                    return LoadResult.Page(
+                        data = cached.items,
+                        prevKey = null,
+                        nextKey = cached.nextKey as? Int
+                    )
+                }
+            }
             // Fulltext Cirrus misses title-prefix hits the website search box
             // returns (for example "earth ru" → Earth rune). Fetch prefixsearch
             // in parallel on the first page, then rerank the union.
@@ -105,6 +116,12 @@ class SearchPagingSource(
             val nextKey = response.continuation?.gsroffset
             val prevKey = if (currentOffset == OSRS_WIKI_STARTING_PAGE_OFFSET) null else (currentOffset - params.loadSize).coerceAtLeast(0)
 
+            if (currentOffset == OSRS_WIKI_STARTING_PAGE_OFFSET) {
+                queryCache?.put(
+                    cacheKey,
+                    osrsCachedSearchFirstPage(enhancedSearchResults, nextKey)
+                )
+            }
             LoadResult.Page(
                 data = enhancedSearchResults,
                 prevKey = prevKey,

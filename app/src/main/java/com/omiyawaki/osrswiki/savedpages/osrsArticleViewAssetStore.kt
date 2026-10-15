@@ -10,6 +10,8 @@ import java.io.File
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
+import com.omiyawaki.osrswiki.network.WikiHttpRetryAfterInterceptor
+import com.omiyawaki.osrswiki.network.WikiHttpUserAgentInterceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -42,6 +44,8 @@ internal object osrsArticleViewAssetStore : osrsSessionAssetLookup {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .addInterceptor(WikiHttpUserAgentInterceptor())
+            .addInterceptor(WikiHttpRetryAfterInterceptor())
             .build()
     }
 

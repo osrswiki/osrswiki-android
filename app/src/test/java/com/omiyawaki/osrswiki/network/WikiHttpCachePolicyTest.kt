@@ -75,6 +75,17 @@ class WikiHttpCachePolicyTest {
         assertTrue(WikiHttpCachePolicy.isWikiHost("www.oldschool.runescape.wiki"))
         assertTrue(WikiHttpCachePolicy.isWikiHost("oldschool.runescape.wiki"))
         assertFalse(WikiHttpCachePolicy.isWikiHost("maps.runescape.wiki"))
+        assertFalse(WikiHttpCachePolicy.isWikiHost("prices.runescape.wiki"))
+    }
+
+    @Test
+    fun pricesHostHonorsServerCacheControl() {
+        assertTrue(WikiHttpCachePolicy.isCacheableApiHost("prices.runescape.wiki"))
+        assertNull(
+            WikiHttpCachePolicy.cacheControlFor(
+                get("https://prices.runescape.wiki/api/v2/osrs/timeseries?lookback=1y&id=4151")
+            )
+        )
     }
 
     private fun get(url: String): Request = Request.Builder().url(url).build()

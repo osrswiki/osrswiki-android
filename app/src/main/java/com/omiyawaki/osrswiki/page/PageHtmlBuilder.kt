@@ -3,6 +3,8 @@ package com.omiyawaki.osrswiki.page
 import android.content.Context
 import android.util.Log
 import com.omiyawaki.osrswiki.bridge.JavaScriptActionHandler
+import com.omiyawaki.osrswiki.network.osrsGeChartPriceCache
+import com.omiyawaki.osrswiki.network.osrsWikiApiStewardship
 import com.omiyawaki.osrswiki.settings.Prefs
 import com.omiyawaki.osrswiki.settings.ReaderTextScale
 import com.omiyawaki.osrswiki.theme.Theme
@@ -136,6 +138,7 @@ class PageHtmlBuilder(private val context: Context) {
                 var RLCONF = {"wgBreakFrames": false, "wgSeparatorTransformTable": ["", ""], "wgDigitTransformTable": ["", ""], "wgDefaultDateFormat": "dmy", "wgMonthNames": ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"], "wgRequestId": "smart-module-loader", "wgCanonicalNamespace": "$canonicalNamespace", "wgCanonicalSpecialPageName": false, "wgNamespaceNumber": $namespaceNumber, "wgPageName": "$safetitle", "wgTitle": "$safeVisibleTitle", "wgCurRevisionId": 0, "wgRevisionId": 0, "wgArticleId": 1, "wgIsArticle": true, "wgIsRedirect": false, "wgAction": "view", "wgUserName": null, "wgUserGroups": ["*"], "wgPageViewLanguage": "en-gb", "wgPageContentLanguage": "en-gb", "wgPageContentModel": "wikitext", "wgRelevantPageName": "$safetitle", "wgRelevantArticleId": 1, "wgIsProbablyEditable": true, "wgRelevantPageIsProbablyEditable": true, "wgRestrictionEdit": [], "wgRestrictionMove": [], "wgServer": "https://oldschool.runescape.wiki", "wgServerName": "oldschool.runescape.wiki", "wgScriptPath": "", "wgScript": "/index.php", "wgLoadScript": "/load.php"};
                 var RLSTATE = {"ext.gadget.switch-infobox-styles": "ready", "ext.gadget.articlefeedback-styles": "ready", "ext.gadget.falseSubpage": "ready", "ext.gadget.headerTargetHighlight": "ready", "site.styles": "ready", "user.styles": "ready", "user": "ready", "user.options": "loading", "ext.cite.styles": "ready", "ext.kartographer.style": "ready", "skins.minerva.base.styles": "ready", "skins.minerva.content.styles.images": "ready", "mediawiki.hlist": "ready", "skins.minerva.codex.styles": "ready", "skins.minerva.icons.wikimedia": "ready", "skins.minerva.mainMenu.icons": "ready", "skins.minerva.mainMenu.styles": "ready", "jquery.tablesorter.styles": "ready", "ext.embedVideo.styles": "ready", "mobile.init.styles": "ready"};
                 var RLPAGEMODULES = [$modulesList];
+                window.osrsApiUserAgent = "${osrsWikiApiStewardship.appUserAgent("webview")}";
                 
                 // Log detected modules for debugging
                 console.log('WikiModuleRegistry detected modules for "$safetitle":', RLPAGEMODULES);
@@ -179,8 +182,14 @@ class PageHtmlBuilder(private val context: Context) {
             val needsGECharts = cleanedBodyContent.contains("GEChartBox") ||
                     cleanedBodyContent.contains("GEdatachart") ||
                     cleanedBodyContent.contains("GEdataprices")
+            val geChartItemIds = if (needsGECharts) {
+                osrsGeChartPriceCache.itemIdsIn(cleanedBodyContent)
+            } else {
+                emptyList()
+            }
             if (needsGECharts) {
                 Log.d(logTag, "Detected GE chart markers in content; will include Chart.js widget script.")
+                osrsGeChartPriceCache.prefetchDiskAsync(context, geChartItemIds)
             }
 
             val cssLinks = stylesheetMarkup(
@@ -211,6 +220,8 @@ class PageHtmlBuilder(private val context: Context) {
                     // Chart.js UMD prefers AMD when present. MediaWiki defines `define`, so
                     // window.Chart never appears unless we temporarily clear it.
                     "<script>window.__osrsAmdDefine=window.define;try{window.define=undefined;}catch(e){}</script>\n$tag\n<script>if(typeof window.__osrsAmdDefine!=='undefined'){window.define=window.__osrsAmdDefine;}</script>"
+                } else if (assetPath.endsWith("ge_charts_init.js")) {
+                    "<script>${osrsGeChartPriceCache.memoryPrefetchScript(geChartItemIds)}</script>\n$tag"
                 } else {
                     tag
                 }

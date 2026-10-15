@@ -6,6 +6,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import com.omiyawaki.osrswiki.network.NetworkModuleCache
 import com.omiyawaki.osrswiki.network.OkHttpClientFactory
+import com.omiyawaki.osrswiki.network.osrsWikiApiStewardship
 import okhttp3.FormBody
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -189,7 +190,7 @@ object osrsWikiWebViewProxy {
             val httpUrl = wikiUrl.toHttpUrlOrNull() ?: return null
             val builder = Request.Builder()
                 .url(httpUrl)
-                .header("User-Agent", "OSRSWiki-Android-Calculator")
+                .header("User-Agent", osrsWikiApiStewardship.appUserAgent("calculator"))
                 .header("Accept", "*/*")
             headers.forEach { (key, value) -> builder.header(key, value) }
             if (method.equals("POST", ignoreCase = true)) {

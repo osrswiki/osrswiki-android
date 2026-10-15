@@ -237,21 +237,46 @@ class NativeMapHandler(
         @JavascriptInterface
         fun fetchText(url: String): String {
             val started = android.os.SystemClock.elapsedRealtime()
+            val context = fragment.requireContext().applicationContext
+            com.omiyawaki.osrswiki.network.osrsGeChartPriceCache.readMemory(url)?.let { cached ->
+                return cached
+            }
             return try {
-                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                connection.instanceFollowRedirects = true
-                connection.connectTimeout = 4000
-                connection.readTimeout = 4000
-                connection.setRequestProperty(
-                    "User-Agent",
-                    "osrswiki-android/1.7 (https://github.com/omiyawaki/osrswiki; native-bridge)"
-                )
-                connection.setRequestProperty("Accept", "application/json")
-                val code = connection.responseCode
-                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                L.d("OsrsWikiBridge.fetchText $code in ${android.os.SystemClock.elapsedRealtime() - started}ms for $url")
-                if (code in 200..299) body else ""
+                var lastBody = ""
+                repeat(3) { attempt ->
+                    val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                    connection.instanceFollowRedirects = true
+                    connection.connectTimeout = 4000
+                    connection.readTimeout = 4000
+                    connection.setRequestProperty(
+                        "User-Agent",
+                        com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.appUserAgent("native-bridge")
+                    )
+                    connection.setRequestProperty("Accept", "application/json")
+                    val code = connection.responseCode
+                    val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                    lastBody = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                    L.d("OsrsWikiBridge.fetchText $code in ${android.os.SystemClock.elapsedRealtime() - started}ms for $url")
+                    val retryable = com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.shouldRetryResponse(
+                        code,
+                        lastBody
+                    )
+                    if (code in 200..299 && !retryable) {
+                        com.omiyawaki.osrswiki.network.osrsGeChartPriceCache.write(context, url, lastBody)
+                        return lastBody
+                    }
+                    if (!retryable || attempt == 2) {
+                        return ""
+                    }
+                    val delayMs = com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.retryAfterMillis(
+                        connection.getHeaderField("Retry-After")
+                    ) ?: (400L * (attempt + 1))
+                    connection.disconnect()
+                    if (delayMs > 0) {
+                        Thread.sleep(delayMs.coerceAtMost(4_000L))
+                    }
+                }
+                lastBody
             } catch (error: Exception) {
                 L.w("OsrsWikiBridge.fetchText failed after ${android.os.SystemClock.elapsedRealtime() - started}ms for $url: ${error.message}")
                 ""

@@ -202,7 +202,9 @@ private suspend fun processPagesToSave(pagesToSave: List<ReadingListPage>): Bool
                         articleHtml = prepared.processedHtml.takeIf { it.isNotBlank() }
                     } else {
                         val encodedApiTitle = URLEncoder.encode(page.apiTitle, "UTF-8")
-                        val apiRequestUrl = "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle|pageid|title&redirects=true&disableeditsection=true&disablelimitreport=true&page=$encodedApiTitle"
+                        val apiRequestUrl = com.omiyawaki.osrswiki.network.osrsWikiApiStewardship.withBackgroundMaxLag(
+                            "$baseApiUrl?action=parse&format=json&formatversion=2&prop=text|revid|displaytitle|pageid|title&redirects=true&disableeditsection=true&disablelimitreport=true&page=$encodedApiTitle"
+                        )
                         val stagedDocument = snapshotStage.stageDocument(apiRequestUrl)
                         val parseObject = stagedDocument?.contentFile?.readText(Charsets.UTF_8)
                             ?.let { JSONObject(it).optJSONObject("parse") }

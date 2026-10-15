@@ -20,9 +20,11 @@ import java.util.concurrent.TimeUnit
  *
  * Application interceptor order:
  * 1. [WikiHttpCachePolicyInterceptor] — request Cache-Control
- * 2. [OfflineCacheInterceptor] — persist `X-Offline-Save`; Room fallback on
+ * 2. [WikiHttpUserAgentInterceptor] — identified wiki/prices User-Agent
+ * 3. [WikiHttpRetryAfterInterceptor] — 429/503 + Retry-After
+ * 4. [OfflineCacheInterceptor] — persist `X-Offline-Save`; Room fallback on
  *    [java.io.IOException]
- * 3. debug [HttpLoggingInterceptor] at BASIC (never BODY)
+ * 5. debug [HttpLoggingInterceptor] at BASIC (never BODY)
  */
 object OkHttpClientFactory {
 
@@ -52,6 +54,8 @@ object OkHttpClientFactory {
             .writeTimeout(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .cache(Cache(httpCacheDir, WikiHttpCachePolicy.CACHE_MAX_BYTES))
             .addInterceptor(WikiHttpCachePolicyInterceptor())
+            .addInterceptor(WikiHttpUserAgentInterceptor())
+            .addInterceptor(WikiHttpRetryAfterInterceptor())
             .addInterceptor(offlineCacheInterceptor) // Unified offline content caching
 
         // Add other common interceptors, e.g., HttpLoggingInterceptor for debugging

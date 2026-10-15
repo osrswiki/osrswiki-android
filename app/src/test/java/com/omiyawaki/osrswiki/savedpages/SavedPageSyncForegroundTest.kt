@@ -117,6 +117,7 @@ class SavedPageSyncForegroundTest {
         assertTrue(worker.contains("catch (cancellation: CancellationException)"))
         assertTrue(worker.contains("catch (linkageError: LinkageError)"))
         assertTrue(worker.contains("pagesToSave.forEach { page ->"))
+        assertTrue(worker.contains("withBackgroundMaxLag") || worker.contains("maxlag=5"))
         assertTrue(manifest.contains("android.permission.POST_NOTIFICATIONS"))
         assertTrue(manifest.contains("android.permission.FOREGROUND_SERVICE_DATA_SYNC"))
         assertTrue(manifest.contains("android:foregroundServiceType=\"dataSync\""))

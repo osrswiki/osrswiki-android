@@ -30,7 +30,8 @@ class osrsScopedSearchPagingSource(
     private val scope: osrsSearchScope,
     private val articleMetaDao: ArticleMetaDao,
     private val previewStore: osrsSearchPreviewStore = osrsSearchPreviewStore(),
-    private val enrichScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val enrichScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val queryCache: osrsRecentSearchQueryCache<osrsCachedSearchFirstPage>? = null
 ) : PagingSource<String, SearchResult>() {
 
     override suspend fun load(params: LoadParams<String>): LoadResult<String, SearchResult> {
@@ -44,6 +45,17 @@ class osrsScopedSearchPagingSource(
         }
 
         return try {
+            val cacheKey = osrsRecentSearchQueryCache.key(namespace.toString(), trimmed)
+            val isFirstPage = params.key == null
+            if (isFirstPage && trimmed.isNotEmpty()) {
+                queryCache?.get(cacheKey)?.let { cached ->
+                    return LoadResult.Page(
+                        data = cached.items,
+                        prevKey = null,
+                        nextKey = cached.nextKey as? String
+                    )
+                }
+            }
             val limit = osrsSearchGeneratorLimit(params.loadSize)
             val response = if (trimmed.isEmpty()) {
                 apiService.generatedRecentChanges(
@@ -62,6 +74,12 @@ class osrsScopedSearchPagingSource(
                 )
             }
             val page = pageFrom(response)
+            if (isFirstPage && trimmed.isNotEmpty() && page is LoadResult.Page) {
+                queryCache?.put(
+                    cacheKey,
+                    osrsCachedSearchFirstPage(page.data, page.nextKey)
+                )
+            }
             page
         } catch (exception: IOException) {
             Log.e("osrsScopedSearchPaging", "IOException during scoped search", exception)

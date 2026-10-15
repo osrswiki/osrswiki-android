@@ -252,6 +252,8 @@ class PageHtmlBuilderTest {
         assertTrue(chartHtml.contains("web/chart.umd.min.js"))
         assertTrue(chartHtml.contains("web/ge_charts_init.js"))
         assertTrue(chartHtml.contains("__osrsAmdDefine"))
+        assertTrue(chartHtml.contains("__osrsGeChartPrefetch"))
+        assertFalse(plainHtml.contains("__osrsGeChartPrefetch"))
     }
 
     @Test

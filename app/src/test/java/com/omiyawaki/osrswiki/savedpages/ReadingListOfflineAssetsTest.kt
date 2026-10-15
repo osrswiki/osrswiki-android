@@ -575,6 +575,15 @@ class ReadingListOfflineAssetsTest {
         }
     }
 
+    @Test
+    fun explicitSaveConcurrencyIsCappedAtTwo() {
+        val source = File(
+            "src/main/java/com/omiyawaki/osrswiki/savedpages/ReadingListOfflineAssets.kt"
+        ).readText()
+        assertTrue(source.contains("maxConcurrent: Int = 2"))
+        assertFalse(source.contains("maxConcurrent: Int = 6"))
+    }
+
     private fun assertInvalidAsset(url: String, contentType: String, bytes: ByteArray) {
         val file = kotlin.io.path.createTempFile("invalid-reading-list-asset").toFile()
         try {

@@ -21,13 +21,14 @@ import java.io.IOException
  * - GET `action=parse` article HTML (wiki already sends `max-age=300`)
  * - GET `/load.php` ResourceLoader modules (`max-age=300`)
  * - GET wiki-host static (`/images/` and other same-host CDN paths)
+ * - GET `prices.runescape.wiki` (GE charts; honor server Cache-Control)
  *
  * ## Must stay fresh (`Cache-Control: no-store` on the request)
  * - Search / typeahead: `list=search`, `list=prefixsearch`, `action=opensearch`
  * - Search generators: `generator=search`, `generator=prefixsearch`,
  *   `generator=recentchanges`
- * - Non-wiki hosts, including the feedback Worker (the shared client is reused
- *   by [FeedbackWorkerRetrofitClient])
+ * - Other non-wiki hosts, including the feedback Worker (the shared client is
+ *   reused by [FeedbackWorkerRetrofitClient])
  *
  * ## Explicit saves
  * Requests with `X-Offline-Save` use [CacheControl.FORCE_NETWORK] so a live
@@ -45,9 +46,18 @@ object WikiHttpCachePolicy {
         "www.oldschool.runescape.wiki"
     )
 
+    private val cacheableApiHosts = wikiHosts + setOf(
+        "prices.runescape.wiki"
+    )
+
     fun isWikiHost(host: String?): Boolean {
         val normalized = host?.lowercase() ?: return false
         return normalized in wikiHosts
+    }
+
+    fun isCacheableApiHost(host: String?): Boolean {
+        val normalized = host?.lowercase() ?: return false
+        return normalized in cacheableApiHosts
     }
 
     fun mustStayFresh(url: HttpUrl): Boolean {
@@ -71,7 +81,7 @@ object WikiHttpCachePolicy {
         if (request.header(HEADER_OFFLINE_SAVE) != null) {
             return CacheControl.FORCE_NETWORK
         }
-        if (!isWikiHost(request.url.host)) {
+        if (!isCacheableApiHost(request.url.host)) {
             return CacheControl.Builder().noStore().build()
         }
         if (mustStayFresh(request.url)) {
