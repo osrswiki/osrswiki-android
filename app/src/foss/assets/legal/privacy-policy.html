@@ -30,7 +30,7 @@
     <p>The app stores data locally so it can work as a wiki reader:</p>
     <ul>
         <li><strong>Search history</strong> and recently viewed pages, until you clear them or uninstall the app</li>
-        <li><strong>Saved / offline articles</strong> and cached wiki assets, until you clear offline storage or uninstall</li>
+        <li><strong>Saved and offline articles</strong> and cached wiki assets, until you clear offline storage or uninstall</li>
         <li><strong>Map tiles</strong> shipped with the app as local MBTiles. The map tab does not download a remote map-tile service</li>
     </ul>
     <p>The app does not keep voice recordings.</p>
@@ -40,7 +40,7 @@
     <p>Those HTTP requests send a User-Agent that includes the app version, Android version, device manufacturer, and device model. Wiki article JavaScript may also request additional wiki or community hosts needed to render a page.</p>
 
     <h2>3. Optional feedback</h2>
-    <p>If you submit <em>Report an Issue</em> or <em>Request a Feature</em>, the app sends your title and description, plus app version, distribution flavor (<code>foss</code>), Android version, and device model (manufacturer, model, brand, and product) to a Cloudflare Worker at <strong>https://osrswiki-feedback.omiyawaki.workers.dev/</strong>. The Worker creates a GitHub Issue. The app does not embed a GitHub API token. If you do not use feedback, this data is not sent.</p>
+    <p>If you submit <em>Report an Issue</em> or <em>Request a Feature</em>, the app sends your title and description, plus app version, distribution flavor (<code>foss</code>), Android version, and device model (manufacturer, model, brand, and product) to a Cloudflare Worker at <strong>https://osrswiki-feedback.omiyawaki.workers.dev/</strong>. The Worker creates a GitHub Issue, which may be publicly visible, so do not include personal information in feedback. The app does not embed a GitHub API token. If you do not use feedback, this data is not sent.</p>
 
     <h2>4. Grand Exchange charts</h2>
     <p>Item price charts request timeseries data from <strong>https://prices.runescape.wiki</strong>.</p>
@@ -70,14 +70,14 @@
     </ul>
 
     <h2>10. Children’s privacy</h2>
-    <p>The app does not knowingly collect personal information from children under 13. The wiki content is about a video game rated for teen audiences. If you are a parent and believe your child has provided personal information through feedback, contact us through the in-app feedback form.</p>
+    <p>The app does not knowingly collect personal information from children under 13. The wiki covers a video game rated for teen audiences. If you are a parent and believe your child has provided personal information through feedback, email contact.omiyawaki@gmail.com and we will remove it.</p>
 
     <h2>11. Changes to this policy</h2>
     <p>We may update this privacy policy when the FOSS build’s data flows change. Significant changes will be included in app updates.</p>
 
     <div class="contact">
         <h2>Contact</h2>
-        <p>For privacy questions, use the app’s feedback form (More → Feedback). That path uses the Cloudflare Worker described above.</p>
+        <p>For privacy questions, email contact.omiyawaki@gmail.com. You can also use the app’s feedback form (Report an Issue), which uses the Cloudflare Worker described above.</p>
     </div>
 
     <hr>

@@ -4,6 +4,7 @@ Unofficial [Old School RuneScape Wiki](https://oldschool.runescape.wiki) reader 
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://play.google.com/apps/testing/com.omiyawaki.osrswiki) · Join [osrswiki-testers](https://groups.google.com/g/osrswiki-testers) first
+[![F-Droid](https://img.shields.io/f-droid/v/com.omiyawaki.osrswiki)](https://f-droid.org/packages/com.omiyawaki.osrswiki/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ea4aaa)](https://github.com/sponsors/omiyawaki)
 
 Search the wiki, read articles laid out for a phone screen, save pages for offline, and open the world map without leaving the app. Free and open source.
@@ -11,7 +12,7 @@ Search the wiki, read articles laid out for a phone screen, save pages for offli
 ## Install
 
 - **Google Play:** Join the [osrswiki-testers](https://groups.google.com/g/osrswiki-testers) Google Group, then [open the Play testing link](https://play.google.com/apps/testing/com.omiyawaki.osrswiki) and tap Become a tester
-- **F-Droid:** Coming soon
+- **F-Droid:** [f-droid.org/packages/com.omiyawaki.osrswiki](https://f-droid.org/packages/com.omiyawaki.osrswiki/)
 
 Also available on iOS: [Download on the App Store](https://apps.apple.com/us/app/osrs-wiki/id6788651409) · [Source](https://github.com/osrswiki/osrswiki-ios)
 
