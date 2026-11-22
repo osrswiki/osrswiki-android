@@ -38,6 +38,36 @@ URL off the pinned `osrswiki/osrswiki-tooling` tag. Generated rasters and other
 map-building intermediates remain host-local and are never published as Git
 history.
 
+## Automated weekly updates
+
+Underground assets share the `pixi run map-auto-update` path with the
+surface floors. After the live OpenRS2 cache is selected, the job exports
+cache-native inventory and alignment, and when provenance rasters, wiki
+basemaps, and the locked builder can run, it rebuilds the realm tree,
+compares it to the current pin by content (MBTiles tile payloads, not
+SQLite wrapper bytes), and publishes a **new**
+`underground-assets-v1-<12-hex>` tooling release if the bytes changed.
+Wiki `basemaps.json` is fetched from `latest/`, then
+`osrs/versions/<live-cache-date>_a` (and `_b`), then the last known
+working snapshot (`osrs/versions/2026-03-04_a`) because `latest/` is not
+always published. Cache natives the wiki snapshot has not labeled yet
+are built cache-only; wiki natives that disappeared from the cache are
+skipped instead of failing the rebuild. Native `cache-world-map:*`
+realms with no rendered pixels (for example Vampyrium on the current
+floors) are excluded the same way as empty `cache-special-region:*`
+records.
+Old tags stay downloadable. `--dry-run` skips upload and the pin PR.
+`scripts/shared/publish-underground-release-assets.sh --create-release`
+is the only supported uploader.
+
+The weekly LaunchAgent on mini (`com.omiyawaki.osrswiki.map-auto-update`)
+covers both surface and underground. If the locked rebuild fails, the job
+keeps the current underground pin so surface can still update, and opens
+or comments one GitHub issue (`map-auto-update: underground rebuild
+failed`) instead of failing silently. FOSS / F-Droid still opt in to the
+real underground catalog on a later app version; this pipeline does not
+edit fdroiddata.
+
 The `./scripts/fetch-map-assets.sh materialize` prebuild line downloads one
 `map_floors.zip` for the surface floors. Do not expand it into four separate
 mbtiles curls.
