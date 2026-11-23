@@ -89,4 +89,9 @@ prebuild:
 ```
 
 Until that later version, a clean public-tree assemble continues to ship the
-fixture stub.
+fixture stub. Never materialize this catalog into `app/src/main/assets`:
+that ships `assets/assets/` plus a non-fixture `underground-realms.json`
+and fails F-Droid's reproducible-build comparison (2.1.6 / versionCode 74).
+FOSS GitHub APKs are built only by fleet `scripts/shared/publish-foss-apk.sh`,
+which clones a clean public checkout, applies the map_floors.zip prebuild,
+and refuses to upload unless an independent F-Droid-style rebuild matches.
